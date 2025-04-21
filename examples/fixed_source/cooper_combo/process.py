@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import h5py
 import numpy as np
 
-
 # Load result
 with h5py.File("output.h5", "r") as f:
     tally = f["tallies/mesh_tally_0"]

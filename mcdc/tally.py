@@ -248,10 +248,10 @@ def cell_tally(
 
 def cs_tally(
     N_cs_bins=10,
-    cs_bin_size=([1.0, 1.0]),
-    x=np.array([-INF, INF]),
-    y=np.array([-INF, INF]),
-    z=np.array([-INF, INF]),
+    cs_bin_size=([1.0, 1.0, 1.0]),
+    # x=np.array([-INF, INF]),
+    # y=np.array([-INF, INF]),
+    # z=np.array([-INF, INF]),
     t=np.array([-INF, INF]),
     mu=np.array([-1.0, 1.0]),
     azi=np.array([-PI, PI]),
@@ -265,15 +265,21 @@ def cs_tally(
     # Set ID
     card.ID = len(global_.input_deck.cs_tallies)
 
-    # Set mesh
-    card.x = x
-    card.y = y
-    card.z = z
+    # # Set mesh
+    # card.x = x
+    # card.y = y
+    # card.z = z
 
     # Set bin properties, convert bin size to problem units
     card.N_cs_bins = N_cs_bins
-    card.cs_bin_size[0] = cs_bin_size[0] / (len(x) - 1) * (x[-1] - x[0])
-    card.cs_bin_size[1] = cs_bin_size[1] / (len(y) - 1) * (y[-1] - y[0])
+
+    if len(cs_bin_size) == 2:
+        card.cs_bin_size = [cs_bin_size[0], cs_bin_size[1], INF]
+    else:
+        card.cs_bin_size = cs_bin_size
+    # card.cs_bin_size[0] = cs_bin_size[0] / (len(x) - 1) * (x[-1] - x[0])
+    # card.cs_bin_size[1] = cs_bin_size[1] / (len(y) - 1) * (y[-1] - y[0])
+    # card.cs_bin_size[2] = cs_bin_size[2] / (len(z) - 1) * (z[-1] - z[0])
 
     # Set other filters
     card.t = t
@@ -290,14 +296,14 @@ def cs_tally(
         card.g = E
 
     # Calculate total number bins
-    Nx = len(card.x) - 1
-    Ny = len(card.y) - 1
-    Nz = len(card.z) - 1
-    Nt = len(card.t) - 1
-    Nmu = len(card.mu) - 1
-    N_azi = len(card.azi) - 1
-    Ng = len(card.g) - 1
-    card.N_bin = Nx * Ny * Nz * Nt * Nmu * N_azi * Ng
+    # Nx = len(card.x) - 1
+    # Ny = len(card.y) - 1
+    # Nz = len(card.z) - 1
+    # Nt = len(card.t) - 1
+    # Nmu = len(card.mu) - 1
+    # N_azi = len(card.azi) - 1
+    # Ng = len(card.g) - 1
+    # card.N_bin = Nx * Ny * Nz * Nt * Nmu * N_azi * Ng
 
     # Scores
     for s in scores:

@@ -421,9 +421,9 @@ class CSTallyCard(TallyCard):
         TallyCard.__init__(self, "CS tally")
 
         # Set card data
-        self.x = np.array([-INF, INF])
-        self.y = np.array([-INF, INF])
-        self.z = np.array([-INF, INF])
+        # self.x = np.array([-INF, INF])
+        # self.y = np.array([-INF, INF])
+        # self.z = np.array([-INF, INF])
         self.N_bin = 1
         self.N_cs_bins = 1
-        self.cs_bin_size = np.array([1.0, 1.0])
+        self.cs_bin_size = np.array([1.0, 1.0, 1.0])
