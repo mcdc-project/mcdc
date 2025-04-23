@@ -2161,16 +2161,19 @@ def score_cs_tally(P_arr, distance, tally, data, mcdc):
 
     # Check each coarse bin
     for j in range(N_cs_bins):
-        center = adapt.local_array(2, type_.float64)
-        start = adapt.local_array(2, type_.float64)
-        end = adapt.local_array(2, type_.float64)
+        center = adapt.local_array(3, type_.float64)
+        start = adapt.local_array(3, type_.float64)
+        end = adapt.local_array(3, type_.float64)
         #
         center[0] = cs_centers[0][j]
         center[1] = cs_centers[1][j]
+        center[2] = cs_centers[2][j]
         start[0] = x
         start[1] = y
+        start[2] = z
         end[0] = x_final
         end[1] = y_final
+        end[2] = z_final
 
         distance_inside = calculate_distance_in_coarse_bin(
             start, end, distance, center, cs_bin_size
@@ -2178,9 +2181,10 @@ def score_cs_tally(P_arr, distance, tally, data, mcdc):
 
         # Last bin covers the whole problem
         if j == N_cs_bins - 1:
-            cs_bin_size_full_problem = adapt.local_array(2, type_.float64)
+            cs_bin_size_full_problem = adapt.local_array(3, type_.float64)
             cs_bin_size_full_problem[0] = INF
             cs_bin_size_full_problem[1] = INF
+            cs_bin_size_full_problem[2] = INF
             distance_inside = calculate_distance_in_coarse_bin(
                 start, end, distance, center, cs_bin_size_full_problem
             )
