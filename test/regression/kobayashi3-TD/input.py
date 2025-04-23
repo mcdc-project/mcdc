@@ -68,7 +68,7 @@ mcdc.tally.cell_tally(void_cell, scores=["flux"])
 mcdc.tally.cell_tally(shield_cell, scores=["flux"])
 
 # Setting
-mcdc.setting(N_particle=80)
+mcdc.setting(N_particle=80, N_batch=2)
 
 # Run
 mcdc.run()

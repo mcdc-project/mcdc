@@ -42,7 +42,7 @@ mcdc.tally.mesh_tally(
 )
 
 # Setting
-mcdc.setting(N_particle=50, census_bank_buff=5, source_bank_buff=5, N_batch=5)
+mcdc.setting(N_particle=50, census_bank_buff=5, source_bank_buff=5, N_batch=2)
 mcdc.time_census(np.linspace(0.0, 20.0, 5)[1:], tally_frequency=5)
 mcdc.population_control()
 

@@ -91,7 +91,7 @@ mcdc.tally.mesh_tally(
 )
 
 # Setting
-mcdc.setting(N_particle=100, active_bank_buff=1000)
+mcdc.setting(N_particle=100, active_bank_buff=1000, N_batch=2)
 
 # Run
 mcdc.run()

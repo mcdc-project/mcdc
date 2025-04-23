@@ -73,6 +73,8 @@ def loop_fixed_source(data_arr, mcdc_arr):
     for idx_batch in range(mcdc["setting"]["N_batch"]):
         if not mcdc["technique"]["domain_decomposition"]:
             kernel.distribute_work(N=mcdc["setting"]["N_particle"], mcdc=mcdc)
+        else:
+            kernel.distribute_work_dd(N=mcdc["setting"]["N_particle"], mcdc=mcdc)
         mcdc["idx_batch"] = idx_batch
         seed_batch = kernel.split_seed(idx_batch, mcdc["setting"]["rng_seed"])
 
@@ -149,10 +151,16 @@ def loop_fixed_source(data_arr, mcdc_arr):
             kernel.set_bank_size(mcdc["bank_source"], 0)
             kernel.set_bank_size(mcdc["bank_future"], 0)
 
+            # DD closeout
+            if mcdc["technique"]["domain_decomposition"]:
+                mcdc["dd_N_local_source"] = 0
+                mcdc["domain_decomp"]["work_done"] = False
+
             if not mcdc["setting"]["census_based_tally"]:
                 # Tally history closeout
                 kernel.tally_reduce(data, mcdc)
                 kernel.tally_accumulate(data, mcdc)
+
                 # Uq closeout
                 if mcdc["technique"]["uq"]:
                     kernel.uq_tally_closeout_batch(data, mcdc)
@@ -191,6 +199,11 @@ def loop_eigenvalue(data_arr, mcdc_arr):
         if mcdc["cycle_active"]:
             kernel.tally_reduce(data, mcdc)
             kernel.tally_accumulate(data, mcdc)
+
+        # DD closeout
+        if mcdc["technique"]["domain_decomposition"]:
+            mcdc["dd_N_local_source"] = 0
+            mcdc["domain_decomp"]["work_done"] = False
 
         # Print progress
         with objmode():

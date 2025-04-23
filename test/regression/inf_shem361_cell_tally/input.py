@@ -58,7 +58,7 @@ source = mcdc.source(energy=energy)
 mcdc.tally.cell_tally(c, scores=["flux"], g="all", t=np.linspace(0.0, 20.0, 21)[1:-1])
 
 # Setting
-mcdc.setting(N_particle=1e2, active_bank_buff=1000)
+mcdc.setting(N_particle=1e2, active_bank_buff=1000, N_batch=2)
 mcdc.time_census(np.linspace(0.0, 20.0, 21)[1:-1])
 
 # Run

@@ -77,7 +77,7 @@ mcdc.tally.mesh_tally(
 )
 
 # Setting
-mcdc.setting(N_particle=5000)
+mcdc.setting(N_particle=5000, N_batch=2)
 dd_x = np.array([0.0, 4.0, 8.0])
 dd_y = np.array([0.0, 4.0, 8.0])
 dd_z = np.array([0.0, 2.0, 3.0, 5.0, 8.0])

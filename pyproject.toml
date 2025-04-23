@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcdc"
-version = "0.11.1"
+version = "0.12.0"
 authors = [
   { name="Ilham Variansyah", email="variansi@oregonstate.edu" },
   { name="Sam Pasmann", email="spasmann@nd.edu" },
@@ -48,11 +48,11 @@ classifiers = [
     'Operating System :: MacOS',
 ]
 dependencies = [
-    "numba>0.60.0",
+    "numba>=0.60.0",
     "numpy",
     "scipy",
     "matplotlib",
-    "mpi4py>=3.1.5",
+    "mpi4py>=3.1.4",
     "pytest",
     "h5py",
     "colorama",

@@ -66,6 +66,7 @@ mcdc.setting(
     census_bank_buff=5,
     source_bank_buff=5,
     rng_seed=7,
+    N_batch=2,
 )
 mcdc.time_census(np.logspace(-5, 1, 6))
 mcdc.population_control()

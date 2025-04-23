@@ -50,7 +50,7 @@ mcdc.tally.mesh_tally(
 mcdc.tally.cell_tally(sphere_cell, scores=["fission"])
 
 # Setting
-mcdc.setting(N_particle=100)
+mcdc.setting(N_particle=100, N_batch=2)
 mcdc.implicit_capture()
 
 # Run

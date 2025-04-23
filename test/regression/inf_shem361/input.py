@@ -56,7 +56,7 @@ source = mcdc.source(energy=energy)
 mcdc.tally.mesh_tally(scores=["flux"], g="all")
 
 # Setting
-mcdc.setting(N_particle=40, active_bank_buff=1000)
+mcdc.setting(N_particle=40, active_bank_buff=1000, N_batch=2)
 
 # Run
 mcdc.run()
