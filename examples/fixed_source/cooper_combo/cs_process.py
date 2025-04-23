@@ -17,7 +17,7 @@ def rel_l2_error(recon, real):
     return np.linalg.norm(real - recon, ord=2) / np.linalg.norm(real, ord=2)
 
 
-reconstruct_2d = True
+reconstruct_2d = False
 if reconstruct_2d:
     # User-defined parameters - number of cells in each dimension
     Nx = 40
@@ -182,4 +182,4 @@ if reconstruct_2d:
 ###########################################################
 
 else:
-    raise Exception("Cooper_combo doesn't have 3D capabilities!")
+    raise Exception("cooper_combo doesn't have 3D capabilities!")
