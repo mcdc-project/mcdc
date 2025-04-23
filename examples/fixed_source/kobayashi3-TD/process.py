@@ -4,17 +4,12 @@ from matplotlib.colors import LogNorm
 import h5py
 import matplotlib.animation as animation
 
-
 # =============================================================================
 # Plot results
 # =============================================================================
 
 # Results
 with h5py.File("output.h5", "r") as f:
-    cs_recon = f["tallies/cs_tally_0/flux/reconstruction"][:]
-    plt.imshow(cs_recon)
-    plt.show()
-
     tallies = f["tallies/mesh_tally_0"]
     flux = tallies["flux"]
     grid = tallies["grid"]
@@ -29,8 +24,7 @@ with h5py.File("output.h5", "r") as f:
     phi = flux["mean"][:]
     phi_sd = flux["sdev"][:]
 
-    for i in range(len(f["input_deck"]["cell_tallies"])):
-        flux_score = f[f"tallies/cell_tally_{i}/flux"]
-        print(
-            f'cell {i+1} mean = {flux_score["mean"][()]}, sdev = {flux_score["sdev"][()]}'
-        )
+    print(len(x))
+
+    plt.imshow(phi[:, :, 0])
+    plt.show()

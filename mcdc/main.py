@@ -86,11 +86,6 @@ def run():
         loop_fixed_source(data_arr, mcdc_arr)
     mcdc["runtime_simulation"] = MPI.Wtime() - simulation_start
 
-    # Compressed sensing reconstruction
-    N_cs_bins = mcdc["cs_tallies"]["filter"]["N_cs_bins"][0]
-    if N_cs_bins != 0:
-        cs_reconstruct(data, mcdc)
-
     # Output: generate hdf5 output files
     output_start = MPI.Wtime()
     generate_hdf5(data, mcdc)
@@ -102,122 +97,6 @@ def run():
 
     # Closout
     closeout(mcdc)
-
-
-def calculate_cs_A(data, mcdc):
-    x_grid = mcdc["mesh_tallies"]["filter"]["x"][0]
-    y_grid = mcdc["mesh_tallies"]["filter"]["y"][0]
-    Nx = len(x_grid) - 1
-    Ny = len(y_grid) - 1
-
-    N_cs_bins = mcdc["cs_tallies"]["filter"]["N_cs_bins"][0]
-    cs_bin_size = mcdc["cs_tallies"]["filter"]["cs_bin_size"][0]
-
-    S = [[] for _ in range(N_cs_bins)]
-
-    [x_centers, y_centers] = mcdc["cs_tallies"]["filter"]["cs_centers"][0]
-    x_centers[-1] = (x_grid[-1] + x_grid[0]) / 2
-    y_centers[-1] = (y_grid[-1] + y_grid[0]) / 2
-
-    # Calculate the overlap grid for each bin, and flatten into a row of S
-    for ibin in range(N_cs_bins):
-        if ibin == N_cs_bins - 1:
-            # could just change to -INF, INF
-            cs_bin_size = np.array([x_grid[-1] + x_grid[0], y_grid[-1] + y_grid[0]])
-
-        bin_x_min = x_centers[ibin] - cs_bin_size[0] / 2
-        bin_x_max = x_centers[ibin] + cs_bin_size[0] / 2
-        bin_y_min = y_centers[ibin] - cs_bin_size[1] / 2
-        bin_y_max = y_centers[ibin] + cs_bin_size[1] / 2
-
-        overlap = np.zeros((len(y_grid) - 1, len(x_grid) - 1))
-
-        for i in range(len(y_grid) - 1):
-            for j in range(len(x_grid) - 1):
-                cell_x_min = x_grid[j]
-                cell_x_max = x_grid[j + 1]
-                cell_y_min = y_grid[i]
-                cell_y_max = y_grid[i + 1]
-
-                # Calculate overlap in x and y directions
-                overlap_x = np.maximum(
-                    0,
-                    np.minimum(bin_x_max, cell_x_max)
-                    - np.maximum(bin_x_min, cell_x_min),
-                )
-                overlap_y = np.maximum(
-                    0,
-                    np.minimum(bin_y_max, cell_y_max)
-                    - np.maximum(bin_y_min, cell_y_min),
-                )
-
-                # Calculate fractional overlap
-                cell_area = (cell_x_max - cell_x_min) * (cell_y_max - cell_y_min)
-                overlap[i, j] = (overlap_x * overlap_y) / cell_area
-
-        S[ibin] = overlap.flatten()
-    S = np.array(S)
-    mcdc["cs_tallies"]["filter"]["cs_S"] = S
-
-    assert np.allclose(S[-1], np.ones(Nx * Ny)), "Last row of S must be all ones"
-    assert S.shape[1] == Nx * Ny, "Size of S must match Nx * Ny."
-    assert (
-        S.shape[1] == mcdc["cs_tallies"]["N_bin"][0]
-    ), "Size of S must match number of cells in desired mesh tally"
-
-    # TODO: can this be done in a different way? idk
-    # Construct the DCT matrix T
-    idct_basis_x = spfft.idct(np.identity(Nx), axis=0)
-    idct_basis_y = spfft.idct(np.identity(Ny), axis=0)
-
-    T_inv = np.kron(idct_basis_y, idct_basis_x)
-    A = S @ T_inv
-    return A, T_inv
-
-
-def calculate_cs_sparse_solution(data, mcdc, A, b):
-    N_fine_cells = mcdc["cs_tallies"]["N_bin"][0]
-
-    # setting up the problem with CVXPY
-    vx = cp.Variable(N_fine_cells)
-
-    # Basis pursuit denoising
-    l = 0.5
-    objective = cp.Minimize(0.5 * cp.norm(A @ vx - b, 2) + l * cp.norm(vx, 1))
-    prob = cp.Problem(objective)
-    result = prob.solve(verbose=False)
-
-    # # Basis pursuit
-    # objective = cp.Minimize(cp.norm(vx, 1))
-    # constraints = [A @ vx == b]
-    # prob = cp.Problem(objective, constraints)
-    # result = prob.solve(verbose=True)
-    # print(f'vx.value = {vx.value}')
-
-    # formatting the sparse solution
-    sparse_solution = np.array(vx.value).squeeze()
-
-    return sparse_solution
-
-
-def cs_reconstruct(data, mcdc):
-    tally_bin = data[TALLY]
-    tally = mcdc["cs_tallies"][0]
-    stride = tally["stride"]
-    bin_idx = stride["tally"]
-    N_cs_bins = tally["filter"]["N_cs_bins"]
-    Nx = len(mcdc["mesh_tallies"]["filter"]["x"][0]) - 1
-    Ny = len(mcdc["mesh_tallies"]["filter"]["y"][0]) - 1
-
-    b = tally_bin[TALLY_SUM, bin_idx : bin_idx + N_cs_bins]
-
-    A, T_inv = calculate_cs_A(data, mcdc)
-    x = calculate_cs_sparse_solution(data, mcdc, A, b)
-
-    recon = T_inv @ x
-    recon_reshaped = recon.reshape(Ny, Nx)
-
-    tally["filter"]["cs_reconstruction"] = recon_reshaped
 
 
 # =============================================================================
@@ -426,26 +305,60 @@ def dd_mesh_bounds(idx):
     return mesh_xn, mesh_xp, mesh_yn, mesh_yp, mesh_zn, mesh_zp
 
 
-def generate_cs_centers(mcdc, N_dim=3, seed=123456789):
+def generate_cs_centers(mcdc, seed=123456789):
     N_cs_bins = int(mcdc["cs_tallies"]["filter"]["N_cs_bins"])
+
+    # Taking the limits of the problem from the mesh tallies
     x_lims = (
-        mcdc["cs_tallies"]["filter"]["x"][0][-1],
-        mcdc["cs_tallies"]["filter"]["x"][0][0],
+        mcdc["mesh_tallies"]["filter"]["x"][0][-1],
+        mcdc["mesh_tallies"]["filter"]["x"][0][0],
     )
     y_lims = (
-        mcdc["cs_tallies"]["filter"]["y"][0][-1],
-        mcdc["cs_tallies"]["filter"]["y"][0][0],
+        mcdc["mesh_tallies"]["filter"]["y"][0][-1],
+        mcdc["mesh_tallies"]["filter"]["y"][0][0],
     )
+    z_lims = (
+        mcdc["mesh_tallies"]["filter"]["z"][0][-1],
+        mcdc["mesh_tallies"]["filter"]["z"][0][0],
+    )
+
+    if z_lims != (INF, -INF):
+        N_dim = 3
+    else:
+        N_dim = 2
+
+    # N_dim = 0
+    # if x_lims != (INF, -INF):
+    #     N_dim += 1
+    # if y_lims != (INF, -INF):
+    #     N_dim += 1
+    # if z_lims != (INF, -INF):
+    #     N_dim += 1
+    # if N_dim == 0:
+    #     raise ValueError("N_dim can't be zero!!")
 
     # Generate Halton sequence according to the seed
     halton_seq = Halton(d=N_dim, seed=seed)
     points = halton_seq.random(n=N_cs_bins)
 
-    # Extract x and y coordinates as tuples separately, scaled to the problem dimensions
-    x_coords = tuple(points[:, 0] * (x_lims[1] - x_lims[0]) + x_lims[0])
-    y_coords = tuple(points[:, 1] * (y_lims[1] - y_lims[0]) + y_lims[0])
+    # Extract x/y/z coordinates as tuples separately, scaled to the problem dimensions
+    x_coords = points[:, 0] * (x_lims[1] - x_lims[0]) + x_lims[0]
+    y_coords = points[:, 1] * (y_lims[1] - y_lims[0]) + y_lims[0]
 
-    return (x_coords, y_coords)
+    # Last bin is in exact center
+    x_coords[-1] = (x_lims[0] + x_lims[-1]) / 2
+    y_coords[-1] = (y_lims[0] + y_lims[-1]) / 2
+
+    x_coords = tuple(x_coords)
+    y_coords = tuple(y_coords)
+
+    if N_dim == 2:
+        z_coords = [0] * len(x_coords)
+    elif N_dim == 3:
+        z_coords = points[:, 2] * (z_lims[1] - z_lims[0]) + z_lims[0]
+        z_coords[-1] = (z_lims[0] + z_lims[-1]) / 2
+        z_coords = tuple(z_coords)
+    return (x_coords, y_coords, z_coords)
 
 
 def prepare():
@@ -1089,22 +1002,42 @@ def prepare():
     # CS tallies
     for i in range(N_cs_tally):
         # Direct assignment
-        copy_field(mcdc["cs_tallies"][i], input_deck.cs_tallies[i], "N_bin")
+        # copy_field(mcdc["cs_tallies"][i], input_deck.cs_tallies[i], "N_bin")
 
         mcdc["cs_tallies"][i]["filter"]["N_cs_bins"] = input_deck.cs_tallies[
             i
         ].N_cs_bins[0]
-        mcdc["cs_tallies"][i]["filter"]["cs_bin_size"] = input_deck.cs_tallies[
-            i
-        ].cs_bin_size[0]
 
-        # Filters (variables with possible different sizes)
-        if not input_deck.technique["domain_decomposition"]:
-            for name in ["x", "y", "z", "t", "mu", "azi", "g"]:
-                N = len(getattr(input_deck.cs_tallies[i], name))
-                mcdc["cs_tallies"][i]["filter"][name][:N] = getattr(
-                    input_deck.cs_tallies[i], name
-                )
+        # Scaling the bin to be in terms of problem units, not pixels/voxels/etc.
+        x_grid = mcdc["mesh_tallies"][i]["filter"]["x"]
+        y_grid = mcdc["mesh_tallies"][i]["filter"]["y"]
+        z_grid = mcdc["mesh_tallies"][i]["filter"]["z"]
+
+        x_bin_size = input_deck.cs_tallies[i].cs_bin_size[0]
+        y_bin_size = input_deck.cs_tallies[i].cs_bin_size[1]
+        z_bin_size = input_deck.cs_tallies[i].cs_bin_size[2]
+
+        x_bin_size = x_bin_size / (len(x_grid) - 1) * (x_grid[-1] - x_grid[0])
+        y_bin_size = y_bin_size / (len(y_grid) - 1) * (y_grid[-1] - y_grid[0])
+        z_bin_size = z_bin_size / (len(z_grid) - 1) * (z_grid[-1] - z_grid[0])
+
+        mcdc["cs_tallies"][i]["filter"]["cs_bin_size"] = [
+            x_bin_size,
+            y_bin_size,
+            z_bin_size,
+        ]
+
+        # mcdc["cs_tallies"][i]["filter"]["cs_bin_size"] = input_deck.cs_tallies[
+        #     i
+        # ].cs_bin_size[0]
+
+        # # Filters (variables with possible different sizes)
+        # if not input_deck.technique["domain_decomposition"]:
+        #     for name in ["x", "y", "z", "t", "mu", "azi", "g"]:
+        #         N = len(getattr(input_deck.cs_tallies[i], name))
+        #         mcdc["cs_tallies"][i]["filter"][name][:N] = getattr(
+        #             input_deck.cs_tallies[i], name
+        #         )
 
         mcdc["cs_tallies"][i]["filter"]["cs_centers"] = generate_cs_centers(mcdc)
 
@@ -1127,7 +1060,7 @@ def prepare():
             mcdc["cs_tallies"][i]["scores"][j] = score_type
 
         # Update N_bin
-        mcdc["cs_tallies"][i]["N_bin"] *= N_score
+        # mcdc["cs_tallies"][i]["N_bin"] *= N_score
 
         # Set tally stride and accumulate total tally size
         mcdc["cs_tallies"][i]["stride"]["tally"] = tally_size
@@ -2082,6 +2015,7 @@ def generate_hdf5(data, mcdc):
                 if mcdc["technique"]["iQMC"]:
                     break
                 N_cs_bins = tally["filter"]["N_cs_bins"]
+                cs_bin_size = tally["filter"]["cs_bin_size"]
 
                 # Shape
                 N_score = tally["N_score"]
@@ -2112,14 +2046,17 @@ def generate_hdf5(data, mcdc):
                     group_name = "tallies/cs_tally_%i/%s/" % (ID, score_name)
 
                     center_points = tally["filter"]["cs_centers"]
-                    S = tally["filter"]["cs_S"]
-                    reconstruction = tally["filter"]["cs_reconstruction"]
 
                     f.create_dataset(
                         "tallies/cs_tally_%i/center_points" % (ID), data=center_points
                     )
-                    f.create_dataset("tallies/cs_tally_%i/S" % (ID), data=S)
-                    f.create_dataset(group_name + "reconstruction", data=reconstruction)
+
+                    f.create_dataset(
+                        "tallies/cs_tally_%i/N_cs_bins" % (ID), data=N_cs_bins
+                    )
+                    f.create_dataset(
+                        "tallies/cs_tally_%i/cs_bin_size" % (ID), data=cs_bin_size
+                    )
 
                     mean = score_tally_bin[TALLY_SUM]
                     sdev = score_tally_bin[TALLY_SUM_SQ]
