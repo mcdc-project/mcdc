@@ -17,7 +17,7 @@ def rel_l2_error(recon, real):
     return np.linalg.norm(real - recon, ord=2) / np.linalg.norm(real, ord=2)
 
 
-reconstruct_2d = False
+reconstruct_2d = True
 if reconstruct_2d:
     # User-defined parameters - number of cells in each dimension
     Nx = 40
@@ -108,11 +108,6 @@ if reconstruct_2d:
     # Different values of lambda to reconstruct with
     l_array = [
         "mesh",
-        0.0000005,
-        0.000001,
-        0.000005,
-        0.00001,
-        0.00005,
         0.0001,
         0.0005,
         0.001,
@@ -123,6 +118,11 @@ if reconstruct_2d:
         0.05,
         0.075,
         0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.75,
     ]
 
     # Create reconstructions and compute relative norms

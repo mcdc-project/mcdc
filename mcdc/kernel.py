@@ -2176,7 +2176,7 @@ def score_cs_tally(P_arr, distance, tally, data, mcdc):
         end[2] = z_final
 
         distance_inside = calculate_distance_in_coarse_bin(
-            start, end, distance, center, cs_bin_size
+            start, end, center, cs_bin_size
         )
 
         # Last bin covers the whole problem
@@ -2186,7 +2186,7 @@ def score_cs_tally(P_arr, distance, tally, data, mcdc):
             cs_bin_size_full_problem[1] = INF
             cs_bin_size_full_problem[2] = INF
             distance_inside = calculate_distance_in_coarse_bin(
-                start, end, distance, center, cs_bin_size_full_problem
+                start, end, center, cs_bin_size_full_problem
             )
 
         if distance < distance_inside:
@@ -2218,6 +2218,7 @@ def score_cs_tally(P_arr, distance, tally, data, mcdc):
 
 @njit
 def cs_clip(p, q, t0, t1):
+    # Core of the Liang-Barsky algorithm
     if p < 0:
         t = q / p
         if t > t1:
@@ -2237,49 +2238,50 @@ def cs_clip(p, q, t0, t1):
 
 @njit
 def cs_tracklength_in_box(start, end, x_min, x_max, y_min, y_max, z_min, z_max):
-    # Uses Liang-Barsky algorithm for finding tracklength in box
-    t0, t1 = 0.0, 1.0
+    # parametric version of the tracklength, ranging from t0 -> t1
+    t0 = 0.0
+    t1 = 1.0
     dx = end[0] - start[0]
     dy = end[1] - start[1]
     dz = end[2] - start[2]
 
-    # Perform clipping for each boundary
-    result, t0, t1 = cs_clip(-dx, start[0] - x_min, t0, t1)
-    if not result:
-        return 0.0
-    result, t0, t1 = cs_clip(dx, x_max - start[0], t0, t1)
-    if not result:
-        return 0.0
-    result, t0, t1 = cs_clip(-dy, start[1] - y_min, t0, t1)
-    if not result:
-        return 0.0
-    result, t0, t1 = cs_clip(dy, y_max - start[1], t0, t1)
-    if not result:
-        return 0.0
-    result, t0, t1 = cs_clip(-dz, start[2] - z_min, t0, t1)
-    if not result:
-        return 0.0
-    result, t0, t1 = cs_clip(dz, z_max - start[2], t0, t1)
-    if not result:
-        return 0.0
+    ps = np.array([-dx, dx, -dy, dy, -dz, dz])
+    qs = np.array(
+        [
+            start[0] - x_min,
+            x_max - start[0],
+            start[1] - y_min,
+            y_max - start[1],
+            start[2] - z_min,
+            z_max - start[2],
+        ]
+    )
 
-    # Update start and end points based on clipping results
-    if t1 < 1:
-        end[0] = start[0] + t1 * dx
-        end[1] = start[1] + t1 * dy
-    if t0 > 0:
-        start[0] = start[0] + t0 * dx
-        start[1] = start[1] + t0 * dx
+    # clip each point on each face
+    for i in range(6):
+        p = ps[i]
+        q = qs[i]
+        result, t0, t1 = cs_clip(p, q, t0, t1)
+        if not result:
+            return 0.0
 
-    # Return the norm
-    X = end[0] - start[0]
-    Y = end[1] - start[1]
-    return math.sqrt(X**2 + Y**2)
+    # clipped start points (s) and end points (e)
+    sx = start[0] + t0 * dx
+    sy = start[1] + t0 * dy
+    sz = start[2] + t0 * dz
+    ex = start[0] + t1 * dx
+    ey = start[1] + t1 * dy
+    ez = start[2] + t1 * dz
+
+    X = ex - sx
+    Y = ey - sy
+    Z = ez - sz
+
+    return np.sqrt(X**2 + Y**2 + Z**2)
 
 
 @njit
-def calculate_distance_in_coarse_bin(start, end, distance, center, cs_bin_size):
-    # Edges of the coarse bin
+def calculate_distance_in_coarse_bin(start, end, center, cs_bin_size):
     x_min = center[0] - cs_bin_size[0] / 2
     x_max = center[0] + cs_bin_size[0] / 2
     y_min = center[1] - cs_bin_size[1] / 2

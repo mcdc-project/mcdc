@@ -17,7 +17,7 @@ def rel_l2_error(recon, real):
     return np.linalg.norm(real - recon, ord=2) / np.linalg.norm(real, ord=2)
 
 
-reconstruct_2d = False
+reconstruct_2d = True
 if reconstruct_2d:
     # User-defined parameters - number of cells in each dimension
     Nx = 30

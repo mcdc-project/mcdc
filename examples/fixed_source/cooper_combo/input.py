@@ -62,8 +62,8 @@ mcdc.tally.mesh_tally(
 )
 
 mcdc.tally.cs_tally(
-    N_cs_bins=[300],
-    cs_bin_size=[3.0, 3.0],
+    N_cs_bins=[500],
+    cs_bin_size=[2.0, 2.0],
     scores=["flux"],
 )
 

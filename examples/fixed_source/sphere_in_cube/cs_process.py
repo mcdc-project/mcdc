@@ -108,13 +108,7 @@ if reconstruct_2d:
     # Different values of lambda to reconstruct with
     l_array = [
         "mesh",
-        0.0000005,
-        0.000001,
-        0.000005,
-        0.00001,
-        0.00005,
-        0.0001,
-        0.0005,
+        0,
         0.001,
         0.0025,
         0.005,
@@ -123,6 +117,12 @@ if reconstruct_2d:
         0.05,
         0.075,
         0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.75,
+        1,
     ]
 
     # Create reconstructions and compute relative norms
@@ -291,12 +291,6 @@ else:
     l_array = [
         "mesh",
         0,
-        0.000001,
-        0.000005,
-        0.00001,
-        0.00005,
-        0.0001,
-        0.0005,
         0.001,
         0.0025,
         0.005,
@@ -305,6 +299,12 @@ else:
         0.05,
         0.075,
         0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.75,
+        1,
     ]
 
     # Create reconstructions and compute relative norms
