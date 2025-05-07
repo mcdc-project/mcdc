@@ -7,6 +7,7 @@ from matplotlib import colors as mpl_colors
 import scipy.fft as spfft
 from scipy.stats.qmc import Halton
 import cvxpy as cp
+import time
 
 from mcdc.card import UniverseCard
 from mcdc.print_ import (
@@ -303,62 +304,6 @@ def dd_mesh_bounds(idx):
     mesh_zp = int(np.where(input_deck.mesh_tallies[idx].z == zp)[0]) + 1
 
     return mesh_xn, mesh_xp, mesh_yn, mesh_yp, mesh_zn, mesh_zp
-
-
-def generate_cs_centers(mcdc, seed=123456789):
-    N_cs_bins = int(mcdc["cs_tallies"]["filter"]["N_cs_bins"])
-
-    # Taking the limits of the problem from the mesh tallies
-    x_lims = (
-        mcdc["mesh_tallies"]["filter"]["x"][0][-1],
-        mcdc["mesh_tallies"]["filter"]["x"][0][0],
-    )
-    y_lims = (
-        mcdc["mesh_tallies"]["filter"]["y"][0][-1],
-        mcdc["mesh_tallies"]["filter"]["y"][0][0],
-    )
-    z_lims = (
-        mcdc["mesh_tallies"]["filter"]["z"][0][-1],
-        mcdc["mesh_tallies"]["filter"]["z"][0][0],
-    )
-
-    if z_lims != (INF, -INF):
-        N_dim = 3
-    else:
-        N_dim = 2
-
-    # N_dim = 0
-    # if x_lims != (INF, -INF):
-    #     N_dim += 1
-    # if y_lims != (INF, -INF):
-    #     N_dim += 1
-    # if z_lims != (INF, -INF):
-    #     N_dim += 1
-    # if N_dim == 0:
-    #     raise ValueError("N_dim can't be zero!!")
-
-    # Generate Halton sequence according to the seed
-    halton_seq = Halton(d=N_dim, seed=seed)
-    points = halton_seq.random(n=N_cs_bins)
-
-    # Extract x/y/z coordinates as tuples separately, scaled to the problem dimensions
-    x_coords = points[:, 0] * (x_lims[1] - x_lims[0]) + x_lims[0]
-    y_coords = points[:, 1] * (y_lims[1] - y_lims[0]) + y_lims[0]
-
-    # Last bin is in exact center
-    x_coords[-1] = (x_lims[0] + x_lims[-1]) / 2
-    y_coords[-1] = (y_lims[0] + y_lims[-1]) / 2
-
-    x_coords = tuple(x_coords)
-    y_coords = tuple(y_coords)
-
-    if N_dim == 2:
-        z_coords = [0] * len(x_coords)
-    elif N_dim == 3:
-        z_coords = points[:, 2] * (z_lims[1] - z_lims[0]) + z_lims[0]
-        z_coords[-1] = (z_lims[0] + z_lims[-1]) / 2
-        z_coords = tuple(z_coords)
-    return (x_coords, y_coords, z_coords)
 
 
 def prepare():
@@ -1758,6 +1703,205 @@ def dd_mergemesh(mcdc, data):
         else:
             dd_mesh.append(mcdc["mesh_tallies"][:]["filter"]["z"])
     return dd_mesh
+
+
+# ======================================================================================
+# Compressed sensing functions
+# ======================================================================================
+def generate_cs_centers(mcdc, seed=123456789):
+    N_cs_bins = int(mcdc["cs_tallies"]["filter"]["N_cs_bins"])
+
+    # Taking the limits of the problem from the mesh tallies
+    x_lims = (
+        mcdc["mesh_tallies"]["filter"]["x"][0][-1],
+        mcdc["mesh_tallies"]["filter"]["x"][0][0],
+    )
+    y_lims = (
+        mcdc["mesh_tallies"]["filter"]["y"][0][-1],
+        mcdc["mesh_tallies"]["filter"]["y"][0][0],
+    )
+    z_lims = (
+        mcdc["mesh_tallies"]["filter"]["z"][0][-1],
+        mcdc["mesh_tallies"]["filter"]["z"][0][0],
+    )
+
+    if z_lims != (INF, -INF):
+        N_dim = 3
+    else:
+        N_dim = 2
+
+    # Generate Halton sequence according to the seed
+    halton_seq = Halton(d=N_dim, seed=seed)
+    points = halton_seq.random(n=N_cs_bins)
+
+    # Extract x/y/z coordinates as tuples separately, scaled to the problem dimensions
+    x_coords = points[:, 0] * (x_lims[1] - x_lims[0]) + x_lims[0]
+    y_coords = points[:, 1] * (y_lims[1] - y_lims[0]) + y_lims[0]
+
+    # Last bin is in exact center
+    x_coords[-1] = (x_lims[0] + x_lims[-1]) / 2
+    y_coords[-1] = (y_lims[0] + y_lims[-1]) / 2
+
+    x_coords = tuple(x_coords)
+    y_coords = tuple(y_coords)
+
+    if N_dim == 2:
+        z_coords = [0] * len(x_coords)
+    elif N_dim == 3:
+        z_coords = points[:, 2] * (z_lims[1] - z_lims[0]) + z_lims[0]
+        z_coords[-1] = (z_lims[0] + z_lims[-1]) / 2
+        z_coords = tuple(z_coords)
+    return (x_coords, y_coords, z_coords)
+
+
+def construct_cs_sampling_matrix_S(
+    output_file, Nx, Ny, Nz=1, problem_lims=[4.0, 4.0, 4.0]
+):
+    f = output_file
+    N_cs_bins = f["tallies"]["cs_tally_0"]["N_cs_bins"][()]
+    cs_bin_size = f["tallies"]["cs_tally_0"]["cs_bin_size"]
+    centers = f["tallies"]["cs_tally_0"]["center_points"]
+
+    # size should default to INF - (-INF) in 2d case
+    if cs_bin_size[:][2] == 2e20:
+        N_dims = 2
+    else:
+        N_dims = 3
+
+    if N_dims == 2:
+        x_grid = np.linspace(0.0, problem_lims[0], Nx + 1)
+        y_grid = np.linspace(0.0, problem_lims[1], Ny + 1)
+        N_cs_bins = f["tallies"]["cs_tally_0"]["N_cs_bins"][()]
+        cs_bin_size = f["tallies"]["cs_tally_0"]["cs_bin_size"]
+        x_centers = f["tallies"]["cs_tally_0"]["center_points"][0]
+        y_centers = f["tallies"]["cs_tally_0"]["center_points"][1]
+        x_centers[-1] = (x_grid[-1] + x_grid[0]) / 2
+        y_centers[-1] = (y_grid[-1] + y_grid[0]) / 2
+        x_mins, x_maxs = x_grid[:-1], x_grid[1:]
+        y_mins, y_maxs = y_grid[:-1], y_grid[1:]
+
+        bin_size_pixels = int(cs_bin_size[0] * Nx / x_grid[-1])
+
+        # area of a single cell
+        cell_areas = np.multiply.outer(x_maxs - x_mins, y_maxs - y_mins)
+
+        # initialize S
+        S = np.zeros((N_cs_bins, Nx * Ny))
+
+        print("Generating S...")
+        for ibin in range(N_cs_bins):
+            bin_x_min = x_centers[ibin] - cs_bin_size[0] / 2
+            bin_x_max = x_centers[ibin] + cs_bin_size[0] / 2
+            bin_y_min = y_centers[ibin] - cs_bin_size[1] / 2
+            bin_y_max = y_centers[ibin] + cs_bin_size[1] / 2
+
+            # calculate overlap
+            overlap_x = np.maximum(
+                0,
+                np.minimum(bin_x_max, x_maxs[:, None])
+                - np.maximum(bin_x_min, x_mins[:, None]),
+            )
+            overlap_y = np.maximum(
+                0,
+                np.minimum(bin_y_max, y_maxs[None, :])
+                - np.maximum(bin_y_min, y_mins[None, :]),
+            )
+
+            # calculate fractional overlap
+            overlap = (overlap_x * overlap_y) / cell_areas
+            S[ibin] = overlap.flatten()
+
+            for i in range(len(S[-1])):
+                S[-1][i] = 1
+
+    elif N_dims == 3:
+        x_grid = np.linspace(0.0, problem_lims[0], Nx + 1)
+        y_grid = np.linspace(0.0, problem_lims[1], Ny + 1)
+        z_grid = np.linspace(0.0, problem_lims[2], Nz + 1)
+        N_cs_bins = f["tallies"]["cs_tally_0"]["N_cs_bins"][()]
+        cs_bin_size = f["tallies"]["cs_tally_0"]["cs_bin_size"]
+        x_centers = f["tallies"]["cs_tally_0"]["center_points"][0]
+        y_centers = f["tallies"]["cs_tally_0"]["center_points"][1]
+        z_centers = f["tallies"]["cs_tally_0"]["center_points"][2]
+        x_centers[-1] = (x_grid[-1] + x_grid[0]) / 2
+        y_centers[-1] = (y_grid[-1] + y_grid[0]) / 2
+        z_centers[-1] = (z_grid[-1] + z_grid[0]) / 2
+        x_mins, x_maxs = x_grid[:-1], x_grid[1:]
+        y_mins, y_maxs = y_grid[:-1], y_grid[1:]
+        z_mins, z_maxs = z_grid[:-1], z_grid[1:]
+
+        bin_size_pixels = int(cs_bin_size[0] * Nx / x_grid[-1])
+
+        # area of a single cell
+        cell_areas = np.multiply.outer(
+            np.multiply.outer(x_maxs - x_mins, y_maxs - y_mins), z_maxs - z_mins
+        )
+
+        # initialize S
+        S = np.zeros((N_cs_bins, Nx * Ny * Nz))
+
+        print("Generating S...")
+        for ibin in range(N_cs_bins):
+            bin_x_min = x_centers[ibin] - cs_bin_size[0] / 2
+            bin_x_max = x_centers[ibin] + cs_bin_size[0] / 2
+            bin_y_min = y_centers[ibin] - cs_bin_size[1] / 2
+            bin_y_max = y_centers[ibin] + cs_bin_size[1] / 2
+            bin_z_min = z_centers[ibin] - cs_bin_size[2] / 2
+            bin_z_max = z_centers[ibin] + cs_bin_size[2] / 2
+
+            # calculate overlap
+            overlap_x = np.maximum(
+                0,
+                np.minimum(bin_x_max, x_maxs[:, None, None])
+                - np.maximum(bin_x_min, x_mins[:, None, None]),
+            )
+            overlap_y = np.maximum(
+                0,
+                np.minimum(bin_y_max, y_maxs[None, :, None])
+                - np.maximum(bin_y_min, y_mins[None, :, None]),
+            )
+            overlap_z = np.maximum(
+                0,
+                np.minimum(bin_z_max, z_maxs[None, None, :])
+                - np.maximum(bin_z_min, z_mins[None, None, :]),
+            )
+
+            # calculate fractional overlap
+            overlap = (overlap_x * overlap_y * overlap_z) / cell_areas
+            S[ibin] = overlap.flatten()
+
+            for i in range(len(S[-1])):
+                S[-1][i] = 1
+
+    return S, N_dims, bin_size_pixels
+
+
+def cs_reconstruct(S, b, lambda_, Nx, Ny, Nz=1):
+    print(f"Reconstructing with lambda = {lambda_}", end="\r")
+    start_time = time.time()
+
+    N_fine_cells = Nx * Ny * Nz
+    A = (spfft.dct(S.T, type=2, norm="ortho", axis=0)).T
+
+    vx = cp.Variable(N_fine_cells)
+    objective = cp.Minimize(
+        0.5 * cp.norm(A @ vx - b, 2) ** 2 + lambda_ * cp.norm(vx, 1)
+    )
+    constraints = [(A @ vx)[-1] == b[-1]]
+    prob = cp.Problem(objective, constraints)
+    result = prob.solve(verbose=False)
+
+    sparse_solution = np.array(vx.value).squeeze()
+    result = spfft.idct(sparse_solution, type=2, norm="ortho", axis=0)
+    if Nz == 1:
+        recon = result.reshape(Nx, Ny)
+    else:
+        recon = result.reshape(Nx, Ny, Nz)
+    print(
+        f"Reconstructing with lambda = {lambda_}, time = {np.round(time.time() - start_time, 4)}"
+    )
+    return recon
+    # return recon, time.time() - start_time
 
 
 def generate_hdf5(data, mcdc):
