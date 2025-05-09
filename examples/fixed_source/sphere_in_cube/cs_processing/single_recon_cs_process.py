@@ -12,12 +12,22 @@ except ImportError:
 
 Nx = 40
 Ny = 40
-lambda_ = 1e-4
+lambda_ = 1e-3
 with h5py.File("output.h5", "r") as f:
     S, N_dims, bin_size_pixels = construct_cs_sampling_matrix_S(f, Nx, Ny)
     N_cs_bins = f["tallies"]["cs_tally_0"]["N_cs_bins"][()]
     cs_results = f["tallies"]["cs_tally_0"]["fission"]["mean"][:]
-    mesh_results = f["tallies"]["mesh_tally_0"]["fission"]["mean"][:]
-    mesh_sdev = f["tallies"]["mesh_tally_0"]["fission"]["sdev"][:]
 
-recon, recon_time = cs_reconstruct(S, cs_results, lambda_, Nx, Ny)
+    plt.imshow(S.sum(axis=0).reshape(Nx, Ny))
+    plt.show()
+
+    print(N_cs_bins)
+    print(cs_results)
+
+    # mesh_results = f["tallies"]["mesh_tally_0"]["fission"]["mean"][:]
+    # mesh_sdev = f["tallies"]["mesh_tally_0"]["fission"]["sdev"][:]
+
+recon = cs_reconstruct(S, cs_results, lambda_, Nx, Ny)
+
+plt.imshow(recon)
+plt.show()

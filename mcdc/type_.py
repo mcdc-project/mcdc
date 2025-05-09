@@ -927,9 +927,9 @@ def make_type_cs_tally(input_deck):
     struct = []
 
     # Maximum numbers of mesh and filter grids and scores
-    # Nmax_x = 2
-    # Nmax_y = 2
-    # Nmax_z = 2
+    Nmax_x = 2
+    Nmax_y = 2
+    Nmax_z = 2
     # Nmax_t = 2
     # Nmax_mu = 2
     # Nmax_azi = 2
@@ -937,9 +937,9 @@ def make_type_cs_tally(input_deck):
     Nmax_score = 1
     N_cs_centers = 1
     for card in input_deck.cs_tallies:
-        # Nmax_x = max(Nmax_x, len(card.x))
-        # Nmax_y = max(Nmax_y, len(card.y))
-        # Nmax_z = max(Nmax_z, len(card.z))
+        Nmax_x = max(Nmax_x, len(card.x))
+        Nmax_y = max(Nmax_y, len(card.y))
+        Nmax_z = max(Nmax_z, len(card.z))
         # Nmax_t = max(Nmax_t, len(card.t))
         # Nmax_mu = max(Nmax_mu, len(card.mu))
         # Nmax_azi = max(Nmax_azi, len(card.azi))
@@ -963,9 +963,12 @@ def make_type_cs_tally(input_deck):
                 N_cs_centers,
             ),
         ),
-        # ("x", float64, (Nmax_x,)),
-        # ("y", float64, (Nmax_y,)),
-        # ("z", float64, (Nmax_z,)),
+        ("x", float64, (Nmax_x,)),
+        ("y", float64, (Nmax_y,)),
+        ("z", float64, (Nmax_z,)),
+        ("Nx", int64),
+        ("Ny", int64),
+        ("Nz", int64),
         # ("t", float64, (Nmax_t,)),
         # ("mu", float64, (Nmax_mu,)),
         # ("azi", float64, (Nmax_azi,)),
@@ -982,14 +985,14 @@ def make_type_cs_tally(input_deck):
         # ("azi", int64),
         # ("g", int64),
         # ("t", int64),
-        # ("x", int64),
-        # ("y", int64),
-        # ("z", int64),
+        ("x", int64),
+        ("y", int64),
+        ("z", int64),
     ]
     struct += [("stride", stride)]
 
-    # Total number of bins (not cs_bins)
-    # struct += [("N_bin", int64)]
+    # Total number of mesh bins (not cs bins)
+    struct += [("N_bin", int64)]
 
     # Scores
     struct += [("N_score", int64), ("scores", int64, (Nmax_score,))]

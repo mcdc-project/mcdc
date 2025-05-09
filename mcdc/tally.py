@@ -249,9 +249,9 @@ def cell_tally(
 def cs_tally(
     N_cs_bins=100,
     cs_bin_size=([1.0, 1.0, 1.0]),
-    # x=np.array([-INF, INF]),
-    # y=np.array([-INF, INF]),
-    # z=np.array([-INF, INF]),
+    x=np.array([-INF, INF]),
+    y=np.array([-INF, INF]),
+    z=np.array([-INF, INF]),
     t=np.array([-INF, INF]),
     mu=np.array([-1.0, 1.0]),
     azi=np.array([-PI, PI]),
@@ -265,13 +265,18 @@ def cs_tally(
     # Set ID
     card.ID = len(global_.input_deck.cs_tallies)
 
-    # Set bin properties, convert bin size to problem units
+    # Set bin properties
     card.N_cs_bins = N_cs_bins
 
     if len(cs_bin_size) == 2:
         card.cs_bin_size = [cs_bin_size[0], cs_bin_size[1], INF]
     else:
         card.cs_bin_size = cs_bin_size
+
+    # Set mesh
+    card.x = x
+    card.y = y
+    card.z = z
 
     # Set other filters
     card.t = t
@@ -286,6 +291,17 @@ def cs_tally(
         card.g = g
     if global_.input_deck.setting["mode_CE"]:
         card.g = E
+
+    # Calculate total number bins
+    Nx = len(card.x) - 1
+    Ny = len(card.y) - 1
+    Nz = len(card.z) - 1
+    card.N_bin = Nx * Ny * Nz
+
+    if Nx == 1 and Ny == 1 and Nz == 1:
+        raise Exception(
+            "Must supply a mesh grid for the cs_tally bins to be placed upon."
+        )
 
     # Scores
     for s in scores:

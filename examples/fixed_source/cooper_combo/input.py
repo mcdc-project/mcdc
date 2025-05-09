@@ -64,6 +64,8 @@ mcdc.tally.cs_tally(
     N_cs_bins=[300],
     cs_bin_size=[3.0, 3.0],
     scores=["flux"],
+    x=np.linspace(0.0, 4.0, 41),
+    y=np.linspace(0.0, 4.0, 41),
 )
 
 # Setting

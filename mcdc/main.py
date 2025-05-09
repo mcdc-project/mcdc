@@ -947,16 +947,24 @@ def prepare():
     # CS tallies
     for i in range(N_cs_tally):
         # Direct assignment
-        # copy_field(mcdc["cs_tallies"][i], input_deck.cs_tallies[i], "N_bin")
-
         mcdc["cs_tallies"][i]["filter"]["N_cs_bins"] = input_deck.cs_tallies[
             i
         ].N_cs_bins[0]
 
+        copy_field(mcdc["cs_tallies"][i], input_deck.cs_tallies[i], "N_bin")
+
+        # Filters (variables with possible different sizes)
+        if not input_deck.technique["domain_decomposition"]:
+            for name in ["x", "y", "z"]:
+                N = len(getattr(input_deck.cs_tallies[i], name))
+                mcdc["cs_tallies"][i]["filter"][name][:N] = getattr(
+                    input_deck.cs_tallies[i], name
+                )
+
         # Scaling the bin to be in terms of problem units, not pixels/voxels/etc.
-        x_grid = mcdc["mesh_tallies"][i]["filter"]["x"]
-        y_grid = mcdc["mesh_tallies"][i]["filter"]["y"]
-        z_grid = mcdc["mesh_tallies"][i]["filter"]["z"]
+        x_grid = mcdc["cs_tallies"][i]["filter"]["x"]
+        y_grid = mcdc["cs_tallies"][i]["filter"]["y"]
+        z_grid = mcdc["cs_tallies"][i]["filter"]["z"]
 
         x_bin_size = input_deck.cs_tallies[i].cs_bin_size[0]
         y_bin_size = input_deck.cs_tallies[i].cs_bin_size[1]
@@ -971,18 +979,6 @@ def prepare():
             y_bin_size,
             z_bin_size,
         ]
-
-        # mcdc["cs_tallies"][i]["filter"]["cs_bin_size"] = input_deck.cs_tallies[
-        #     i
-        # ].cs_bin_size[0]
-
-        # # Filters (variables with possible different sizes)
-        # if not input_deck.technique["domain_decomposition"]:
-        #     for name in ["x", "y", "z", "t", "mu", "azi", "g"]:
-        #         N = len(getattr(input_deck.cs_tallies[i], name))
-        #         mcdc["cs_tallies"][i]["filter"][name][:N] = getattr(
-        #             input_deck.cs_tallies[i], name
-        #         )
 
         mcdc["cs_tallies"][i]["filter"]["cs_centers"] = generate_cs_centers(mcdc)
 
@@ -1004,12 +1000,32 @@ def prepare():
                 score_type = SCORE_NET_CURRENT
             mcdc["cs_tallies"][i]["scores"][j] = score_type
 
+        # Filter grid sizes
+        Nx = len(input_deck.cs_tallies[i].x) - 1
+        Ny = len(input_deck.cs_tallies[i].x) - 1
+        Nz = len(input_deck.cs_tallies[i].x) - 1
+        mcdc["cs_tallies"][i]["filter"]["Nx"] = Nx
+        mcdc["cs_tallies"][i]["filter"]["Ny"] = Ny
+        mcdc["cs_tallies"][i]["filter"]["Nz"] = Nz
+
         # Update N_bin
-        # mcdc["cs_tallies"][i]["N_bin"] *= N_score
+        mcdc["cs_tallies"][i]["N_bin"] *= N_score
+
+        # Filter strides
+        stride = N_score
+        if Nz > 1:
+            mcdc["cs_tallies"][i]["stride"]["z"] = stride
+            stride *= Nz
+        if Ny > 1:
+            mcdc["cs_tallies"][i]["stride"]["y"] = stride
+            stride *= Ny
+        if Nx > 1:
+            mcdc["cs_tallies"][i]["stride"]["x"] = stride
+            stride *= Nx
 
         # Set tally stride and accumulate total tally size
         mcdc["cs_tallies"][i]["stride"]["tally"] = tally_size
-        tally_size += mcdc["cs_tallies"][i]["filter"]["N_cs_bins"]
+        tally_size += mcdc["cs_tallies"][i]["N_bin"]
 
     # Set tally data
     if not input_deck.technique["uq"]:
@@ -1709,20 +1725,25 @@ def dd_mergemesh(mcdc, data):
 # Compressed sensing functions
 # ======================================================================================
 def generate_cs_centers(mcdc, seed=123456789):
+    """
+    Generates random points with scipy.stats.qmc.Halton
+
+
+    """
     N_cs_bins = int(mcdc["cs_tallies"]["filter"]["N_cs_bins"])
 
-    # Taking the limits of the problem from the mesh tallies
+    # Taking the limits of the problem
     x_lims = (
-        mcdc["mesh_tallies"]["filter"]["x"][0][-1],
-        mcdc["mesh_tallies"]["filter"]["x"][0][0],
+        mcdc["cs_tallies"]["filter"]["x"][0][-1],
+        mcdc["cs_tallies"]["filter"]["x"][0][0],
     )
     y_lims = (
-        mcdc["mesh_tallies"]["filter"]["y"][0][-1],
-        mcdc["mesh_tallies"]["filter"]["y"][0][0],
+        mcdc["cs_tallies"]["filter"]["y"][0][-1],
+        mcdc["cs_tallies"]["filter"]["y"][0][0],
     )
     z_lims = (
-        mcdc["mesh_tallies"]["filter"]["z"][0][-1],
-        mcdc["mesh_tallies"]["filter"]["z"][0][0],
+        mcdc["cs_tallies"]["filter"]["z"][0][-1],
+        mcdc["cs_tallies"]["filter"]["z"][0][0],
     )
 
     if z_lims != (INF, -INF):

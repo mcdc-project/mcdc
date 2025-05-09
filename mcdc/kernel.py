@@ -2141,7 +2141,8 @@ def score_cs_tally(P_arr, distance, tally, data, mcdc):
     cs_bin_size = tally["filter"]["cs_bin_size"]
 
     stride = tally["stride"]
-    bin_idx = stride["tally"]
+    bin_starting_idx = stride["tally"]
+    # bin_idx = stride["tally"]
 
     # Particle 4D direction
     ux = P["ux"]
@@ -2164,7 +2165,7 @@ def score_cs_tally(P_arr, distance, tally, data, mcdc):
         center = adapt.local_array(3, type_.float64)
         start = adapt.local_array(3, type_.float64)
         end = adapt.local_array(3, type_.float64)
-        #
+
         center[0] = cs_centers[0][j]
         center[1] = cs_centers[1][j]
         center[2] = cs_centers[2][j]
@@ -2211,7 +2212,7 @@ def score_cs_tally(P_arr, distance, tally, data, mcdc):
 
             adapt.global_add(
                 tally_bin,
-                (TALLY_SCORE, bin_idx + j * tally["N_score"] + i),
+                (TALLY_SCORE, bin_starting_idx + j * tally["N_score"] + i),
                 round(score),
             )
 
