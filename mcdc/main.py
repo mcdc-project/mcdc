@@ -1727,8 +1727,6 @@ def dd_mergemesh(mcdc, data):
 def generate_cs_centers(mcdc, seed=123456789):
     """
     Generates random points with scipy.stats.qmc.Halton
-
-
     """
     N_cs_bins = int(mcdc["cs_tallies"]["filter"]["N_cs_bins"])
 
@@ -1778,6 +1776,22 @@ def generate_cs_centers(mcdc, seed=123456789):
 def construct_cs_sampling_matrix_S(
     output_file, Nx, Ny, Nz=1, problem_lims=[4.0, 4.0, 4.0]
 ):
+    """
+    Generates the sampling matrix for compressed sensing use.
+
+    Args:
+        output_file (string): The output file which stores the necessary data to generate S.
+        Nx (int): The number of fine-mesh cells in the x-direction.
+        Ny (int): The number of fine-mesh cells in the y-direction.
+        Nz (int, optional): The number of fine-mesh cells in the z-direction. Default is 1 for 2D problems.
+        problem_lims (np.ndarray, optional): The physical size of the problem. Default is [4.0, 4.0, 4.0]
+
+    Returns:
+        S (np.ndarray): The sampling matrix, dictates how the system was sampled.
+        N_dims (int): Returns 2 or 3, depending on the number of dimensions in the problem.
+        bin_size_pixels (int): Size of the compressed sensing bins in units of pixels (fine-mesh cells).
+    """
+
     f = output_file
     N_cs_bins = f["tallies"]["cs_tally_0"]["N_cs_bins"][()]
     cs_bin_size = f["tallies"]["cs_tally_0"]["cs_bin_size"]
@@ -1898,6 +1912,23 @@ def construct_cs_sampling_matrix_S(
 
 
 def cs_reconstruct(S, b, lambda_, Nx, Ny, Nz=1):
+    """
+    Reconstructs a solution using compressed sensing and Basis Pursuit Denoising (BPDN).
+
+    Args:
+        S (np.ndarray): Sampling matrix of shape (M, N), where M is the number of measurements
+                        and N is the number of fine cells (Nx * Ny * Nz).
+                        Typically generated using `construct_cs_sampling_matrix()`.
+        b (np.ndarray): Measurement vector of shape (M,). Represents measurements from the system.
+        lambda_ (float): Regularization parameter controlling sparsity in the solution.
+        Nx (int): Number of fine-mesh cells to be reconstructed, in the x-direction.
+        Ny (int): Number of fine-mesh cells to be reconstructed, in the y-direction.
+        Nz (int, optional): Number of fine-mesh cells to be reconstructed, in the z-direction (default is 1, for 2D problems).
+
+    Returns:
+        np.ndarray: The reconstructed field, reshaped to (Nx, Ny) if 2D, or (Nx, Ny, Nz) if 3D.
+    """
+
     print(f"Reconstructing with lambda = {lambda_}", end="\r")
     start_time = time.time()
 

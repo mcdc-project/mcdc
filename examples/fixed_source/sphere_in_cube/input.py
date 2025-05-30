@@ -38,12 +38,12 @@ mcdc.source(x=[0.0, 4.0], y=[0.0, 4.0], z=[0.0, 4.0], time=[0.0, 50.0], isotropi
 # =============================================================================
 # Set tally, setting, and run mcdc
 # =============================================================================
-# mcdc.tally.mesh_tally(
-#     scores=["fission"],
-#     x=np.linspace(0.0, 4.0, 41),
-#     y=np.linspace(0.0, 4.0, 41),
-#     # z=np.linspace(0.0, 4.0, 21),
-# )
+mcdc.tally.mesh_tally(
+    scores=["fission"],
+    x=np.linspace(0.0, 4.0, 41),
+    y=np.linspace(0.0, 4.0, 41),
+    # z=np.linspace(0.0, 4.0, 21),
+)
 
 mcdc.tally.cs_tally(
     N_cs_bins=[300],

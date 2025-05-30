@@ -18,16 +18,26 @@ def rel_l2_error(recon, real):
     return np.linalg.norm(real - recon, ord=2) / np.linalg.norm(real, ord=2)
 
 
+# User only needs to change these dimensions. It dictates the resolution of the reconstruction.
+# This file assumes that MC/DC was run with compressed sensing and a mesh tally,
+# and uses both to find the relative error of each reconstruction.
+# In this case, the size of the reconstruction should match the size of the mesh tally.
 Nx = 20
 Ny = 20
 Nz = 20
+
+
+# Everything after this doesn't need to be touched
 with h5py.File("../output.h5", "r") as f:
+    # Reading in the data from the output file to perform the compressed sensing reconstruction
     S, N_dims, bin_size_pixels = construct_cs_sampling_matrix_S(f, Nx, Ny, Nz)
     N_cs_bins = f["tallies"]["cs_tally_0"]["N_cs_bins"][()]
     cs_results = f["tallies"]["cs_tally_0"]["fission"]["mean"][:]
     mesh_results = f["tallies"]["mesh_tally_0"]["fission"]["mean"][:]
     mesh_sdev = f["tallies"]["mesh_tally_0"]["fission"]["sdev"][:]
 
+
+# Different values of lambda (the sparsity parameter in basis pursuit denoising)
 lambda_array = [
     "mesh",
     0,
@@ -46,6 +56,8 @@ lambda_array = [
     2e-1,
     3e-1,
 ]
+
+# Finding the reconstructions and relative errors
 recon_array = [
     mesh_results if lam == "mesh" else cs_reconstruct(S, cs_results, lam, Nx, Ny, Nz)
     for lam in lambda_array
