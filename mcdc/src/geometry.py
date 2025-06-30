@@ -152,7 +152,13 @@ def inspect_geometry(particle_container, mcdc):
 
     # Report lost particle
     if event == EVENT_LOST:
-        report_lost(particle_container)
+        # Cheaper then keeping track of vac bounds
+        # reflecting boundaries are still tracked
+        # needed in this function for hybrid methods
+        if mcdc["technique"]["delta_tracking"]:
+            particle["alive"] = False
+        else:
+            report_lost(particle_container)
 
     # Assign particle event
     particle["event"] = event
@@ -254,9 +260,14 @@ def locate_particle(particle_container, mcdc):
     particle["uy"] = uy_global
     particle["uz"] = uz_global
 
-    # Report lost particle
+    # Report lost particle if not delta tracking
     if particle_is_lost:
-        report_lost(particle_container)
+        # Cheaper then keeping track of vac bounds
+        #       reflecting boundaries are still tracked
+        if mcdc["technique"]["delta_tracking"]:
+            particle["alive"] = False
+        else:
+            report_lost(particle_container)
 
     return not particle_is_lost
 
@@ -449,6 +460,36 @@ def distance_to_nearest_surface(particle_container, cell, mcdc):
             surface_ID = surface["ID"]
         idx += 1
     return distance, surface_ID
+
+
+@njit
+def distance_to_boundary(particle_container, mcdc):
+    """
+    Determine the nearest cell surface and the distance to it
+    """
+
+    particle = particle_container[0]
+    distance = INF
+    surface_ID = -1
+
+    # Particle parameters
+    speed = physics.get_speed(particle_container, mcdc)
+    N_surface = len(mcdc["boundary_surface_IDs"])  # array of ints
+
+    for surf in range(N_surface):
+        candidate_surface_ID = mcdc["boundary_surface_IDs"][surf]
+        surface = mcdc["surfaces"][candidate_surface_ID]
+        d = surface_.get_distance(particle_container, speed, surface)
+        if d < distance:
+            distance = d
+            surface_ID = surface["ID"]
+
+    # if it's an int it never hits a surface!
+    if distance is not INF:
+        particle["surface_ID"] = surface_ID
+        particle["event"] = EVENT_SURFACE_CROSSING
+
+    return distance
 
 
 # ======================================================================================

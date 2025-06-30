@@ -220,6 +220,7 @@ def make_type_particle(input_deck):
         ("fresh", bool_),
         ("event", int64),
         ("rng_seed", uint64),
+        ("delta_tracking", bool_),
     ]
 
     # Get modes
@@ -1099,6 +1100,10 @@ def make_type_technique(input_deck):
         ("branchless_collision", bool_),
         ("domain_decomposition", bool_),
         ("uq", bool_),
+        ("delta_tracking", bool_),
+        ("collision_estimator", bool_),
+        ("dt_cutoff_energy", float64),  # cut off energy for delta tracking
+        ("dt_material_exclusion", int64),  # exculsion materials for delta tracking
     ]
 
     # =========================================================================
@@ -1286,8 +1291,36 @@ def make_type_technique(input_deck):
 
     struct += [("uq_", uq)]
 
+    # =========================================================================
+    # Delta Tracking
+    # =========================================================================
+
+    if mode_MG:
+        struct += [("majorant_energy", float64, (G,))]
+        struct += [("micro_majorant_xsec", float64, (G,))]
+    else:
+        N_majorant = compute_majorant_size(input_deck)
+        struct += [("majorant_energy", float64, (N_majorant,))]
+        struct += [("micro_majorant_xsec", float64, (N_majorant,))]
+
+    struct += [("N_majorant", int64)]
+
     # Finalize technique type
     technique = into_dtype(struct)
+
+
+def compute_majorant_size(input_deck):
+    """just computes size of majorant!
+    this will be redone in prepare()"""
+
+    energy_grid = []
+
+    dir_name = os.getenv("MCDC_XSLIB")
+    for nuc in input_deck.nuclides:
+        with h5py.File(dir_name + "/" + nuc.name + ".h5", "r") as f:
+            energy_grid = np.append(energy_grid, f["E_xs"][:])
+
+    return np.size(np.unique(energy_grid)) + 1
 
 
 # UQ
@@ -1448,6 +1481,14 @@ def make_type_global(input_deck):
     N_cell_tally = len(input_deck.cell_tallies)
     N_cs_tally = len(input_deck.cs_tallies)
 
+    # find the number of reflecting surfaces
+    N_boundary = 0
+    for i in range(N_surface):
+        if input_deck.surfaces[i].boundary_type == "reflective":
+            N_boundary += 1
+        elif input_deck.surfaces[i].boundary_type == "vacuum":
+            N_boundary += 1
+
     # Cell data sizes
     N_cell_surface = sum([len(x.surface_IDs) for x in input_deck.cells])
     N_cell_region = sum([len(x._region_RPN) for x in input_deck.cells])
@@ -1514,6 +1555,7 @@ def make_type_global(input_deck):
             ("nuclides", nuclide, (N_nuclide,)),
             ("materials", material, (N_material,)),
             ("surfaces", surface, (N_surface,)),
+            ("boundary_surface_IDs", int64, (N_boundary,)),  # delta tracking
             # Cells
             ("cells", cell, (N_cell,)),
             ("cells_data_surface", int64, (N_cell_surface,)),

@@ -153,6 +153,11 @@ class InputDeck:
             "IC_cycle_stretch": 1.0,
             "branchless_collision": False,
             "uq": False,
+            "delta_tracking": False,
+            "collision_estimator": False,
+            "dt_cutoff_energy": 0,
+            "dt_material_exclusion": INF,
+            "plot_majorant": True,
         }
 
         self.uq_deltas = {

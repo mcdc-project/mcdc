@@ -227,6 +227,7 @@ def material(
     chi_d=None,
     speed=None,
     decay=None,
+    name=None,
 ):
     """
     Create a material
@@ -258,6 +259,8 @@ def material(
         Energy group speed [cm/s].
     decay : numpy.ndarray (1D), optional
         Precursor group decay constant [/s].
+    name : str, optional
+        Name of the material (e.g. moderator)
 
     Returns
     -------
@@ -324,7 +327,7 @@ def material(
                     print_error(
                         "Continuous energy data directory not configured \n       "
                         "see https://cement-psaapgithubio.readthedocs.io/en/latest"
-                        "/install.html#configuring-continuous-energy-library \n"
+                        "./install.html#configuring-continuous-energy-library \n"
                     )
 
                 # Fissionable flag
@@ -446,8 +449,7 @@ def material(
 
 
 def surface(type_, bc="interface", **kw):
-    """
-    Create a surface to define the region of a cell.
+    """Create a surface to define the region of a cell.
 
     Parameters
     ----------
@@ -1245,6 +1247,40 @@ def branchless_collision():
     card["weighted_emission"] = False
 
 
+def delta_tracking(
+    collision_estimator=False,
+    cutoff_energy=0,
+    material_exclusion=INF,
+    plot_majorant=True,
+):
+    """
+    Activate delta tracking and set hybrid parameters
+
+    Parameters
+    ----------
+    collision_estimator : bool
+        Use a collision estimator for flux tallies
+    cutoff_energy : float
+        A cut off energy, underwich do surface tracking (**continuous energy only**) (look at the majorant plot and make an informed decision!)
+    material_exclusion : int
+        Material ID of a single region not to do delta tracking in (TODO: Make multiple regions) (**continuous energy only**)
+    plot_majorant : bool
+        Saves a .pdf plot of the majorant and nuclides when produced
+
+    Notes
+    -----
+    TODO: turn off other incompatible tracking techniques if any (k-eigenvalue, fission flux tallies, )
+    Doesn't work with k-eigenvalue simulations
+
+    """
+    card = global_.input_deck.technique
+    card["delta_tracking"] = True
+    card["collision_estimator"] = collision_estimator
+    card["dt_cutoff_energy"] = cutoff_energy
+    card["dt_material_exclusion"] = material_exclusion
+    card["plot_majorant"] = plot_majorant
+
+
 def time_census(t, tally_frequency=None):
     """
     Set time-census boundaries.
@@ -1253,7 +1289,7 @@ def time_census(t, tally_frequency=None):
     ----------
     t : array_like[float]
         The time-census boundaries.
-    tally_frecuency : integer, optional
+    tally_frequency : integer, optional
         Number of uniform tally time mesh bins in census-based tallying.
         This overrides manual tally time mesh definitions.
 

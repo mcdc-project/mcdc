@@ -562,7 +562,6 @@ def gpu_loop_source(seed, data, mcdc):
 def loop_particle(P_arr, data_tally, prog):
     P = P_arr[0]
     mcdc = adapt.mcdc_global(prog)
-
     while P["alive"]:
         step_particle(P_arr, data_tally, prog)
 
@@ -577,6 +576,7 @@ def step_particle(P_arr, data_tally, prog):
 
     # Execute events
     if P["event"] == EVENT_LOST:
+        P["alive"] = False
         return
 
     # Collision
@@ -603,6 +603,10 @@ def step_particle(P_arr, data_tally, prog):
 
             elif P["event"] & EVENT_FISSION:
                 kernel.fission(P_arr, prog)
+
+    if P["event"] & EVENT_PHANTOM_COLLISION:
+        # delta tracking
+        P["alive"] = True
 
     # Surface and domain crossing
     if P["event"] & EVENT_SURFACE_CROSSING:

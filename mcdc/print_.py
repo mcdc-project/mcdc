@@ -26,7 +26,7 @@ def print_warning(msg):
         sys.stdout.flush()
 
 
-def print_banner(mcdc):
+def print_banner(mcdc, args):
     size = MPI.COMM_WORLD.Get_size()
     if master:
         banner = (
@@ -47,6 +47,11 @@ def print_banner(mcdc):
             banner += "           Mode | Python\n"
         else:
             banner += "           Mode | Numba\n"
+        if args.target == "cpu":
+            banner += "         Target | CPU\n"
+        elif args.target == "gpu":
+            banner += "         Target | GPU\n"
+
         if mcdc["technique"]["iQMC"]:
             banner += "      Algorithm | iQMC\n"
             if mcdc["setting"]["mode_eigenvalue"]:
@@ -54,10 +59,22 @@ def print_banner(mcdc):
             else:
                 solver = mcdc["technique"]["iqmc"]["fixed_source_solver"]
             banner += "         Solver | " + solver + "\n"
+        elif (
+            mcdc["technique"]["delta_tracking"]
+            and not mcdc["technique"]["collision_estimator"]
+        ):
+            banner += "      Algorithm | History-based\n"
+            banner += "                | hybrid delta tracking\n"
+        elif (
+            mcdc["technique"]["delta_tracking"]
+            and mcdc["technique"]["collision_estimator"]
+        ):
+            banner += "      Algorithm | History-based\n"
+            banner += "                | delta tracking (collision_estimator)\n"
         else:
             banner += "      Algorithm | History-based\n"
         banner += "  MPI Processes | %i\n" % size
-        banner += " OpenMP Threads | 1"
+        # banner += " OpenMP Threads | 1"
         print(banner)
         sys.stdout.flush()
 

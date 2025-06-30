@@ -59,7 +59,8 @@ dependencies = [
     "black",
     "sympy",
     "pre-commit",
-    "cvxpy"
+    "cvxpy",
+    "imageio",
 ]
 [project.optional-dependencies]
     docs = ["sphinx==7.2.6", "furo", "sphinx_toolbox"]

@@ -53,7 +53,8 @@ def run():
         input_deck.setting["output_name"] = config.args.output
     if config.args.progress_bar is not None:
         input_deck.setting["progress_bar"] = config.args.progress_bar
-
+    if config.args.delta_tracking is not None:
+        input_deck.technique["delta_tracking"] = config.args.delta_tracking
     # Start timer
     total_start = MPI.Wtime()
 
@@ -69,7 +70,7 @@ def run():
     mcdc["runtime_preparation"] = MPI.Wtime() - preparation_start
 
     # Print banner, hardware configuration, and header
-    print_banner(mcdc)
+    print_banner(mcdc, config.args)
 
     print_msg(" Now running TNT...")
     if mcdc["setting"]["mode_eigenvalue"]:
@@ -643,7 +644,9 @@ def prepare():
     # =========================================================================
 
     N_surface = len(input_deck.surfaces)
+    j = 0  # indexing reflective surfaces
     for i in range(N_surface):
+
         surface = mcdc["surfaces"][i]
         surface_input = input_deck.surfaces[i]
 
@@ -693,8 +696,12 @@ def prepare():
             mcdc["surfaces"][i]["BC"] = BC_NONE
         elif input_deck.surfaces[i].boundary_type == "vacuum":
             mcdc["surfaces"][i]["BC"] = BC_VACUUM
+            # mcdc["boundary_surface_IDs"][j] = i
+            # j += 1  # increasing the reflecting surface indexer
         elif input_deck.surfaces[i].boundary_type == "reflective":
             mcdc["surfaces"][i]["BC"] = BC_REFLECTIVE
+            mcdc["boundary_surface_IDs"][j] = i
+            j += 1  # increasing the reflecting surface indexer
 
         # Variables with possible different sizes
         for name in ["tally_IDs"]:
@@ -1220,6 +1227,10 @@ def prepare():
         "IC_generator",
         "branchless_collision",
         "uq",
+        "delta_tracking",
+        "collision_estimator",
+        "dt_cutoff_energy",
+        "dt_material_exclusion",
     ]:
         copy_field(mcdc["technique"], input_deck.technique, name)
 
@@ -1441,6 +1452,194 @@ def prepare():
                 flags["total"] = True
             if flags["nu_p"] or flags["nu_d"]:
                 flags["nu_f"] = True
+
+    # =========================================================================
+    # Delta tracking (majorant copmutation)
+    # =========================================================================
+    # TODO: Make seperate function that can be called without run
+
+    micro_maj = False
+
+    if mcdc["technique"]["delta_tracking"]:
+
+        if input_deck.technique["plot_majorant"]:
+            import matplotlib.pyplot as plt
+
+            plt.figure(figsize=(11, 8.5))
+
+        if mode_CE:
+
+            # TODO: Use numpy functions (currently can't as data is disorginized and requires extrapolation)
+            try:
+                import scipy
+            except:
+                print_error(
+                    "SciPy not found!\n"
+                    "Contininous energy delta tracking requires\n\
+                     interpolation functions from Scipy to construct the marjoant,\n \
+                     try `pip install scipy`"
+                )
+
+            # unify the energy grids from all nuclides
+            majorant_energy_grid = np.array([])
+            for n in range(N_nuclide):
+                nuclide = mcdc["nuclides"][n]
+                majorant_energy_grid = np.append(majorant_energy_grid, nuclide["E_xs"])
+
+            # sort energy grid and eliminate duplicate points
+            majorant_energy_grid = np.unique(majorant_energy_grid)
+            majorant_xsec = np.zeros_like(majorant_energy_grid)
+
+            # macro maj
+            if micro_maj:
+
+                # find the majorant at every point on the energy grid
+                for n in range(N_nuclide):
+                    nuclide = mcdc["nuclides"][n]
+
+                    # builds an interploation funciton for a given nuclide
+                    total_xsec_unified = scipy.interpolate.interp1d(
+                        nuclide["E_xs"], nuclide["ce_total"], bounds_error=False
+                    )
+
+                    # evaluates nuclide interploation function at all unified energy grid points
+                    total_xsec_unified = total_xsec_unified(majorant_energy_grid)
+
+                    # compares old majorant xsec and the currently evaluated unified xsec and picks the larger xsecs
+                    majorant_xsec = np.max((majorant_xsec, total_xsec_unified), axis=0)
+
+                import matplotlib.pyplot as plt
+
+                if input_deck.technique["plot_majorant"]:
+                    plt.plot(
+                        majorant_energy_grid[::5],
+                        majorant_xsec[::5],
+                        "k2",
+                        label="majorant",
+                        linewidth=0.75,
+                    )
+                    for n in range(N_nuclide):
+                        nuclide = mcdc["nuclides"][n]
+                        plt.plot(
+                            nuclide["E_xs"],
+                            nuclide["ce_total"],
+                            label=input_deck.nuclides[n].name,
+                            linewidth=0.75,
+                        )
+                    plt.xscale("log")
+                    plt.yscale("log")
+                    plt.xlabel("E [ev]")
+                    plt.ylabel("σ")
+                    plt.legend()
+                    plt.savefig("micro_majorant.pdf")
+
+            else:
+                import matplotlib.pyplot as plt
+
+                plt.figure(figsize=(11, 8.5))
+
+                for m in range(N_material):
+
+                    material = mcdc["materials"][m]
+
+                    material_energy_grid = np.array([])
+
+                    # copmute a unified energy grid across all nuclides of a given material
+                    for n in range(material["N_nuclide"]):
+                        nuclide = mcdc["nuclides"][n]
+                        material_energy_grid = np.append(
+                            material_energy_grid, nuclide["E_xs"]
+                        )
+                    material_energy_grid = np.unique(material_energy_grid)
+                    MacroXS = np.zeros_like(material_energy_grid)
+
+                    # compute the macroscopic total cross section of a material on its unified energy grid
+                    for n in range(material["N_nuclide"]):
+                        ID_nuclide = material["nuclide_IDs"][n]
+                        nuclide = mcdc["nuclides"][ID_nuclide]
+
+                        # Get nuclide density
+                        N = material["nuclide_densities"][n]
+
+                        # putting the microscopic cross-sections on the unifed material energy grid
+                        total_micro_xsec_unified = scipy.interpolate.interp1d(
+                            nuclide["E_xs"], nuclide["ce_total"], bounds_error=False
+                        )
+                        total_micro_xsec_unified = total_micro_xsec_unified(
+                            material_energy_grid
+                        )
+
+                        # Accumulate
+                        MacroXS += N * total_micro_xsec_unified
+
+                    if input_deck.technique["plot_majorant"]:
+                        plt.plot(
+                            material_energy_grid,
+                            MacroXS,
+                            linewidth=0.5,
+                            label="Mat {}".format(m),
+                        )  # label=input_deck.materials[m].name,
+
+                    # puting the total macroscopic cross sections on on the majorant energy grid
+                    total_xsec_unified = scipy.interpolate.interp1d(
+                        material_energy_grid, MacroXS, bounds_error=False
+                    )
+                    total_xsec_unified = total_xsec_unified(majorant_energy_grid)
+
+                    # compares old majorant xsec and the currently evaluated unified xsec and picks the larger xsecs
+                    majorant_xsec = np.max((majorant_xsec, total_xsec_unified), axis=0)
+
+                if input_deck.technique["plot_majorant"]:
+                    plt.plot(
+                        majorant_energy_grid[::5],
+                        majorant_xsec[::5],
+                        "k2",
+                        label="majorant",
+                        linewidth=0.5,
+                    )
+                    plt.xscale("log")
+                    plt.yscale("log")
+                    plt.xlabel("E [kev]")
+                    plt.ylabel("σ")
+                    plt.legend()
+                    plt.savefig("macro_majorant.pdf")
+
+        elif mode_MG:
+            N_groups = mcdc["nuclides"][0]["G"]
+            majorant_energy_grid = np.zeros(N_groups)
+            majorant_xsec = np.zeros(N_groups)
+
+            majorant_energy_grid = mcdc["nuclides"][0]["speed"][:]
+
+            for i in range(N_groups):
+                # print("g {}  ".format(i), mcdc["nuclides"][:]["total"][:, i])
+                majorant_xsec[i] = np.max(mcdc["nuclides"][:]["total"][:, i])
+
+            # print("here!")
+            import matplotlib.pyplot as plt
+
+            if input_deck.technique["plot_majorant"]:
+                plt.figure(figsize=(11, 8.5))
+                plt.plot(majorant_energy_grid, majorant_xsec, "k2", label="majorant")
+                for n in range(N_nuclide):
+                    nuclide = mcdc["nuclides"][n]
+                    plt.plot(
+                        nuclide["speed"][:],
+                        nuclide["total"],
+                        "-*",
+                        label=input_deck.nuclides[n].name,
+                    )
+                plt.xscale("log")
+                plt.yscale("log")
+                plt.xlabel("E [kev]")
+                plt.ylabel("σ")
+                plt.legend()
+                plt.savefig("majorant.pdf")
+
+        # This might need to use copy_feild but not sure why
+        mcdc["technique"]["micro_majorant_xsec"] = majorant_xsec[:]
+        mcdc["technique"]["majorant_energy"] = majorant_energy_grid[:]
+        mcdc["technique"]["N_majorant"] = np.size(majorant_xsec)
 
     # =========================================================================
     # MPI
@@ -2412,7 +2611,10 @@ def visualize(
     z=0.0,
     pixels=(100, 100),
     colors=None,
+    labels=None,
+    legend=False,
     time=np.array([0.0]),
+    movie=False,
     save_as=None,
 ):
     """
@@ -2434,8 +2636,29 @@ def visualize(
         Number of respective pixels in the two axes in vis_plane
     colors : array_like
         List of pairs of material and its color
+    labels : array_like
+        List of pairs of matieral and its label on plot, sets legend to True
+    legend : bool
+        Display legend or not, if labels not supplied uses materialIDs
+    save_as : str
+        If supplied outputs saved as a time stampped .png instead of displayed
+    movie : bool
+        Save output as a .gif, save_as must be supplied
     """
     # TODO: add input error checkers
+
+    if movie:
+        try:
+            assert save_as is not None
+        except:
+            print_error("To save a move supply name of file")
+
+        try:
+            import imageio
+        except:
+            print_error(
+                "Imageio required to save visualization results as a git\ntry: pip install imageio"
+            )
 
     _, mcdc_container = prepare()
     mcdc = mcdc_container[0]
@@ -2451,6 +2674,20 @@ def visualize(
         for i in range(len(mcdc["materials"])):
             colors[i] = plt.cm.Set1(i)[:-1]
     WHITE = mpl_colors.to_rgb("white")
+
+    # legend label assigment (by material ID)
+    import matplotlib.patches as mpatches
+
+    legend_hands = [0] * len(mcdc["materials"])
+    if labels is not None:
+        legend = True
+        for item in labels.items():
+            legend_hands[item[0].ID] = mpatches.Patch(
+                color=colors[item[0].ID], label=item[1]
+            )
+    else:  # it gives it the mat ID
+        for i in range(len(mcdc["materials"])):
+            legend_hands[i] = mpatches.Patch(color=colors[i], label="{}".format(i))
 
     # Set reference axis
     for axis in ["x", "y", "z"]:
@@ -2500,6 +2737,8 @@ def visualize(
     particle["g"] = 0
     particle["E"] = 1e6
 
+    frames = []
+
     for t in time:
         # Set time
         particle["t"] = t
@@ -2518,6 +2757,7 @@ def visualize(
             for j in range(pixels[1]):
                 particle[second_key] = second_midpoint[j]
 
+                # print( particle['x'],  particle['y'],  particle['z'])
                 # Get material
                 particle["cell_ID"] = -1
                 particle["material_ID"] = -1
@@ -2531,8 +2771,16 @@ def visualize(
         plt.xlabel(first_key + " [cm]")
         plt.ylabel(second_key + " [cm]")
         plt.title(reference_key + " = %.2f cm" % reference + ", time = %.2f s" % t)
+        if legend:
+            plt.legend(handles=legend_hands, bbox_to_anchor=(1.04, 1), loc="upper left")
         if save_as is not None:
             plt.savefig(save_as + "_%.2f.png" % t)
             plt.clf()
+            if movie:
+                image = imageio.v2.imread(save_as + "_%.2f.png" % t)
+                frames.append(image)
         else:
             plt.show()
+
+    if movie:
+        imageio.mimsave(save_as + ".gif", frames, fps=5)

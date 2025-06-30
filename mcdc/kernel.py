@@ -1850,6 +1850,75 @@ def mesh_get_energy_index(P_arr, mesh, mode_MG):
 
 
 @njit
+def score_mesh_collision_tally(P_arr, tally, data, mcdc):
+    """Scoring tallies with a collision estimator"""
+    P = P_arr[0]
+    tally_bin = data[TALLY]
+    material = mcdc["materials"][P["material_ID"]]
+    mesh = tally["filter"]
+    stride = tally["stride"]
+
+    # Easily identified tally bin indices
+    mu, azi = mesh_get_angular_index(P_arr, mesh)
+    g, outside_energy = mesh_get_energy_index(P_arr, mesh, mcdc["setting"]["mode_MG"])
+
+    # Get current indices indices
+    ix, iy, iz, it, outside = mesh_.structured.get_indices(P_arr, mesh)
+
+    if outside or outside_energy:
+        return
+
+    idx = (
+        stride["tally"]
+        + mu * stride["mu"]
+        + azi * stride["azi"]
+        + g * stride["g"]
+        + it * stride["t"]
+        + ix * stride["x"]
+        + iy * stride["y"]
+        + iz * stride["z"]
+    )
+
+    # collision estimator requires all
+    SigmaT = get_MacroXS(XS_TOTAL, material, P_arr, mcdc)
+    flux = 1 / SigmaT
+
+    mu = P["ux"]
+    for i in range(tally["N_score"]):
+        score_type = tally["scores"][i]
+        score = 0
+        if score_type == SCORE_FLUX:
+            score = flux
+        elif score_type == SCORE_DENSITY:
+            ut = 1.0 / physics.get_speed(P_arr, mcdc)
+            score = flux * ut
+        elif score_type == SCORE_TOTAL:
+            score = flux * SigmaT
+        elif score_type == SCORE_FISSION:
+            SigmaF = get_MacroXS(XS_FISSION, material, P_arr, mcdc)
+            score = flux * SigmaF
+        if score_type == SCORE_NET_CURRENT:
+            score = flux * mu
+        if score_type == SCORE_MU_SQ:
+            score = flux * mu * mu
+        # elif score_type == SCORE_TIME_MOMENT_FLUX:
+        #     score = flux * (t - (mesh["t"][it - 1] + mesh["t"][it]) / 2)
+        # elif score_type == SCORE_SPACE_MOMENT_FLUX:
+        #     score = flux * (x - (mesh["x"][ix + 1] + mesh["x"][ix]) / 2)
+        # elif score_type == SCORE_TIME_MOMENT_CURRENT:
+        #     score = flux * mu * (t - (mesh["t"][it - 1] + mesh["t"][it]) / 2)
+        # elif score_type == SCORE_SPACE_MOMENT_CURRENT:
+        #     score = flux * mu * (x - (mesh["x"][ix + 1] + mesh["x"][ix]) / 2)
+        # elif score_type == SCORE_TIME_MOMENT_MU_SQ:
+        #     score = flux * mu * mu * (t - (mesh["t"][it - 1] + mesh["t"][it]) / 2)
+        # elif score_type == SCORE_SPACE_MOMENT_MU_SQ:
+        #     score = flux * mu * mu * (x - (mesh["x"][ix + 1] + mesh["x"][ix]) / 2)
+        adapt.global_add(tally_bin, (TALLY_SCORE, idx + i), round(score))
+
+    return
+
+
+@njit
 def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc):
     P = P_arr[0]
     material = mcdc["materials"][P["material_ID"]]
@@ -2757,11 +2826,29 @@ def move_to_event(P_arr, data_tally, mcdc):
     # ==================================================================================
     P = P_arr[0]
 
-    # Multigroup preparation
-    #   In MG mode, particle speed is material-dependent.
-    if mcdc["setting"]["mode_MG"]:
-        # If material is not identified yet, locate the particle
-        if P["material_ID"] == -1:
+    # Delta tracking logic
+    # TODO: should be it's own function of logic, maybe setting in loop
+    if mcdc["technique"]["delta_tracking"]:
+        if mcdc["setting"]["mode_MG"]:
+            P["delta_tracking"] = True
+        else:
+            P["delta_tracking"] = True
+
+            # energy cutoff (above delta tracking, below surface)
+            if P["E"] < mcdc["technique"]["dt_cutoff_energy"]:
+                P["delta_tracking"] = False
+
+            # don't delta track if in excluded material
+            if P["material_ID"] == mcdc["technique"]["dt_material_exclusion"]:
+                P["delta_tracking"] = False
+    else:
+        P["delta_tracking"] = False
+
+    # If material is not identified yet, locate the particle
+    if P["material_ID"] == -1:
+        # Multigroup preparation
+        #   In MG mode, particle speed is material-dependent.
+        if mcdc["setting"]["mode_MG"]:
             if not geometry.locate_particle(P_arr, mcdc):
                 # Particle is lost
                 P["event"] = EVENT_LOST
@@ -2775,10 +2862,17 @@ def move_to_event(P_arr, data_tally, mcdc):
     #   - Set particle boundary event (surface or lattice crossing, or lost)
     #   - Return distance to boundary (surface or lattice)
 
-    d_boundary = geometry.inspect_geometry(P_arr, mcdc)
+    if P["delta_tracking"]:
+        d_boundary = geometry.distance_to_boundary(P_arr, mcdc)
+    else:
+        d_boundary = geometry.inspect_geometry(P_arr, mcdc)
 
     # Particle is lost?
     if P["event"] == EVENT_LOST:
+        return
+
+    # Particle is dead?
+    if P["alive"] == False:
         return
 
     # ==================================================================================
@@ -2840,40 +2934,64 @@ def move_to_event(P_arr, data_tally, mcdc):
         P["event"] = EVENT_TIME_BOUNDARY
         P["surface_ID"] = -1
 
-    # =========================================================================
-    # Move particle
-    # =========================================================================
-
     # Score tracklength tallies
-    if mcdc["cycle_active"]:
-        # Mesh tallies
-        for tally in mcdc["mesh_tallies"]:
-            score_mesh_tally(P_arr, distance, tally, data_tally, mcdc)
+    if not mcdc["technique"]["collision_estimator"]:
+        if mcdc["cycle_active"]:
+            # Mesh tallies
+            for tally in mcdc["mesh_tallies"]:
+                score_mesh_tally(P_arr, distance, tally, data, mcdc)
 
-        # Cell tallies
-        cell = mcdc["cells"][P["cell_ID"]]
-        for i in range(cell["N_tally"]):
-            ID = cell["tally_IDs"][i]
-            tally = mcdc["cell_tallies"][ID]
-            score_cell_tally(P_arr, distance, tally, data_tally, mcdc)
+            # Cell tallies
+            cell = mcdc["cells"][P["cell_ID"]]
+            for i in range(cell["N_tally"]):
+                ID = cell["tally_IDs"][i]
+                tally = mcdc["cell_tallies"][ID]
+                score_cell_tally(P_arr, distance, tally, data, mcdc)
 
-        # CS tallies
-        for tally in mcdc["cs_tallies"]:
-            score_cs_tally(P_arr, distance, tally, data_tally, mcdc)
+            # CS tallies
+            for tally in mcdc["cs_tallies"]:
+                score_cs_tally(P_arr, distance, tally, data, mcdc)
 
-    if mcdc["setting"]["mode_eigenvalue"]:
+    if mcdc["setting"]["mode_eigenvalue"] and not P["delta_tracking"]:
         eigenvalue_tally(P_arr, distance, mcdc)
 
+    # =========================================================================
     # Move particle
+    # =========================================================================
+
     move_particle(P_arr, distance, mcdc)
+
+    # =========================================================================
+    # Delta Tracking
+    # =========================================================================
+
+    # Delta tracking rejection sampleing must happen AFTER the particle is moved
+    if P["delta_tracking"] and P["event"] == EVENT_COLLISION:
+        # finding the particle
+        P["cell_ID"] = -1
+        P["material_ID"] = -1
+        geometry.locate_particle(P_arr, mcdc)
+
+        rejection_sample(P_arr, mcdc)
+
+    if mcdc["technique"]["collision_estimator"]:
+        if (P["event"] == EVENT_COLLISION or P["event"]== EVENT_PHANTOM_COLLISION) and mcdc["cycle_active"]:
+            # Mesh tallies
+            # use a collision estimator for currently undefined tallies
+            for tally in mcdc["mesh_tallies"]:
+                score_mesh_collision_tally(P_arr, tally, data, mcdc)
 
 
 @njit
 def distance_to_collision(P_arr, mcdc):
     P = P_arr[0]
     # Get total cross-section
-    material = mcdc["materials"][P["material_ID"]]
-    SigmaT = get_MacroXS(XS_TOTAL, material, P_arr, mcdc)
+
+    if P["delta_tracking"]:
+        SigmaT = get_MacroMaj(P_arr, mcdc)
+    else:
+        material = mcdc["materials"][P["material_ID"]]
+        SigmaT = get_MacroXS(XS_TOTAL, material, P_arr, mcdc)
 
     # Vacuum material?
     if SigmaT == 0.0:
@@ -2882,7 +3000,27 @@ def distance_to_collision(P_arr, mcdc):
     # Sample collision distance
     xi = rng(P_arr)
     distance = -math.log(xi) / SigmaT
+
     return distance
+
+
+@njit
+def rejection_sample(P_arr, mcdc):
+    # For use in delta tracking
+    P = P_arr[0]
+
+    material = mcdc["materials"][P["material_ID"]]
+    SigmaT = get_MacroXS(XS_TOTAL, material, P_arr, mcdc)
+    Maj = get_MacroMaj(P_arr, mcdc)
+
+    reject_rat = SigmaT / Maj
+
+    xi = rng(P_arr)
+
+    if xi < reject_rat:  # real collision
+        P["event"] = EVENT_COLLISION
+    else:  # phantom collision
+        P["event"] = EVENT_PHANTOM_COLLISION
 
 
 # =============================================================================
@@ -3700,6 +3838,46 @@ def weight_roulette(P_arr, mcdc):
 
 
 # =============================================================================
+# Majorant function --- Delta Tracking
+# =============================================================================
+
+
+@njit
+def get_MacroMaj(P_arr, mcdc):
+    """Hybrid delta tracking"""
+
+    P = P_arr[0]
+
+    if mcdc["setting"]["mode_MG"]:
+        return mcdc["technique"]["micro_majorant_xsec"][P["g"]]
+
+    elif mcdc["setting"]["mode_CE"]:
+        # nuclide density over all nuclides
+        # same as assuming all atoms are of same xsec
+        # N = 0.0
+        # for i in range(material["N_nuclide"]):
+        #    N += material["nuclide_densities"][i]
+
+        data = mcdc["technique"]["micro_majorant_xsec"]
+        Egrid = mcdc["technique"]["majorant_energy"]
+        E = P["E"]
+
+        Ne = mcdc["technique"]["N_majorant"]
+
+        MacroXS = get_XS(data, E, Egrid, Ne)
+
+        # import matplotlib.pyplot as plt
+        # plt.figure()
+        # plt.loglog(Egrid, data)
+        # plt.loglog(P["E"], MacroXS, "X")
+        # plt.show()
+
+        # MacroXS *= N
+
+        return MacroXS
+
+
+# =============================================================================
 # Continuous Energy Physics
 # =============================================================================
 
@@ -3746,6 +3924,7 @@ def get_MacroXS(type_, material, P_arr, mcdc):
 
     # Sum over all nuclides
     for i in range(material["N_nuclide"]):
+
         ID_nuclide = material["nuclide_IDs"][i]
         nuclide = mcdc["nuclides"][ID_nuclide]
 

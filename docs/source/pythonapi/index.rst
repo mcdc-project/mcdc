@@ -63,6 +63,7 @@ Defining techniques
    mcdc.weighted_emission
    mcdc.weight_roulette
    mcdc.weight_window
+   mcdc.delta_tracking
 
 
 
