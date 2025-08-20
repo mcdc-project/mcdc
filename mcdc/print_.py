@@ -1,3 +1,5 @@
+import mcdc.objects as objects
+
 import numba as nb
 import numpy as np
 import sys
@@ -65,14 +67,14 @@ def print_banner(mcdc):
 def print_progress(percent, mcdc):
     if master:
         sys.stdout.write("\r")
-        if not mcdc["setting"]["mode_eigenvalue"]:
-            if mcdc["setting"]["N_census"] == 1:
+        if not objects.settings.eigenvalue_mode:
+            if objects.settings.N_census == 1:
                 sys.stdout.write(
                     " [%-28s] %d%%" % ("=" * int(percent * 28), percent * 100.0)
                 )
             else:
                 idx = mcdc["idx_census"] + 1
-                N = len(mcdc["setting"]["census_time"])
+                N = len(objects.settings.census_time)
                 sys.stdout.write(
                     " Census %i/%i: [%-28s] %d%%"
                     % (idx, N, "=" * int(percent * 28), percent * 100.0)
@@ -106,7 +108,7 @@ def print_progress_iqmc(mcdc):
 
 def print_header_eigenvalue(mcdc):
     if master:
-        if mcdc["setting"]["gyration_radius"]:
+        if objects.settings.use_gyration_radius:
             print("\n #     k        GyRad.  k (avg)            ")
             print(" ====  =======  ======  ===================")
         elif mcdc["technique"]["iQMC"] and mcdc["technique"]["iqmc"]["mode"] == "fixed":
@@ -117,10 +119,10 @@ def print_header_eigenvalue(mcdc):
             print(" ====  =======  ===================")
 
 
-def print_header_batch(mcdc):
-    idx_batch = mcdc["idx_batch"]
+def print_header_batch(i, N):
     if master:
-        print("\nBatch %i/%i" % (idx_batch + 1, mcdc["setting"]["N_batch"]))
+        print(f"\nBatch {i+1}/{N}")
+        sys.stdout.flush()
 
 
 def print_progress_eigenvalue(mcdc):

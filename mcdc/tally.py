@@ -1,3 +1,5 @@
+import mcdc.objects as objects
+
 # Get input_deck
 import mcdc.config as config
 import mcdc.global_ as global_
@@ -84,7 +86,7 @@ def mesh_tally(
         card.g = np.linspace(0, G, G + 1) - 0.5
     else:
         card.g = g
-    if global_.input_deck.setting["mode_CE"]:
+    if not objects.settings.multigroup_mode:
         card.g = E
 
     # Calculate total number bins

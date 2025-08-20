@@ -2,6 +2,11 @@
 This module contains functions for setting MC/DC input deck.
 Docstrings use NumPy formatting.
 """
+from operator import mul
+import mcdc.objects as objects
+
+from mcdc.objects import ObjectBase
+from mcdc.material import MaterialMG
 
 # Instantiate and get the global variable container
 import mcdc.global_ as global_
@@ -45,7 +50,6 @@ from mcdc.constant import (
     WW_USER,
     WW_WOLLABER,
 )
-from mcdc.objects import ObjectBase
 import mcdc.type_ as type_
 
 '''
@@ -674,7 +678,7 @@ def cell(region=None, fill=None, translation=(0.0, 0.0, 0.0), rotation=(0.0, 0.0
     # Assign fill type and ID
     if isinstance(fill, ObjectBase):
         card.fill_type = "material"
-        card.fill_ID = fill.numba_ID
+        card.fill_ID = fill.ID
     else:
         if fill.tag == "Universe":
             card.fill_type = "universe"
@@ -918,12 +922,13 @@ def source(**kw):
         card.uz = uz / norm
 
     # Set energy
+    MG_mode = isinstance(objects.materials[0], MaterialMG)
     if energy is not None:
-        if global_.input_deck.setting["mode_MG"]:
+        if MG_mode:
             group = np.array(energy)
             # Normalize
             card.group = group / np.sum(group)
-        if global_.input_deck.setting["mode_CE"]:
+        else:
             energy = np.array(energy)
             # Resize
             card.energy = np.zeros(energy.shape)
@@ -937,12 +942,12 @@ def source(**kw):
             )
     else:
         # Default for MG
-        if global_.input_deck.setting["mode_MG"]:
-            G = global_.input_deck.materials[0].G
+        if MG_mode:
+            G = objects.materials[0].G
             group = np.ones(G)
             card.group = group / np.sum(group)
         # Default for CE
-        if global_.input_deck.setting["mode_CE"]:
+        else:
             # Normalize pdf
             card.energy[1, :] = card.energy[1, :] / np.trapz(
                 card.energy[1, :], x=card.energy[0, :]

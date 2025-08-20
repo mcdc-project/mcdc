@@ -1,3 +1,6 @@
+import mcdc.objects as objects
+import mcdc.code_factory as code_factory
+
 import argparse, os, sys
 import importlib.metadata
 import mcdc.config as config
@@ -46,13 +49,18 @@ input_deck = mcdc_.input_deck
 
 
 def run():
-    # Override input deck with command-line argument, if given
+    # ==================================================================================
+    # Override settings with command-line arguments
+    # ==================================================================================
+
+    settings = objects.settings
+
     if config.args.N_particle is not None:
-        input_deck.setting["N_particle"] = config.args.N_particle
+        settings.N_particle = config.args.N_particle
     if config.args.output is not None:
-        input_deck.setting["output_name"] = config.args.output
+        settings.output_name = config.args.output
     if config.args.progress_bar is not None:
-        input_deck.setting["progress_bar"] = config.args.progress_bar
+        settings.use_progress_bar = config.args.progress_bar
 
     # Start timer
     total_start = MPI.Wtime()
@@ -65,6 +73,7 @@ def run():
         iqmc_validate_inputs(input_deck)
 
     data_tally, mcdc_arr = prepare()
+    data_new, mcdc_new = code_factory.generate_numba_objects(objects.materials + [objects.settings])
     mcdc = mcdc_arr[0]
     mcdc["runtime_preparation"] = MPI.Wtime() - preparation_start
 
@@ -72,14 +81,14 @@ def run():
     print_banner(mcdc)
 
     print_msg(" Now running TNT...")
-    if mcdc["setting"]["mode_eigenvalue"]:
+    if settings.eigenvalue_mode:
         print_header_eigenvalue(mcdc)
 
     # Run simulation
     simulation_start = MPI.Wtime()
     if mcdc["technique"]["iQMC"]:
         iqmc_simulation(mcdc_arr)
-    elif mcdc["setting"]["mode_eigenvalue"]:
+    elif settings.eigenvalue_mode:
         loop_eigenvalue(data_tally, mcdc_arr)
     else:
         loop_fixed_source(data_tally, mcdc_arr)
@@ -455,6 +464,8 @@ def prepare():
       (3) Create and set up global variable container `mcdc`
     """
 
+    settings = objects.settings
+
     prepare_domain_decomposition()
 
     # =========================================================================
@@ -493,8 +504,8 @@ def prepare():
     # =========================================================================
     # Reset time grid size of all tallies if census-based tally is desired
 
-    if input_deck.setting["census_based_tally"]:
-        N_bin = input_deck.setting["census_tally_frequency"]
+    if objects.settings.use_census_based_tally:
+        N_bin = objects.settings.census_tally_frequency
         for tally in input_deck.mesh_tallies:
             tally.N_bin *= N_bin / (len(tally.t) - 1)
             tally.t = np.zeros(N_bin + 1)
@@ -511,8 +522,6 @@ def prepare():
 
     type_.make_type_particle(input_deck)
     type_.make_type_particle_record(input_deck)
-    type_.make_type_nuclide(input_deck)
-    type_.make_type_material(input_deck)
     type_.make_type_surface(input_deck)
     type_.make_type_cell(input_deck)
     type_.make_type_lattice(input_deck)
@@ -521,7 +530,6 @@ def prepare():
     type_.make_type_surface_tally(input_deck)
     type_.make_type_cell_tally(input_deck)
     type_.make_type_cs_tally(input_deck)
-    type_.make_type_setting(input_deck)
     type_.make_type_uq(input_deck)
     type_.make_type_domain_decomp(input_deck)
     type_.make_type_dd_turnstile_event(input_deck)
@@ -530,7 +538,7 @@ def prepare():
     type_.make_size_rpn(input_deck)
     kernel.adapt_rng(nb.config.DISABLE_JIT)
 
-    input_deck.setting["target"] = config.target
+    settings.target_gpu = True if config.target == "gpu" else False
 
     # =========================================================================
     # Create the global variable container
@@ -543,100 +551,8 @@ def prepare():
     # Now, set up the global variable container
 
     # Get modes
-    mode_CE = input_deck.setting["mode_CE"]
-    mode_MG = input_deck.setting["mode_MG"]
-
-    # =========================================================================
-    # Nuclides
-    # =========================================================================
-
-    N_nuclide = len(input_deck.nuclides)
-    for i in range(N_nuclide):
-        # General data
-        for name in ["ID", "fissionable"]:
-            copy_field(mcdc["nuclides"][i], input_deck.nuclides[i], name)
-
-        # MG data
-        if mode_MG:
-            for name in [
-                "G",
-                "J",
-                "speed",
-                "decay",
-                "total",
-                "capture",
-                "scatter",
-                "fission",
-                "nu_s",
-                "nu_f",
-                "nu_p",
-                "nu_d",
-                "chi_s",
-                "chi_p",
-                "chi_d",
-            ]:
-                copy_field(mcdc["nuclides"][i], input_deck.nuclides[i], name)
-
-        # CE data (load data from XS library)
-        dir_name = os.getenv("MCDC_XSLIB")
-        if mode_CE:
-            nuc_name = input_deck.nuclides[i].name
-            with h5py.File(dir_name + "/" + nuc_name + ".h5", "r") as f:
-                # Atomic weight ratio
-                mcdc["nuclides"][i]["A"] = f["A"][()]
-                # Energy grids
-                for name in [
-                    "E_xs",
-                    "E_nu_p",
-                    "E_nu_d",
-                    "E_chi_p",
-                    "E_chi_d1",
-                    "E_chi_d2",
-                    "E_chi_d3",
-                    "E_chi_d4",
-                    "E_chi_d5",
-                    "E_chi_d6",
-                ]:
-                    mcdc["nuclides"][i]["N" + name] = len(f[name][:])
-                    mcdc["nuclides"][i][name][: len(f[name][:])] = f[name][:]
-
-                # XS
-                for name in ["capture", "scatter", "fission"]:
-                    mcdc["nuclides"][i]["ce_" + name][: len(f[name][:])] = f[name][:]
-                    mcdc["nuclides"][i]["ce_total"][: len(f[name][:])] += f[name][:]
-
-                # Fission production
-                mcdc["nuclides"][i]["ce_nu_p"][: len(f["nu_p"][:])] = f["nu_p"][:]
-                for j in range(6):
-                    mcdc["nuclides"][i]["ce_nu_d"][j][: len(f["nu_d"][j, :])] = f[
-                        "nu_d"
-                    ][j, :]
-
-                # Fission spectrum
-                mcdc["nuclides"][i]["ce_chi_p"][: len(f["chi_p"][:])] = f["chi_p"][:]
-                for j in range(6):
-                    mcdc["nuclides"][i]["ce_chi_d%i" % (j + 1)][
-                        : len(f["chi_d%i" % (j + 1)][:])
-                    ] = f["chi_d%i" % (j + 1)][:]
-
-                # Decay
-                mcdc["nuclides"][i]["ce_decay"][: len(f["decay_rate"][:])] = f[
-                    "decay_rate"
-                ][:]
-
-    # =========================================================================
-    # Materials
-    # =========================================================================
-
-    N_material = len(input_deck.materials)
-    for i in range(N_material):
-        for name in type_.material.names:
-            if name in ["nuclide_IDs", "nuclide_densities"]:
-                mcdc["materials"][i][name][: mcdc["materials"][i]["N_nuclide"]] = (
-                    getattr(input_deck.materials[i], name)
-                )
-            else:
-                copy_field(mcdc["materials"][i], input_deck.materials[i], name)
+    mode_MG = settings.multigroup_mode
+    mode_CE = not mode_MG
 
     # =========================================================================
     # Surfaces
@@ -1163,12 +1079,10 @@ def prepare():
     adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
 
     # =========================================================================
-    # Setting
+    # Settings
     # =========================================================================
 
-    for name in type_.setting.names:
-        copy_field(mcdc["setting"], input_deck.setting, name)
-
+    # Set appropriate time boundary
     t_limit = max(
         [
             tally["filter"]["t"][-1]
@@ -1187,22 +1101,12 @@ def prepare():
         t_limit = INF
 
     # Replace the time limit if time census-based tally is used
-    if mcdc["setting"]["census_based_tally"]:
-        t_limit = mcdc["setting"]["census_time"][-2]
+    if settings.use_census_based_tally:
+        t_limit = settings.census_time[-2]
 
     # Set appropriate time boundary
-    if mcdc["setting"]["time_boundary"] > t_limit:
-        mcdc["setting"]["time_boundary"] = t_limit
-
-    if input_deck.technique["iQMC"]:
-        if len(mcdc["technique"]["iqmc"]["mesh"]["t"]) - 1 > 1:
-            if (
-                mcdc["setting"]["time_boundary"]
-                > input_deck.technique["iqmc"]["mesh"]["t"][-1]
-            ):
-                mcdc["setting"]["time_boundary"] = input_deck.technique["iqmc"]["mesh"][
-                    "t"
-                ][-1]
+    if settings.time_boundary > t_limit:
+        settings.time_boundary = t_limit
 
     # =========================================================================
     # Technique
@@ -1455,7 +1359,7 @@ def prepare():
     if mcdc["technique"]["domain_decomposition"]:
         kernel.distribute_work_dd(mcdc["setting"]["N_particle"], mcdc)
     else:
-        kernel.distribute_work(mcdc["setting"]["N_particle"], mcdc)
+        kernel.distribute_work(settings.N_particle, mcdc)
 
     # =========================================================================
     # Particle banks
@@ -1479,14 +1383,14 @@ def prepare():
     # =========================================================================
 
     # Initial guess
-    mcdc["k_eff"] = mcdc["setting"]["k_init"]
+    mcdc["k_eff"] = settings.k_init
 
     # Activate tally scoring for fixed-source
-    if not mcdc["setting"]["mode_eigenvalue"]:
+    if not settings.eigenvalue_mode:
         mcdc["cycle_active"] = True
 
     # All active eigenvalue cycle?
-    elif mcdc["setting"]["N_inactive"] == 0:
+    elif settings.N_inactive == 0:
         mcdc["cycle_active"] = True
 
     # =========================================================================
@@ -1497,7 +1401,7 @@ def prepare():
     # All ranks, take turn
     for i in range(mcdc["mpi_size"]):
         if mcdc["mpi_rank"] == i:
-            if mcdc["setting"]["source_file"]:
+            if settings.use_source_file:
                 with h5py.File(mcdc["setting"]["source_file_name"], "r") as f:
                     # Get source particle size
                     N_particle = f["particles_size"][()]
@@ -1519,7 +1423,7 @@ def prepare():
     # IC file
     # =========================================================================
 
-    if mcdc["setting"]["IC_file"]:
+    if settings.use_IC_file:
         with h5py.File(mcdc["setting"]["IC_file_name"], "r") as f:
             # =================================================================
             # Set neutron source
@@ -1578,7 +1482,10 @@ def cardlist_to_h5group(dictlist, input_group, name):
     else:
         main_group = input_group.create_group(name)
     for item in dictlist:
-        group = main_group.create_group(name + "_%i" % getattr(item, "ID"))
+        if "ID" in dir(item):
+            group = main_group.create_group(name + "_%i" % getattr(item, "ID"))
+        else:
+            group = main_group.create_group(name + "_%i" % getattr(item, "numba_ID"))
         card_to_h5group(item, group)
 
 
@@ -1826,20 +1733,20 @@ def generate_hdf5(data_tally, mcdc):
         dd_mesh = dd_mergemesh(mcdc, data_tally)
 
     if mcdc["mpi_master"]:
-        if mcdc["setting"]["progress_bar"]:
+        if objects.settings.use_progress_bar:
             print_msg("")
         print_msg(" Generating output HDF5 files...")
 
-        with h5py.File(mcdc["setting"]["output_name"] + ".h5", "w") as f:
+        with h5py.File(objects.settings.output_name + ".h5", "w") as f:
             # Version
             version = importlib.metadata.version("mcdc")
             f["version"] = version
 
             # Input deck
-            if mcdc["setting"]["save_input_deck"]:
+            if objects.settings.save_input_deck:
                 input_group = f.create_group("input_deck")
-                cardlist_to_h5group(input_deck.nuclides, input_group, "nuclide")
-                cardlist_to_h5group(input_deck.materials, input_group, "material")
+                cardlist_to_h5group(objects.nuclides, input_group, "nuclide")
+                cardlist_to_h5group(objects.materials, input_group, "material")
                 cardlist_to_h5group(input_deck.surfaces, input_group, "surface")
                 cardlist_to_h5group(input_deck.cells, input_group, "cell")
                 cardlist_to_h5group(input_deck.universes, input_group, "universe")
@@ -1855,13 +1762,13 @@ def generate_hdf5(data_tally, mcdc):
                     input_deck.cell_tallies, input_group, "cell_tallies"
                 )
                 cardlist_to_h5group(input_deck.cs_tallies, input_group, "cs_tallies")
-                dict_to_h5group(input_deck.setting, input_group.create_group("setting"))
+                card_to_h5group(objects.settings, input_group.create_group("setting"))
                 dict_to_h5group(
                     input_deck.technique, input_group.create_group("technique")
                 )
 
             # No need to output tally if time census-based tally is used
-            if input_deck.setting["census_based_tally"]:
+            if objects.settings.use_census_based_tally:
                 return
 
             # Mesh tallies
@@ -2125,7 +2032,7 @@ def generate_hdf5(data_tally, mcdc):
                         f.create_dataset(group_name + "uq_var", data=uq_var)
 
             # Eigenvalues
-            if mcdc["setting"]["mode_eigenvalue"]:
+            if objects.settings.eigenvalue_mode:
                 if mcdc["technique"]["iQMC"]:
                     f.create_dataset("k_eff", data=mcdc["k_eff"])
                     if mcdc["technique"]["iqmc"]["mode"] == "batched":
@@ -2206,7 +2113,7 @@ def generate_hdf5(data_tally, mcdc):
                 )
 
     # Save particle?
-    if mcdc["setting"]["save_particle"]:
+    if objects.settings.save_particle:
         # Gather source bank
         # TODO: Parallel HDF5 and mitigation of large data passing
         N = mcdc["bank_source"]["size"][0]
@@ -2261,7 +2168,6 @@ def recombine_tallies(file="output.h5"):
                             collected_tally_names.append(tally)
 
         for i, tally_info in enumerate(collected_tallies):
-            print(tally_info)
             tally_type = tally_info[0].split("_")[0]
             tally_number = tally_info[0].split("_")[-1]
             with h5py.File(output_name + ".h5", "a") as f:
@@ -2284,9 +2190,7 @@ def recombine_tallies(file="output.h5"):
 
                 # Creating structure of correct size to hold combined tally
                 for tally_type in tally_info[1:]:
-                    print("  ", tally_type)
                     tally_score = np.zeros((Nt, Nmu, N_azi, Ng, Nx, Ny, Nz))
-                    print("  ", tally_score.shape)
                     tally_score = np.squeeze(tally_score)
                     tally_score_sq = np.zeros_like(tally_score)
 
@@ -2300,7 +2204,6 @@ def recombine_tallies(file="output.h5"):
                         N_shift += 1
 
                     for i_census in range(N_census):
-                        print("    ", i_census)
                         idx_start = i_census * N_frequency
                         idx_end = idx_start + N_frequency
                         for i_batch in range(N_batch):
@@ -2373,7 +2276,7 @@ def closeout(mcdc):
 
     # Runtime
     if mcdc["mpi_master"]:
-        with h5py.File(mcdc["setting"]["output_name"] + ".h5", "a") as f:
+        with h5py.File(objects.settings.output_name + ".h5", "a") as f:
             for name in [
                 "total",
                 "preparation",

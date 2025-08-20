@@ -1,3 +1,6 @@
+from mcdc import settings
+import mcdc.objects as objects
+
 from mpi4py import MPI
 from numba import njit, objmode
 
@@ -61,6 +64,10 @@ def teardown_gpu(mcdc):
 
 @njit
 def loop_fixed_source(data_tally, mcdc_arr):
+    settings = objects.settings
+    N_batch = settings.N_batch
+    N_particle = settings.N_particle
+    N_census = settings.N_census
 
     # Ensure `mcdc` exist for the lifetime of the program
     # by intentionally leaking their memory
@@ -68,35 +75,35 @@ def loop_fixed_source(data_tally, mcdc_arr):
     mcdc = mcdc_arr[0]
 
     # Loop over batches
-    for idx_batch in range(mcdc["setting"]["N_batch"]):
+    for i_batch in range(N_batch):
         if not mcdc["technique"]["domain_decomposition"]:
-            kernel.distribute_work(N=mcdc["setting"]["N_particle"], mcdc=mcdc)
+            kernel.distribute_work(N=N_particle, mcdc=mcdc)
         else:
-            kernel.distribute_work_dd(N=mcdc["setting"]["N_particle"], mcdc=mcdc)
-        mcdc["idx_batch"] = idx_batch
-        seed_batch = kernel.split_seed(idx_batch, mcdc["setting"]["rng_seed"])
+            kernel.distribute_work_dd(N_particle, mcdc=mcdc)
+        mcdc["idx_batch"] = i_batch
+        seed_batch = kernel.split_seed(i_batch, settings.rng_seed)
 
         # Print multi-batch header
-        if mcdc["setting"]["N_batch"] > 1:
+        if N_batch > 1:
             with objmode():
-                print_header_batch(mcdc)
+                print_header_batch(i_batch, N_batch)
             if mcdc["technique"]["uq"]:
                 seed_uq = kernel.split_seed(seed_batch, SEED_SPLIT_UQ)
                 kernel.uq_reset(mcdc, seed_uq)
 
         # Loop over time censuses
-        for idx_census in range(mcdc["setting"]["N_census"]):
-            mcdc["idx_census"] = idx_census
+        for i_census in range(N_census):
+            mcdc["idx_census"] = i_census
             seed_census = kernel.split_seed(seed_batch, SEED_SPLIT_CENSUS)
 
             # Set census-based tally time grids
-            if mcdc["setting"]["census_based_tally"]:
-                N_bin = mcdc["setting"]["census_tally_frequency"]
-                if idx_census == 0:
+            if settings.use_census_based_tally:
+                N_bin = settings.census_tally_frequency
+                if i_census == 0:
                     t_start = 0.0
                 else:
-                    t_start = mcdc["setting"]["census_time"][idx_census - 1]
-                t_end = mcdc["setting"]["census_time"][idx_census]
+                    t_start = settings.census_time[i_census - 1]
+                t_end = settings.census_time[i_census]
                 dt = (t_end - t_start) / N_bin
                 for tally in mcdc["mesh_tallies"]:
                     tally["filter"]["t"][0] = t_start
@@ -107,7 +114,7 @@ def loop_fixed_source(data_tally, mcdc_arr):
             if kernel.get_bank_size(mcdc["bank_future"]) > 0:
                 kernel.check_future_bank(mcdc)
             if (
-                idx_census > 0
+                i_census > 0
                 and kernel.get_bank_size(mcdc["bank_source"]) == 0
                 and kernel.get_bank_size(mcdc["bank_census"]) == 0
                 and kernel.get_bank_size(mcdc["bank_future"]) == 0
@@ -130,19 +137,19 @@ def loop_fixed_source(data_tally, mcdc_arr):
             kernel.manage_particle_banks(seed_bank, mcdc)
 
             # Time census-based tally closeout
-            if mcdc["setting"]["census_based_tally"]:
+            if objects.settings.use_census_based_tally:
                 kernel.tally_reduce(data_tally, mcdc)
                 if mcdc["mpi_master"]:
                     kernel.census_based_tally_output(data_tally, mcdc)
                     if (
                         mcdc["technique"]["weight_window"]
-                        and idx_census < mcdc["setting"]["N_census"] - 2
+                        and i_census < N_census - 2
                     ):
                         kernel.update_weight_windows(data_tally, mcdc)
                 # TODO: UQ tally
 
         # Multi-batch closeout
-        if mcdc["setting"]["N_batch"] > 1:
+        if N_batch > 1:
             # Reset banks
             kernel.set_bank_size(mcdc["bank_active"], 0)
             kernel.set_bank_size(mcdc["bank_census"], 0)
@@ -154,7 +161,7 @@ def loop_fixed_source(data_tally, mcdc_arr):
                 mcdc["dd_N_local_source"] = 0
                 mcdc["domain_decomp"]["work_done"] = False
 
-            if not mcdc["setting"]["census_based_tally"]:
+            if not objects.settings.use_census_based_tally:
                 # Tally history closeout
                 kernel.tally_reduce(data_tally, mcdc)
                 kernel.tally_accumulate(data_tally, mcdc)
@@ -164,7 +171,7 @@ def loop_fixed_source(data_tally, mcdc_arr):
                     kernel.uq_tally_closeout_batch(data_tally, mcdc)
 
     # Tally closeout
-    if not mcdc["setting"]["census_based_tally"]:
+    if not objects.settings.use_census_based_tally:
         if mcdc["technique"]["uq"]:
             kernel.uq_tally_closeout(data_tally, mcdc)
         kernel.tally_closeout(data_tally, mcdc)
@@ -182,9 +189,14 @@ def loop_eigenvalue(data_tally, mcdc_arr):
     adapt.leak(mcdc_arr)
     mcdc = mcdc_arr[0]
 
+    settings = objects.settings
+
     # Loop over power iteration cycles
-    for idx_cycle in range(mcdc["setting"]["N_cycle"]):
-        seed_cycle = kernel.split_seed(idx_cycle, mcdc["setting"]["rng_seed"])
+    N_active = settings.N_active
+    N_inactive = settings.N_inactive
+    N_cycle = N_active + N_inactive
+    for idx_cycle in range(N_cycle):
+        seed_cycle = kernel.split_seed(idx_cycle, settings.rng_seed)
 
         # Loop over source particles
         seed_source = kernel.split_seed(seed_cycle, SEED_SPLIT_SOURCE)
@@ -226,6 +238,8 @@ def loop_eigenvalue(data_tally, mcdc_arr):
 
 @njit
 def generate_source_particle(work_start, idx_work, seed, prog):
+    settings = objects.settings
+
     mcdc = adapt.mcdc_global(prog)
 
     seed_work = kernel.split_seed(work_start + idx_work, seed)
@@ -248,7 +262,7 @@ def generate_source_particle(work_start, idx_work, seed, prog):
         P = P_arr[0]
 
     # Skip if beyond time boundary
-    if P["t"] > mcdc["setting"]["time_boundary"]:
+    if P["t"] > settings.time_boundary:
         return
 
     # If domain is decomposed, check if particle is in the domain
@@ -270,11 +284,11 @@ def generate_source_particle(work_start, idx_work, seed, prog):
     hit_census = False
     hit_next_census = False
     idx_census = mcdc["idx_census"]
-    if idx_census < mcdc["setting"]["N_census"] - 1:
-        if P["t"] > mcdc["setting"]["census_time"][idx_census + 1]:
+    if idx_census < settings.N_census - 1:
+        if P["t"] > objects.settings.census_time[idx_census + 1]:
             hit_census = True
             hit_next_census = True
-        elif P["t"] > mcdc["setting"]["census_time"][idx_census]:
+        elif P["t"] > objects.settings.census_time[idx_census]:
             hit_census = True
 
     # Put into the right bank
@@ -343,7 +357,7 @@ def source_closeout(prog, idx_work, N_prog, data_tally):
     mcdc = adapt.mcdc_global(prog)
 
     # Tally history closeout for one-batch fixed-source simulation
-    if not mcdc["setting"]["mode_eigenvalue"] and mcdc["setting"]["N_batch"] == 1:
+    if not objects.settings.eigenvalue_mode and objects.settings.N_batch == 1:
         if not mcdc["setting"]["census_based_tally"]:
             kernel.tally_accumulate(data_tally, mcdc)
 
@@ -353,7 +367,7 @@ def source_closeout(prog, idx_work, N_prog, data_tally):
 
     # Progress printout
     percent = (idx_work + 1.0) / mcdc["mpi_work_size"]
-    if mcdc["setting"]["progress_bar"] and int(percent * 100.0) > N_prog:
+    if objects.settings.use_progress_bar and int(percent * 100.0) > N_prog:
         N_prog += 1
         with objmode():
             print_progress(percent, mcdc)
