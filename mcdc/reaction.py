@@ -19,6 +19,7 @@ class ReactionBase(ObjectPolymorphic):
     def __repr__(self):
         text = "\n"
         text += f"{decode_type(self.type)}\n"
+        text += f"  - ID: {self.ID}\n"
         text += f"  - XS {print_1d_array(self.xs)}\n"
         return text
 

@@ -43,6 +43,7 @@ class Nuclide(ObjectNonSingleton):
                     # TODO
 
                 reaction = ReactionClass(f[f"neutron_reactions/{reaction_type}"])
+                reaction.ID = len(objects.reactions)
                 self.reactions.append(reaction)
 
                 # Register reaction
@@ -54,6 +55,7 @@ class Nuclide(ObjectNonSingleton):
     def __repr__(self):
         text = "\n"
         text += f"Nuclide\n"
+        text += f"  - ID: {self.ID}\n"
         text += f"  - Name: {self.name}\n"
         text += f"  - Atomic weight ratio: {self.atomic_weight_ratio}\n"
         text += f"  - XS energy grid {print_1d_array(self.xs_energy_grid)}\n"

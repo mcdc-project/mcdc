@@ -22,6 +22,7 @@ class MaterialBase(ObjectPolymorphic):
     def __repr__(self):
         text = "\n"
         text += f"{decode_type(self.type)}\n"
+        text += f"  - ID: {self.ID}\n"
         text += f"  - Name: {self.name}\n"
         text += f"  - Fissionable: {self.fissionable}\n"
         return text
@@ -163,6 +164,7 @@ class MaterialMG(MaterialBase):
                     self.chi_d[dg, :] /= np.sum(self.chi_d[dg, :])
         
         # Register the material
+        self.ID = len(objects.materials)
         objects.materials.append(self)
 
     def __repr__(self):
@@ -214,8 +216,9 @@ class Material(MaterialBase):
 
             # Create and register the nuclide to objects if needed
             if not found:
-                objects.nuclides.append(Nuclide(nuclide_name))
-                nuclide = objects.nuclides[-1]
+                nuclide = Nuclide(nuclide_name)
+                nuclide.ID = len(objects.nuclides)
+                objects.nuclides.append(nuclide)
 
             # Register the nuclide composition
             self.nuclides.append(nuclide)
@@ -223,6 +226,7 @@ class Material(MaterialBase):
             self.nuclide_composition[nuclide] = atomic_density
 
         # Register the material
+        self.ID = len(objects.materials)
         objects.materials.append(self)
         
 

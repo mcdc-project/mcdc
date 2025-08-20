@@ -1484,8 +1484,6 @@ def cardlist_to_h5group(dictlist, input_group, name):
     for item in dictlist:
         if "ID" in dir(item):
             group = main_group.create_group(name + "_%i" % getattr(item, "ID"))
-        else:
-            group = main_group.create_group(name + "_%i" % getattr(item, "numba_ID"))
         card_to_h5group(item, group)
 
 

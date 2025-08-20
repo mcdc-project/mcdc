@@ -102,7 +102,6 @@ def numbafy_object(object_, structures, records, data):
     if isinstance(object_, ObjectSingleton):
         records[object_.label] = record
     elif isinstance(object_, ObjectNonSingleton):
-        object_.ID = len(records[object_.label])
         records[object_.label].append(record)
 
 
