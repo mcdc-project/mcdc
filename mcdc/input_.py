@@ -48,7 +48,7 @@ from mcdc.constant import (
 from mcdc.objects import ObjectBase
 import mcdc.type_ as type_
 
-
+'''
 def nuclide(
     capture=None,
     scatter=None,
@@ -443,7 +443,7 @@ def material(
     global_.input_deck.materials.append(card)
 
     return card
-
+'''
 
 def surface(type_, bc="interface", **kw):
     """
@@ -970,7 +970,7 @@ def source(**kw):
 # Setting
 # ==============================================================================
 
-
+'''
 def setting(**kw):
     """
     Create a setting card.
@@ -1182,7 +1182,7 @@ def eigenmode(
             card["gyration_radius_type"] = GYRATION_RADIUS_ONLY_Z
         else:
             print_error("Unknown gyration radius type")
-
+'''
 
 # ==============================================================================
 # Technique
