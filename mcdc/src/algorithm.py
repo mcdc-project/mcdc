@@ -14,10 +14,7 @@ def binary_search_with_length(val, grid, length):
                                (-1 if val = min(grid))
     """
     left = 0
-    if length == 0:
-        right = len(grid) - 1
-    else:
-        right = length - 1
+    right = length - 1
     mid = -1
     while left <= right:
         mid = int((left + right) / 2)
@@ -32,6 +29,30 @@ def binary_search_with_length(val, grid, length):
 def binary_search(val, grid):
     """
     Binary search with full length of the given grid.
-    See binary_search_with _length
+    See binary_search_with_length
     """
-    return binary_search_with_length(val, grid, 0)
+    return binary_search_with_length(val, grid, len(grid))
+
+
+@njit
+def evaluate_from_table(x, x_array, y_array):
+    # Get bin index
+    idx = binary_search(x, x_array)
+
+    # Extrapolate if x is outside the given data
+    if idx == -1:
+        idx = 0
+    elif idx + 1 == len(x_array):
+        idx -= 1
+
+    # Linear interpolation
+    x1 = x_array[idx]
+    x2 = x_array[idx + 1]
+    y1 = y_array[idx]
+    y2 = y_array[idx + 1]
+    return linear_interpolation(x, x1, x2, y1, y2)
+
+
+@njit
+def linear_interpolation(x, x1, x2, y1, y2):
+    return y1 + (x - x1) * (y2 - y1) / (x2 - x1)
