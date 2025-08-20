@@ -4,8 +4,6 @@ from mcdc.input_ import (
     universe,
     lattice,
     source,
-    setting,
-    eigenmode,
     implicit_capture,
     weighted_emission,
     population_control,
@@ -29,5 +27,5 @@ from mcdc.main import (
     recombine_tallies,
 )
 
-from mcdc.material import Material
+from mcdc.material import Material, MaterialMG
 from mcdc.settings import Settings

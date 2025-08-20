@@ -1,3 +1,5 @@
+import mcdc.objects as objects
+
 import math
 
 from numba import njit
@@ -18,13 +20,13 @@ def get_speed(particle_container, mcdc):
     particle = particle_container[0]
 
     # Multigroup
-    if mcdc["setting"]["mode_MG"]:
+    if objects.settings.multigroup_mode:
         material_ID = particle["material_ID"]
         g = particle["g"]
 
-        material = mcdc["materials"][material_ID]
+        material = objects.materials[material_ID]
 
-        return material["speed"][g]
+        return material.speed[g]
 
     # Continuoues energy
     else:
