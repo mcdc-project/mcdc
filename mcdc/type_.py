@@ -1,3 +1,5 @@
+import mcdc.objects as objects
+
 import h5py
 import math
 import numpy as np
@@ -35,13 +37,9 @@ Some types are problem-dependent and defined in code_factory.py
 particle = None
 particle_record = None
 
-nuclide = None
-material = None
-
 lattice = None
 
 source = None
-setting = None
 mesh_tally = None
 surface_tally = None
 cell_tally = None
@@ -317,200 +315,6 @@ def precursor_bank(max_size):
 
 
 # ==============================================================================
-# Nuclide
-# ==============================================================================
-
-
-def make_type_nuclide(input_deck):
-    global nuclide
-
-    # Get modes
-    mode_CE = input_deck.setting["mode_CE"]
-    mode_MG = input_deck.setting["mode_MG"]
-
-    # Get CE sizes
-    if mode_CE:
-        # Zeros for MG sizes
-        G = 1
-        J = 0
-
-        # Get maximum energy grid sizes for CE data
-        NE_xs = 0
-        NE_nu_p = 0
-        NE_nu_d = 0
-        NE_chi_p = 0
-        NE_chi_d1 = 0
-        NE_chi_d2 = 0
-        NE_chi_d3 = 0
-        NE_chi_d4 = 0
-        NE_chi_d5 = 0
-        NE_chi_d6 = 0
-
-        dir_name = os.getenv("MCDC_XSLIB")
-        for nuc in input_deck.nuclides:
-            with h5py.File(dir_name + "/" + nuc.name + ".h5", "r") as f:
-                NE_xs = max(NE_xs, len(f["E_xs"][:]))
-                NE_nu_p = max(NE_nu_p, len(f["E_nu_p"][:]))
-                NE_nu_d = max(NE_nu_d, len(f["E_nu_d"][:]))
-                NE_chi_p = max(NE_chi_p, len(f["E_chi_p"][:]))
-                NE_chi_d1 = max(NE_chi_d1, len(f["E_chi_d1"][:]))
-                NE_chi_d2 = max(NE_chi_d2, len(f["E_chi_d2"][:]))
-                NE_chi_d3 = max(NE_chi_d3, len(f["E_chi_d3"][:]))
-                NE_chi_d4 = max(NE_chi_d4, len(f["E_chi_d4"][:]))
-                NE_chi_d5 = max(NE_chi_d5, len(f["E_chi_d5"][:]))
-                NE_chi_d6 = max(NE_chi_d6, len(f["E_chi_d6"][:]))
-
-    # Get MG sizes
-    if mode_MG:
-        G = input_deck.materials[0].G
-        J = input_deck.materials[0].J
-
-        # Zeros for CE sizes
-        NE_xs = 0
-        NE_nu_p = 0
-        NE_nu_d = 0
-        NE_chi_p = 0
-        NE_chi_d1 = 0
-        NE_chi_d2 = 0
-        NE_chi_d3 = 0
-        NE_chi_d4 = 0
-        NE_chi_d5 = 0
-        NE_chi_d6 = 0
-
-    # General data
-    struct = [
-        ("ID", int64),
-        ("fissionable", bool_),
-        ("uq", bool_),
-    ]
-
-    # MG data
-    struct += [
-        ("G", int64),
-        ("J", int64),
-        ("speed", float64, (G,)),
-        ("decay", float64, (J,)),
-        ("total", float64, (G,)),
-        ("capture", float64, (G,)),
-        ("scatter", float64, (G,)),
-        ("fission", float64, (G,)),
-        ("nu_s", float64, (G,)),
-        ("nu_f", float64, (G,)),
-        ("nu_p", float64, (G,)),
-        ("nu_d", float64, (G, J)),
-        ("chi_s", float64, (G, G)),
-        ("chi_p", float64, (G, G)),
-        ("chi_d", float64, (J, G)),
-    ]
-
-    # CE data
-    struct += [
-        ("A", float64),
-        ("NE_xs", int64),
-        ("NE_nu_p", int64),
-        ("NE_nu_d", int64),
-        ("NE_chi_p", int64),
-        ("NE_chi_d1", int64),
-        ("NE_chi_d2", int64),
-        ("NE_chi_d3", int64),
-        ("NE_chi_d4", int64),
-        ("NE_chi_d5", int64),
-        ("NE_chi_d6", int64),
-        ("E_xs", float64, (NE_xs,)),
-        ("E_nu_p", float64, (NE_nu_p,)),
-        ("E_nu_d", float64, (NE_nu_d,)),
-        ("E_chi_p", float64, (NE_chi_p,)),
-        ("E_chi_d1", float64, (NE_chi_d1,)),
-        ("E_chi_d2", float64, (NE_chi_d2,)),
-        ("E_chi_d3", float64, (NE_chi_d3,)),
-        ("E_chi_d4", float64, (NE_chi_d4,)),
-        ("E_chi_d5", float64, (NE_chi_d5,)),
-        ("E_chi_d6", float64, (NE_chi_d6,)),
-        ("ce_total", float64, (NE_xs,)),
-        ("ce_capture", float64, (NE_xs,)),
-        ("ce_scatter", float64, (NE_xs,)),
-        ("ce_fission", float64, (NE_xs,)),
-        ("ce_nu_p", float64, (NE_nu_p,)),
-        ("ce_nu_d", float64, (6, NE_nu_d)),
-        ("ce_chi_p", float64, (NE_chi_p,)),
-        ("ce_chi_d1", float64, (NE_chi_d1,)),
-        ("ce_chi_d2", float64, (NE_chi_d2,)),
-        ("ce_chi_d3", float64, (NE_chi_d3,)),
-        ("ce_chi_d4", float64, (NE_chi_d4,)),
-        ("ce_chi_d5", float64, (NE_chi_d5,)),
-        ("ce_chi_d6", float64, (NE_chi_d6,)),
-        ("ce_decay", float64, (6,)),
-    ]
-
-    # Set the type
-    nuclide = into_dtype(struct)
-
-
-# ==============================================================================
-# Material
-# ==============================================================================
-
-
-def make_type_material(input_deck):
-    global material
-
-    # Maximum number of nuclides per material
-    Nmax_nuclide = max([material.N_nuclide for material in input_deck.materials])
-
-    # Get modes
-    mode_CE = input_deck.setting["mode_CE"]
-    mode_MG = input_deck.setting["mode_MG"]
-
-    # Get CE sizes
-    if mode_CE:
-        # Zeros for MG sizes
-        G = 1
-        J = 0
-
-    # Get MG sizes
-    if mode_MG:
-        G = input_deck.materials[0].G
-        J = input_deck.materials[0].J
-
-    G_adjusted = max(1, G)
-    J_adjusted = max(1, J)
-
-    global material_g_size
-    global material_j_size
-    material_g_size = literalize(G_adjusted)
-    material_j_size = literalize(J_adjusted)
-
-    # General data
-    struct = [
-        ("ID", int64),
-        ("N_nuclide", int64),
-        ("nuclide_IDs", int64, (Nmax_nuclide,)),
-        ("nuclide_densities", float64, (Nmax_nuclide,)),
-        ("uq", bool_),
-    ]
-
-    # MG data
-    struct += [
-        ("G", int64),
-        ("J", int64),
-        ("speed", float64, (G,)),
-        ("total", float64, (G,)),
-        ("capture", float64, (G,)),
-        ("scatter", float64, (G,)),
-        ("fission", float64, (G,)),
-        ("nu_s", float64, (G,)),
-        ("nu_f", float64, (G,)),
-        ("nu_p", float64, (G,)),
-        ("nu_d", float64, (G, J)),
-        ("chi_s", float64, (G, G)),
-        ("chi_p", float64, (G, G)),
-    ]
-
-    # Set the type
-    material = into_dtype(struct)
-
-
-# ==============================================================================
 # Surface
 # ==============================================================================
 
@@ -651,8 +455,8 @@ def make_type_source(input_deck):
     global source
 
     # Get modes
-    mode_CE = input_deck.setting["mode_CE"]
-    mode_MG = input_deck.setting["mode_MG"]
+    mode_MG = objects.settings.multigroup_mode
+    mode_CE = not mode_MG
 
     # Get energy data size
     if mode_CE:
@@ -660,7 +464,7 @@ def make_type_source(input_deck):
         # Maximum number of data point in energy pdf
         Nmax_E = max([source.energy.shape[1] for source in input_deck.sources])
     if mode_MG:
-        G = input_deck.materials[0].G
+        G = objects.materials[0].G
         Nmax_E = 2
 
     # General data
@@ -1005,55 +809,6 @@ def make_type_cs_tally(input_deck):
 
 
 # ==============================================================================
-# Setting
-# ==============================================================================
-
-
-def make_type_setting(deck):
-    global setting
-
-    card = deck.setting
-    struct = [
-        # Basic MC simulation parameters
-        ("N_particle", uint64),
-        ("N_batch", uint64),
-        ("rng_seed", uint64),
-        ("time_boundary", float64),
-        # Physics flags
-        ("mode_MG", bool_),
-        ("mode_CE", bool_),
-        # Misc.
-        ("progress_bar", bool_),
-        ("output_name", str_),
-        ("save_input_deck", bool_),
-        # Eigenvalue mode
-        ("mode_eigenvalue", bool_),
-        ("k_init", float64),
-        ("N_inactive", uint64),
-        ("N_active", uint64),
-        ("N_cycle", uint64),
-        ("save_particle", bool_),
-        ("gyration_radius", bool_),
-        ("gyration_radius_type", uint64),
-        # Time census
-        ("N_census", uint64),
-        ("census_time", float64, (card["N_census"],)),
-        ("census_based_tally", bool_),
-        ("census_tally_frequency", int64),
-        # Particle source file
-        ("source_file", bool_),
-        ("source_file_name", str_),
-        # Initial condition source file
-        ("IC_file", bool_),
-        ("IC_file_name", str_),
-        ("N_precursor", uint64),
-    ]
-
-    # Finalize setting type
-    setting = into_dtype(struct)
-
-
-# ==============================================================================
 # Technique
 # ==============================================================================
 
@@ -1073,17 +828,17 @@ def make_type_technique(input_deck):
     global technique
 
     # Get sizes
-    N_particle = input_deck.setting["N_particle"]
+    N_particle = objects.settings.N_particle
 
     # Get modes
-    mode_MG = input_deck.setting["mode_MG"]
+    mode_MG = objects.settings.multigroup_mode
 
     # Get card
     card = input_deck.technique
 
     # Number of groups
     if mode_MG:
-        G = input_deck.materials[0].G
+        G = objects.materials[0].G
     else:
         G = 1
 
@@ -1323,8 +1078,8 @@ def make_type_uq(input_deck):
         return into_dtype(struct)
 
     # Size numbers
-    G = input_deck.materials[0].G
-    J = input_deck.materials[0].J
+    G = objects.materials[0].G
+    J = objects.materials[0].J
 
     # UQ deck
     uq_deck = input_deck.uq_deltas
@@ -1432,12 +1187,10 @@ def make_type_global(input_deck):
     global global_
 
     # Get modes
-    mode_CE = input_deck.setting["mode_CE"]
-    mode_MG = input_deck.setting["mode_MG"]
+    mode_MG = objects.settings.multigroup_mode
+    mode_CE = not mode_MG
 
     # Numbers of objects
-    N_nuclide = len(input_deck.nuclides)
-    N_material = len(input_deck.materials)
     N_surface = len(input_deck.surfaces)
     N_cell = len(input_deck.cells)
     N_source = len(input_deck.sources)
@@ -1456,19 +1209,20 @@ def make_type_global(input_deck):
     N_universe_cell = sum([len(x.cell_IDs) for x in input_deck.universes])
 
     # Simulation parameters
-    N_particle = input_deck.setting["N_particle"]
-    N_precursor = input_deck.setting["N_precursor"]
-    N_cycle = input_deck.setting["N_cycle"]
+    settings = objects.settings
+    N_particle = settings.N_particle
+    N_precursor = settings.N_precursor
+    N_cycle = settings.N_inactive + settings.N_active
 
     # Particle bank buffers
-    bank_active_buff = input_deck.setting["bank_active_buff"]
-    bank_census_buff = input_deck.setting["bank_census_buff"]
-    bank_source_buff = input_deck.setting["bank_source_buff"]
-    bank_future_buff = input_deck.setting["bank_future_buff"]
+    bank_active_buff = settings.active_bank_buffer
+    bank_census_buff = settings.census_bank_buffer_ratio
+    bank_source_buff = settings.source_bank_buffer_ratio
+    bank_future_buff = settings.future_bank_buffer_ratio
 
     # Number of precursor groups
     if mode_MG:
-        J = input_deck.materials[0].J
+        J = objects.materials[0].J
     if mode_CE:
         J = 6
 
@@ -1478,7 +1232,7 @@ def make_type_global(input_deck):
 
     # Particle bank types
     bank_active = particle_bank(1 + bank_active_buff)
-    if input_deck.setting["mode_eigenvalue"] or input_deck.setting["N_census"] > 1:
+    if settings.eigenvalue_mode or settings.N_census > 1:
         bank_census = particle_bank(int((1 + bank_census_buff) * N_work))
         bank_source = particle_bank(int((1 + bank_source_buff) * N_work))
         bank_future = particle_bank(int((1 + bank_future_buff) * N_work))
@@ -1496,23 +1250,21 @@ def make_type_global(input_deck):
             bank_future = particle_bank(0)
 
     # Source and IC files bank adjustments
-    if not input_deck.setting["mode_eigenvalue"]:
-        if input_deck.setting["source_file"]:
+    if not settings.eigenvalue_mode:
+        if settings.use_source_file:
             bank_source = particle_bank(N_work)
-        if input_deck.setting["IC_file"]:
+        if settings.use_IC_file:
             bank_source = particle_bank(N_work)
             bank_precursor = precursor_bank(N_precursor)
 
     if (
-        input_deck.setting["source_file"] and not input_deck.setting["mode_eigenvalue"]
+        settings.use_source_file and not settings.eigenvalue_mode
     ) or input_deck.technique["iQMC"]:
         bank_source = particle_bank(N_work)
 
     # GLobal type
     global_ = into_dtype(
         [
-            ("nuclides", nuclide, (N_nuclide,)),
-            ("materials", material, (N_material,)),
             ("surfaces", surface, (N_surface,)),
             # Cells
             ("cells", cell, (N_cell,)),
@@ -1527,7 +1279,6 @@ def make_type_global(input_deck):
             ("surface_tallies", surface_tally, (N_surface_tally,)),
             ("cell_tallies", cell_tally, (N_cell_tally,)),
             ("cs_tallies", cs_tally, (N_cs_tally,)),
-            ("setting", setting),
             ("technique", technique),
             ("domain_decomp", domain_decomp),
             ("bank_active", bank_active),
