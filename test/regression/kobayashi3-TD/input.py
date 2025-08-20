@@ -8,8 +8,8 @@ import mcdc
 # (PNE 2001, https://doi.org/10.1016/S0149-1970(01)00007-5)
 
 # Set materials
-m = mcdc.material(capture=np.array([0.05]), scatter=np.array([[0.05]]))
-m_void = mcdc.material(capture=np.array([5e-5]), scatter=np.array([[5e-5]]))
+m = mcdc.MaterialMG(capture=np.array([0.05]), scatter=np.array([[0.05]]))
+m_void = mcdc.MaterialMG(capture=np.array([5e-5]), scatter=np.array([[5e-5]]))
 
 # Set surfaces
 sx1 = mcdc.surface("plane-x", x=0.0, bc="reflective")
@@ -55,7 +55,9 @@ mcdc.source(
 # Set tally, setting, and run mcdc
 # =============================================================================
 
-# Tally: z-integrated flux (X-Y section view)
+# Setting
+mcdc.Settings(N_particle=80, N_batch=2)
+
 mcdc.tally.mesh_tally(
     scores=["flux"],
     x=np.linspace(0.0, 60.0, 31),
@@ -66,9 +68,6 @@ mcdc.tally.mesh_tally(
 mcdc.tally.cell_tally(source_cell, scores=["flux"])
 mcdc.tally.cell_tally(void_cell, scores=["flux"])
 mcdc.tally.cell_tally(shield_cell, scores=["flux"])
-
-# Setting
-mcdc.setting(N_particle=80, N_batch=2)
 
 # Run
 mcdc.run()

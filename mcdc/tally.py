@@ -82,7 +82,7 @@ def mesh_tally(
 
     # Set energy group grid
     if type(g) == type("string") and g == "all":
-        G = global_.input_deck.materials[0].G
+        G = objects.materials[0].G
         card.g = np.linspace(0, G, G + 1) - 0.5
     else:
         card.g = g
@@ -220,7 +220,7 @@ def cell_tally(
         card.g = np.linspace(0, G, G + 1) - 0.5
     else:
         card.g = g
-    if global_.input_deck.setting["mode_CE"]:
+    if not objects.settings.multigroup_mode:
         card.g = E
 
     # Set cell
