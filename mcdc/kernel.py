@@ -3354,26 +3354,9 @@ def sample_phasespace_fission(P_arr, material, P_new_arr, mcdc):
         for j in range(J):
             tot += nu_d[j]
             if xi < tot:
-                # Delayed group determined, now determine nuclide
-                N_nuclide = material.N_nuclide
-                if N_nuclide == 1:
-                    nuclide = mcdc["nuclides"][material["nuclide_IDs"][0]]
-                    spectrum = nuclide["chi_d"][j]
-                    decay = nuclide["decay"][j]
-                    break
-                SigmaF = get_MacroXS(XS_FISSION, material, P_arr, mcdc)
-                xi = rng(P_new_arr) * nu_d[j] * SigmaF
-                tot = 0.0
-                for i in range(N_nuclide):
-                    nuclide = mcdc["nuclides"][material["nuclide_IDs"][i]]
-                    density = material["nuclide_densities"][i]
-                    tot += density * nuclide["nu_d"][g, j] * nuclide["fission"][g]
-                    if xi < tot:
-                        # Nuclide determined, now get the constant and spectruum
-                        spectrum = nuclide["chi_d"][j]
-                        decay = nuclide["decay"][j]
-                        break
-                break
+                # Delayed group determined
+                spectrum = material.chi_d[j]
+                decay = material.decay_rate[j]
 
     # Sample outgoing energy
     xi = rng(P_new_arr)
