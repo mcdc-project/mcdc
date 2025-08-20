@@ -25,8 +25,6 @@ class InputDeck:
         self.reset()
 
     def reset(self):
-        self.nuclides = []
-        self.materials = []
         self.surfaces = []
         self.regions = []
         self.cells = []
@@ -37,43 +35,6 @@ class InputDeck:
         self.surface_tallies = []
         self.cell_tallies = []
         self.cs_tallies = []
-
-        self.setting = {
-            "tag": "Setting",
-            "mode_MG": True,
-            "mode_CE": False,
-            "N_particle": 0,
-            "N_batch": 1,
-            "rng_seed": 1,
-            "time_boundary": INF,
-            "progress_bar": True,
-            "output_name": "output",
-            "save_input_deck": True,
-            "mode_eigenvalue": False,
-            "k_init": 1.0,
-            "N_inactive": 0,
-            "N_active": 0,
-            "N_cycle": 0,
-            "save_particle": False,
-            "gyration_radius": False,
-            "gyration_radius_type": GYRATION_RADIUS_ALL,
-            "N_census": 1,
-            "census_time": np.array([INF]),
-            "census_based_tally": False,
-            "census_tally_frequency": 0,
-            "source_file": False,
-            "source_file_name": "",
-            "IC_file": False,
-            "IC_file_name": "",
-            "N_precursor": 0,
-            # Below are parameters not copied to mcdc.setting
-            "bank_active_buff": 100,
-            "bank_census_buff": 1.0,
-            "bank_source_buff": 1.0,
-            "bank_future_buff": 0.5,
-            # Portability
-            "target": "cpu",
-        }
 
         self.technique = {
             "tag": "Technique",
