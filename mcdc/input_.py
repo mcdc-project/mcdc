@@ -45,7 +45,7 @@ from mcdc.constant import (
     WW_USER,
     WW_WOLLABER,
 )
-from mcdc.print_ import print_error
+from mcdc.objects import ObjectBase
 import mcdc.type_ as type_
 
 
@@ -672,13 +672,15 @@ def cell(region=None, fill=None, translation=(0.0, 0.0, 0.0), rotation=(0.0, 0.0
         card.set_region()
 
     # Assign fill type and ID
-    if fill.tag == "Material":
+    if isinstance(fill, ObjectBase):
         card.fill_type = "material"
-    elif fill.tag == "Universe":
-        card.fill_type = "universe"
-    elif fill.tag == "Lattice":
-        card.fill_type = "lattice"
-    card.fill_ID = fill.ID
+        card.fill_ID = fill.numba_ID
+    else:
+        if fill.tag == "Universe":
+            card.fill_type = "universe"
+        elif fill.tag == "Lattice":
+            card.fill_type = "lattice"
+        card.fill_ID = fill.ID
 
     # Translation
     card.translation[:] = translation
