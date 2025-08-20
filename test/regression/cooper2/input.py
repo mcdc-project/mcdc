@@ -11,9 +11,9 @@ import mcdc
 # Set materials
 SigmaT = 5.0
 c = 0.8
-m_barrier = mcdc.material(capture=np.array([SigmaT]), scatter=np.array([[SigmaT * c]]))
+m_barrier = mcdc.Material(capture=np.array([SigmaT]), scatter=np.array([[SigmaT * c]]))
 SigmaT = 1.0
-m_room = mcdc.material(capture=np.array([SigmaT]), scatter=np.array([[SigmaT * c]]))
+m_room = mcdc.Material(capture=np.array([SigmaT]), scatter=np.array([[SigmaT * c]]))
 
 # Set surfaces
 sx1 = mcdc.surface("plane-x", x=0.0, bc="reflective")
@@ -48,7 +48,7 @@ mcdc.tally.mesh_tally(
 )
 
 # Setting
-mcdc.setting(N_particle=50, N_batch=2)
+mcdc.Settings(N_particle=50, N_batch=2)
 mcdc.implicit_capture()
 
 # Run

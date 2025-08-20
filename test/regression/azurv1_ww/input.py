@@ -1,6 +1,5 @@
 import numpy as np
-
-import mcdc, mpi4py, h5py
+import mcdc
 
 # =============================================================================
 # Set model
@@ -10,7 +9,7 @@ import mcdc, mpi4py, h5py
 # Effective scattering ratio c = 1.1
 N_history = 50
 # Set materials
-m = mcdc.material(
+m = mcdc.MaterialMG(
     capture=np.array([1.0 / 3.0]),
     scatter=np.array([[1.0 / 3.0]]),
     fission=np.array([1.0 / 3.0]),
@@ -35,22 +34,12 @@ mcdc.source(point=[0.0, 0.0, 0.0], isotropic=True, time=[1e-10, 1e-10])
 # Set tally, setting, and run mcdc
 # =============================================================================
 
-# Tally: cell-average, cell-edge, and time-edge scalar fluxes
-mcdc.tally.mesh_tally(
-    scores=["flux"],
-    x=np.linspace(-20.5, 20.5, 202),
-    t=np.linspace(0.0, 20.0, 21),
-)
-
-# Setting
-mcdc.setting(
-    N_particle=N_history,
-    active_bank_buff=1e4,
-    census_bank_buff=1e3,
-    source_bank_buff=1e3,
-    N_batch=5,
-)
-mcdc.time_census(np.linspace(0.0, 20.0, 21)[1:], tally_frequency=1)
+mcdc.Settings(N_particle=N_history, N_batch=5)
+settings = mcdc.Settings(N_particle=N_history, N_batch=5)
+settings.active_bank_buffer = int(1e4)
+settings.census_bank_buffer_ratio = 1e3
+settings.source_bank_buffer_ratio = 1e3
+settings.set_time_census(np.linspace(0.0, 20.0, 21)[1:], tally_frequency=1)
 """
 mcdc.weight_window(
     x=np.linspace(-20.5, 20.5, 202),
@@ -61,7 +50,12 @@ mcdc.weight_window(
 )
 """
 mcdc.population_control()
-# Run
+
+mcdc.tally.mesh_tally(
+    scores=["flux"],
+    x=np.linspace(-20.5, 20.5, 202),
+    t=np.linspace(0.0, 20.0, 21),
+)
+
 mcdc.run()
-# Combine the tally output into a single file
 mcdc.recombine_tallies()

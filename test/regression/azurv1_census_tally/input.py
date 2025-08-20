@@ -1,6 +1,5 @@
 import numpy as np
-from pprint import pprint
-import mcdc, mpi4py, h5py
+import mcdc
 
 # =============================================================================
 # Set model
@@ -10,7 +9,7 @@ import mcdc, mpi4py, h5py
 # Effective scattering ratio c = 1.1
 
 # Set materials
-m = mcdc.material(
+m = mcdc.MaterialMG(
     capture=np.array([1.0 / 3.0]),
     scatter=np.array([[1.0 / 3.0]]),
     fission=np.array([1.0 / 3.0]),
@@ -32,8 +31,14 @@ mcdc.cell(+s1 & -s2, m)
 mcdc.source(point=[0.0, 0.0, 0.0], isotropic=True, time=[1e-10, 1e-10])
 
 # =============================================================================
-# Set tally, setting, and run mcdc
+# Set settings, tally, and run mcdc
 # =============================================================================
+
+settings = mcdc.Settings(N_particle=50, N_batch=2)
+settings.census_bank_buffer_ratio = 5.0
+settings.source_bank_buffer_ratio = 5.0
+settings.set_time_census(np.linspace(0.0, 20.0, 5)[1:], tally_frequency=5)
+mcdc.population_control()
 
 mcdc.tally.mesh_tally(
     scores=["flux"],
@@ -41,11 +46,5 @@ mcdc.tally.mesh_tally(
     t=np.linspace(0.0, 20.0, 21),
 )
 
-# Setting
-mcdc.setting(N_particle=50, census_bank_buff=5, source_bank_buff=5, N_batch=2)
-mcdc.time_census(np.linspace(0.0, 20.0, 5)[1:], tally_frequency=5)
-mcdc.population_control()
-
-# Run
 mcdc.run()
 mcdc.recombine_tallies()

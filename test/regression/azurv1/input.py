@@ -1,5 +1,4 @@
 import numpy as np
-from pprint import pprint
 import mcdc
 
 # =============================================================================
@@ -10,7 +9,7 @@ import mcdc
 # Effective scattering ratio c = 1.1
 
 # Set materials
-m = mcdc.material(
+m = mcdc.MaterialMG(
     capture=np.array([1.0 / 3.0]),
     scatter=np.array([[1.0 / 3.0]]),
     fission=np.array([1.0 / 3.0]),
@@ -32,8 +31,10 @@ mcdc.cell(+s1 & -s2, m)
 mcdc.source(point=[0.0, 0.0, 0.0], isotropic=True, time=[1e-10, 1e-10])
 
 # =============================================================================
-# Set tally, setting, and run mcdc
+# Set settings, tally, and run mcdc
 # =============================================================================
+
+mcdc.Settings(N_particle=100, N_batch=2)
 
 mcdc.tally.mesh_tally(
     scores=["flux"],
@@ -41,8 +42,4 @@ mcdc.tally.mesh_tally(
     t=np.linspace(0.0, 20.0, 21),
 )
 
-# Setting
-mcdc.setting(N_particle=100, N_batch=2)
-
-# Run
 mcdc.run()

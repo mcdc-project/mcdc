@@ -13,7 +13,7 @@ lib = h5py.File("c5g7_xs.h5", "r")
 
 # Materials
 def set_mat(mat):
-    return mcdc.material(
+    return mcdc.Material(
         capture=mat["capture"][:],
         scatter=mat["scatter"][:],
         fission=mat["fission"][:],
@@ -22,7 +22,7 @@ def set_mat(mat):
         chi_p=mat["chi_p"][:],
         chi_d=mat["chi_d"][:],
         speed=mat["speed"],
-        decay=mat["decay"],
+        decay_rate=mat["decay"],
     )
 
 
@@ -189,8 +189,12 @@ mcdc.tally.mesh_tally(
 )
 
 # Setting
-mcdc.setting(N_particle=2e1, census_bank_buff=3.0, source_bank_buff=2.0)
-mcdc.eigenmode(N_inactive=1, N_active=2, gyration_radius="infinite-z")
+settings = mcdc.Settings(
+    N_particle=int(2e1),
+    census_bank_buffer_ratio=3.0,
+    source_bank_buffer_ratio=2.0
+)
+settings.set_eigenmode(N_inactive=1, N_active=2, gyration_radius="infinite-z")
 mcdc.population_control()
 
 # Run
