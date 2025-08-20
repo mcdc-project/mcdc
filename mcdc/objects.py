@@ -1,9 +1,7 @@
-from mcdc.settings import Settings
-
-
 class ObjectBase:
     def __init__(self, label):
         self.label = label
+        self.numbafied = False
 
 
 class ObjectSingleton(ObjectBase):
@@ -14,7 +12,7 @@ class ObjectSingleton(ObjectBase):
 class ObjectNonSingleton(ObjectBase):
     def __init__(self, label):
         super().__init__(label)
-        self.numba_ID = -1
+        self.ID = -1
 
 
 class ObjectPolymorphic(ObjectNonSingleton):
@@ -24,7 +22,7 @@ class ObjectPolymorphic(ObjectNonSingleton):
 
 
 # The actual objects
-settings = Settings()  # Singleton
+settings = None  # Singleton
 materials = []  # Polymorphic
 nuclides = []  # Non-singleton
 reactions = []  # Polymorphic
