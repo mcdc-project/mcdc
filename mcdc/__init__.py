@@ -1,8 +1,4 @@
-import importlib.metadata
-
 from mcdc.input_ import (
-    nuclide,
-    material,
     surface,
     cell,
     universe,
@@ -33,5 +29,5 @@ from mcdc.main import (
     recombine_tallies,
 )
 
-# Temporarily commenting out so docs will build
-# __version__ = importlib.metadata.version("mcdc")
+from mcdc.material import Material
+from mcdc.settings import Settings
