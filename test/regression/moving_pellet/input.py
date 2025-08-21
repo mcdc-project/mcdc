@@ -8,14 +8,14 @@ import mcdc
 # =============================================================================
 
 # Set materials
-fuel = mcdc.material(
+fuel = mcdc.MaterialMG(
     capture=np.array([0.5]),
     fission=np.array([0.5]),
     nu_p=np.array([2.5]),
     speed=np.array([200000.0]),
 )
 
-air = mcdc.material(
+air = mcdc.MaterialMG(
     capture=np.array([0.002]),
     scatter=np.array([[0.008]]),
     speed=np.array([200000.0]),
@@ -61,7 +61,8 @@ mcdc.source(x=[2.0, 3.0], y=[-0.5, 0.5], z=[-0.5, 0.5], time=[0.0, 9.0])
 # Set tally, setting, and run mcdc
 # =============================================================================
 
-# Tally: cell-average and cell-edge angular fluxes and currents
+settings = mcdc.Settings(N_particle=5, active_bank_buffer=1000, N_batch=2)
+
 mcdc.tally.mesh_tally(
     x=np.linspace(-5, 5, 201),
     z=np.linspace(-10, 10, 201),
@@ -69,10 +70,6 @@ mcdc.tally.mesh_tally(
     scores=["fission"],
 )
 
-# Setting
-mcdc.setting(N_particle=5, active_bank_buff=1000, N_batch=2)
-
-# Run
 mcdc.run()
 """
 colors = {

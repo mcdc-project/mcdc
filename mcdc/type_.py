@@ -1078,8 +1078,12 @@ def make_type_uq(input_deck):
         return into_dtype(struct)
 
     # Size numbers
-    G = objects.materials[0].G
-    J = objects.materials[0].J
+    if objects.settings.multigroup_mode:
+        G = objects.materials[0].G
+        J = objects.materials[0].J
+    else:
+        G = 1
+        J = 0
 
     # UQ deck
     uq_deck = input_deck.uq_deltas

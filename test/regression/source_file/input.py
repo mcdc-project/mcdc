@@ -34,7 +34,7 @@ MPI.COMM_WORLD.Barrier()
 # =============================================================================
 
 # Set materials
-m = mcdc.material(capture=np.array([0.1]), scatter=np.array([[0.9]]))
+m = mcdc.MaterialMG(capture=np.array([0.1]), scatter=np.array([[0.9]]))
 
 # Set surfaces
 s1 = mcdc.surface("plane-x", x=0.0, bc="vacuum")
@@ -48,15 +48,13 @@ mcdc.cell(+s1 & -s2, m)
 # Set tally, setting, and run mcdc
 # =============================================================================
 
-# Tally
+settings = mcdc.Settings()
+settings.set_source_file("source_particles.h5")
+
 mcdc.tally.mesh_tally(
     scores=["flux"],
     x=np.linspace(0.0, 5.0, 51),
     t=np.linspace(0.0, 5.0, 51),
 )
 
-# Setting
-mcdc.setting(source_file="source_particles.h5")
-
-# Run
 mcdc.run()

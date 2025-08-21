@@ -216,7 +216,7 @@ def cell_tally(
     card.t = t
     # Set energy group grid
     if type(g) == type("string") and g == "all":
-        G = global_.input_deck.materials[0].G
+        G = objects.materials[0].G
         card.g = np.linspace(0, G, G + 1) - 0.5
     else:
         card.g = g

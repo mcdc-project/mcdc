@@ -223,7 +223,7 @@ def loop_eigenvalue(data_tally, mcdc_arr):
 
         # Entering active cycle?
         mcdc["idx_cycle"] += 1
-        if mcdc["idx_cycle"] >= mcdc["setting"]["N_inactive"]:
+        if mcdc["idx_cycle"] >= objects.settings.N_inactive:
             mcdc["cycle_active"] = True
 
     # Tally closeout
@@ -358,7 +358,7 @@ def source_closeout(prog, idx_work, N_prog, data_tally):
 
     # Tally history closeout for one-batch fixed-source simulation
     if not objects.settings.eigenvalue_mode and objects.settings.N_batch == 1:
-        if not mcdc["setting"]["census_based_tally"]:
+        if not objects.settings.use_census_based_tally:
             kernel.tally_accumulate(data_tally, mcdc)
 
     # Tally history closeout for multi-batch uq simulation

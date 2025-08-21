@@ -24,7 +24,7 @@ with np.load("SHEM-361.npz") as data:
     lamd = data["lamd"]
 
 # Set material
-m = mcdc.material(
+m = mcdc.MaterialMG(
     capture=SigmaC,
     scatter=SigmaS,
     fission=SigmaF,
@@ -53,13 +53,9 @@ source = mcdc.source(energy=energy)
 # Set problem and tally, and then run mcdc
 # =============================================================================
 
-# Tally
-# mcdc.tally.mesh_tally(scores=["flux"], g="all")
+settings = mcdc.Settings(N_particle=1e2, active_bank_buffer=1000, N_batch=2)
+settings.set_time_census(np.linspace(0.0, 20.0, 21)[1:-1])
+
 mcdc.tally.cell_tally(c, scores=["flux"], g="all", t=np.linspace(0.0, 20.0, 21)[1:-1])
 
-# Setting
-mcdc.setting(N_particle=1e2, active_bank_buff=1000, N_batch=2)
-mcdc.time_census(np.linspace(0.0, 20.0, 21)[1:-1])
-
-# Run
 mcdc.run()

@@ -9,10 +9,10 @@ import mcdc
 # Based on William H. Reed, NSE (1971), 46:2, 309-314, DOI: 10.13182/NSE46-309
 
 # Set materials
-m1 = mcdc.material(capture=np.array([50.0]))
-m2 = mcdc.material(capture=np.array([5.0]))
-m3 = mcdc.material(capture=np.array([0.0]))  # Vacuum
-m4 = mcdc.material(capture=np.array([0.1]), scatter=np.array([[0.9]]))
+m1 = mcdc.MaterialMG(capture=np.array([50.0]))
+m2 = mcdc.MaterialMG(capture=np.array([5.0]))
+m3 = mcdc.MaterialMG(capture=np.array([0.0]))  # Vacuum
+m4 = mcdc.MaterialMG(capture=np.array([0.1]), scatter=np.array([[0.9]]))
 
 # Set surfaces
 s1 = mcdc.surface("plane-z", z=0.0, bc="reflective")

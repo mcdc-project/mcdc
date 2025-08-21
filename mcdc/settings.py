@@ -1,3 +1,4 @@
+import h5py
 import numpy as np
 
 from dataclasses import dataclass, field
@@ -132,7 +133,7 @@ class Settings(ObjectSingleton):
         # Update setting self
         self.N_inactive = N_inactive
         self.N_active = N_active
-        self.N_inactive = N_inactive
+        self.N_cycle = self.N_inactive + self.N_active
         self.eigenvalue_mode = True
         self.k_init = k_init
         self.save_particle = save_particle
@@ -157,6 +158,13 @@ class Settings(ObjectSingleton):
             else:
                 print_error("Unknown gyration radius type")
 
+    def set_source_file(self, source_file_name):
+        self.use_source_file = True
+        self.source_file_name = source_file_name
+
+        # Set number of particles
+        with h5py.File(source_file_name, "r") as f:
+            self.N_particle = f["particles_size"][()]
 
 def is_sorted(a):
     return np.all(a[:-1] <= a[1:])

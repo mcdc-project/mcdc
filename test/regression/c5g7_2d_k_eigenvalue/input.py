@@ -13,7 +13,7 @@ lib = h5py.File("c5g7_xs.h5", "r")
 
 # Materials
 def set_mat(mat):
-    return mcdc.Material(
+    return mcdc.MaterialMG(
         capture=mat["capture"][:],
         scatter=mat["scatter"][:],
         fission=mat["fission"][:],
@@ -21,8 +21,8 @@ def set_mat(mat):
         nu_d=mat["nu_d"][:],
         chi_p=mat["chi_p"][:],
         chi_d=mat["chi_d"][:],
-        speed=mat["speed"],
-        decay_rate=mat["decay"],
+        speed=mat["speed"][:],
+        decay_rate=mat["decay"][:],
     )
 
 
@@ -181,14 +181,6 @@ source = mcdc.source(
 # Set tally and parameter, and then run mcdc
 # =============================================================================
 
-# Tally
-mcdc.tally.mesh_tally(
-    scores=["flux"],
-    x=np.linspace(0.0, pitch * 17 * 3, 17 * 3 + 1),
-    y=np.linspace(-pitch * 17 * 3, 0.0, 17 * 3 + 1),
-)
-
-# Setting
 settings = mcdc.Settings(
     N_particle=int(2e1),
     census_bank_buffer_ratio=3.0,
@@ -197,5 +189,10 @@ settings = mcdc.Settings(
 settings.set_eigenmode(N_inactive=1, N_active=2, gyration_radius="infinite-z")
 mcdc.population_control()
 
-# Run
+mcdc.tally.mesh_tally(
+    scores=["flux"],
+    x=np.linspace(0.0, pitch * 17 * 3, 17 * 3 + 1),
+    y=np.linspace(-pitch * 17 * 3, 0.0, 17 * 3 + 1),
+)
+
 mcdc.run()

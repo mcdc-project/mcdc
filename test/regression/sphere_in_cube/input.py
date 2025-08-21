@@ -7,8 +7,8 @@ import mcdc
 # Homogeneous pure-fission sphere inside a pure-scattering cube
 
 # Set materials
-pure_f = mcdc.material(fission=np.array([1.0]), nu_p=np.array([1.2]))
-pure_s = mcdc.material(scatter=np.array([[1.0]]))
+pure_f = mcdc.MaterialMG(fission=np.array([1.0]), nu_p=np.array([1.2]))
+pure_s = mcdc.MaterialMG(scatter=np.array([[1.0]]))
 
 # Set surfaces
 sx1 = mcdc.surface("plane-x", x=0.0, bc="vacuum")
@@ -38,6 +38,10 @@ mcdc.source(x=[0.0, 4.0], y=[0.0, 4.0], z=[0.0, 4.0], time=[0.0, 50.0], isotropi
 # =============================================================================
 # Set tally, setting, and run mcdc
 # =============================================================================
+
+settings = mcdc.Settings(N_particle=100, N_batch=2)
+mcdc.implicit_capture()
+
 mcdc.tally.mesh_tally(
     scores=["fission"],
     x=np.linspace(0.0, 4.0, 2),
@@ -46,12 +50,7 @@ mcdc.tally.mesh_tally(
     # t=np.linspace(0.0, 200.0, 2),
 )
 
-
 mcdc.tally.cell_tally(sphere_cell, scores=["fission"])
-
-# Setting
-mcdc.setting(N_particle=100, N_batch=2)
-mcdc.implicit_capture()
 
 # Run
 mcdc.run()

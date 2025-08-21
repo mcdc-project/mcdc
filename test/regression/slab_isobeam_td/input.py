@@ -9,7 +9,7 @@ import mcdc
 # Finite homogeneous pure-absorbing slab
 
 # Set materials
-m = mcdc.material(capture=np.array([1.0]))
+m = mcdc.MaterialMG(capture=np.array([1.0]))
 
 # Set surfaces
 s1 = mcdc.surface("plane-x", x=0.0, bc="vacuum")
@@ -29,15 +29,12 @@ mcdc.source(point=[1e-10, 0.0, 0.0], time=[0.0, 5.0], white_direction=[1.0, 0.0,
 # Set tally, setting, and run mcdc
 # =============================================================================
 
-# Tally
+settings = mcdc.Settings(N_particle=100, N_batch=2)
+
 mcdc.tally.mesh_tally(
     scores=["flux"],
     x=np.linspace(0.0, 5.0, 51),
     t=np.linspace(0.0, 5.0, 51),
 )
 
-# Setting
-mcdc.setting(N_particle=100, N_batch=2)
-
-# Run
 mcdc.run()

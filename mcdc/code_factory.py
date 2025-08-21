@@ -89,7 +89,7 @@ def numbafy_object(object_, structures, records, data):
                     # Generate the numba object
                     if not subobject.numbafied:
                         numbafy_object(subobject, structures, records, data)
-                    data[offset_type + i] = subobject.type_enum
+                    data[offset_type + i] = subobject.type
                     data[offset_id + i] = subobject.ID
 
         # Others

@@ -10,9 +10,9 @@ import mcdc
 # Three slab layers with different purely-absorbing materials
 
 # Set materials
-m1 = mcdc.material(capture=np.array([1.0]))
-m2 = mcdc.material(capture=np.array([1.5]))
-m3 = mcdc.material(capture=np.array([2.0]))
+m1 = mcdc.MaterialMG(capture=np.array([1.0]))
+m2 = mcdc.MaterialMG(capture=np.array([1.5]))
+m3 = mcdc.MaterialMG(capture=np.array([2.0]))
 
 # Set surfaces
 s1 = mcdc.surface("plane-z", z=0.0, bc="vacuum")
@@ -36,15 +36,12 @@ mcdc.source(z=[0.0, 6.0], isotropic=True)
 # Set tally, setting, and run mcdc
 # =============================================================================
 
-# Tally: cell-average and cell-edge angular fluxes and currents
+settings = mcdc.Settings(N_particle=100, N_batch=2)
+
 mcdc.tally.mesh_tally(
     z=np.linspace(0.0, 6.0, 61),
     mu=np.linspace(-1.0, 1.0, 32 + 1),
     scores=["flux", "total"],
 )
 
-# Setting
-mcdc.setting(N_particle=100, N_batch=2)
-
-# Run
 mcdc.run()

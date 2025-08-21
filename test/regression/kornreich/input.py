@@ -11,13 +11,13 @@ import mcdc
 # DOI: 10.1016/j.anucene.2004.03.012
 
 # Set materials
-m1 = mcdc.material(
+m1 = mcdc.MaterialMG(
     capture=np.array([0.0]),
     scatter=np.array([[0.9]]),
     fission=np.array([0.1]),
     nu_p=np.array([6.0]),
 )
-m2 = mcdc.material(
+m2 = mcdc.MaterialMG(
     capture=np.array([0.68]),
     scatter=np.array([[0.2]]),
     fission=np.array([0.12]),
@@ -43,7 +43,11 @@ mcdc.source(x=[0.0, 2.5], isotropic=True)
 # Set tally, setting, and run mcdc
 # =========================================================================
 
-# Tally
+settings = mcdc.Settings(
+    N_particle=100, use_progress_bar=False, census_bank_buffer_ratio=2.0, source_bank_buffer_ratio=2.0
+)
+settings.set_eigenmode(N_inactive=1, N_active=2, gyration_radius="only-x")
+
 x = np.array(
     [
         0.0,
@@ -72,11 +76,4 @@ x = np.array(
 scores = ["flux"]
 mcdc.tally.mesh_tally(scores=scores, x=x)
 
-# Setting
-mcdc.setting(
-    N_particle=100, progress_bar=False, census_bank_buff=2.0, source_bank_buff=2.0
-)
-mcdc.eigenmode(N_inactive=1, N_active=2, gyration_radius="only-x")
-
-# Run
 mcdc.run()

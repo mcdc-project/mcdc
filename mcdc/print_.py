@@ -80,7 +80,7 @@ def print_progress(percent, mcdc):
                     % (idx, N, "=" * int(percent * 28), percent * 100.0)
                 )
         else:
-            if mcdc["setting"]["gyration_radius"]:
+            if objects.settings.use_gyration_radius:
                 sys.stdout.write(
                     " [%-40s] %d%%" % ("=" * int(percent * 40), percent * 100.0)
                 )
@@ -132,10 +132,10 @@ def print_progress_eigenvalue(mcdc):
         k_avg = mcdc["k_avg_running"]
         k_sdv = mcdc["k_sdv_running"]
         gr = mcdc["gyration_radius"][idx_cycle]
-        if mcdc["setting"]["progress_bar"]:
+        if objects.settings.use_progress_bar:
             sys.stdout.write("\r")
             sys.stdout.write("\033[K")
-        if mcdc["setting"]["gyration_radius"]:
+        if objects.settings.use_gyration_radius:
             if not mcdc["cycle_active"]:
                 print(" %-4i  %.5f  %6.2f" % (idx_cycle + 1, k_eff, gr))
             else:

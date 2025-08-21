@@ -73,7 +73,7 @@ def run():
         iqmc_validate_inputs(input_deck)
 
     data_tally, mcdc_arr = prepare()
-    data_new, mcdc_new = code_factory.generate_numba_objects(objects.materials + [objects.settings])
+    data_new, mcdc_new = code_factory.generate_numba_objects(objects.materials + objects.nuclides + objects.reactions + [objects.settings])
     mcdc = mcdc_arr[0]
     mcdc["runtime_preparation"] = MPI.Wtime() - preparation_start
 
@@ -1402,7 +1402,8 @@ def prepare():
     for i in range(mcdc["mpi_size"]):
         if mcdc["mpi_rank"] == i:
             if settings.use_source_file:
-                with h5py.File(mcdc["setting"]["source_file_name"], "r") as f:
+                print(settings.source_file_name)
+                with h5py.File(settings.source_file_name, "r") as f:
                     # Get source particle size
                     N_particle = f["particles_size"][()]
 
@@ -1743,8 +1744,8 @@ def generate_hdf5(data_tally, mcdc):
             # Input deck
             if objects.settings.save_input_deck:
                 input_group = f.create_group("input_deck")
-                cardlist_to_h5group(objects.nuclides, input_group, "nuclide")
-                cardlist_to_h5group(objects.materials, input_group, "material")
+                #cardlist_to_h5group(objects.nuclides, input_group, "nuclide")
+                #cardlist_to_h5group(objects.materials, input_group, "material")
                 cardlist_to_h5group(input_deck.surfaces, input_group, "surface")
                 cardlist_to_h5group(input_deck.cells, input_group, "cell")
                 cardlist_to_h5group(input_deck.universes, input_group, "universe")
@@ -2039,7 +2040,7 @@ def generate_hdf5(data_tally, mcdc):
                         f.create_dataset("k_mean", data=mcdc["k_avg_running"])
                         f.create_dataset("k_sdev", data=mcdc["k_sdv_running"])
                 else:
-                    N_cycle = mcdc["setting"]["N_cycle"]
+                    N_cycle = objects.settings.N_cycle
                     f.create_dataset("k_cycle", data=mcdc["k_cycle"][:N_cycle])
                     f.create_dataset("k_mean", data=mcdc["k_avg_running"])
                     f.create_dataset("k_sdev", data=mcdc["k_sdv_running"])
@@ -2049,7 +2050,7 @@ def generate_hdf5(data_tally, mcdc):
                     f.create_dataset("global_tally/precursor/mean", data=mcdc["C_avg"])
                     f.create_dataset("global_tally/precursor/sdev", data=mcdc["C_sdv"])
                     f.create_dataset("global_tally/precursor/max", data=mcdc["C_max"])
-                    if mcdc["setting"]["gyration_radius"]:
+                    if objects.settings.use_gyration_radius:
                         f.create_dataset(
                             "gyration_radius", data=mcdc["gyration_radius"][:N_cycle]
                         )

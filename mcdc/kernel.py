@@ -1,3 +1,4 @@
+from numpy.linalg import multi_dot
 from mcdc import settings
 import mcdc.objects as objects
 
@@ -21,8 +22,8 @@ import mcdc.type_ as type_
 
 from mcdc.adapt import toggle, for_cpu, for_gpu
 from mcdc.constant import *
-from mcdc.print_ import print_error, print_msg
-from mcdc.src.algorithm import binary_search, binary_search_with_length
+from mcdc.print_ import print_error
+from mcdc.src.algorithm import binary_search, binary_search_with_length, evaluate_from_table
 
 
 @njit
@@ -1043,7 +1044,7 @@ def check_future_bank(mcdc):
     # Get the data needed
     bank_future = mcdc["bank_future"]
     bank_census = mcdc["bank_census"]
-    next_census_time = mcdc["setting"]["census_time"][mcdc["idx_census"] + 1]
+    next_census_time = objects.settings.census_time[mcdc["idx_census"] + 1]
 
     # Particle container
     P_arr = adapt.local_array(1, type_.particle_record)
@@ -1081,7 +1082,7 @@ def manage_particle_banks(seed, mcdc):
 
     # Normalize weight
     if objects.settings.eigenvalue_mode:
-        normalize_weight(mcdc["bank_census"], mcdc["setting"]["N_particle"])
+        normalize_weight(mcdc["bank_census"], objects.settings.N_particle)
 
     # Population control
     if mcdc["technique"]["population_control"]:
@@ -1955,10 +1956,10 @@ def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc):
             elif score_type == SCORE_DENSITY:
                 score = flux * ut
             elif score_type == SCORE_TOTAL:
-                SigmaT = get_MacroXS(XS_TOTAL, material, P_arr, mcdc)
+                SigmaT = get_macro_xs(REACTION_TOTAL, material, P_arr, mcdc)
                 score = flux * SigmaT
             elif score_type == SCORE_FISSION:
-                SigmaF = get_MacroXS(XS_FISSION, material, P_arr, mcdc)
+                SigmaF = get_macro_xs(REACTION_FISSION, material, P_arr, mcdc)
                 score = flux * SigmaF
             if score_type == SCORE_NET_CURRENT:
                 score = flux * mu
@@ -2108,10 +2109,10 @@ def score_cell_tally(P_arr, distance, tally, data_tally, mcdc):
             if score_type == SCORE_FLUX:
                 score = flux
             elif score_type == SCORE_TOTAL:
-                SigmaT = get_MacroXS(XS_TOTAL, material, P_arr, mcdc)
+                SigmaT = get_macro_xs(REACTION_TOTAL, material, P_arr, mcdc)
                 score = flux * SigmaT
             elif score_type == SCORE_FISSION:
-                SigmaF = get_MacroXS(XS_FISSION, material, P_arr, mcdc)
+                SigmaF = get_macro_xs(REACTION_FISSION, material, P_arr, mcdc)
                 score = flux * SigmaF
             adapt.global_add(data_tally, (TALLY_SCORE, idx + i), round(score))
 
@@ -2494,8 +2495,8 @@ def tally_closeout(data_tally, mcdc):
     if N_batch > 1:
         N_history = N_batch
 
-    elif mcdc["setting"]["mode_eigenvalue"]:
-        N_history = mcdc["setting"]["N_active"]
+    elif objects.settings.eigenvalue_mode:
+        N_history = objects.settings.N_active 
 
     elif not mcdc["technique"]["domain_decomposition"]:
         # MPI Reduce
@@ -2545,7 +2546,9 @@ def eigenvalue_tally(P_arr, distance, mcdc):
     flux = distance * P["w"]
 
     # Get nu-fission
-    nuSigmaF = get_MacroXS(XS_NU_FISSION, material, P_arr, mcdc)
+    nu = get_multiplicity(NU_FISSION, material, P_arr, mcdc)
+    SigmaF = get_macro_xs(REACTION_FISSION, material, P_arr, mcdc)
+    nuSigmaF = nu * SigmaF
 
     # Fission production (needed even during inactive cycle)
     # mcdc["eigenvalue_tally_nuSigmaF"][0] += flux * nuSigmaF
@@ -2562,19 +2565,16 @@ def eigenvalue_tally(P_arr, distance, mcdc):
             mcdc["n_max"] = n_density
 
         # Precursor density
-        J = material["J"]
-        SigmaF = get_MacroXS(XS_FISSION, material, P_arr, mcdc)
+        J = material.J
+        SigmaF = get_macro_xs(REACTION_FISSION, material, P_arr, mcdc)
         # Get the decay-wighted multiplicity
         total = 0.0
-        if mcdc["setting"]["mode_MG"]:
+        if objects.settings.multigroup_mode:
             g = P["g"]
-            for i in range(material["N_nuclide"]):
-                ID_nuclide = material["nuclide_IDs"][i]
-                nuclide = mcdc["nuclides"][ID_nuclide]
-                for j in range(J):
-                    nu_d = nuclide["nu_d"][g, j]
-                    decay = nuclide["decay"][j]
-                    total += nu_d / decay
+            for j in range(J):
+                nu_d = material.nu_d[g, j]
+                decay = material.decay_rate[j]
+                total += nu_d / decay
         else:
             E = P["E"]
             for i in range(material["N_nuclide"]):
@@ -2596,7 +2596,7 @@ def eigenvalue_tally(P_arr, distance, mcdc):
 
 @njit
 def eigenvalue_tally_closeout_history(mcdc):
-    N_particle = mcdc["setting"]["N_particle"]
+    N_particle = objects.settings.N_particle
 
     idx_cycle = mcdc["idx_cycle"]
 
@@ -2649,7 +2649,7 @@ def eigenvalue_tally_closeout_history(mcdc):
         mcdc["C_avg"] += tally_C
         mcdc["C_sdv"] += tally_C * tally_C
 
-        N = 1 + mcdc["idx_cycle"] - mcdc["setting"]["N_inactive"]
+        N = 1 + mcdc["idx_cycle"] - objects.settings.N_inactive
         mcdc["k_avg_running"] = mcdc["k_avg"] / N
         if N == 1:
             mcdc["k_sdv_running"] = 0.0
@@ -2671,7 +2671,7 @@ def eigenvalue_tally_closeout_history(mcdc):
     # Gyration radius
     # =====================================================================
 
-    if mcdc["setting"]["gyration_radius"]:
+    if objects.settings.use_gyration_radius:
         # Center of mass
         N_local = get_bank_size(mcdc["bank_census"])
         total_local = np.zeros(4, np.float64)  # [x,y,z,W]
@@ -2694,7 +2694,7 @@ def eigenvalue_tally_closeout_history(mcdc):
         # Distance RMS
         rms_local = np.zeros(1, np.float64)
         rms = np.zeros(1, np.float64)
-        gr_type = mcdc["setting"]["gyration_radius_type"]
+        gr_type = objects.settings.gyration_radius_type
         if gr_type == GYRATION_RADIUS_ALL:
             for i in range(N_local):
                 P = mcdc["bank_census"]["particles"][i]
@@ -2739,7 +2739,7 @@ def eigenvalue_tally_closeout_history(mcdc):
 
 @njit
 def eigenvalue_tally_closeout(mcdc):
-    N = mcdc["setting"]["N_active"]
+    N = objects.settings.N_active
     mcdc["n_avg"] /= N
     mcdc["C_avg"] /= N
     if N > 1:
@@ -3079,19 +3079,15 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc):
       - Isotropic in COM
     """
     # Sample nuclide
-    nuclide = sample_nuclide(material, P_arr, XS_SCATTER, mcdc)
-    xi = rng(P_arr) * get_MacroXS(XS_SCATTER, material, P_arr, mcdc)
-    tot = 0.0
-    for i in range(material["N_nuclide"]):
-        ID_nuclide = material["nuclide_IDs"][i]
-        nuclide = mcdc["nuclides"][ID_nuclide]
-        N = material["nuclide_densities"][i]
-        tot += N * get_microXS(XS_SCATTER, nuclide, P["E"])
-        if tot > xi:
+    nuclide = sample_nuclide(material, P_arr, REACTION_ELASTIC_SCATTERING, mcdc)
+
+    # Get the reaction
+    for reaction in nuclide.reactions:
+        if reaction.type == REACTION_ELASTIC_SCATTERING:
             break
 
     # Sample nucleus thermal speed
-    A = nuclide["A"]
+    A = nuclide.atomic_weight_ratio
     if P["E"] > E_THERMAL_THRESHOLD:
         Vx = 0.0
         Vy = 0.0
@@ -3129,8 +3125,44 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc):
     uy = vy / P_speed
     uz = vz / P_speed
 
+    # ==================================================================================
+    # Sample scattering cosine
+    # ==================================================================================
+    
+    # Interpolation factor
+    E_grid = reaction.mu_energy_grid
+    idx = binary_search(P['E'], E_grid)
+    E0 = E_grid[idx]
+    E1 = E_grid[idx + 1]
+    f = (P['E'] - E0) - (E1 - E0)
+
+    # Sample which table to choose
+    xi = rng(P_new_arr)
+    if xi > f:
+        idx += 1
+
+    # Get the table
+    start = reaction.mu_energy_offset[idx]
+    if idx + 1 == len(reaction.mu_energy_grid):
+        end = len(reaction.mu_energy_grid)
+    else:
+        end = reaction.mu_energy_offset[idx + 1]
+    mu = reaction.mu[start:end]
+    PDF = reaction.mu_PDF[start:end]
+    CDF = reaction.mu_CDF[start:end]
+
+    # Sample bin index
+    xi = rng(P_new_arr)
+    idx = binary_search(xi, CDF)
+    m = (PDF[idx + 1] - PDF[idx]) / (mu[idx + 1] - mu[idx])
+    p = PDF[idx]
+    c = CDF[idx]
+    if m == 0.0:
+        mu0 = mu[idx] + (xi - c) / p
+    else:
+        mu0 = mu[idx] + 1.0 / m * (math.sqrt(p**2 + 2 * m * (xi - c)) - p)
+    
     # Scatter the direction in COM
-    mu0 = 2.0 * rng(P_arr) - 1.0
     azi = 2.0 * PI * rng(P_arr)
     ux_new, uy_new, uz_new = scatter_direction(ux, uy, uz, mu0, azi)
 
@@ -3726,50 +3758,42 @@ def get_macro_xs(reaction_type, material, P_arr, mcdc):
 
 
 @njit
-def get_microXS(type_, nuclide, E):
-    # Cross sections
-    if type_ == XS_TOTAL:
-        data = nuclide["ce_total"]
-        return get_XS(data, E, nuclide["E_xs"], nuclide["NE_xs"])
-    elif type_ == XS_SCATTER:
-        data = nuclide["ce_scatter"]
-        return get_XS(data, E, nuclide["E_xs"], nuclide["NE_xs"])
-    elif type_ == XS_CAPTURE:
-        data = nuclide["ce_capture"]
-        return get_XS(data, E, nuclide["E_xs"], nuclide["NE_xs"])
-    elif type_ == XS_FISSION:
-        if not nuclide["fissionable"]:
-            return 0.0
-        data = nuclide["ce_fission"]
-        return get_XS(data, E, nuclide["E_xs"], nuclide["NE_xs"])
+def get_multiplicity(nu_type, material, P_arr, mcdc):
+    P = P_arr[0]
+    
+    # Continuous-energy XS
+    if not objects.settings.multigroup_mode:
+        # TODO
+        return 0
 
-    # Binary Multiplicities
-    elif type_ == XS_NU_SCATTER:
-        data = nuclide["ce_scatter"]
-        xs = get_XS(data, E, nuclide["E_xs"], nuclide["NE_xs"])
-        nu = 1.0
-        return nu * xs
-    elif type_ == XS_NU_FISSION:
-        if not nuclide["fissionable"]:
+    # Multigroup XS
+    g = P["g"]
+
+    # Cross sections
+    if nu_type == NU_SCATTERING:
+        return material.nu_s[g]
+    elif nu_type == NU_FISSION:
+        return material.nu_f[g]
+    elif nu_type == NU_FISSION_PROMPT:
+        return material.nu_f[g]
+    elif nu_type == NU_FISSION_DELAYED:
+        return np.sum(material.nu_d[g,:])
+
+
+@njit
+def get_micro_xs(reaction_type, nuclide, E):
+    if reaction_type == REACTION_TOTAL:
+        xs_data = nuclide.total_xs
+    else:
+        found = False
+        for reaction in nuclide.reactions:
+            if reaction.type == reaction_type:
+                xs_data = reaction.xs
+                found = True
+                break
+        if not found:
             return 0.0
-        data = nuclide["ce_fission"]
-        xs = get_XS(data, E, nuclide["E_xs"], nuclide["NE_xs"])
-        nu = get_nu(NU_FISSION, nuclide, E)
-        return nu * xs
-    elif type_ == XS_NU_FISSION_PROMPT:
-        if not nuclide["fissionable"]:
-            return 0.0
-        data = nuclide["ce_fission"]
-        xs = get_XS(data, E, nuclide["E_xs"], nuclide["NE_xs"])
-        nu = get_nu(NU_FISSION_PROMPT, nuclide, E)
-        return nu * xs
-    elif type_ == XS_NU_FISSION_DELAYED:
-        if not nuclide["fissionable"]:
-            return 0.0
-        data = nuclide["ce_fission"]
-        xs = get_XS(data, E, nuclide["E_xs"], nuclide["NE_xs"])
-        nu = get_nu(NU_FISSION_DELAYED, nuclide, E)
-        return nu * xs
+    return evaluate_from_table(E, nuclide.xs_energy_grid, xs_data)
 
 
 @njit
@@ -3825,19 +3849,15 @@ def get_nu(type_, nuclide, E):
 
 
 @njit
-def sample_nuclide(material, P_arr, type_, mcdc):
+def sample_nuclide(material, P_arr, reaction_type, mcdc):
     P = P_arr[0]
-    xi = rng(P_arr) * get_MacroXS(type_, material, P_arr, mcdc)
-    tot = 0.0
-    for i in range(material["N_nuclide"]):
-        ID_nuclide = material["nuclide_IDs"][i]
-        nuclide = mcdc["nuclides"][ID_nuclide]
-
-        N = material["nuclide_densities"][i]
-        tot += N * get_microXS(type_, nuclide, P["E"])
-        if tot > xi:
+    xi = rng(P_arr) * get_macro_xs(reaction_type, material, P_arr, mcdc)
+    total = 0.0
+    for nuclide in material.nuclides:
+        atomic_density = material.nuclide_composition[nuclide]
+        total += atomic_density * get_micro_xs(reaction_type, nuclide, P["E"])
+        if total > xi:
             break
-
     return nuclide
 
 
