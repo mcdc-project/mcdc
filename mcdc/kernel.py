@@ -3357,6 +3357,7 @@ def sample_phasespace_fission(P_arr, material, P_new_arr, mcdc):
                 # Delayed group determined
                 spectrum = material.chi_d[j]
                 decay = material.decay_rate[j]
+                break
 
     # Sample outgoing energy
     xi = rng(P_new_arr)

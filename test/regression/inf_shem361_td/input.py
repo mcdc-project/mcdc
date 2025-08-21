@@ -23,7 +23,7 @@ with np.load("SHEM-361.npz") as data:
     lamd = data["lamd"]
 
 # Set material
-m = mcdc.material(
+m = mcdc.MaterialMG(
     capture=SigmaC,
     scatter=SigmaS,
     fission=SigmaF,
@@ -31,7 +31,7 @@ m = mcdc.material(
     chi_p=chi_p,
     nu_d=nu_d,
     chi_d=chi_d,
-    decay=lamd,
+    decay_rate=lamd,
     speed=speed,
 )
 
@@ -54,13 +54,10 @@ source = mcdc.source(energy=energy)
 # Set problem and tally, and then run mcdc
 # =============================================================================
 
-# Tally
+mcdc.Settings(N_particle=50, N_batch=2, active_bank_buffer=1000)
+
 mcdc.tally.mesh_tally(
     scores=["flux"], t=np.insert(np.logspace(-8, 1, 100), 0, 0.0), g="all"
 )
 
-# Setting
-mcdc.setting(N_particle=50, active_bank_buff=1000, N_batch=2)
-
-# Run
 mcdc.run()
