@@ -104,7 +104,7 @@ def run():
     if settings.eigenvalue_mode:
         loop_eigenvalue(data_tally, mcdc_arr)
     else:
-        loop_fixed_source(data_tally, mcdc_arr, data, mcdc_new)
+        loop_fixed_source(data_tally, mcdc_arr)
 
     # Timer: simulation
     time_simulation_end = MPI.Wtime()
