@@ -12,13 +12,15 @@ from mcdc.nuclide import Nuclide
 from mcdc.objects import ObjectPolymorphic
 from mcdc.prints import print_1d_array, print_error
 
+########################################################################################
+
 
 class MaterialBase(ObjectPolymorphic):
     def __init__(self, label, type_, name):
         super().__init__(label, type_)
         self.name = name
         self.fissionable = False
-    
+
     def __repr__(self):
         text = "\n"
         text += f"{decode_type(self.type)}\n"
@@ -41,12 +43,12 @@ class MaterialMG(MaterialBase):
         chi_p: NDArray[float64] = None,
         chi_d: NDArray[float64] = None,
         speed: NDArray[float64] = None,
-        decay_rate: NDArray[float64] = None
+        decay_rate: NDArray[float64] = None,
     ):
         label = "mg_material"
         type_ = MATERIAL_MG
         super().__init__(label, type_, name)
-       
+
         # Energy group size
         if capture is not None:
             G = len(capture)
@@ -57,13 +59,13 @@ class MaterialMG(MaterialBase):
         else:
             print_error("Need to supply capture, scatter, or fission for MaterialMG")
         self.G = G
-        
+
         # Delayed group size
         J = 0
         if nu_d is not None:
             J = len(nu_d)
         self.J = J
-    
+
         # Allocate the attributes
         self.speed = np.ones(G)
         self.decay_rate = np.ones(J) * np.inf
@@ -162,7 +164,7 @@ class MaterialMG(MaterialBase):
             for dg in range(J):
                 if np.sum(self.chi_d[dg, :]) > 0.0:
                     self.chi_d[dg, :] /= np.sum(self.chi_d[dg, :])
-        
+
         # Register the material
         self.ID = len(objects.materials)
         objects.materials.append(self)
@@ -228,7 +230,6 @@ class Material(MaterialBase):
         # Register the material
         self.ID = len(objects.materials)
         objects.materials.append(self)
-        
 
     def __repr__(self):
         text = super().__repr__()

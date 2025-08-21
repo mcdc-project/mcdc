@@ -77,3 +77,29 @@ def print_eigenvalue_header():
 def print_batch_header(i, N):
     print(f"\nBatch {i}/{N}")
     sys.stdout.flush()
+
+
+def print_time(tag, t, percent):
+    if t >= 24 * 60 * 60:
+        print("   %s | %.2f days (%.1f%%)" % (tag, t / 24 / 60 / 60), percent)
+    elif t >= 60 * 60:
+        print("   %s | %.2f hours (%.1f%%)" % (tag, t / 60 / 60, percent))
+    elif t >= 60:
+        print("   %s | %.2f minutes (%.1f%%)" % (tag, t / 60, percent))
+    else:
+        print("   %s | %.2f seconds (%.1f%%)" % (tag, t, percent))
+
+
+def print_runtime(mcdc):
+    total = mcdc["runtime_total"]
+    preparation = mcdc["runtime_preparation"]
+    simulation = mcdc["runtime_simulation"]
+    output = mcdc["runtime_output"]
+    print("\n Runtime report:")
+    print_time("Total      ", total, 100)
+    print_time("Preparation", preparation, preparation / total * 100)
+    print_time("Simulation ", simulation, simulation / total * 100)
+    print_time("Output     ", output, output / total * 100)
+    print("\n")
+    sys.stdout.flush()
+

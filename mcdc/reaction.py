@@ -10,12 +10,14 @@ from mcdc.constant import (
 from mcdc.objects import ObjectPolymorphic
 from mcdc.prints import print_1d_array
 
+########################################################################################
+
 
 class ReactionBase(ObjectPolymorphic):
     def __init__(self, label, type_, h5_group):
         super().__init__(label, type_)
         self.xs = h5_group["xs"][()]
-    
+
     def __repr__(self):
         text = "\n"
         text += f"{decode_type(self.type)}\n"

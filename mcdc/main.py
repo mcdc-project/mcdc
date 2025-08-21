@@ -1,9 +1,13 @@
-import mcdc.objects as objects
-import mcdc.code_factory as code_factory
 
-import argparse, os, sys
-import importlib.metadata
+####
+
+import mcdc.code_factory as code_factory
 import mcdc.config as config
+import mcdc.objects as objects
+
+########################################################################################
+
+import importlib.metadata
 import matplotlib.pyplot as plt
 import numba as nb
 from matplotlib import colors as mpl_colors
@@ -13,12 +17,15 @@ import cvxpy as cp
 
 from mcdc.card import UniverseCard
 from mcdc.print_ import (
-    print_banner,
     print_msg,
-    print_runtime,
-    print_header_eigenvalue,
-    print_warning,
+)
+
+from mcdc.prints import (
+    print_banner,
+    print_configuration,
+    print_eigenvalue_header,
     print_error,
+    print_runtime,
 )
 
 import h5py
@@ -40,7 +47,6 @@ from mcdc.iqmc.iqmc_loop import iqmc_simulation, iqmc_validate_inputs
 import mcdc.src.geometry as geometry
 
 import mcdc.loop as loop
-from mcdc.print_ import print_banner, print_msg, print_runtime, print_header_eigenvalue
 
 # Get input_deck
 import mcdc.global_ as mcdc_
@@ -49,11 +55,15 @@ input_deck = mcdc_.input_deck
 
 
 def run():
+    # Timer: total
+    time_total_start = MPI.Wtime()
+
+    settings = objects.settings
+    master = MPI.COMM_WORLD.Get_rank() == 0
+
     # ==================================================================================
     # Override settings with command-line arguments
     # ==================================================================================
-
-    settings = objects.settings
 
     if config.args.N_particle is not None:
         settings.N_particle = config.args.N_particle
@@ -62,54 +72,85 @@ def run():
     if config.args.progress_bar is not None:
         settings.use_progress_bar = config.args.progress_bar
 
-    # Start timer
-    total_start = MPI.Wtime()
-
+    # ==================================================================================
     # Preparation
-    #   Set up and get the global variable container `mcdc` based on
-    #   input deck
-    preparation_start = MPI.Wtime()
-    if input_deck.technique["iQMC"]:
-        iqmc_validate_inputs(input_deck)
+    # ==================================================================================
 
-    data_tally, mcdc_arr = prepare()
-    data_new, mcdc_new = code_factory.generate_numba_objects(objects.materials + objects.nuclides + objects.reactions + [objects.settings])
+    # Timer: preparation
+    time_prep_start = MPI.Wtime()
+
+    data_tally, mcdc_arr, data, mcdc_new = prepare()
     mcdc = mcdc_arr[0]
-    mcdc["runtime_preparation"] = MPI.Wtime() - preparation_start
 
-    # Print banner, hardware configuration, and header
-    print_banner(mcdc)
+    # Print headers
+    if master:
+        print_banner()
+        print_configuration()
+        print(" Now running TNT...")
+        if settings.eigenvalue_mode:
+            print_eigenvalue_header()
 
-    print_msg(" Now running TNT...")
-    if settings.eigenvalue_mode:
-        print_header_eigenvalue(mcdc)
+    # Timer: preparation
+    time_prep_end = MPI.Wtime()
+
+    # ==================================================================================
+    # Running the simulation
+    # ==================================================================================
+
+    # Timer: simulation
+    time_simulation_start = MPI.Wtime()
 
     # Run simulation
     simulation_start = MPI.Wtime()
-    if mcdc["technique"]["iQMC"]:
-        iqmc_simulation(mcdc_arr)
-    elif settings.eigenvalue_mode:
+    if settings.eigenvalue_mode:
         loop_eigenvalue(data_tally, mcdc_arr)
     else:
         loop_fixed_source(data_tally, mcdc_arr)
-    mcdc["runtime_simulation"] = MPI.Wtime() - simulation_start
+
+    # Timer: simulation
+    time_simulation_end = MPI.Wtime()
+
+    # ==================================================================================
+    # Working on the output
+    # ==================================================================================
+   
+    # Timer: output
+    time_output_start = MPI.Wtime()
 
     # Compressed sensing reconstruction
     N_cs_bins = mcdc["cs_tallies"]["filter"]["N_cs_bins"][0]
     if N_cs_bins != 0:
         cs_reconstruct(data_tally, mcdc)
 
-    # Output: generate hdf5 output files
-    output_start = MPI.Wtime()
+    # Generate hdf5 output files
     generate_hdf5(data_tally, mcdc)
-    mcdc["runtime_output"] = MPI.Wtime() - output_start
 
-    # Stop timer
+    # Timer: output
+    time_output_end = MPI.Wtime()
+
+    # ==================================================================================
+    # Finalizing
+    # ==================================================================================
+    
+    # Final barrier
     MPI.COMM_WORLD.Barrier()
-    mcdc["runtime_total"] = MPI.Wtime() - total_start
 
-    # Closout
-    closeout(mcdc)
+    # Timer: total
+    time_total_end = MPI.Wtime()
+
+    # Manage timers
+    mcdc["runtime_total"] = time_total_end - time_total_start
+    mcdc["runtime_preparation"] = time_prep_end - time_prep_start
+    mcdc["runtime_simulation"] = time_simulation_end - time_simulation_start
+    mcdc["runtime_output"] = time_output_end - time_output_start
+    if master:
+        save_runtime(mcdc)
+        print_runtime(mcdc)
+
+    # GPU closeout
+    loop.teardown_gpu(mcdc)
+
+    input_deck.reset()
 
 
 def calculate_cs_A(data, mcdc):
@@ -463,6 +504,11 @@ def prepare():
       (2) Make types
       (3) Create and set up global variable container `mcdc`
     """
+    
+    # Generate Numba-supported "Objects"
+    data_new, mcdc_new = code_factory.generate_numba_objects(
+        objects.materials + objects.nuclides + objects.reactions + [objects.settings]
+    )
 
     settings = objects.settings
 
@@ -1474,7 +1520,7 @@ def prepare():
     # Finalize data: wrapping into a tuple
     # =========================================================================
 
-    return data_tally, mcdc_arr
+    return data_tally, mcdc_arr, data_new, mcdc_new
 
 
 def cardlist_to_h5group(dictlist, input_group, name):
@@ -2269,11 +2315,7 @@ def recombine_tallies(file="output.h5"):
         """
 
 
-def closeout(mcdc):
-
-    loop.teardown_gpu(mcdc)
-
-    # Runtime
+def save_runtime(mcdc):
     if mcdc["mpi_master"]:
         with h5py.File(objects.settings.output_name + ".h5", "a") as f:
             for name in [
@@ -2298,8 +2340,6 @@ def closeout(mcdc):
                 ]:
                     f.create_dataset(name, data=np.array([mcdc["runtime_" + name]]))
 
-    print_runtime(mcdc)
-    input_deck.reset()
 
 
 # ======================================================================================

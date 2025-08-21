@@ -21,7 +21,7 @@ class ObjectPolymorphic(ObjectNonSingleton):
         self.type = type_
 
 
-# The actual objects
+# The objects
 settings = None  # Singleton
 materials = []  # Polymorphic
 nuclides = []  # Non-singleton

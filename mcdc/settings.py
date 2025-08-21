@@ -13,6 +13,8 @@ from mcdc.material import MaterialMG
 from mcdc.objects import ObjectSingleton
 from mcdc.prints import print_error
 
+########################################################################################
+
 
 @dataclass
 class Settings(ObjectSingleton):
@@ -64,7 +66,7 @@ class Settings(ObjectSingleton):
     target_gpu: bool = False
 
     def __post_init__(self):
-        super().__init__('settings')
+        super().__init__("settings")
 
         # Recasting
         self.N_particle = int(self.N_particle)
@@ -111,7 +113,12 @@ class Settings(ObjectSingleton):
             self.census_tally_frequency = tally_frequency
 
     def set_eigenmode(
-        self, N_inactive=0, N_active=0, k_init=1.0, gyration_radius=None, save_particle=False
+        self,
+        N_inactive=0,
+        N_active=0,
+        k_init=1.0,
+        gyration_radius=None,
+        save_particle=False,
     ):
         """
         Set eigenvalue-related settings
@@ -165,6 +172,7 @@ class Settings(ObjectSingleton):
         # Set number of particles
         with h5py.File(source_file_name, "r") as f:
             self.N_particle = f["particles_size"][()]
+
 
 def is_sorted(a):
     return np.all(a[:-1] <= a[1:])
