@@ -10,7 +10,9 @@ from mcdc.reaction import ReactionCapture, ReactionElasticScattering, decode_typ
 from mcdc.objects import ObjectNonSingleton
 from mcdc.prints import print_1d_array
 
-########################################################################################
+# ======================================================================================
+# Nuclide class
+# ======================================================================================
 
 
 class Nuclide(ObjectNonSingleton):

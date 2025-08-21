@@ -10,7 +10,9 @@ from mcdc.constant import (
 from mcdc.objects import ObjectPolymorphic
 from mcdc.prints import print_1d_array
 
-########################################################################################
+# ======================================================================================
+# Reaction classes
+# ======================================================================================
 
 
 class ReactionBase(ObjectPolymorphic):

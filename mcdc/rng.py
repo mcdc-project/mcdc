@@ -1,8 +1,7 @@
 import numpy as np
 
-from numba import (
-    uint64
-)
+from numba import uint64
+
 
 def wrapping_mul(a, b):
     return a * b

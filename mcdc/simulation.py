@@ -17,6 +17,7 @@ from mcdc.prints import print_batch_header
 # Fixed-Source Simulation
 # ======================================================================================
 
+
 def simulation_fixed_source(data, mcdc, data_new, mcdc_new):
     settings = objects.settings
     master = MPI.COMM_WORLD.Get_rank() == 0
@@ -37,7 +38,7 @@ def simulation_fixed_source(data, mcdc, data_new, mcdc_new):
         # Print multi-batch header
         if settings.N_batch > 1 and master:
             print_batch_header(i_batch, N_batch)
-        
+
         # TODO: UQ
 
         # ==============================================================================
@@ -127,6 +128,6 @@ def simulation_fixed_source(data, mcdc, data_new, mcdc_new):
 # Eigenvalue Simulation
 # ======================================================================================
 
+
 def simulation_eigenvalue(mcdc):
     pass
-

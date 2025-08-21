@@ -80,11 +80,11 @@ def loop_fixed_source(data_tally, mcdc_arr, data_new, mcdc_new):
         if mcdc["setting"]["N_batch"] > 1:
             with objmode():
                 print_header_batch(mcdc)
-            '''
+            """
             if mcdc["technique"]["uq"]:
                 seed_uq = kernel.split_seed(seed_batch, SEED_SPLIT_UQ)
                 kernel.uq_reset(mcdc, seed_uq)
-            '''
+            """
 
         # Loop over time censuses
         for idx_census in range(mcdc["setting"]["N_census"]):

@@ -2,6 +2,7 @@
 This module contains functions for setting MC/DC input deck.
 Docstrings use NumPy formatting.
 """
+
 from operator import mul
 import mcdc.objects as objects
 
@@ -448,6 +449,7 @@ def material(
 
     return card
 '''
+
 
 def surface(type_, bc="interface", **kw):
     """

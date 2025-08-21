@@ -34,7 +34,7 @@ from mcdc.card import UniverseCard
 # Get input_deck
 input_deck = mcdc_.input_deck
 
-'''
+"""
 import argparse, os, sys
 import importlib.metadata
 import matplotlib.pyplot as plt
@@ -65,7 +65,8 @@ from mcdc.print_ import print_banner, print_msg, print_runtime, print_header_eig
 import mcdc.global_ as mcdc_
 
 input_deck = mcdc_.input_deck
-'''
+"""
+
 
 def run():
     # Timer: total
@@ -104,11 +105,11 @@ def run():
 
     # Timer: preparation
     time_prep_end = MPI.Wtime()
-    
+
     # ==================================================================================
     # Running the simulation
     # ==================================================================================
-   
+
     # Timer: simulation
     time_simulation_start = MPI.Wtime()
 
@@ -126,7 +127,7 @@ def run():
     # ==================================================================================
     # Working on the output
     # ==================================================================================
-   
+
     # Timer: output
     time_output_start = MPI.Wtime()
 
@@ -138,14 +139,14 @@ def run():
     # Output: generate hdf5 output files
     output_start = MPI.Wtime()
     generate_hdf5(data_tally, mcdc)
-    
+
     # Timer: output
     time_output_end = MPI.Wtime()
 
     # ==================================================================================
     # Finalizing
     # ==================================================================================
-   
+
     # Manage timers
     mcdc["runtime_total"] = time_total_end - time_total_start
     mcdc["runtime_preparation"] = time_prep_end - time_prep_start
@@ -510,7 +511,7 @@ def prepare():
       (2) Make types
       (3) Create and set up global variable container `mcdc`
     """
-    
+
     # Generate Numba-supported "Objects"
     data_new, mcdc_new = code_factory.generate_numba_objects(
         objects.materials + objects.nuclides + objects.reactions + [objects.settings]

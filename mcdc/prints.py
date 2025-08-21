@@ -59,7 +59,7 @@ def print_configuration():
 
     text = ""
     text += f"           Mode | {mode}\n"
-    text += f"  MPI Processes | {mpi_size}\n" 
+    text += f"  MPI Processes | {mpi_size}\n"
     print(text)
     sys.stdout.flush()
 
@@ -102,4 +102,3 @@ def print_runtime(mcdc):
     print_time("Output     ", output, output / total * 100)
     print("\n")
     sys.stdout.flush()
-

@@ -12,7 +12,9 @@ from mcdc.nuclide import Nuclide
 from mcdc.objects import ObjectPolymorphic
 from mcdc.prints import print_1d_array, print_error
 
-########################################################################################
+# ======================================================================================
+# Material classes
+# ======================================================================================
 
 
 class MaterialBase(ObjectPolymorphic):

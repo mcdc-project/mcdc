@@ -23,7 +23,11 @@ import mcdc.type_ as type_
 from mcdc.adapt import toggle, for_cpu, for_gpu
 from mcdc.constant import *
 from mcdc.print_ import print_error
-from mcdc.src.algorithm import binary_search, binary_search_with_length, evaluate_from_table
+from mcdc.src.algorithm import (
+    binary_search,
+    binary_search_with_length,
+    evaluate_from_table,
+)
 
 
 @njit
@@ -1878,7 +1882,9 @@ def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc):
 
     # Easily identified tally bin indices
     mu, azi = mesh_get_angular_index(P_arr, mesh)
-    g, outside_energy = mesh_get_energy_index(P_arr, mesh, objects.settings.multigroup_mode)
+    g, outside_energy = mesh_get_energy_index(
+        P_arr, mesh, objects.settings.multigroup_mode
+    )
 
     # Get starting indices
     ix, iy, iz, it, outside = mesh_.structured.get_indices(P_arr, mesh)
@@ -2496,7 +2502,7 @@ def tally_closeout(data_tally, mcdc):
         N_history = N_batch
 
     elif objects.settings.eigenvalue_mode:
-        N_history = objects.settings.N_active 
+        N_history = objects.settings.N_active
 
     elif not mcdc["technique"]["domain_decomposition"]:
         # MPI Reduce
@@ -2928,7 +2934,7 @@ def surface_crossing(P_arr, data_tally, prog):
 @njit
 def collision(P_arr, mcdc):
     P = P_arr[0]
-    
+
     # Get the reaction cross-sections
     material = objects.materials[P["material_ID"]]
     SigmaT = get_macro_xs(REACTION_TOTAL, material, P_arr, mcdc)
@@ -3128,13 +3134,13 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc):
     # ==================================================================================
     # Sample scattering cosine
     # ==================================================================================
-    
+
     # Interpolation factor
     E_grid = reaction.mu_energy_grid
-    idx = binary_search(P['E'], E_grid)
+    idx = binary_search(P["E"], E_grid)
     E0 = E_grid[idx]
     E1 = E_grid[idx + 1]
-    f = (P['E'] - E0) - (E1 - E0)
+    f = (P["E"] - E0) - (E1 - E0)
 
     # Sample which table to choose
     xi = rng(P_new_arr)
@@ -3161,7 +3167,7 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc):
         mu0 = mu[idx] + (xi - c) / p
     else:
         mu0 = mu[idx] + 1.0 / m * (math.sqrt(p**2 + 2 * m * (xi - c)) - p)
-    
+
     # Scatter the direction in COM
     azi = 2.0 * PI * rng(P_arr)
     ux_new, uy_new, uz_new = scatter_direction(ux, uy, uz, mu0, azi)
@@ -3727,7 +3733,7 @@ def weight_roulette(P_arr, mcdc):
 @njit
 def get_macro_xs(reaction_type, material, P_arr, mcdc):
     P = P_arr[0]
-    
+
     # Continuous-energy XS
     if not objects.settings.multigroup_mode:
         macro_xs = 0.0
@@ -3760,7 +3766,7 @@ def get_macro_xs(reaction_type, material, P_arr, mcdc):
 @njit
 def get_multiplicity(nu_type, material, P_arr, mcdc):
     P = P_arr[0]
-    
+
     # Continuous-energy XS
     if not objects.settings.multigroup_mode:
         # TODO
@@ -3777,7 +3783,7 @@ def get_multiplicity(nu_type, material, P_arr, mcdc):
     elif nu_type == NU_FISSION_PROMPT:
         return material.nu_f[g]
     elif nu_type == NU_FISSION_DELAYED:
-        return np.sum(material.nu_d[g,:])
+        return np.sum(material.nu_d[g, :])
 
 
 @njit

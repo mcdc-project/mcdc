@@ -23,7 +23,11 @@ import mcdc.type_ as type_
 from mcdc.adapt import toggle, for_cpu, for_gpu
 from mcdc.constant import *
 from mcdc.prints import print_error
-from mcdc.src.algorithm import binary_search, binary_search_with_length, evaluate_from_table
+from mcdc.src.algorithm import (
+    binary_search,
+    binary_search_with_length,
+    evaluate_from_table,
+)
 
 
 @njit
@@ -1850,7 +1854,9 @@ def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc, mcdc_new):
 
     # Easily identified tally bin indices
     mu, azi = mesh_get_angular_index(P_arr, mesh)
-    g, outside_energy = mesh_get_energy_index(P_arr, mesh, objects.settings.multigroup_mode)
+    g, outside_energy = mesh_get_energy_index(
+        P_arr, mesh, objects.settings.multigroup_mode
+    )
 
     # Get starting indices
     ix, iy, iz, it, outside = mesh_.structured.get_indices(P_arr, mesh)
@@ -3099,13 +3105,13 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc):
     # ==================================================================================
     # Sample scattering cosine
     # ==================================================================================
-    
+
     # Interpolation factor
     E_grid = reaction.mu_energy_grid
-    idx = binary_search(P['E'], E_grid)
+    idx = binary_search(P["E"], E_grid)
     E0 = E_grid[idx]
     E1 = E_grid[idx + 1]
-    f = (P['E'] - E0) - (E1 - E0)
+    f = (P["E"] - E0) - (E1 - E0)
 
     # Sample which table to choose
     xi = rng(P_new_arr)
@@ -3715,7 +3721,7 @@ def weight_roulette(P_arr, mcdc):
 @njit
 def get_macro_xs(reaction_type, material, P_arr, mcdc):
     P = P_arr[0]
-    
+
     # Continuous-energy XS
     if mcdc["setting"]["mode_CE"]:
         macro_xs = 0.0
