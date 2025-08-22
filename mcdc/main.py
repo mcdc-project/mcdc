@@ -78,7 +78,7 @@ def run():
     # Timer: preparation
     time_prep_start = MPI.Wtime()
 
-    data_tally, mcdc_arr, data, mcdc_new = prepare()
+    data_tally, mcdc_arr, data = prepare()
     mcdc = mcdc_arr[0]
 
     # Print headers
@@ -505,7 +505,7 @@ def prepare():
     """
 
     # Generate Numba-supported "Objects"
-    data_new, mcdc_new = code_factory.generate_numba_objects(
+    data, structures, records = code_factory.generate_numba_objects(
         objects.materials + objects.nuclides + objects.reactions + [objects.settings]
     )
 
@@ -579,7 +579,7 @@ def prepare():
     type_.make_type_domain_decomp(input_deck)
     type_.make_type_dd_turnstile_event(input_deck)
     type_.make_type_technique(input_deck)
-    type_.make_type_global(input_deck)
+    type_.make_type_global(input_deck, structures, records)
     type_.make_size_rpn(input_deck)
     kernel.adapt_rng(nb.config.DISABLE_JIT)
 
@@ -598,6 +598,16 @@ def prepare():
     # Get modes
     mode_MG = settings.multigroup_mode
     mode_CE = not mode_MG
+    
+    # ==================================================================================
+    # Set with records
+    # ==================================================================================
+
+    for key in structures.keys():
+        if isinstance(records[key], list):
+            mcdc[f"{key}s"] = np.array(records[key], dtype=structures[key])
+        else:
+            mcdc[f"{key}"] = np.array(records[key], dtype=structures[key])
 
     # =========================================================================
     # Surfaces
@@ -1519,7 +1529,7 @@ def prepare():
     # Finalize data: wrapping into a tuple
     # =========================================================================
 
-    return data_tally, mcdc_arr, data_new, mcdc_new
+    return data_tally, mcdc_arr, data
 
 
 def cardlist_to_h5group(dictlist, input_group, name):

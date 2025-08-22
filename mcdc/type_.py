@@ -1187,7 +1187,7 @@ param_names = ["tag", "ID", "key", "mean", "delta", "distribution", "rng_seed"]
 # ==============================================================================
 
 
-def make_type_global(input_deck):
+def make_type_global(input_deck, structures, records):
     global global_
 
     # Get modes
@@ -1266,78 +1266,85 @@ def make_type_global(input_deck):
     ) or input_deck.technique["iQMC"]:
         bank_source = particle_bank(N_work)
 
+    # Set the global structure
+    global_structure = []
+    for key in structures.keys():
+        if isinstance(records[key], list):
+            global_structure += [(f"{key}s", structures[key], (len(records[key]),))]
+        else:
+            global_structure += [(f"{key}", structures[key])]
+    global_structure += [
+        ("surfaces", surface, (N_surface,)),
+        # Cells
+        ("cells", cell, (N_cell,)),
+        ("cells_data_surface", int64, (N_cell_surface,)),
+        ("cells_data_region", int64, (N_cell_region,)),
+        # Universes
+        ("universes", universe, (N_universe,)),
+        ("universes_data_cell", int64, (N_universe_cell,)),
+        ("lattices", lattice, (N_lattice,)),
+        ("sources", source, (N_source,)),
+        ("mesh_tallies", mesh_tally, (N_mesh_tally,)),
+        ("surface_tallies", surface_tally, (N_surface_tally,)),
+        ("cell_tallies", cell_tally, (N_cell_tally,)),
+        ("cs_tallies", cs_tally, (N_cs_tally,)),
+        ("technique", technique),
+        ("domain_decomp", domain_decomp),
+        ("bank_active", bank_active),
+        ("bank_census", bank_census),
+        ("bank_source", bank_source),
+        ("bank_future", bank_future),
+        ("bank_precursor", bank_precursor),
+        ("rng_seed_base", uint64),
+        ("rng_seed", uint64),
+        ("rng_stride", int64),
+        ("dd_idx", int64),
+        ("dd_N_local_source", int64),
+        ("dd_local_rank", int64),
+        ("k_eff", float64),
+        ("k_cycle", float64, (N_cycle,)),
+        ("k_avg", float64),
+        ("k_sdv", float64),
+        ("n_avg", float64),  # Neutron density
+        ("n_sdv", float64),
+        ("n_max", float64),
+        ("C_avg", float64),  # Precursor density
+        ("C_sdv", float64),
+        ("C_max", float64),
+        ("k_avg_running", float64),
+        ("k_sdv_running", float64),
+        ("gyration_radius", float64, (N_cycle,)),
+        ("idx_cycle", int64),
+        ("cycle_active", bool_),
+        ("eigenvalue_tally_nuSigmaF", float64, (1,)),
+        ("eigenvalue_tally_n", float64, (1,)),
+        ("eigenvalue_tally_C", float64, (1,)),
+        ("idx_census", int64),
+        ("idx_batch", int64),
+        ("mpi_size", int64),
+        ("mpi_rank", int64),
+        ("mpi_master", bool_),
+        ("mpi_work_start", int64),
+        ("mpi_work_size", int64),
+        ("mpi_work_size_total", int64),
+        ("mpi_work_start_precursor", int64),
+        ("mpi_work_size_precursor", int64),
+        ("mpi_work_size_total_precursor", int64),
+        ("runtime_total", float64),
+        ("runtime_preparation", float64),
+        ("runtime_simulation", float64),
+        ("runtime_output", float64),
+        ("runtime_bank_management", float64),
+        ("precursor_strength", float64),
+        ("mpi_work_iter", int64, (1,)),
+        ("gpu_state_pointer", uintp),
+        ("source_program_pointer", uintp),
+        ("precursor_program_pointer", uintp),
+        ("source_seed", uint64),
+    ]
+
     # GLobal type
-    global_ = into_dtype(
-        [
-            ("surfaces", surface, (N_surface,)),
-            # Cells
-            ("cells", cell, (N_cell,)),
-            ("cells_data_surface", int64, (N_cell_surface,)),
-            ("cells_data_region", int64, (N_cell_region,)),
-            # Universes
-            ("universes", universe, (N_universe,)),
-            ("universes_data_cell", int64, (N_universe_cell,)),
-            ("lattices", lattice, (N_lattice,)),
-            ("sources", source, (N_source,)),
-            ("mesh_tallies", mesh_tally, (N_mesh_tally,)),
-            ("surface_tallies", surface_tally, (N_surface_tally,)),
-            ("cell_tallies", cell_tally, (N_cell_tally,)),
-            ("cs_tallies", cs_tally, (N_cs_tally,)),
-            ("technique", technique),
-            ("domain_decomp", domain_decomp),
-            ("bank_active", bank_active),
-            ("bank_census", bank_census),
-            ("bank_source", bank_source),
-            ("bank_future", bank_future),
-            ("bank_precursor", bank_precursor),
-            ("rng_seed_base", uint64),
-            ("rng_seed", uint64),
-            ("rng_stride", int64),
-            ("dd_idx", int64),
-            ("dd_N_local_source", int64),
-            ("dd_local_rank", int64),
-            ("k_eff", float64),
-            ("k_cycle", float64, (N_cycle,)),
-            ("k_avg", float64),
-            ("k_sdv", float64),
-            ("n_avg", float64),  # Neutron density
-            ("n_sdv", float64),
-            ("n_max", float64),
-            ("C_avg", float64),  # Precursor density
-            ("C_sdv", float64),
-            ("C_max", float64),
-            ("k_avg_running", float64),
-            ("k_sdv_running", float64),
-            ("gyration_radius", float64, (N_cycle,)),
-            ("idx_cycle", int64),
-            ("cycle_active", bool_),
-            ("eigenvalue_tally_nuSigmaF", float64, (1,)),
-            ("eigenvalue_tally_n", float64, (1,)),
-            ("eigenvalue_tally_C", float64, (1,)),
-            ("idx_census", int64),
-            ("idx_batch", int64),
-            ("mpi_size", int64),
-            ("mpi_rank", int64),
-            ("mpi_master", bool_),
-            ("mpi_work_start", int64),
-            ("mpi_work_size", int64),
-            ("mpi_work_size_total", int64),
-            ("mpi_work_start_precursor", int64),
-            ("mpi_work_size_precursor", int64),
-            ("mpi_work_size_total_precursor", int64),
-            ("runtime_total", float64),
-            ("runtime_preparation", float64),
-            ("runtime_simulation", float64),
-            ("runtime_output", float64),
-            ("runtime_bank_management", float64),
-            ("precursor_strength", float64),
-            ("mpi_work_iter", int64, (1,)),
-            ("gpu_state_pointer", uintp),
-            ("source_program_pointer", uintp),
-            ("precursor_program_pointer", uintp),
-            ("source_seed", uint64),
-        ]
-    )
+    global_ = into_dtype(global_structure)
 
 
 # ==============================================================================

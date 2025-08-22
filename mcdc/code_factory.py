@@ -123,22 +123,6 @@ def generate_numba_objects(object_list):
         # Numbafy!
         numbafy_object(object_, structures, records, data)
 
-    # Set the global structure
-    global_structure = []
-    for key in structures.keys():
-        if isinstance(records[key], list):
-            global_structure += [(f"{key}s", structures[key], (len(records[key]),))]
-        else:
-            global_structure += [(f"{key}", structures[key])]
-
-    # Initialize the global structure
-    mcdc = np.zeros((), dtype=global_structure)
-    for key in structures.keys():
-        if isinstance(records[key], list):
-            mcdc[f"{key}s"] = np.array(records[key], dtype=structures[key])
-        else:
-            mcdc[f"{key}"] = np.array(records[key], dtype=structures[key])
-
     data = np.array(data, dtype=np.float64)
 
-    return data, mcdc
+    return data, structures, records
