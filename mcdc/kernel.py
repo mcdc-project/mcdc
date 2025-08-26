@@ -2552,7 +2552,7 @@ def eigenvalue_tally(P_arr, distance, mcdc, data):
     flux = distance * P["w"]
 
     # Get nu-fission
-    nu = physics.production_xs(REACTION_FISSION, material, P_arr, data)
+    nu = physics.production_xs(REACTION_FISSION, material, P_arr, mcdc, data)
     SigmaF = physics.macro_xs(REACTION_FISSION, material, P_arr, mcdc, data)
     nuSigmaF = nu * SigmaF
 
