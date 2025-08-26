@@ -205,7 +205,7 @@ def make_type_particle(input_deck):
         ("uy", float64),
         ("uz", float64),
         # Energy
-        ("g", uint64),
+        ("g", int64),
         ("E", float64),
         # Weight
         ("w", float64),
@@ -252,7 +252,7 @@ def make_type_particle_record(input_deck):
         ("ux", float64),
         ("uy", float64),
         ("uz", float64),
-        ("g", uint64),
+        ("g", int64),
         ("E", float64),
         ("w", float64),
         ("rng_seed", uint64),

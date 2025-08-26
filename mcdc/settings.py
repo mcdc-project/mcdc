@@ -173,7 +173,7 @@ class Settings(ObjectSingleton):
 
         # Set number of particles
         with h5py.File(source_file_name, "r") as f:
-            self.N_particle = f["particles_size"][()]
+            self.N_particle = int(f["particles_size"][()])
 
 
 def is_sorted(a):

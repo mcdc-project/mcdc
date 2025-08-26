@@ -18,7 +18,7 @@ from mcdc.constant import *
 
 
 @njit
-def inspect_geometry(particle_container, mcdc):
+def inspect_geometry(particle_container, mcdc, data):
     """
     Full geometry inspection of the particle:
         - Set particle top cell and material IDs (if not lost)
@@ -37,7 +37,8 @@ def inspect_geometry(particle_container, mcdc):
     ux_global = particle["ux"]
     uy_global = particle["uy"]
     uz_global = particle["uz"]
-    speed = physics.get_speed(particle_container, mcdc)
+    material = mcdc['materials'][particle['material_ID']]
+    speed = physics.particle_speed(particle_container, material, data)
 
     # Default returns
     distance = INF
@@ -45,7 +46,7 @@ def inspect_geometry(particle_container, mcdc):
 
     # Find top cell from root universe if unknown
     if particle["cell_ID"] == -1:
-        particle["cell_ID"] = get_cell(particle_container, UNIVERSE_ROOT, mcdc)
+        particle["cell_ID"] = get_cell(particle_container, UNIVERSE_ROOT, mcdc, data)
 
         # Particle is lost?
         if particle["cell_ID"] == -1:
@@ -58,7 +59,7 @@ def inspect_geometry(particle_container, mcdc):
     while event != EVENT_LOST:
         # Distance to nearest surface
         d_surface, surface_ID = distance_to_nearest_surface(
-            particle_container, cell, mcdc
+            particle_container, cell, mcdc, data
         )
 
         # Check if smaller
@@ -135,7 +136,7 @@ def inspect_geometry(particle_container, mcdc):
                 particle["z"] -= lattice["z0"] + (iz + 0.5) * lattice["dz"]
 
             # Get inner cell
-            cell_ID = get_cell(particle_container, universe_ID, mcdc)
+            cell_ID = get_cell(particle_container, universe_ID, mcdc, data)
             if cell_ID > -1:
                 cell = mcdc["cells"][cell_ID]
             else:
@@ -161,7 +162,7 @@ def inspect_geometry(particle_container, mcdc):
 
 
 @njit
-def locate_particle(particle_container, mcdc):
+def locate_particle(particle_container, mcdc, data):
     """
     Set particle cell and material IDs
     Return False if particle is lost
@@ -185,7 +186,7 @@ def locate_particle(particle_container, mcdc):
 
     # Find top cell from root universe if unknown
     if particle["cell_ID"] == -1:
-        particle["cell_ID"] = get_cell(particle_container, UNIVERSE_ROOT, mcdc)
+        particle["cell_ID"] = get_cell(particle_container, UNIVERSE_ROOT, mcdc, data)
 
         # Particle is lost?
         if particle["cell_ID"] == -1:
@@ -239,7 +240,7 @@ def locate_particle(particle_container, mcdc):
                 particle["z"] -= lattice["z0"] + (iz + 0.5) * lattice["dz"]
 
             # Get inner cell
-            cell_ID = get_cell(particle_container, universe_ID, mcdc)
+            cell_ID = get_cell(particle_container, universe_ID, mcdc, data)
             if cell_ID > -1:
                 cell = mcdc["cells"][cell_ID]
             else:
@@ -322,7 +323,7 @@ def _rotation_matrix(rotation):
 
 
 @njit
-def get_cell(particle_container, universe_ID, mcdc):
+def get_cell(particle_container, universe_ID, mcdc, data):
     """
     Find and return particle cell ID in the given universe
     Return -1 if particle is lost
@@ -339,7 +340,7 @@ def get_cell(particle_container, universe_ID, mcdc):
     while idx < idx_end:
         cell_ID = mcdc["universes_data_cell"][idx]
         cell = mcdc["cells"][cell_ID]
-        if check_cell(particle_container, cell, mcdc):
+        if check_cell(particle_container, cell, mcdc, data):
             return cell["ID"]
         idx += 1
 
@@ -348,7 +349,7 @@ def get_cell(particle_container, universe_ID, mcdc):
 
 
 @njit
-def check_cell(particle_container, cell, mcdc):
+def check_cell(particle_container, cell, mcdc, data):
     """
     Check if the particle is inside the cell
     """
@@ -367,7 +368,8 @@ def check_cell(particle_container, cell, mcdc):
     N_value = 0
 
     # Particle parameters
-    speed = physics.get_speed(particle_container, mcdc)
+    material = mcdc['materials'][particle['material_ID']]
+    speed = physics.particle_speed(particle_container, material, data)
 
     # March forward through RPN tokens
     idx_end = idx + N_token
@@ -423,7 +425,7 @@ def report_lost(particle_container):
 
 
 @njit
-def distance_to_nearest_surface(particle_container, cell, mcdc):
+def distance_to_nearest_surface(particle_container, cell, mcdc, data):
     """
     Determine the nearest cell surface and the distance to it
     """
@@ -432,7 +434,8 @@ def distance_to_nearest_surface(particle_container, cell, mcdc):
     surface_ID = -1
 
     # Particle parameters
-    speed = physics.get_speed(particle_container, mcdc)
+    material = mcdc['materials'][particle['material_ID']]
+    speed = physics.particle_speed(particle_container, material, data)
 
     # Access cell surface data
     idx = cell["surface_data_idx"]

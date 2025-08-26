@@ -3,6 +3,7 @@
 import mcdc.code_factory as code_factory
 import mcdc.config as config
 import mcdc.objects as objects
+import mcdc.src.physics as physics
 
 ########################################################################################
 
@@ -42,7 +43,6 @@ from mcdc.loop import (
     loop_eigenvalue,
     build_gpu_progs,
 )
-from mcdc.iqmc.iqmc_loop import iqmc_simulation, iqmc_validate_inputs
 import mcdc.src.geometry as geometry
 
 import mcdc.loop as loop
@@ -102,9 +102,9 @@ def run():
     # Run simulation
     simulation_start = MPI.Wtime()
     if settings.eigenvalue_mode:
-        loop_eigenvalue(data_tally, mcdc_arr)
+        loop_eigenvalue(data_tally, mcdc_arr, data)
     else:
-        loop_fixed_source(data_tally, mcdc_arr)
+        loop_fixed_source(data_tally, mcdc_arr, data)
 
     # Timer: simulation
     time_simulation_end = MPI.Wtime()
@@ -1125,7 +1125,7 @@ def prepare():
             )
         adapt.gpu_forward_declare(config.args)
 
-    adapt.set_toggle("iQMC", input_deck.technique["iQMC"])
+    #adapt.set_toggle("iQMC", input_deck.technique["iQMC"])
     adapt.set_toggle("domain_decomp", input_deck.technique["domain_decomposition"])
     adapt.eval_toggle()
     adapt.target_for(config.target)
@@ -1162,6 +1162,7 @@ def prepare():
     # Set appropriate time boundary
     if settings.time_boundary > t_limit:
         settings.time_boundary = t_limit
+        mcdc['settings']['time_boundary'] = t_limit
 
     # =========================================================================
     # Technique
@@ -1457,7 +1458,6 @@ def prepare():
     for i in range(mcdc["mpi_size"]):
         if mcdc["mpi_rank"] == i:
             if settings.use_source_file:
-                print(settings.source_file_name)
                 with h5py.File(settings.source_file_name, "r") as f:
                     # Get source particle size
                     N_particle = f["particles_size"][()]
@@ -1528,6 +1528,19 @@ def prepare():
     # =========================================================================
     # Finalize data: wrapping into a tuple
     # =========================================================================
+    
+    # Pick physics model
+    if settings.multigroup_mode:
+        physics.particle_speed = physics.particle_speed_mg
+        physics.macro_xs = physics.macro_xs_mg
+        physics.production_xs = physics.production_xs_mg
+
+    # Delete objects if running in Numba mode
+    if not nb.config.DISABLE_JIT:
+        objects.settings = None
+        objects.materials = None
+        objects.nuclide = None
+        objects.reactions = None
 
     return data_tally, mcdc_arr, data
 

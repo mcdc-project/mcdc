@@ -1,9 +1,9 @@
-from numpy.linalg import multi_dot
-from mcdc import settings
-import mcdc.objects as objects
+import mcdc.mcdc_get as mcdc_get
 
 import h5py, math, numba
 
+from mcdc.mcdc_get import reaction
+from mcdc.src import physics
 from mpi4py import MPI
 from numba import (
     int64,
@@ -16,7 +16,6 @@ from numba import (
 import mcdc.adapt as adapt
 import mcdc.src.geometry as geometry
 import mcdc.src.mesh as mesh_
-import mcdc.src.physics as physics
 import mcdc.src.surface as surface_
 import mcdc.type_ as type_
 
@@ -936,7 +935,7 @@ def source_particle(P_rec_arr, seed, mcdc):
         uz = source["uz"]
 
     # Energy and time
-    if objects.settings.multigroup_mode:
+    if mcdc['settings']['multigroup_mode']:
         g = sample_discrete(source["group"], P_rec_arr)
         E = 0.0
     else:
@@ -1044,11 +1043,12 @@ def get_particle(P_arr, bank, mcdc):
 
 
 @njit
-def check_future_bank(mcdc):
+def check_future_bank(mcdc, data):
     # Get the data needed
+    settings = mcdc['settings']
     bank_future = mcdc["bank_future"]
     bank_census = mcdc["bank_census"]
-    next_census_time = objects.settings.census_time[mcdc["idx_census"] + 1]
+    next_census_time = mcdc_get.settings.census_time(mcdc["idx_census"] + 1, settings, data)
 
     # Particle container
     P_arr = adapt.local_array(1, type_.particle_record)
@@ -1085,8 +1085,8 @@ def manage_particle_banks(seed, mcdc):
     set_bank_size(mcdc["bank_source"], 0)
 
     # Normalize weight
-    if objects.settings.eigenvalue_mode:
-        normalize_weight(mcdc["bank_census"], objects.settings.N_particle)
+    if mcdc['settings']['eigenvalue_mode']:
+        normalize_weight(mcdc["bank_census"], mcdc['settings']['N_particle'])
 
     # Population control
     if mcdc["technique"]["population_control"]:
@@ -1640,7 +1640,7 @@ def pct_combing_weight(seed, mcdc):
 @njit
 def pct_splitting_roulette(seed, mcdc):
     bank_census = mcdc["bank_census"]
-    M = objects.settings.N_particle
+    M = mcdc['settings']['N_particle']
     bank_source = mcdc["bank_source"]
 
     # Scan the bank
@@ -1739,12 +1739,12 @@ def pct_splitting_roulette_weight(seed, mcdc):
 
 
 @njit
-def move_particle(P_arr, distance, mcdc):
+def move_particle(P_arr, distance, material, data):
     P = P_arr[0]
     P["x"] += P["ux"] * distance
     P["y"] += P["uy"] * distance
     P["z"] += P["uz"] * distance
-    P["t"] += distance / physics.get_speed(P_arr, mcdc)
+    P["t"] += distance / physics.particle_speed(P_arr, material, data)
 
 
 @njit
@@ -1858,9 +1858,9 @@ def mesh_get_energy_index(P_arr, mesh, mode_MG):
 
 
 @njit
-def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc):
+def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc, data):
     P = P_arr[0]
-    material = objects.materials[P["material_ID"]]
+    material = mcdc['materials'][P["material_ID"]]
     mesh = tally["filter"]
     stride = tally["stride"]
 
@@ -1868,7 +1868,7 @@ def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc):
     ux = P["ux"]
     uy = P["uy"]
     uz = P["uz"]
-    ut = 1.0 / physics.get_speed(P_arr, mcdc)
+    ut = 1.0 / physics.particle_speed(P_arr, material, data)
 
     # Particle initial and final coordinate
     x = P["x"]
@@ -1883,7 +1883,7 @@ def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc):
     # Easily identified tally bin indices
     mu, azi = mesh_get_angular_index(P_arr, mesh)
     g, outside_energy = mesh_get_energy_index(
-        P_arr, mesh, objects.settings.multigroup_mode
+        P_arr, mesh, mcdc['settings']['multigroup_mode']
     )
 
     # Get starting indices
@@ -1962,10 +1962,10 @@ def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc):
             elif score_type == SCORE_DENSITY:
                 score = flux * ut
             elif score_type == SCORE_TOTAL:
-                SigmaT = get_macro_xs(REACTION_TOTAL, material, P_arr, mcdc)
+                SigmaT = physics.macro_xs(REACTION_TOTAL, material, P_arr, mcdc, data)
                 score = flux * SigmaT
             elif score_type == SCORE_FISSION:
-                SigmaF = get_macro_xs(REACTION_FISSION, material, P_arr, mcdc)
+                SigmaF = physics.macro_xs(REACTION_FISSION, material, P_arr, mcdc, data)
                 score = flux * SigmaF
             if score_type == SCORE_NET_CURRENT:
                 score = flux * mu
@@ -2046,7 +2046,7 @@ def score_surface_tally(P_arr, surface, tally, data_tally, mcdc):
     idx = stride["tally"]
 
     # Flux
-    speed = physics.get_speed(P_arr, mcdc)
+    speed = physics.particle_speed(P_arr, material, data)
     mu = surface_.get_normal_component(P_arr, speed, surface)
     flux = P["w"] / abs(mu)
 
@@ -2061,20 +2061,20 @@ def score_surface_tally(P_arr, surface, tally, data_tally, mcdc):
 
 
 @njit
-def score_cell_tally(P_arr, distance, tally, data_tally, mcdc):
+def score_cell_tally(P_arr, distance, tally, data_tally, mcdc, data):
     P = P_arr[0]
-    material = objects.materials[P["material_ID"]]
+    material = mcdc['materials'][P["material_ID"]]
     mesh = tally["filter"]
     stride = tally["stride"]
 
     # Particle/track properties
-    ut = 1.0 / physics.get_speed(P_arr, mcdc)
+    ut = 1.0 / physics.particle_speed(P_arr, material, data)
     t = P["t"]
     t_final = t + ut * distance
     Nt = mesh["Nt"]
 
     # Get starting indices
-    mode_MG = objects.settings.multigroup_mode
+    mode_MG = mcdc['settings']['multigroup_mode']
     g, outside_energy = mesh_get_energy_index(P_arr, mesh, mode_MG)
 
     # Outside grid?
@@ -2115,10 +2115,10 @@ def score_cell_tally(P_arr, distance, tally, data_tally, mcdc):
             if score_type == SCORE_FLUX:
                 score = flux
             elif score_type == SCORE_TOTAL:
-                SigmaT = get_macro_xs(REACTION_TOTAL, material, P_arr, mcdc)
+                SigmaT = physics.macro_xs(REACTION_TOTAL, material, P_arr, mcdc, data)
                 score = flux * SigmaT
             elif score_type == SCORE_FISSION:
-                SigmaF = get_macro_xs(REACTION_FISSION, material, P_arr, mcdc)
+                SigmaF = physics.macro_xs(REACTION_FISSION, material, P_arr, mcdc, data)
                 score = flux * SigmaF
             adapt.global_add(data_tally, (TALLY_SCORE, idx + i), round(score))
 
@@ -2137,11 +2137,11 @@ def score_cell_tally(P_arr, distance, tally, data_tally, mcdc):
 
 
 @njit
-def score_cs_tally(P_arr, distance, tally, data_tally, mcdc):
+def score_cs_tally(P_arr, distance, tally, data_tally, mcdc, data):
     # Each time that this function is called, EVERY cs bin needs to be checked to see if the particle is in it.
     # The particle needs to score into all the bins that it is within
     P = P_arr[0]
-    material = objects.materials[P["material_ID"]]
+    material = mcdc['materials'][P["material_ID"]]
     N_cs_bins = tally["filter"]["N_cs_bins"]
 
     cs_bin_size = tally["filter"]["cs_bin_size"]
@@ -2154,7 +2154,7 @@ def score_cs_tally(P_arr, distance, tally, data_tally, mcdc):
     ux = P["ux"]
     uy = P["uy"]
     uz = P["uz"]
-    ut = 1.0 / physics.get_speed(P_arr, mcdc)
+    ut = 1.0 / physics.particle_speed(P_arr, material, data)
 
     # Particle initial and final coordinate
     x = P["x"]
@@ -2204,7 +2204,7 @@ def score_cs_tally(P_arr, distance, tally, data_tally, mcdc):
             if score_type == SCORE_FLUX:
                 score = flux
             elif score_type == SCORE_DENSITY:
-                score = flux / physics.get_speed(P_arr, mcdc)
+                score = flux / physics.particle_speed(P_arr, material, data)
             elif score_type == SCORE_TOTAL:
                 SigmaT = get_MacroXS(XS_TOTAL, material, P_arr, mcdc)
                 score = flux * SigmaT
@@ -2322,7 +2322,7 @@ def tally_reduce(data_tally, mcdc):
     N_bin = data_tally.shape[1]
 
     # Normalize
-    N_particle = objects.settings.N_particle
+    N_particle = mcdc['settings']['N_particle']
     for i in range(N_bin):
         data_tally[TALLY_SCORE][i] /= N_particle
 
@@ -2396,7 +2396,7 @@ def census_based_tally_output(data_tally, mcdc):
         with objmode():
             if ID == 0:
                 f = h5py.File(
-                    objects.settings.output_name
+                    mcdc['settings']['output_name']
                     + "-batch_%i-census_%i.h5" % (idx_batch, idx_census),
                     "w",
                 )
@@ -2495,14 +2495,14 @@ def dd_closeout(data_tally, mcdc):
 
 @njit
 def tally_closeout(data_tally, mcdc):
-    N_history = objects.settings.N_particle
-    N_batch = objects.settings.N_batch
+    N_history = mcdc['settings']['N_particle']
+    N_batch = mcdc['settings']['N_batch']
 
     if N_batch > 1:
         N_history = N_batch
 
-    elif objects.settings.eigenvalue_mode:
-        N_history = objects.settings.N_active
+    elif mcdc['settings']['eigenvalue_mode']:
+        N_history = mcdc['settings'].N_active
 
     elif not mcdc["technique"]["domain_decomposition"]:
         # MPI Reduce
@@ -2546,14 +2546,14 @@ def tally_closeout(data_tally, mcdc):
 
 
 @njit
-def eigenvalue_tally(P_arr, distance, mcdc):
+def eigenvalue_tally(P_arr, distance, mcdc, data):
     P = P_arr[0]
-    material = objects.materials[P["material_ID"]]
+    material = mcdc['materials'][P["material_ID"]]
     flux = distance * P["w"]
 
     # Get nu-fission
-    nu = get_multiplicity(NU_FISSION, material, P_arr, mcdc)
-    SigmaF = get_macro_xs(REACTION_FISSION, material, P_arr, mcdc)
+    nu = physics.production_xs(REACTION_FISSION, material, P_arr, data)
+    SigmaF = physics.macro_xs(REACTION_FISSION, material, P_arr, mcdc, data)
     nuSigmaF = nu * SigmaF
 
     # Fission production (needed even during inactive cycle)
@@ -2562,7 +2562,7 @@ def eigenvalue_tally(P_arr, distance, mcdc):
 
     if mcdc["cycle_active"]:
         # Neutron density
-        v = physics.get_speed(P_arr, mcdc)
+        v = physics.particle_speed(P_arr, material, data)
         n_density = flux / v
         # mcdc["eigenvalue_tally_n"][0] += n_density
         adapt.global_add(mcdc["eigenvalue_tally_n"], 0, round(n_density))
@@ -2571,15 +2571,15 @@ def eigenvalue_tally(P_arr, distance, mcdc):
             mcdc["n_max"] = n_density
 
         # Precursor density
-        J = material.J
-        SigmaF = get_macro_xs(REACTION_FISSION, material, P_arr, mcdc)
+        J = material['J']
+        SigmaF = physics.macro_xs(REACTION_FISSION, material, P_arr, mcdc, data)
         # Get the decay-wighted multiplicity
         total = 0.0
-        if objects.settings.multigroup_mode:
+        if mcdc['settings']['multigroup_mode']:
             g = P["g"]
             for j in range(J):
-                nu_d = material.nu_d[g, j]
-                decay = material.decay_rate[j]
+                nu_d = mcdc_get.material.mgxs_nu_d(g, j, material, data)
+                decay = mcdc_get.material.mgxs_decay_rate(j, material, data)
                 total += nu_d / decay
         else:
             E = P["E"]
@@ -2602,7 +2602,7 @@ def eigenvalue_tally(P_arr, distance, mcdc):
 
 @njit
 def eigenvalue_tally_closeout_history(mcdc):
-    N_particle = objects.settings.N_particle
+    N_particle = mcdc['settings']['N_particle']
 
     idx_cycle = mcdc["idx_cycle"]
 
@@ -2655,7 +2655,7 @@ def eigenvalue_tally_closeout_history(mcdc):
         mcdc["C_avg"] += tally_C
         mcdc["C_sdv"] += tally_C * tally_C
 
-        N = 1 + mcdc["idx_cycle"] - objects.settings.N_inactive
+        N = 1 + mcdc["idx_cycle"] - mcdc['settings'].N_inactive
         mcdc["k_avg_running"] = mcdc["k_avg"] / N
         if N == 1:
             mcdc["k_sdv_running"] = 0.0
@@ -2677,7 +2677,7 @@ def eigenvalue_tally_closeout_history(mcdc):
     # Gyration radius
     # =====================================================================
 
-    if objects.settings.use_gyration_radius:
+    if mcdc['settings']['use_gyration_radius']:
         # Center of mass
         N_local = get_bank_size(mcdc["bank_census"])
         total_local = np.zeros(4, np.float64)  # [x,y,z,W]
@@ -2700,7 +2700,7 @@ def eigenvalue_tally_closeout_history(mcdc):
         # Distance RMS
         rms_local = np.zeros(1, np.float64)
         rms = np.zeros(1, np.float64)
-        gr_type = objects.settings.gyration_radius_type
+        gr_type = mcdc['settings']['gyration_radius_type']
         if gr_type == GYRATION_RADIUS_ALL:
             for i in range(N_local):
                 P = mcdc["bank_census"]["particles"][i]
@@ -2745,7 +2745,7 @@ def eigenvalue_tally_closeout_history(mcdc):
 
 @njit
 def eigenvalue_tally_closeout(mcdc):
-    N = objects.settings.N_active
+    N = mcdc['settings'].N_active
     mcdc["n_avg"] /= N
     mcdc["C_avg"] /= N
     if N > 1:
@@ -2762,7 +2762,9 @@ def eigenvalue_tally_closeout(mcdc):
 
 
 @njit
-def move_to_event(P_arr, data_tally, mcdc):
+def move_to_event(P_arr, data_tally, mcdc, data):
+    settings = mcdc['settings']
+
     # ==================================================================================
     # Preparation (as needed)
     # ==================================================================================
@@ -2770,13 +2772,15 @@ def move_to_event(P_arr, data_tally, mcdc):
 
     # Multigroup preparation
     #   In MG mode, particle speed is material-dependent.
-    if objects.settings.multigroup_mode:
+    if settings['multigroup_mode']:
         # If material is not identified yet, locate the particle
         if P["material_ID"] == -1:
-            if not geometry.locate_particle(P_arr, mcdc):
+            if not geometry.locate_particle(P_arr, mcdc, data):
                 # Particle is lost
                 P["event"] = EVENT_LOST
                 return
+
+    material = mcdc['materials'][P['material_ID']]
 
     # ==================================================================================
     # Geometry inspection
@@ -2786,7 +2790,7 @@ def move_to_event(P_arr, data_tally, mcdc):
     #   - Set particle boundary event (surface or lattice crossing, or lost)
     #   - Return distance to boundary (surface or lattice)
 
-    d_boundary = geometry.inspect_geometry(P_arr, mcdc)
+    d_boundary = geometry.inspect_geometry(P_arr, mcdc, data)
 
     # Particle is lost?
     if P["event"] == EVENT_LOST:
@@ -2797,7 +2801,7 @@ def move_to_event(P_arr, data_tally, mcdc):
     # ==================================================================================
 
     # Distance to domain
-    speed = physics.get_speed(P_arr, mcdc)
+    speed = physics.particle_speed(P_arr, material, data)
     d_domain = INF
     if mcdc["technique"]["domain_decomposition"]:
         d_domain = mesh_.structured.get_crossing_distance(
@@ -2805,14 +2809,14 @@ def move_to_event(P_arr, data_tally, mcdc):
         )
 
     # Distance to time boundary
-    d_time_boundary = speed * (objects.settings.time_boundary - P["t"])
+    d_time_boundary = speed * (settings['time_boundary'] - P["t"])
 
     # Distance to census time
     idx = mcdc["idx_census"]
-    d_time_census = speed * (objects.settings.census_time[idx] - P["t"])
+    d_time_census = speed * (mcdc_get.settings.census_time(idx, settings, data) - P["t"])
 
     # Distance to next collision
-    d_collision = distance_to_collision(P_arr, mcdc)
+    d_collision = physics.collision_distance(P_arr, material, mcdc, data)
 
     # =========================================================================
     # Determine event(s)
@@ -2859,41 +2863,25 @@ def move_to_event(P_arr, data_tally, mcdc):
     if mcdc["cycle_active"]:
         # Mesh tallies
         for tally in mcdc["mesh_tallies"]:
-            score_mesh_tally(P_arr, distance, tally, data_tally, mcdc)
+            score_mesh_tally(P_arr, distance, tally, data_tally, mcdc, data)
 
         # Cell tallies
         cell = mcdc["cells"][P["cell_ID"]]
         for i in range(cell["N_tally"]):
             ID = cell["tally_IDs"][i]
             tally = mcdc["cell_tallies"][ID]
-            score_cell_tally(P_arr, distance, tally, data_tally, mcdc)
+            score_cell_tally(P_arr, distance, tally, data_tally, mcdc, data)
 
         # CS tallies
         for tally in mcdc["cs_tallies"]:
-            score_cs_tally(P_arr, distance, tally, data_tally, mcdc)
+            score_cs_tally(P_arr, distance, tally, data_tally, mcdc, data)
 
-    if objects.settings.eigenvalue_mode:
-        eigenvalue_tally(P_arr, distance, mcdc)
+    if settings['eigenvalue_mode']:
+        eigenvalue_tally(P_arr, distance, mcdc, data)
 
     # Move particle
-    move_particle(P_arr, distance, mcdc)
+    move_particle(P_arr, distance, material, data)
 
-
-@njit
-def distance_to_collision(P_arr, mcdc):
-    P = P_arr[0]
-    # Get total cross-section
-    material = objects.materials[P["material_ID"]]
-    SigmaT = get_macro_xs(REACTION_TOTAL, material, P_arr, mcdc)
-
-    # Vacuum material?
-    if SigmaT == 0.0:
-        return INF
-
-    # Sample collision distance
-    xi = rng(P_arr)
-    distance = -math.log(xi) / SigmaT
-    return distance
 
 
 # =============================================================================
@@ -2927,46 +2915,12 @@ def surface_crossing(P_arr, data_tally, prog):
 
 
 # =============================================================================
-# Collision
-# =============================================================================
-
-
-@njit
-def collision(P_arr, mcdc):
-    P = P_arr[0]
-
-    # Get the reaction cross-sections
-    material = objects.materials[P["material_ID"]]
-    SigmaT = get_macro_xs(REACTION_TOTAL, material, P_arr, mcdc)
-    SigmaS = get_macro_xs(REACTION_ELASTIC_SCATTERING, material, P_arr, mcdc)
-    SigmaC = get_macro_xs(REACTION_CAPTURE, material, P_arr, mcdc)
-    SigmaF = get_macro_xs(REACTION_FISSION, material, P_arr, mcdc)
-
-    # Implicit capture
-    if mcdc["technique"]["implicit_capture"]:
-        P["w"] *= (SigmaT - SigmaC) / SigmaT
-        SigmaT -= SigmaC
-
-    # Sample collision type
-    xi = rng(P_arr) * SigmaT
-    tot = SigmaS
-    if tot > xi:
-        P["event"] += EVENT_SCATTERING
-    else:
-        tot += SigmaF
-        if tot > xi:
-            P["event"] += EVENT_FISSION
-        else:
-            P["event"] += EVENT_CAPTURE
-
-
-# =============================================================================
 # Scattering
 # =============================================================================
 
 
 @njit
-def scattering(P_arr, prog):
+def scattering(P_arr, prog, data):
     P = P_arr[0]
     mcdc = adapt.mcdc_global(prog)
     # Kill the current particle
@@ -2981,10 +2935,10 @@ def scattering(P_arr, prog):
         weight_new = P["w"]
 
     # Get number of secondaries
-    material = objects.materials[P["material_ID"]]
+    material = mcdc['materials'][P["material_ID"]]
     g = P["g"]
-    if objects.settings.multigroup_mode:
-        nu_s = material.nu_s[g]
+    if mcdc['settings']['multigroup_mode']:
+        nu_s = mcdc_get.material.mgxs_nu_s(g, material, data)
         N = int(math.floor(weight_eff * nu_s + rng(P_arr)))
     else:
         N = 1
@@ -3000,7 +2954,7 @@ def scattering(P_arr, prog):
         P_new["w"] = weight_new
 
         # Sample scattering phase space
-        sample_phasespace_scattering(P_arr, material, P_new_arr, mcdc)
+        sample_phasespace_scattering(P_arr, material, P_new_arr, mcdc, data)
 
         # Bank, but keep it if it is the last particle
         if n == N - 1:
@@ -3016,7 +2970,7 @@ def scattering(P_arr, prog):
 
 
 @njit
-def sample_phasespace_scattering(P_arr, material, P_new_arr, mcdc):
+def sample_phasespace_scattering(P_arr, material, P_new_arr, mcdc, data):
     P_new = P_new_arr[0]
     P = P_arr[0]
     # Copy relevant attributes
@@ -3025,10 +2979,10 @@ def sample_phasespace_scattering(P_arr, material, P_new_arr, mcdc):
     P_new["z"] = P["z"]
     P_new["t"] = P["t"]
 
-    if objects.settings.multigroup_mode:
-        scattering_MG(P_arr, material, P_new_arr)
+    if mcdc['settings']['multigroup_mode']:
+        scattering_MG(P_arr, material, P_new_arr, data)
     else:
-        scattering_CE(P_arr, material, P_new_arr, mcdc)
+        scattering_CE(P_arr, material, P_new_arr, mcdc, data)
 
 
 @njit
@@ -3045,7 +2999,7 @@ def sample_phasespace_scattering_nuclide(P_arr, nuclide, P_new_arr):
 
 
 @njit
-def scattering_MG(P_arr, material, P_new_arr):
+def scattering_MG(P_arr, material, P_new_arr, data):
     P_new = P_new_arr[0]
     P = P_arr[0]
     # Sample scattering angle
@@ -3059,8 +3013,8 @@ def scattering_MG(P_arr, material, P_new_arr):
 
     # Get outgoing spectrum
     g = P["g"]
-    G = material.G
-    chi_s = material.chi_s[g]
+    G = material['G']
+    chi_s = mcdc_get.material.mgxs_chi_s_vector(g, material, data)
 
     # Sample outgoing energy
     xi = rng(P_new_arr)
@@ -3073,7 +3027,7 @@ def scattering_MG(P_arr, material, P_new_arr):
 
 
 @njit
-def scattering_CE(P_arr, material, P_new_arr, mcdc):
+def scattering_CE(P_arr, material, P_new_arr, mcdc, data):
     P_new = P_new_arr[0]
     P = P_arr[0]
     """
@@ -3085,28 +3039,31 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc):
       - Isotropic in COM
     """
     # Sample nuclide
-    nuclide = sample_nuclide(material, P_arr, REACTION_ELASTIC_SCATTERING, mcdc)
+    nuclide = sample_nuclide(material, P_arr, REACTION_ELASTIC_SCATTERING, mcdc, data)
 
     # Get the reaction
-    for reaction in nuclide.reactions:
-        if reaction.type == REACTION_ELASTIC_SCATTERING:
+    for i in range(nuclide['N_reaction']):
+        the_type = int(mcdc_get.nuclide.reaction_type(i, nuclide, data))
+        if the_type == REACTION_ELASTIC_SCATTERING:
+            reaction_idx = int(mcdc_get.nuclide.reaction_index(i, nuclide, data))
+            reaction = mcdc['elastic_scattering_reactions'][reaction_idx]
             break
 
     # Sample nucleus thermal speed
-    A = nuclide.atomic_weight_ratio
+    A = nuclide['atomic_weight_ratio']
     if P["E"] > E_THERMAL_THRESHOLD:
         Vx = 0.0
         Vy = 0.0
         Vz = 0.0
     else:
-        Vx, Vy, Vz = sample_nucleus_speed(A, P_arr, mcdc)
+        Vx, Vy, Vz = physics.sample_nucleus_speed(A, P_arr, mcdc, data)
 
     # =========================================================================
     # COM kinematics
     # =========================================================================
 
     # Particle speed
-    P_speed = physics.get_speed(P_arr, mcdc)
+    P_speed = physics.particle_speed(P_arr, material, data)
 
     # Neutron velocity - LAB
     vx = P_speed * P["ux"]
@@ -3136,7 +3093,7 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc):
     # ==================================================================================
 
     # Interpolation factor
-    E_grid = reaction.mu_energy_grid
+    E_grid = mcdc_get.elastic_scattering_reaction.mu_energy_grid_all(reaction, data)
     idx = binary_search(P["E"], E_grid)
     E0 = E_grid[idx]
     E1 = E_grid[idx + 1]
@@ -3148,14 +3105,15 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc):
         idx += 1
 
     # Get the table
-    start = reaction.mu_energy_offset[idx]
-    if idx + 1 == len(reaction.mu_energy_grid):
-        end = len(reaction.mu_energy_grid)
+    start = int(mcdc_get.elastic_scattering_reaction.mu_energy_offset(idx, reaction, data))
+    if idx + 1 == len(E_grid):
+        end = len(E_grid)
     else:
-        end = reaction.mu_energy_offset[idx + 1]
-    mu = reaction.mu[start:end]
-    PDF = reaction.mu_PDF[start:end]
-    CDF = reaction.mu_CDF[start:end]
+        end = int(mcdc_get.elastic_scattering_reaction.mu_energy_offset(idx + 1, reaction, data))
+    size = end - start
+    mu = mcdc_get.elastic_scattering_reaction.mu_chunk(start, size, reaction, data)
+    PDF = mcdc_get.elastic_scattering_reaction.mu_PDF_chunk(start, size, reaction, data)
+    CDF = mcdc_get.elastic_scattering_reaction.mu_CDF_chunk(start, size, reaction, data)
 
     # Sample bin index
     xi = rng(P_new_arr)
@@ -3198,48 +3156,6 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc):
 
 
 @njit
-def sample_nucleus_speed(A, P_arr, mcdc):
-    P = P_arr[0]
-    # Particle speed
-    P_speed = physics.get_speed(P_arr, mcdc)
-
-    # Maxwellian parameter
-    beta = math.sqrt(2.0659834e-11 * A)
-    # The constant above is
-    #   (1.674927471e-27 kg) / (1.38064852e-19 cm^2 kg s^-2 K^-1) / (293.6 K)/2
-
-    # Sample nuclide speed candidate V_tilda and
-    #   nuclide-neutron polar cosine candidate mu_tilda via
-    #   rejection sampling
-    y = beta * P_speed
-    while True:
-        if rng(P_arr) < 2.0 / (2.0 + PI_SQRT * y):
-            x = math.sqrt(-math.log(rng(P_arr) * rng(P_arr)))
-        else:
-            cos_val = math.cos(PI_HALF * rng(P_arr))
-            x = math.sqrt(
-                -math.log(rng(P_arr)) - math.log(rng(P_arr)) * cos_val * cos_val
-            )
-        V_tilda = x / beta
-        mu_tilda = 2.0 * rng(P_arr) - 1.0
-
-        # Accept candidate V_tilda and mu_tilda?
-        if rng(P_arr) > math.sqrt(
-            P_speed * P_speed + V_tilda * V_tilda - 2.0 * P_speed * V_tilda * mu_tilda
-        ) / (P_speed + V_tilda):
-            break
-
-    # Set nuclide velocity - LAB
-    azi = 2.0 * PI * rng(P_arr)
-    ux, uy, uz = scatter_direction(P["ux"], P["uy"], P["uz"], mu_tilda, azi)
-    Vx = ux * V_tilda
-    Vy = uy * V_tilda
-    Vz = uz * V_tilda
-
-    return Vx, Vy, Vz
-
-
-@njit
 def scatter_direction(ux, uy, uz, mu0, azi):
     cos_azi = math.cos(azi)
     sin_azi = math.sin(azi)
@@ -3271,7 +3187,7 @@ def scatter_direction(ux, uy, uz, mu0, azi):
 
 
 @njit
-def fission(P_arr, prog):
+def fission(P_arr, prog, data):
     P = P_arr[0]
     mcdc = adapt.mcdc_global(prog)
 
@@ -3287,12 +3203,12 @@ def fission(P_arr, prog):
         weight_new = P["w"]
 
     # Sample nuclide if CE
-    material = objects.materials[P["material_ID"]]
+    material = mcdc['materials'][P["material_ID"]]
 
     # Get number of secondaries
-    if objects.settings.multigroup_mode:
+    if mcdc['settings']['multigroup_mode']:
         g = P["g"]
-        nu = material.nu_f[g]
+        nu = mcdc_get.material.mgxs_nu_f(g, material, data)
     else:
         nuclide = sample_nuclide(material, P_arr, XS_FISSION, mcdc)
         E = P["E"]
@@ -3310,30 +3226,31 @@ def fission(P_arr, prog):
         P_new["w"] = weight_new
 
         # Sample fission neutron phase space
-        if objects.settings.multigroup_mode:
-            sample_phasespace_fission(P_arr, material, P_new_arr, mcdc)
+        if mcdc['settings']['multigroup_mode']:
+            sample_phasespace_fission(P_arr, material, P_new_arr, mcdc, data)
         else:
             sample_phasespace_fission_nuclide(P_arr, nuclide, P_new_arr, mcdc)
 
         # Eigenvalue mode: bank right away
-        if objects.settings.eigenvalue_mode:
+        if mcdc['settings']['eigenvalue_mode']:
             adapt.add_census(P_new_arr, prog)
             continue
         # Below is only relevant for fixed-source problem
 
         # Skip if it's beyond time boundary
-        if P_new["t"] > objects.settings.time_boundary:
+        if P_new["t"] > mcdc['settings']['time_boundary']:
             continue
 
         # Check if it is beyond current or next census times
         hit_census = False
         hit_next_census = False
         idx_census = mcdc["idx_census"]
-        if idx_census < objects.settings.N_census - 1:
-            if P["t"] > objects.settings.census_time[idx_census + 1]:
+        if idx_census < mcdc['settings']['N_census'] - 1:
+            settings = mcdc['settings']
+            if P["t"] > mcdc_get.settings.census_time(idx_census + 1, settings, data):
                 hit_census = True
                 hit_next_census = True
-            elif P_new["t"] > objects.settings.census_time[idx_census]:
+            elif P_new["t"] > mcdc_get.settings.census_time(idx_census, settings, data):
                 hit_census = True
 
         if not hit_census:
@@ -3358,17 +3275,17 @@ def fission(P_arr, prog):
 
 
 @njit
-def sample_phasespace_fission(P_arr, material, P_new_arr, mcdc):
+def sample_phasespace_fission(P_arr, material, P_new_arr, mcdc, data):
     P_new = P_new_arr[0]
     P = P_arr[0]
     # Get constants
-    G = material.G
-    J = material.J
+    G = material['G']
+    J = material['J']
     g = P["g"]
-    nu = material.nu_f[g]
-    nu_p = material.nu_p[g]
+    nu = mcdc_get.material.mgxs_nu_f(g, material, data)
+    nu_p = mcdc_get.material.mgxs_nu_p(g, material, data)
     if J > 0:
-        nu_d = material.nu_d[g]
+        nu_d = mcdc_get.material.mgxs_nu_d_vector(g, material, data)
 
     # Copy relevant attributes
     P_new["x"] = P["x"]
@@ -3384,7 +3301,7 @@ def sample_phasespace_fission(P_arr, material, P_new_arr, mcdc):
     tot = nu_p
     if xi < tot:
         prompt = True
-        spectrum = material.chi_p[g]
+        spectrum = mcdc_get.material.mgxs_chi_p_vector(g, material, data)
     else:
         prompt = False
 
@@ -3393,8 +3310,8 @@ def sample_phasespace_fission(P_arr, material, P_new_arr, mcdc):
             tot += nu_d[j]
             if xi < tot:
                 # Delayed group determined
-                spectrum = material.chi_d[j]
-                decay = material.decay_rate[j]
+                spectrum = mcdc_get.material.mgxs_chi_d_vector(j, material, data)
+                decay = mcdc_get.material.mgxs_decay_rate(j, material, data)
                 break
 
     # Sample outgoing energy
@@ -3432,6 +3349,7 @@ def sample_phasespace_fission_nuclide(P_arr, nuclide, P_new_arr, mcdc):
 
 
 @njit
+
 def fission_MG(P_arr, nuclide, P_new_arr):
     P_new = P_new_arr[0]
     P = P_arr[0]
@@ -3731,62 +3649,6 @@ def weight_roulette(P_arr, mcdc):
 
 
 @njit
-def get_macro_xs(reaction_type, material, P_arr, mcdc):
-    P = P_arr[0]
-
-    # Continuous-energy XS
-    if not objects.settings.multigroup_mode:
-        macro_xs = 0.0
-        E = P["E"]
-
-        # Sum over all nuclides
-        for nuclide in material.nuclides:
-            atomic_density = material.nuclide_composition[nuclide]
-            micro_xs = get_micro_xs(reaction_type, nuclide, E)
-
-            # Accumulate
-            macro_xs += atomic_density * micro_xs
-
-        return macro_xs
-
-    # Multigroup XS
-    g = P["g"]
-
-    # Cross sections
-    if reaction_type == REACTION_TOTAL:
-        return material.total[g]
-    elif reaction_type == REACTION_CAPTURE:
-        return material.capture[g]
-    elif reaction_type == REACTION_ELASTIC_SCATTERING:
-        return material.scatter[g]
-    elif reaction_type == REACTION_FISSION:
-        return material.fission[g]
-
-
-@njit
-def get_multiplicity(nu_type, material, P_arr, mcdc):
-    P = P_arr[0]
-
-    # Continuous-energy XS
-    if not objects.settings.multigroup_mode:
-        # TODO
-        return 0
-
-    # Multigroup XS
-    g = P["g"]
-
-    # Cross sections
-    if nu_type == NU_SCATTERING:
-        return material.nu_s[g]
-    elif nu_type == NU_FISSION:
-        return material.nu_f[g]
-    elif nu_type == NU_FISSION_PROMPT:
-        return material.nu_f[g]
-    elif nu_type == NU_FISSION_DELAYED:
-        return np.sum(material.nu_d[g, :])
-
-
-@njit
 def get_micro_xs(reaction_type, nuclide, E):
     if reaction_type == REACTION_TOTAL:
         xs_data = nuclide.total_xs
@@ -3855,13 +3717,15 @@ def get_nu(type_, nuclide, E):
 
 
 @njit
-def sample_nuclide(material, P_arr, reaction_type, mcdc):
+def sample_nuclide(material, P_arr, reaction_type, mcdc, data):
     P = P_arr[0]
-    xi = rng(P_arr) * get_macro_xs(reaction_type, material, P_arr, mcdc)
+    xi = rng(P_arr) * physics.macro_xs(reaction_type, material, P_arr, mcdc, data)
     total = 0.0
-    for nuclide in material.nuclides:
-        atomic_density = material.nuclide_composition[nuclide]
-        total += atomic_density * get_micro_xs(reaction_type, nuclide, P["E"])
+    for i in range(material['N_nuclide']):
+        nuclide = mcdc_get.nuclide.from_material(i, material, mcdc, data)
+        atomic_density = mcdc_get.material.atomic_densities(i, material, data)
+        xs = physics.reaction_xs(P["E"], reaction_type, nuclide, mcdc, data)
+        total += atomic_density * xs
         if total > xi:
             break
     return nuclide

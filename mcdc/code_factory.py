@@ -59,7 +59,7 @@ def numbafy_object(object_, structures, records, data):
             # List of non-polymorphic objects
             if not isinstance(attribute[0], ObjectPolymorphic):
                 structure.append((f"N_{attribute_name[:-1]}", "i8"))
-                structure.append((f"{attribute_name[:-1]}_idx_offset", "i8"))
+                structure.append((f"{attribute_name[:-1]}_index_offset", "i8"))
 
                 length = len(attribute)
                 offset = len(data)
@@ -76,7 +76,7 @@ def numbafy_object(object_, structures, records, data):
             else:
                 structure.append((f"N_{attribute_name[:-1]}", "i8"))
                 structure.append((f"{attribute_name[:-1]}_type_offset", "i8"))
-                structure.append((f"{attribute_name[:-1]}_idx_offset", "i8"))
+                structure.append((f"{attribute_name[:-1]}_index_offset", "i8"))
 
                 length = len(attribute)
                 offset_type = len(data)
@@ -89,7 +89,8 @@ def numbafy_object(object_, structures, records, data):
                     if not subobject.numbafied:
                         numbafy_object(subobject, structures, records, data)
                     data[offset_type + i] = subobject.type
-                    data[offset_id + i] = subobject.ID
+                    data[offset_id + i] = subobject.ID_numba
+                    print(subobject)
 
         # Others
         else:

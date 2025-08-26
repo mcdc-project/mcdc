@@ -2,6 +2,7 @@ import ast
 
 targets = {
     'material': [
+        ('atomic_densities', 1),
         ('mgxs_speed', 1),
         ('mgxs_decay_rate', 1),
         ('mgxs_capture', 1),
@@ -19,10 +20,24 @@ targets = {
     ],
     'nuclide': [
         ('from_material',),
+        ('xs_energy_grid', 1),
+        ('total_xs', 1),
+        ('reaction_type', 1),
+        ('reaction_index', 1),
     ],
     'settings': [
         ('census_time', 1),
-    ]
+    ],
+    'reaction': [
+        ('xs', 1),
+    ],
+    'elastic_scattering_reaction': [
+        ('mu_energy_grid', 1),
+        ('mu_energy_offset', 1),
+        ('mu', 1),
+        ('mu_PDF', 1),
+        ('mu_CDF', 1),
+    ],
 }
 
 def getter_1d_element(object_name, attribute_name):
@@ -40,6 +55,13 @@ def getter_1d_all(object_name, attribute_name):
     text += f"    return data[start:end]\n\n\n"
     return text
 
+def getter_chunk(object_name, attribute_name):
+    text = f"@njit\n"
+    text += f"def {attribute_name}_chunk(start, size, {object_name}, data):\n"
+    text += f"    end = start + size\n"
+    text += f"    return data[start:end]\n\n\n"
+    return text
+
 def getter_2d_element(object_name, attribute_name, stride):
     text = f"@njit\n"
     text += f"def {attribute_name}(index_1, index_2, {object_name}, data):\n"
@@ -48,9 +70,9 @@ def getter_2d_element(object_name, attribute_name, stride):
     text += f"    return data[offset + index_1 * stride + index_2]\n\n\n"
     return text
 
-def getter_2d_all(object_name, attribute_name, stride):
+def getter_2d_vector(object_name, attribute_name, stride):
     text = f"@njit\n"
-    text += f"def {attribute_name}_chunk(index_1, {object_name}, data):\n"
+    text += f"def {attribute_name}_vector(index_1, {object_name}, data):\n"
     text += f"    offset = {object_name}[\"{attribute_name}_offset\"]\n"
     text += f"    stride = {object_name}[\"{stride}\"]\n"
     text += f"    start = offset + index_1 * stride\n"
@@ -81,8 +103,9 @@ for object_name in targets:
                 text += getter_1d_element(object_name, attribute_name)
             if attribute_dim == 2:
                 stride = attribute[2][1]
-                text += getter_2d_all(object_name, attribute_name, stride)
+                text += getter_2d_vector(object_name, attribute_name, stride)
                 text += getter_2d_element(object_name, attribute_name, stride)
+            text += getter_chunk(object_name, attribute_name)
         f.write(text[:-2])
 
 

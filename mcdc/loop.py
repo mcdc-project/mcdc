@@ -1,10 +1,8 @@
-from mcdc import settings
-import mcdc.objects as objects
+import mcdc.mcdc_get as mcdc_get
+import mcdc.src.physics as physics
 
 from mpi4py import MPI
 from numba import njit, objmode
-
-import shutil
 
 import mcdc.config as config
 import mcdc.adapt as adapt
@@ -63,16 +61,18 @@ def teardown_gpu(mcdc):
 
 
 @njit
-def loop_fixed_source(data_tally, mcdc_arr):
-    settings = objects.settings
-    N_batch = settings.N_batch
-    N_particle = settings.N_particle
-    N_census = settings.N_census
-
+def loop_fixed_source(data_tally, mcdc_arr, data):
     # Ensure `mcdc` exist for the lifetime of the program
     # by intentionally leaking their memory
     adapt.leak(mcdc_arr)
     mcdc = mcdc_arr[0]
+
+    # Get some settings
+    settings = mcdc['settings']
+    N_batch = settings['N_batch']
+    N_particle = settings['N_particle']
+    N_census = settings['N_census']
+    use_census_based_tally = settings['use_census_based_tally']
 
     # Loop over batches
     for i_batch in range(N_batch):
@@ -81,15 +81,16 @@ def loop_fixed_source(data_tally, mcdc_arr):
         else:
             kernel.distribute_work_dd(N_particle, mcdc=mcdc)
         mcdc["idx_batch"] = i_batch
-        seed_batch = kernel.split_seed(i_batch, settings.rng_seed)
+        seed_batch = kernel.split_seed(i_batch, settings['rng_seed'])
 
         # Print multi-batch header
         if N_batch > 1:
             with objmode():
                 print_header_batch(i_batch, N_batch)
-            if mcdc["technique"]["uq"]:
-                seed_uq = kernel.split_seed(seed_batch, SEED_SPLIT_UQ)
-                kernel.uq_reset(mcdc, seed_uq)
+            # TODO
+            #if mcdc["technique"]["uq"]:
+            #    seed_uq = kernel.split_seed(seed_batch, SEED_SPLIT_UQ)
+            #    kernel.uq_reset(mcdc, seed_uq)
 
         # Loop over time censuses
         for i_census in range(N_census):
@@ -97,13 +98,13 @@ def loop_fixed_source(data_tally, mcdc_arr):
             seed_census = kernel.split_seed(seed_batch, SEED_SPLIT_CENSUS)
 
             # Set census-based tally time grids
-            if settings.use_census_based_tally:
-                N_bin = settings.census_tally_frequency
+            if use_census_based_tally:
+                N_bin = settings['census_tally_frequency']
                 if i_census == 0:
                     t_start = 0.0
                 else:
-                    t_start = settings.census_time[i_census - 1]
-                t_end = settings.census_time[i_census]
+                    t_start = mcdc_get.settings.census_time(i_census - 1, settings, data)
+                t_end = mcdc_get.settings.census_time(i_census, settings, data)
                 dt = (t_end - t_start) / N_bin
                 for tally in mcdc["mesh_tallies"]:
                     tally["filter"]["t"][0] = t_start
@@ -112,7 +113,7 @@ def loop_fixed_source(data_tally, mcdc_arr):
 
             # Check and accordingly promote future particles to censused particle
             if kernel.get_bank_size(mcdc["bank_future"]) > 0:
-                kernel.check_future_bank(mcdc)
+                kernel.check_future_bank(mcdc, data)
             if (
                 i_census > 0
                 and kernel.get_bank_size(mcdc["bank_source"]) == 0
@@ -123,7 +124,7 @@ def loop_fixed_source(data_tally, mcdc_arr):
                 break
             # Loop over source particles
             seed_source = kernel.split_seed(seed_census, SEED_SPLIT_SOURCE)
-            loop_source(seed_source, data_tally, mcdc)
+            loop_source(seed_source, data_tally, mcdc, data)
 
             # Loop over source precursors
             if kernel.get_bank_size(mcdc["bank_precursor"]) > 0:
@@ -137,7 +138,7 @@ def loop_fixed_source(data_tally, mcdc_arr):
             kernel.manage_particle_banks(seed_bank, mcdc)
 
             # Time census-based tally closeout
-            if objects.settings.use_census_based_tally:
+            if use_census_based_tally:
                 kernel.tally_reduce(data_tally, mcdc)
                 if mcdc["mpi_master"]:
                     kernel.census_based_tally_output(data_tally, mcdc)
@@ -158,7 +159,7 @@ def loop_fixed_source(data_tally, mcdc_arr):
                 mcdc["dd_N_local_source"] = 0
                 mcdc["domain_decomp"]["work_done"] = False
 
-            if not objects.settings.use_census_based_tally:
+            if not use_census_based_tally:
                 # Tally history closeout
                 kernel.tally_reduce(data_tally, mcdc)
                 kernel.tally_accumulate(data_tally, mcdc)
@@ -168,7 +169,7 @@ def loop_fixed_source(data_tally, mcdc_arr):
                     kernel.uq_tally_closeout_batch(data_tally, mcdc)
 
     # Tally closeout
-    if not objects.settings.use_census_based_tally:
+    if not use_census_based_tally:
         if mcdc["technique"]["uq"]:
             kernel.uq_tally_closeout(data_tally, mcdc)
         kernel.tally_closeout(data_tally, mcdc)
@@ -180,24 +181,24 @@ def loop_fixed_source(data_tally, mcdc_arr):
 
 
 @njit
-def loop_eigenvalue(data_tally, mcdc_arr):
+def loop_eigenvalue(data_tally, mcdc_arr, data):
     # Ensure `mcdc` exist for the lifetime of the program
     # by intentionally leaking their memory
     adapt.leak(mcdc_arr)
     mcdc = mcdc_arr[0]
 
-    settings = objects.settings
+    settings = mcdc['settings']
 
     # Loop over power iteration cycles
-    N_active = settings.N_active
-    N_inactive = settings.N_inactive
+    N_active = settings['N_active']
+    N_inactive = settings['N_inactive']
     N_cycle = N_active + N_inactive
     for idx_cycle in range(N_cycle):
-        seed_cycle = kernel.split_seed(idx_cycle, settings.rng_seed)
+        seed_cycle = kernel.split_seed(idx_cycle, settings['rng_seed'])
 
         # Loop over source particles
         seed_source = kernel.split_seed(seed_cycle, SEED_SPLIT_SOURCE)
-        loop_source(seed_source, data_tally, mcdc)
+        loop_source(seed_source, data_tally, mcdc, data)
 
         # Tally "history" closeout
         kernel.eigenvalue_tally_closeout_history(mcdc)
@@ -220,7 +221,7 @@ def loop_eigenvalue(data_tally, mcdc_arr):
 
         # Entering active cycle?
         mcdc["idx_cycle"] += 1
-        if mcdc["idx_cycle"] >= objects.settings.N_inactive:
+        if mcdc["idx_cycle"] >= N_inactive:
             mcdc["cycle_active"] = True
 
     # Tally closeout
@@ -234,10 +235,9 @@ def loop_eigenvalue(data_tally, mcdc_arr):
 
 
 @njit
-def generate_source_particle(work_start, idx_work, seed, prog):
-    settings = objects.settings
-
+def generate_source_particle(work_start, idx_work, seed, prog, data):
     mcdc = adapt.mcdc_global(prog)
+    settings = mcdc['settings']
 
     seed_work = kernel.split_seed(work_start + idx_work, seed)
 
@@ -259,7 +259,7 @@ def generate_source_particle(work_start, idx_work, seed, prog):
         P = P_arr[0]
 
     # Skip if beyond time boundary
-    if P["t"] > settings.time_boundary:
+    if P["t"] > settings['time_boundary']:
         return
 
     # If domain is decomposed, check if particle is in the domain
@@ -281,11 +281,11 @@ def generate_source_particle(work_start, idx_work, seed, prog):
     hit_census = False
     hit_next_census = False
     idx_census = mcdc["idx_census"]
-    if idx_census < settings.N_census - 1:
-        if P["t"] > objects.settings.census_time[idx_census + 1]:
+    if idx_census < settings['N_census'] - 1:
+        if P["t"] > mcdc_get.settings.census_time(idx_census + 1, settings, data):
             hit_census = True
             hit_next_census = True
-        elif P["t"] > objects.settings.census_time[idx_census]:
+        elif P["t"] > mcdc_get.settings.census_time(idx_census, settings, data):
             hit_census = True
 
     # Put into the right bank
@@ -333,7 +333,7 @@ def prep_particle(P_arr, prog):
 
 
 @njit
-def exhaust_active_bank(data_tally, prog):
+def exhaust_active_bank(data_tally, prog, data):
     mcdc = adapt.mcdc_global(prog)
     P_arr = adapt.local_array(1, type_.particle)
     P = P_arr[0]
@@ -346,7 +346,7 @@ def exhaust_active_bank(data_tally, prog):
         prep_particle(P_arr, prog)
 
         # Particle loop
-        loop_particle(P_arr, data_tally, mcdc)
+        loop_particle(P_arr, data_tally, mcdc, data)
 
 
 @njit
@@ -354,8 +354,8 @@ def source_closeout(prog, idx_work, N_prog, data_tally):
     mcdc = adapt.mcdc_global(prog)
 
     # Tally history closeout for one-batch fixed-source simulation
-    if not objects.settings.eigenvalue_mode and objects.settings.N_batch == 1:
-        if not objects.settings.use_census_based_tally:
+    if not mcdc['settings']['eigenvalue_mode'] and mcdc['settings']['N_batch'] == 1:
+        if not mcdc['settings']['use_census_based_tally']:
             kernel.tally_accumulate(data_tally, mcdc)
 
     # Tally history closeout for multi-batch uq simulation
@@ -364,7 +364,7 @@ def source_closeout(prog, idx_work, N_prog, data_tally):
 
     # Progress printout
     percent = (idx_work + 1.0) / mcdc["mpi_work_size"]
-    if objects.settings.use_progress_bar and int(percent * 100.0) > N_prog:
+    if mcdc['settings']['use_progress_bar'] and int(percent * 100.0) > N_prog:
         N_prog += 1
         with objmode():
             print_progress(percent, mcdc)
@@ -426,7 +426,7 @@ def source_dd_resolution(data, prog):
 
 
 @njit
-def loop_source(seed, data_tally, mcdc):
+def loop_source(seed, data_tally, mcdc, data):
     # Progress bar indicator
     N_prog = 0
 
@@ -439,10 +439,10 @@ def loop_source(seed, data_tally, mcdc):
     work_end = work_start + work_size
 
     for idx_work in range(work_size):
-        generate_source_particle(work_start, idx_work, seed, mcdc)
+        generate_source_particle(work_start, idx_work, seed, mcdc, data)
 
         # Run the source particle and its secondaries
-        exhaust_active_bank(data_tally, mcdc)
+        exhaust_active_bank(data_tally, mcdc, data)
 
         source_closeout(mcdc, idx_work, N_prog, data_tally)
 
@@ -570,21 +570,21 @@ def gpu_loop_source(seed, data, mcdc):
 
 
 @njit
-def loop_particle(P_arr, data_tally, prog):
+def loop_particle(P_arr, data_tally, prog, data):
     P = P_arr[0]
     mcdc = adapt.mcdc_global(prog)
 
     while P["alive"]:
-        step_particle(P_arr, data_tally, prog)
+        step_particle(P_arr, data_tally, prog, data)
 
 
 @njit
-def step_particle(P_arr, data_tally, prog):
+def step_particle(P_arr, data_tally, prog, data):
     P = P_arr[0]
     mcdc = adapt.mcdc_global(prog)
 
     # Determine and move to event
-    kernel.move_to_event(P_arr, data_tally, mcdc)
+    kernel.move_to_event(P_arr, data_tally, mcdc, data)
 
     # Execute events
     if P["event"] == EVENT_LOST:
@@ -603,17 +603,17 @@ def step_particle(P_arr, data_tally, prog):
         # Analog collision
         else:
             # Get collision type
-            kernel.collision(P_arr, mcdc)
+            physics.collision(P_arr, mcdc, data)
 
             # Perform collision
             if P["event"] & EVENT_CAPTURE:
                 P["alive"] = False
 
             elif P["event"] & EVENT_SCATTERING:
-                kernel.scattering(P_arr, prog)
+                kernel.scattering(P_arr, prog, data)
 
             elif P["event"] & EVENT_FISSION:
-                kernel.fission(P_arr, prog)
+                kernel.fission(P_arr, prog, data)
 
     # Surface and domain crossing
     if P["event"] & EVENT_SURFACE_CROSSING:

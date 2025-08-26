@@ -19,10 +19,18 @@ class ObjectPolymorphic(ObjectNonSingleton):
     def __init__(self, label, type_):
         super().__init__(label)
         self.type = type_
+        self.ID_numba = -1
+
+
+class ObjectOverriding(ObjectPolymorphic):
+    def __init__(self, label, type_):
+        super().__init__(label, type_)
 
 
 # The objects
 settings = None  # Singleton
-materials = []  # Polymorphic
+materials = []  # Overriding-polymorphic
 nuclides = []  # Non-singleton
 reactions = []  # Polymorphic
+capture_reactions = []
+elastic_scattering_reactions = []
