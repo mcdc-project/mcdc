@@ -16,6 +16,7 @@ def mu_energy_grid(index, elastic_scattering_reaction, data):
 
 @njit
 def mu_energy_grid_chunk(start, size, elastic_scattering_reaction, data):
+    start += elastic_scattering_reaction["mu_energy_grid_offset"]
     end = start + size
     return data[start:end]
 
@@ -35,6 +36,7 @@ def mu_energy_offset(index, elastic_scattering_reaction, data):
 
 @njit
 def mu_energy_offset_chunk(start, size, elastic_scattering_reaction, data):
+    start += elastic_scattering_reaction["mu_energy_offset_offset"]
     end = start + size
     return data[start:end]
 
@@ -54,6 +56,7 @@ def mu(index, elastic_scattering_reaction, data):
 
 @njit
 def mu_chunk(start, size, elastic_scattering_reaction, data):
+    start += elastic_scattering_reaction["mu_offset"]
     end = start + size
     return data[start:end]
 
@@ -73,6 +76,7 @@ def mu_PDF(index, elastic_scattering_reaction, data):
 
 @njit
 def mu_PDF_chunk(start, size, elastic_scattering_reaction, data):
+    start += elastic_scattering_reaction["mu_PDF_offset"]
     end = start + size
     return data[start:end]
 
@@ -92,5 +96,6 @@ def mu_CDF(index, elastic_scattering_reaction, data):
 
 @njit
 def mu_CDF_chunk(start, size, elastic_scattering_reaction, data):
+    start += elastic_scattering_reaction["mu_CDF_offset"]
     end = start + size
     return data[start:end]

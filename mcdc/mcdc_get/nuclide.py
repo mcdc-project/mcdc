@@ -23,6 +23,7 @@ def xs_energy_grid(index, nuclide, data):
 
 @njit
 def xs_energy_grid_chunk(start, size, nuclide, data):
+    start += nuclide["xs_energy_grid_offset"]
     end = start + size
     return data[start:end]
 
@@ -42,6 +43,7 @@ def total_xs(index, nuclide, data):
 
 @njit
 def total_xs_chunk(start, size, nuclide, data):
+    start += nuclide["total_xs_offset"]
     end = start + size
     return data[start:end]
 
@@ -61,6 +63,7 @@ def reaction_type(index, nuclide, data):
 
 @njit
 def reaction_type_chunk(start, size, nuclide, data):
+    start += nuclide["reaction_type_offset"]
     end = start + size
     return data[start:end]
 
@@ -80,5 +83,6 @@ def reaction_index(index, nuclide, data):
 
 @njit
 def reaction_index_chunk(start, size, nuclide, data):
+    start += nuclide["reaction_index_offset"]
     end = start + size
     return data[start:end]

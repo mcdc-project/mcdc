@@ -16,5 +16,6 @@ def census_time(index, settings, data):
 
 @njit
 def census_time_chunk(start, size, settings, data):
+    start += settings["census_time_offset"]
     end = start + size
     return data[start:end]

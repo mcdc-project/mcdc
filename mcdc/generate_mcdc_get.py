@@ -58,6 +58,7 @@ def getter_1d_all(object_name, attribute_name):
 def getter_chunk(object_name, attribute_name):
     text = f"@njit\n"
     text += f"def {attribute_name}_chunk(start, size, {object_name}, data):\n"
+    text += f"    start += {object_name}[\"{attribute_name}_offset\"]\n"
     text += f"    end = start + size\n"
     text += f"    return data[start:end]\n\n\n"
     return text

@@ -90,7 +90,6 @@ def numbafy_object(object_, structures, records, data):
                         numbafy_object(subobject, structures, records, data)
                     data[offset_type + i] = subobject.type
                     data[offset_id + i] = subobject.ID_numba
-                    print(subobject)
 
         # Others
         else:

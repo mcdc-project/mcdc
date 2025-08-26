@@ -16,6 +16,7 @@ def atomic_densities(index, material, data):
 
 @njit
 def atomic_densities_chunk(start, size, material, data):
+    start += material["atomic_densities_offset"]
     end = start + size
     return data[start:end]
 
@@ -35,6 +36,7 @@ def mgxs_speed(index, material, data):
 
 @njit
 def mgxs_speed_chunk(start, size, material, data):
+    start += material["mgxs_speed_offset"]
     end = start + size
     return data[start:end]
 
@@ -54,6 +56,7 @@ def mgxs_decay_rate(index, material, data):
 
 @njit
 def mgxs_decay_rate_chunk(start, size, material, data):
+    start += material["mgxs_decay_rate_offset"]
     end = start + size
     return data[start:end]
 
@@ -73,6 +76,7 @@ def mgxs_capture(index, material, data):
 
 @njit
 def mgxs_capture_chunk(start, size, material, data):
+    start += material["mgxs_capture_offset"]
     end = start + size
     return data[start:end]
 
@@ -92,6 +96,7 @@ def mgxs_scatter(index, material, data):
 
 @njit
 def mgxs_scatter_chunk(start, size, material, data):
+    start += material["mgxs_scatter_offset"]
     end = start + size
     return data[start:end]
 
@@ -111,6 +116,7 @@ def mgxs_fission(index, material, data):
 
 @njit
 def mgxs_fission_chunk(start, size, material, data):
+    start += material["mgxs_fission_offset"]
     end = start + size
     return data[start:end]
 
@@ -130,6 +136,7 @@ def mgxs_total(index, material, data):
 
 @njit
 def mgxs_total_chunk(start, size, material, data):
+    start += material["mgxs_total_offset"]
     end = start + size
     return data[start:end]
 
@@ -149,6 +156,7 @@ def mgxs_nu_s(index, material, data):
 
 @njit
 def mgxs_nu_s_chunk(start, size, material, data):
+    start += material["mgxs_nu_s_offset"]
     end = start + size
     return data[start:end]
 
@@ -168,6 +176,7 @@ def mgxs_nu_p(index, material, data):
 
 @njit
 def mgxs_nu_p_chunk(start, size, material, data):
+    start += material["mgxs_nu_p_offset"]
     end = start + size
     return data[start:end]
 
@@ -190,6 +199,7 @@ def mgxs_nu_d(index_1, index_2, material, data):
 
 @njit
 def mgxs_nu_d_chunk(start, size, material, data):
+    start += material["mgxs_nu_d_offset"]
     end = start + size
     return data[start:end]
 
@@ -209,6 +219,7 @@ def mgxs_nu_d_total(index, material, data):
 
 @njit
 def mgxs_nu_d_total_chunk(start, size, material, data):
+    start += material["mgxs_nu_d_total_offset"]
     end = start + size
     return data[start:end]
 
@@ -228,6 +239,7 @@ def mgxs_nu_f(index, material, data):
 
 @njit
 def mgxs_nu_f_chunk(start, size, material, data):
+    start += material["mgxs_nu_f_offset"]
     end = start + size
     return data[start:end]
 
@@ -250,6 +262,7 @@ def mgxs_chi_s(index_1, index_2, material, data):
 
 @njit
 def mgxs_chi_s_chunk(start, size, material, data):
+    start += material["mgxs_chi_s_offset"]
     end = start + size
     return data[start:end]
 
@@ -272,6 +285,7 @@ def mgxs_chi_p(index_1, index_2, material, data):
 
 @njit
 def mgxs_chi_p_chunk(start, size, material, data):
+    start += material["mgxs_chi_p_offset"]
     end = start + size
     return data[start:end]
 
@@ -294,5 +308,6 @@ def mgxs_chi_d(index_1, index_2, material, data):
 
 @njit
 def mgxs_chi_d_chunk(start, size, material, data):
+    start += material["mgxs_chi_d_offset"]
     end = start + size
     return data[start:end]

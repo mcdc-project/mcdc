@@ -16,5 +16,6 @@ def xs(index, reaction, data):
 
 @njit
 def xs_chunk(start, size, reaction, data):
+    start += reaction["xs_offset"]
     end = start + size
     return data[start:end]
