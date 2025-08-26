@@ -6,7 +6,11 @@ import os
 
 import mcdc.objects as objects
 
-from mcdc.reaction import ReactionCapture, ReactionElasticScattering, decode_type
+from mcdc.reaction import (
+    ReactionNeutronCapture,
+    ReactionNeutronElasticScattering,
+    decode_type,
+)
 from mcdc.objects import ObjectNonSingleton
 from mcdc.prints import print_1d_array
 
@@ -37,10 +41,10 @@ class Nuclide(ObjectNonSingleton):
                     continue
 
                 if reaction_type == "capture":
-                    ReactionClass = ReactionCapture
+                    ReactionClass = ReactionNeutronCapture
 
                 elif reaction_type == "elastic_scattering":
-                    ReactionClass = ReactionElasticScattering
+                    ReactionClass = ReactionNeutronElasticScattering
 
                 elif reaction_type == "fission":
                     self.fissionable = True
@@ -48,7 +52,9 @@ class Nuclide(ObjectNonSingleton):
 
                 reaction = ReactionClass(f[f"neutron_reactions/{reaction_type}"])
                 reaction.ID = len(objects.reactions)
-                reaction.ID_numba = sum([x.type == reaction_type for x in objects.reactions])
+                reaction.ID_numba = sum(
+                    [x.type == reaction_type for x in objects.reactions]
+                )
                 self.reactions.append(reaction)
 
                 # Register reaction
@@ -56,7 +62,6 @@ class Nuclide(ObjectNonSingleton):
 
                 # Accumulate total XS
                 self.total_xs += reaction.xs
-
 
     def __repr__(self):
         text = "\n"

@@ -3,16 +3,12 @@ import numpy as np
 ####
 
 from mcdc.constant import (
-    REACTION_CAPTURE,
-    REACTION_ELASTIC_SCATTERING,
-    REACTION_FISSION,
+    REACTION_NEUTRON_CAPTURE,
+    REACTION_NEUTRON_ELASTIC_SCATTERING,
+    REACTION_NEUTRON_FISSION,
 )
 from mcdc.objects import ObjectPolymorphic
 from mcdc.prints import print_1d_array
-
-# ======================================================================================
-# Reaction classes
-# ======================================================================================
 
 
 class ReactionBase(ObjectPolymorphic):
@@ -28,17 +24,22 @@ class ReactionBase(ObjectPolymorphic):
         return text
 
 
-class ReactionCapture(ReactionBase):
+# ======================================================================================
+# Neutron reactions
+# ======================================================================================
+
+
+class ReactionNeutronCapture(ReactionBase):
     def __init__(self, h5_group):
-        label = "capture_reaction"
-        type_ = REACTION_CAPTURE
+        label = "neutron_capture_reaction"
+        type_ = REACTION_NEUTRON_CAPTURE
         super().__init__(label, type_, h5_group)
 
 
-class ReactionElasticScattering(ReactionBase):
+class ReactionNeutronElasticScattering(ReactionBase):
     def __init__(self, h5_group):
-        label = "elastic_scattering_reaction"
-        type_ = REACTION_ELASTIC_SCATTERING
+        label = "neutron_elastic_scattering_reaction"
+        type_ = REACTION_NEUTRON_ELASTIC_SCATTERING
         super().__init__(label, type_, h5_group)
 
         # Scattering cosine
@@ -74,10 +75,15 @@ class ReactionElasticScattering(ReactionBase):
         return text
 
 
+# ======================================================================================
+# Electron reactions
+# ======================================================================================
+
+
 def decode_type(type_):
-    if type_ == REACTION_CAPTURE:
-        return "Capture"
-    elif type_ == REACTION_ELASTIC_SCATTERING:
-        return "Elastic scattering"
-    elif type_ == REACTION_FISSION:
-        return "Fission"
+    if type_ == REACTION_NEUTRON_CAPTURE:
+        return "Neutron capture"
+    elif type_ == REACTION_NEUTRON_ELASTIC_SCATTERING:
+        return "Neulastic scattering"
+    elif type_ == REACTION_NEUTRON_FISSION:
+        return "Neutron fission"

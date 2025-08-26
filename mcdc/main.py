@@ -598,7 +598,7 @@ def prepare():
     # Get modes
     mode_MG = settings.multigroup_mode
     mode_CE = not mode_MG
-    
+
     # ==================================================================================
     # Set with records
     # ==================================================================================
@@ -1125,7 +1125,7 @@ def prepare():
             )
         adapt.gpu_forward_declare(config.args)
 
-    #adapt.set_toggle("iQMC", input_deck.technique["iQMC"])
+    # adapt.set_toggle("iQMC", input_deck.technique["iQMC"])
     adapt.set_toggle("domain_decomp", input_deck.technique["domain_decomposition"])
     adapt.eval_toggle()
     adapt.target_for(config.target)
@@ -1162,7 +1162,7 @@ def prepare():
     # Set appropriate time boundary
     if settings.time_boundary > t_limit:
         settings.time_boundary = t_limit
-        mcdc['settings']['time_boundary'] = t_limit
+        mcdc["settings"]["time_boundary"] = t_limit
 
     # =========================================================================
     # Technique
@@ -1528,7 +1528,7 @@ def prepare():
     # =========================================================================
     # Finalize data: wrapping into a tuple
     # =========================================================================
-    
+
     # Pick physics model
     if settings.multigroup_mode:
         physics.particle_speed = physics.particle_speed_mg

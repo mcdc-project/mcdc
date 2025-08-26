@@ -41,11 +41,11 @@ def particle_speed_mg(particle_container, material, data):
 @njit
 def macro_xs(reaction_type, material, particle_container, mcdc, data):
     particle = particle_container[0]
-    E = particle['E']
+    E = particle["E"]
 
     # Sum over all nuclides
     total = 0.0
-    for i in range(material['N_nuclide']):
+    for i in range(material["N_nuclide"]):
         nuclide = mcdc_get.nuclide.from_material(i, material, mcdc, data)
         atomic_density = mcdc_get.material.atomic_densities(i, material, data)
         xs = reaction_xs(E, reaction_type, nuclide, mcdc, data)
@@ -59,11 +59,11 @@ def macro_xs_mg(reaction_type, material, particle_container, mcdc, data):
     g = particle["g"]
     if reaction_type == REACTION_TOTAL:
         return mcdc_get.material.mgxs_total(g, material, data)
-    elif reaction_type == REACTION_CAPTURE:
+    elif reaction_type == REACTION_NEUTRON_CAPTURE:
         return mcdc_get.material.mgxs_capture(g, material, data)
-    elif reaction_type == REACTION_ELASTIC_SCATTERING:
+    elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
         return mcdc_get.material.mgxs_scatter(g, material, data)
-    elif reaction_type == REACTION_FISSION:
+    elif reaction_type == REACTION_NEUTRON_FISSION:
         return mcdc_get.material.mgxs_fission(g, material, data)
 
 
@@ -80,11 +80,11 @@ def production_xs(reaction_type, material, particle_container, mcdc, data):
 @njit
 def production_xs_(reaction_type, material, particle_container, mcdc, data):
     particle = particle_container[0]
-    E = particle['E']
+    E = particle["E"]
 
     # Sum over all nuclides
     total = 0.0
-    for i in range(material['N_nuclide']):
+    for i in range(material["N_nuclide"]):
         nuclide = mcdc_get.nuclide.from_material(i, material, mcdc, data)
         atomic_density = mcdc_get.material.atomic_densities(i, material, data)
         nu_xs = reaction_production_xs(E, reaction_type, nuclide, mcdc, data)
@@ -98,22 +98,30 @@ def production_xs_mg(reaction_type, material, particle_container, mcdc, data):
     g = particle["g"]
     if reaction_type == REACTION_TOTAL:
         total = 0.0
-        total += production_xs_mg(REACTION_ELASTIC_SCATTERING, material, particle_container, mcdc, data)
-        total += production_xs_mg(REACTION_FISSION, material, particle_container, mcdc, data)
+        total += production_xs_mg(
+            REACTION_NEUTRON_ELASTIC_SCATTERING,
+            material,
+            particle_container,
+            mcdc,
+            data,
+        )
+        total += production_xs_mg(
+            REACTION_NEUTRON_FISSION, material, particle_container, mcdc, data
+        )
         return total
-    elif reaction_type == REACTION_ELASTIC_SCATTERING:
+    elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
         nu = mcdc_get.material.mgxs_nu_s(g, material, data)
         xs = mcdc_get.material.mgxs_scatter(g, material, data)
         return nu * xs
-    elif reaction_type == REACTION_FISSION:
+    elif reaction_type == REACTION_NEUTRON_FISSION:
         nu = mcdc_get.material.mgxs_nu_f(g, material, data)
         xs = mcdc_get.material.mgxs_fission(g, material, data)
         return nu * xs
-    elif reaction_type == REACTION_FISSION_PROMPT:
+    elif reaction_type == REACTION_NEUTRON_FISSION_PROMPT:
         nu = mcdc_get.material.mgxs_nu_p(g, material, data)
         xs = mcdc_get.material.mgxs_fission(g, material, data)
         return nu * xs
-    elif reaction_type == REACTION_FISSION_DELAYED:
+    elif reaction_type == REACTION_NEUTRON_FISSION_DELAYED:
         nu = mcdc_get.material.mgxs_nu_d_total(g, material, data)
         xs = mcdc_get.material.mgxs_fission(g, material, data)
         return nu * xs
@@ -134,32 +142,32 @@ def reaction_xs(E, reaction_type, nuclide, mcdc, data):
         return linear_interpolation(E, E0, E1, xs0, xs1)
 
     # Search if the reaction exists
-    for i in range(nuclide['N_reaction']):
+    for i in range(nuclide["N_reaction"]):
         the_type = int(mcdc_get.nuclide.reaction_type(i, nuclide, data))
 
         if the_type == reaction_type:
             # Reaction exists!
             reaction_idx = int(mcdc_get.nuclide.reaction_index(i, nuclide, data))
             idx, E0, E1 = evaluate_xs_energy_grid(E, nuclide, data)
-            
-            if reaction_type == REACTION_CAPTURE:
-                reaction = mcdc['capture_reactions'][reaction_idx]
-                xs0 = mcdc_get.reaction.xs(idx, reaction, data)
-                xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
-                return linear_interpolation(E, E0, E1, xs0, xs1)
-                
-            elif reaction_type == REACTION_ELASTIC_SCATTERING:
-                reaction = mcdc['elastic_scattering_reactions'][reaction_idx]
+
+            if reaction_type == REACTION_NEUTRON_CAPTURE:
+                reaction = mcdc["neutron_capture_reactions"][reaction_idx]
                 xs0 = mcdc_get.reaction.xs(idx, reaction, data)
                 xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
                 return linear_interpolation(E, E0, E1, xs0, xs1)
 
-            elif reaction_type == REACTION_FISSION:
-                reaction = mcdc['fission_reactions'][reaction_idx]
+            elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
+                reaction = mcdc["neutron_elastic_scattering_reactions"][reaction_idx]
                 xs0 = mcdc_get.reaction.xs(idx, reaction, data)
                 xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
                 return linear_interpolation(E, E0, E1, xs0, xs1)
-            
+
+            elif reaction_type == REACTION_NEUTRON_FISSION:
+                reaction = mcdc["fission_reactions"][reaction_idx]
+                xs0 = mcdc_get.reaction.xs(idx, reaction, data)
+                xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
+                return linear_interpolation(E, E0, E1, xs0, xs1)
+
     return 0.0
 
 
@@ -171,33 +179,32 @@ def reaction_production_xs(E, reaction_type, nuclide, mcdc, data):
         return 0.0
 
     # Search if the reaction exists
-    for i in range(nuclide['N_reaction']):
+    for i in range(nuclide["N_reaction"]):
         the_type = int(mcdc_get.nuclide.reaction_type(i, nuclide, data))
 
         if the_type == reaction_type:
             # Reaction exists!
-            reaction_idx = (mcdc_get.nuclide.reaction_index(i, nuclide, data))
+            reaction_idx = mcdc_get.nuclide.reaction_index(i, nuclide, data)
             idx, E0, E1 = evaluate_xs_energy_grid(E, nuclide, data)
 
-            if reaction_type == REACTION_CAPTURE:
+            if reaction_type == REACTION_NEUTRON_CAPTURE:
                 return 0.0
-                
-            elif reaction_type == REACTION_ELASTIC_SCATTERING:
-                reaction = mcdc['elastic_scattering_reactions'][reaction_idx]
+
+            elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
+                reaction = mcdc["neutron_elastic_scattering_reactions"][reaction_idx]
                 xs0 = mcdc_get.reaction.xs(idx, reaction, data)
                 xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
                 return linear_interpolation(E, E0, E1, xs0, xs1)
 
-            elif reaction_type == REACTION_FISSION:
-                reaction = mcdc['fission_reactions'][reaction_idx]
+            elif reaction_type == REACTION_NEUTRON_FISSION:
+                reaction = mcdc["fission_reactions"][reaction_idx]
                 xs0 = mcdc_get.reaction.xs(idx, reaction, data)
                 xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
                 xs = linear_interpolation(E, E0, E1, xs0, xs1)
                 # TODO: nu
                 return 0.0
-            
-    return 0.0
 
+    return 0.0
 
 
 # ======================================================================================
@@ -230,13 +237,17 @@ def collision(particle_container, mcdc, data):
     P = particle_container[0]
 
     # Get the reaction cross-sections
-    material = mcdc['materials'][P["material_ID"]]
+    material = mcdc["materials"][P["material_ID"]]
     SigmaT = macro_xs(REACTION_TOTAL, material, particle_container, mcdc, data)
     SigmaS = macro_xs(
-        REACTION_ELASTIC_SCATTERING, material, particle_container, mcdc, data
+        REACTION_NEUTRON_ELASTIC_SCATTERING, material, particle_container, mcdc, data
     )
-    SigmaC = macro_xs(REACTION_CAPTURE, material, particle_container, mcdc, data)
-    SigmaF = macro_xs(REACTION_FISSION, material, particle_container, mcdc, data)
+    SigmaC = macro_xs(
+        REACTION_NEUTRON_CAPTURE, material, particle_container, mcdc, data
+    )
+    SigmaF = macro_xs(
+        REACTION_NEUTRON_FISSION, material, particle_container, mcdc, data
+    )
 
     # Implicit capture
     if mcdc["technique"]["implicit_capture"]:
@@ -264,7 +275,7 @@ def collision(particle_container, mcdc, data):
 @njit
 def sample_nucleus_speed(A, particle_container, mcdc, data):
     particle = particle_container[0]
-    material = mcdc['materials'][particle["material_ID"]]
+    material = mcdc["materials"][particle["material_ID"]]
 
     # Particle speed
     P_speed = particle_speed(particle_container, material, data)
@@ -280,11 +291,16 @@ def sample_nucleus_speed(A, particle_container, mcdc, data):
     y = beta * P_speed
     while True:
         if kernel.rng(particle_container) < 2.0 / (2.0 + PI_SQRT * y):
-            x = math.sqrt(-math.log(kernel.rng(particle_container) * kernel.rng(particle_container)))
+            x = math.sqrt(
+                -math.log(
+                    kernel.rng(particle_container) * kernel.rng(particle_container)
+                )
+            )
         else:
             cos_val = math.cos(PI_HALF * kernel.rng(particle_container))
             x = math.sqrt(
-                -math.log(kernel.rng(particle_container)) - math.log(kernel.rng(particle_container)) * cos_val * cos_val
+                -math.log(kernel.rng(particle_container))
+                - math.log(kernel.rng(particle_container)) * cos_val * cos_val
             )
         V_tilda = x / beta
         mu_tilda = 2.0 * kernel.rng(particle_container) - 1.0
@@ -297,13 +313,14 @@ def sample_nucleus_speed(A, particle_container, mcdc, data):
 
     # Set nuclide velocity - LAB
     azi = 2.0 * PI * kernel.rng(particle_container)
-    ux, uy, uz = kernel.scatter_direction(particle["ux"], particle["uy"], particle["uz"], mu_tilda, azi)
+    ux, uy, uz = kernel.scatter_direction(
+        particle["ux"], particle["uy"], particle["uz"], mu_tilda, azi
+    )
     Vx = ux * V_tilda
     Vy = uy * V_tilda
     Vz = uz * V_tilda
 
     return Vx, Vy, Vz
-
 
 
 # ======================================================================================

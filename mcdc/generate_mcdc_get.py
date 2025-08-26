@@ -1,93 +1,100 @@
 import ast
 
 targets = {
-    'material': [
-        ('atomic_densities', 1),
-        ('mgxs_speed', 1),
-        ('mgxs_decay_rate', 1),
-        ('mgxs_capture', 1),
-        ('mgxs_scatter', 1),
-        ('mgxs_fission', 1),
-        ('mgxs_total', 1),
-        ('mgxs_nu_s', 1),
-        ('mgxs_nu_p', 1),
-        ('mgxs_nu_d', 2, ('G', 'J')),
-        ('mgxs_nu_d_total', 1),
-        ('mgxs_nu_f', 1),
-        ('mgxs_chi_s', 2, ('G', 'G')),
-        ('mgxs_chi_p', 2, ('G', 'G')),
-        ('mgxs_chi_d', 2, ('J', 'G')),
+    "material": [
+        ("atomic_densities", 1),
+        ("mgxs_speed", 1),
+        ("mgxs_decay_rate", 1),
+        ("mgxs_capture", 1),
+        ("mgxs_scatter", 1),
+        ("mgxs_fission", 1),
+        ("mgxs_total", 1),
+        ("mgxs_nu_s", 1),
+        ("mgxs_nu_p", 1),
+        ("mgxs_nu_d", 2, ("G", "J")),
+        ("mgxs_nu_d_total", 1),
+        ("mgxs_nu_f", 1),
+        ("mgxs_chi_s", 2, ("G", "G")),
+        ("mgxs_chi_p", 2, ("G", "G")),
+        ("mgxs_chi_d", 2, ("J", "G")),
     ],
-    'nuclide': [
-        ('from_material',),
-        ('xs_energy_grid', 1),
-        ('total_xs', 1),
-        ('reaction_type', 1),
-        ('reaction_index', 1),
+    "nuclide": [
+        ("from_material",),
+        ("xs_energy_grid", 1),
+        ("total_xs", 1),
+        ("reaction_type", 1),
+        ("reaction_index", 1),
     ],
-    'settings': [
-        ('census_time', 1),
+    "settings": [
+        ("census_time", 1),
     ],
-    'reaction': [
-        ('xs', 1),
+    "reaction": [
+        ("xs", 1),
     ],
-    'elastic_scattering_reaction': [
-        ('mu_energy_grid', 1),
-        ('mu_energy_offset', 1),
-        ('mu', 1),
-        ('mu_PDF', 1),
-        ('mu_CDF', 1),
+    "neutron_elastic_scattering_reaction": [
+        ("mu_energy_grid", 1),
+        ("mu_energy_offset", 1),
+        ("mu", 1),
+        ("mu_PDF", 1),
+        ("mu_CDF", 1),
     ],
 }
+
 
 def getter_1d_element(object_name, attribute_name):
     text = f"@njit\n"
     text += f"def {attribute_name}(index, {object_name}, data):\n"
-    text += f"    offset = {object_name}[\"{attribute_name}_offset\"]\n"
+    text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
     text += f"    return data[offset + index]\n\n\n"
     return text
+
 
 def getter_1d_all(object_name, attribute_name):
     text = f"@njit\n"
     text += f"def {attribute_name}_all({object_name}, data):\n"
-    text += f"    start = {object_name}[\"{attribute_name}_offset\"]\n"
-    text += f"    end = start + {object_name}[\"{attribute_name}_length\"]\n"
+    text += f'    start = {object_name}["{attribute_name}_offset"]\n'
+    text += f'    end = start + {object_name}["{attribute_name}_length"]\n'
     text += f"    return data[start:end]\n\n\n"
     return text
+
 
 def getter_chunk(object_name, attribute_name):
     text = f"@njit\n"
     text += f"def {attribute_name}_chunk(start, size, {object_name}, data):\n"
-    text += f"    start += {object_name}[\"{attribute_name}_offset\"]\n"
+    text += f'    start += {object_name}["{attribute_name}_offset"]\n'
     text += f"    end = start + size\n"
     text += f"    return data[start:end]\n\n\n"
     return text
 
+
 def getter_2d_element(object_name, attribute_name, stride):
     text = f"@njit\n"
     text += f"def {attribute_name}(index_1, index_2, {object_name}, data):\n"
-    text += f"    offset = {object_name}[\"{attribute_name}_offset\"]\n"
-    text += f"    stride = {object_name}[\"{stride}\"]\n"
+    text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
+    text += f'    stride = {object_name}["{stride}"]\n'
     text += f"    return data[offset + index_1 * stride + index_2]\n\n\n"
     return text
+
 
 def getter_2d_vector(object_name, attribute_name, stride):
     text = f"@njit\n"
     text += f"def {attribute_name}_vector(index_1, {object_name}, data):\n"
-    text += f"    offset = {object_name}[\"{attribute_name}_offset\"]\n"
-    text += f"    stride = {object_name}[\"{stride}\"]\n"
+    text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
+    text += f'    stride = {object_name}["{stride}"]\n'
     text += f"    start = offset + index_1 * stride\n"
     text += f"    end = start + stride\n"
     text += f"    return data[start:end]\n\n\n"
     return text
 
+
 def getter_from_other(object_name, other_name):
     text = f"@njit\n"
     text += f"def from_{other_name}(index, {other_name}, mcdc, data):\n"
-    text += f"    offset = {other_name}[\"{object_name}_index_offset\"]\n"
+    text += f'    offset = {other_name}["{object_name}_index_offset"]\n'
     text += f"    {object_name}_ID = int(data[offset + index])\n"
-    text += f"    return mcdc[\"{object_name}s\"][{object_name}_ID]\n\n\n"
+    text += f'    return mcdc["{object_name}s"][{object_name}_ID]\n\n\n'
     return text
+
 
 for object_name in targets:
     with open(f"mcdc_get/{object_name}.py", "w") as f:

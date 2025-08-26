@@ -32,5 +32,5 @@ settings = None  # Singleton
 materials = []  # Overriding-polymorphic
 nuclides = []  # Non-singleton
 reactions = []  # Polymorphic
-capture_reactions = []
-elastic_scattering_reactions = []
+neutron_capture_reactions = []
+neutron_elastic_scattering_reactions = []

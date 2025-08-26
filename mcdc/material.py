@@ -19,7 +19,7 @@ from mcdc.prints import print_1d_array, print_error
 
 class MaterialBase(ObjectOverriding):
     def __init__(self, type_, name):
-        super().__init__('material', type_)
+        super().__init__("material", type_)
         self.name = name
         self.mgxs_fissionable = False
 

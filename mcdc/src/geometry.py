@@ -37,7 +37,7 @@ def inspect_geometry(particle_container, mcdc, data):
     ux_global = particle["ux"]
     uy_global = particle["uy"]
     uz_global = particle["uz"]
-    material = mcdc['materials'][particle['material_ID']]
+    material = mcdc["materials"][particle["material_ID"]]
     speed = physics.particle_speed(particle_container, material, data)
 
     # Default returns
@@ -368,7 +368,7 @@ def check_cell(particle_container, cell, mcdc, data):
     N_value = 0
 
     # Particle parameters
-    material = mcdc['materials'][particle['material_ID']]
+    material = mcdc["materials"][particle["material_ID"]]
     speed = physics.particle_speed(particle_container, material, data)
 
     # March forward through RPN tokens
@@ -434,7 +434,7 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
     surface_ID = -1
 
     # Particle parameters
-    material = mcdc['materials'][particle['material_ID']]
+    material = mcdc["materials"][particle["material_ID"]]
     speed = physics.particle_speed(particle_container, material, data)
 
     # Access cell surface data
