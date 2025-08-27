@@ -52,14 +52,7 @@ class Nuclide(ObjectNonSingleton):
                     ReactionClass = ReactionNeutronFission
 
                 reaction = ReactionClass(f[f"neutron_reactions/{reaction_type}"])
-                reaction.ID = len(objects.reactions)
-                reaction.ID_numba = sum(
-                    [x.type == reaction_type for x in objects.reactions]
-                )
                 self.reactions.append(reaction)
-
-                # Register reaction
-                objects.reactions.append(reaction)
 
                 # Accumulate total XS
                 self.total_xs += reaction.xs

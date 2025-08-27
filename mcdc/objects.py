@@ -36,16 +36,27 @@ data_containers = []  # Polymorphic
 
 
 # Helper functions
-def register_polymorphic_object(object_):
+def register_object(object_):
     from mcdc.data_container import DataContainer
+    from mcdc.material import MaterialBase
+    from mcdc.nuclide import Nuclide
     from mcdc.reaction import ReactionBase
 
-    global reactions, data_containers
-    if isinstance(object_, DataContainer):
-        object_list = data_containers
+    global materials, nuclides, reactions, data_containers
+    
+    if isinstance(object_, MaterialBase):
+        object_list = materials
+    elif isinstance(object_, Nuclide):
+        object_list = nuclides
     elif isinstance(object_, ReactionBase):
         object_list = reactions
+    elif isinstance(object_, DataContainer):
+        object_list = data_containers
 
-    object_.ID = len(object_list)
-    object_.ID_numba = sum([x.type == object_.type for x in object_list])
-    object_list.append(object_)
+    if isinstance(object_, ObjectSingleton):
+        object_list = object_
+    if isinstance(object_, ObjectNonSingleton):
+        object_.ID = len(object_list)
+        if isinstance(object_, ObjectPolymorphic):
+            object_.ID_numba = sum([x.type == object_.type for x in object_list])
+        object_list.append(object_)

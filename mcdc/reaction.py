@@ -10,7 +10,7 @@ from mcdc.constant import (
     REACTION_ELECTRON_EXCITATION,
 )
 from mcdc.data_container import DataMaxwellian, DataMultiPDF, DataPolynomial, DataTable
-from mcdc.objects import ObjectPolymorphic
+from mcdc.objects import ObjectPolymorphic, register_object
 from mcdc.prints import print_1d_array
 
 
@@ -18,6 +18,9 @@ class ReactionBase(ObjectPolymorphic):
     def __init__(self, label, type_, h5_group):
         super().__init__(label, type_)
         self.xs = h5_group["xs"][()]
+        
+        # Register the instance
+        register_object(self)
 
     def __repr__(self):
         text = "\n"

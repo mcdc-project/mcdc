@@ -1,7 +1,7 @@
 import mcdc.objects as objects
 
 from mcdc.constant import DATA_TABLE, DATA_POLYNOMIAL, DATA_MULTIPDF, DATA_MAXWELLIAN
-from mcdc.objects import ObjectPolymorphic, register_polymorphic_object
+from mcdc.objects import ObjectPolymorphic, register_object
 from mcdc.prints import print_1d_array
 from mcdc.util import cdf_from_pdf
 
@@ -11,7 +11,7 @@ class DataContainer(ObjectPolymorphic):
         super().__init__(label, type_)
 
         # Register the instance
-        register_polymorphic_object(self)
+        register_object(self)
 
     def __repr__(self):
         text = "\n"
