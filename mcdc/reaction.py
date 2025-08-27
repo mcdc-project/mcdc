@@ -2,6 +2,7 @@ import numpy as np
 
 ####
 
+from mcdc import data_container
 from mcdc.constant import (
     REACTION_NEUTRON_CAPTURE,
     REACTION_NEUTRON_ELASTIC_SCATTERING,
@@ -27,7 +28,7 @@ class ReactionBase(ObjectPolymorphic):
         text = "\n"
         text += f"{decode_type(self.type)}\n"
         text += f"  - ID: {self.ID}\n"
-        text += f"  - XS {print_1d_array(self.xs)}\n"
+        text += f"  - XS {print_1d_array(self.xs)} /cm\n"
         return text
 
 
@@ -64,24 +65,15 @@ class ReactionNeutronElasticScattering(ReactionBase):
 
         # Scattering cosine
         base = "scattering_cosine"
-        self.mu_energy_grid = h5_group[f"{base}/energy_grid"][()]
-        self.mu_energy_offset = h5_group[f"{base}/energy_offset"][()]
-        self.mu = h5_group[f"{base}/value"][()]
-        self.mu_PDF = h5_group[f"{base}/PDF"][()]
-
-        # CDF
+        grid = h5_group[f"{base}/energy_grid"][()]
+        offset = h5_group[f"{base}/energy_offset"][()]
         value = h5_group[f"{base}/value"][()]
         pdf = h5_group[f"{base}/PDF"][()]
-        offset = h5_group[f"{base}/energy_offset"][()]
-        self.mu_CDF = cdf_from_pdf(offset, value, pdf)
+        self.mu = DataMultiPDF(grid, offset, value, pdf)
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Scattering cosine\n"
-        text += f"    - mu_energy_grid {print_1d_array(self.mu_energy_grid)}\n"
-        text += f"    - mu_energy_offset {print_1d_array(self.mu_energy_offset)}\n"
-        text += f"    - mu {print_1d_array(self.mu)}\n"
-        text += f"    - mu_PDF {print_1d_array(self.mu_PDF)}\n"
+        text += f"  - Scattering cosine: {data_container.decode_type(self.mu.type)} [ID: {self.mu.ID}]\n"
         return text
 
 
@@ -120,10 +112,9 @@ class ReactionNeutronFission(ReactionBase):
             pdf = prompt_product["energy_out"]["PDF"][()]
             self.prompt_spectrum = DataMultiPDF(grid, offset, value, pdf)
         elif prompt_product["energy_out"].attrs["type"] == "maxwellian":
-            restriction_energy = prompt_product["energy_out"]["reastriction_energy"][()]
-            nuclear_temperature = prompt_product["energy_out"]["nuclear_temperature"][
-                ()
-            ]
+            print(prompt_product["energy_out"].keys())
+            restriction_energy = prompt_product["energy_out"]["maxwell_restriction_energy"][()]
+            nuclear_temperature = prompt_product["energy_out"]["maxwell_nuclear_temperature"]
             nuclear_temperature_energy_grid = nuclear_temperature["energy_grid"][()]
             nuclear_temperature_value = nuclear_temperature["value"][()]
             self.prompt_spectrum = DataMaxwellian(
@@ -136,7 +127,8 @@ class ReactionNeutronFission(ReactionBase):
         self.delayed_yields = [None] * self.N_delayed
         self.delayed_spectrums = [None] * self.N_delayed
         self.delayed_decay_rates = [None] * self.N_delayed
-        for i, delayed_product in enumerate(delayed_products):
+        for i, name in enumerate(delayed_products):
+            delayed_product = delayed_products[name]
             # Yield
             if delayed_product["yield"].attrs["type"] == "table":
                 x = delayed_product["yield"]["energy_grid"][()]
@@ -169,10 +161,22 @@ class ReactionNeutronFission(ReactionBase):
                 )
 
             # Decay rate
-            self.delayed_decay_rates[i] = 1.0 / delayed_product["mean_emission_time"][i]
+            self.delayed_decay_rates[i] = 1.0 / delayed_product["mean_emission_time"][()]
 
     def __repr__(self):
         text = super().__repr__()
+        text += f"  - Number of delayed groups: {self.N_delayed}\n"
+        text += f"  - Prompt neutron\n"
+        text += f"    - Yield: {data_container.decode_type(self.prompt_yield.type)} [ID: {self.prompt_yield.ID}]\n"
+        text += f"    - Spectrum: {data_container.decode_type(self.prompt_spectrum.type)} [ID: {self.prompt_spectrum.ID}]\n"
+        if self.N_delayed > 0:
+            text += f"  - Delayed neutron groups\n"
+        for i in range(self.N_delayed):
+            text += f"    - Group {i+1}\n"
+            text += f"      - Yield: {data_container.decode_type(self.delayed_yields[i].type)} [ID: {self.delayed_yields[i].ID}]\n"
+            text += f"      - Spectrum: {data_container.decode_type(self.delayed_spectrums[i].type)} [ID: {self.delayed_spectrums[i].ID}]\n"
+            text += f"      - Mean emission time: {1.0 / self.delayed_decay_rates[i]:.5g} s\n"
+
         return text
 
 

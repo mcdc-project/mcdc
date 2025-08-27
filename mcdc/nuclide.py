@@ -63,7 +63,7 @@ class Nuclide(ObjectNonSingleton):
         text += f"  - ID: {self.ID}\n"
         text += f"  - Name: {self.name}\n"
         text += f"  - Atomic weight ratio: {self.atomic_weight_ratio}\n"
-        text += f"  - XS energy grid {print_1d_array(self.xs_energy_grid)}\n"
+        text += f"  - XS energy grid {print_1d_array(self.xs_energy_grid)} eV\n"
         text += f"  - Reactions\n"
         for reaction in self.reactions:
             text += f"    - {decode_type(reaction.type)}\n"

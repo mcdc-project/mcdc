@@ -21,14 +21,14 @@ class MaterialBase(ObjectOverriding):
     def __init__(self, type_, name):
         super().__init__("material", type_)
         self.name = name
-        self.mgxs_fissionable = False
+        self.fissionable = False
 
     def __repr__(self):
         text = "\n"
         text += f"{decode_type(self.type)}\n"
         text += f"  - ID: {self.ID}\n"
         text += f"  - Name: {self.name}\n"
-        text += f"  - Fissionable: {self.mgxs_fissionable}\n"
+        text += f"  - Fissionable: {self.fissionable}\n"
         return text
 
 
@@ -98,7 +98,7 @@ class MaterialMG(MaterialBase):
             self.mgxs_scatter = np.sum(scatter, 0)
         if fission is not None:
             self.mgxs_fission = fission
-            self.mgxs_fissionable = True
+            self.fissionable = True
         self.mgxs_total = self.mgxs_capture + self.mgxs_scatter + self.mgxs_fission
 
         # Scattering multiplication (vector of size G)
@@ -228,6 +228,10 @@ class Material(MaterialBase):
             self.nuclides.append(nuclide)
             self.atomic_densities[i] = atomic_density
             self.nuclide_composition[nuclide] = atomic_density
+
+            # Some flags
+            if nuclide.fissionable:
+                self.fissionable = True
 
         # Register the material
         self.ID = len(objects.materials)
