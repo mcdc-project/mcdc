@@ -12,6 +12,7 @@ from mcdc.constant import (
 from mcdc.data_container import DataMaxwellian, DataMultiPDF, DataPolynomial, DataTable
 from mcdc.objects import ObjectPolymorphic, register_object
 from mcdc.prints import print_1d_array
+from mcdc.util import cdf_from_pdf
 
 
 class ReactionBase(ObjectPolymorphic):
@@ -69,20 +70,10 @@ class ReactionNeutronElasticScattering(ReactionBase):
         self.mu_PDF = h5_group[f"{base}/PDF"][()]
 
         # CDF
-        mu = h5_group[f"{base}/value"][()]
-        PDF = h5_group[f"{base}/PDF"][()]
+        value = h5_group[f"{base}/value"][()]
+        pdf = h5_group[f"{base}/PDF"][()]
         offset = h5_group[f"{base}/energy_offset"][()]
-        self.mu_CDF = np.zeros_like(PDF)
-        for i in range(len(offset)):
-            start = offset[i]
-            end = offset[i + 1] if i < len(offset) - 1 else len(PDF)
-            for idx in range(start, end - 2):
-                self.mu_CDF[idx + 1] = (
-                    self.mu_CDF[idx]
-                    + (PDF[idx] + PDF[idx + 1]) * (mu[idx + 1] - mu[idx]) * 0.5
-                )
-            # Ensure it ends at one
-            self.mu_CDF[end - 1] = 1.0
+        self.mu_CDF = cdf_from_pdf(offset, value, pdf)
 
     def __repr__(self):
         text = super().__repr__()
