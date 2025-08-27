@@ -2212,10 +2212,12 @@ def score_cs_tally(P_arr, distance, tally, data_tally, mcdc, data):
             elif score_type == SCORE_DENSITY:
                 score = flux / physics.particle_speed(P_arr, material, data)
             elif score_type == SCORE_TOTAL:
-                SigmaT = get_MacroXS(XS_TOTAL, material, P_arr, mcdc)
+                SigmaT = physics.macro_xs(REACTION_TOTAL, material, P_arr, mcdc, data)
                 score = flux * SigmaT
             elif score_type == SCORE_FISSION:
-                SigmaF = get_MacroXS(XS_FISSION, material, P_arr, mcdc)
+                SigmaF = physics.macro_xs(
+                    REACTION_NEUTRON_FISSION, material, P_arr, mcdc, data
+                )
                 score = flux * SigmaF
 
             adapt.global_add(
@@ -3670,74 +3672,6 @@ def weight_roulette(P_arr, mcdc):
 # =============================================================================
 # Continuous Energy Physics
 # =============================================================================
-
-
-@njit
-def get_micro_xs(reaction_type, nuclide, E):
-    if reaction_type == REACTION_TOTAL:
-        xs_data = nuclide.total_xs
-    else:
-        found = False
-        for reaction in nuclide.reactions:
-            if reaction.type == reaction_type:
-                xs_data = reaction.xs
-                found = True
-                break
-        if not found:
-            return 0.0
-    return evaluate_from_table(E, nuclide.xs_energy_grid, xs_data)
-
-
-@njit
-def get_XS(data, E, E_grid, NE):
-    # Search XS energy bin index
-    idx = binary_search_with_length(E, E_grid, NE)
-
-    # Extrapolate if E is outside the given data
-    if idx == -1:
-        idx = 0
-    elif idx + 1 == NE:
-        idx -= 1
-
-    # Linear interpolation
-    E1 = E_grid[idx]
-    E2 = E_grid[idx + 1]
-    XS1 = data[idx]
-    XS2 = data[idx + 1]
-
-    return XS1 + (E - E1) * (XS2 - XS1) / (E2 - E1)
-
-
-@njit
-def get_nu_group(type_, nuclide, E, group):
-    if type_ == NU_FISSION:
-        nu = get_XS(nuclide["ce_nu_p"], E, nuclide["E_nu_p"], nuclide["NE_nu_p"])
-        for i in range(6):
-            nu += get_XS(
-                nuclide["ce_nu_d"][i], E, nuclide["E_nu_d"], nuclide["NE_nu_d"]
-            )
-        return nu
-
-    if type_ == NU_FISSION_PROMPT:
-        return get_XS(nuclide["ce_nu_p"], E, nuclide["E_nu_p"], nuclide["NE_nu_p"])
-
-    if type_ == NU_FISSION_DELAYED and group == -1:
-        tot = 0.0
-        for i in range(6):
-            tot += get_XS(
-                nuclide["ce_nu_d"][i], E, nuclide["E_nu_d"], nuclide["NE_nu_d"]
-            )
-        return tot
-
-    if type_ == NU_FISSION_DELAYED and group != -1:
-        return get_XS(
-            nuclide["ce_nu_d"][group], E, nuclide["E_nu_d"], nuclide["NE_nu_d"]
-        )
-
-
-@njit
-def get_nu(type_, nuclide, E):
-    return get_nu_group(type_, nuclide, E, -1)
 
 
 @njit

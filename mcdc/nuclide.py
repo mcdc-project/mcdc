@@ -9,6 +9,7 @@ import mcdc.objects as objects
 from mcdc.reaction import (
     ReactionNeutronCapture,
     ReactionNeutronElasticScattering,
+    ReactionNeutronFission,
     decode_type,
 )
 from mcdc.objects import ObjectNonSingleton
@@ -48,7 +49,7 @@ class Nuclide(ObjectNonSingleton):
 
                 elif reaction_type == "fission":
                     self.fissionable = True
-                    # TODO
+                    ReactionClass = ReactionNeutronFission
 
                 reaction = ReactionClass(f[f"neutron_reactions/{reaction_type}"])
                 reaction.ID = len(objects.reactions)

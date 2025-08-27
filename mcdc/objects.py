@@ -32,5 +32,20 @@ settings = None  # Singleton
 materials = []  # Overriding-polymorphic
 nuclides = []  # Non-singleton
 reactions = []  # Polymorphic
-neutron_capture_reactions = []
-neutron_elastic_scattering_reactions = []
+data_containers = []  # Polymorphic
+
+
+# Helper functions
+def register_polymorphic_object(object_):
+    from mcdc.data_container import DataContainer
+    from mcdc.reaction import ReactionBase
+
+    global reactions, data_containers
+    if isinstance(object_, DataContainer):
+        object_list = data_containers
+    elif isinstance(object_, ReactionBase):
+        object_list = reactions
+
+    object_.ID = len(object_list)
+    object_.ID_numba = sum([x.type == object_.type for x in object_list])
+    object_list.append(object_)
