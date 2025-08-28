@@ -20,7 +20,7 @@ class ReactionBase(ObjectPolymorphic):
     def __init__(self, label, type_, h5_group):
         super().__init__(label, type_)
         self.xs = h5_group["xs"][()]
-        
+
         # Register the instance
         register_object(self)
 
@@ -113,8 +113,12 @@ class ReactionNeutronFission(ReactionBase):
             self.prompt_spectrum = DataMultiPDF(grid, offset, value, pdf)
         elif prompt_product["energy_out"].attrs["type"] == "maxwellian":
             print(prompt_product["energy_out"].keys())
-            restriction_energy = prompt_product["energy_out"]["maxwell_restriction_energy"][()]
-            nuclear_temperature = prompt_product["energy_out"]["maxwell_nuclear_temperature"]
+            restriction_energy = prompt_product["energy_out"][
+                "maxwell_restriction_energy"
+            ][()]
+            nuclear_temperature = prompt_product["energy_out"][
+                "maxwell_nuclear_temperature"
+            ]
             nuclear_temperature_energy_grid = nuclear_temperature["energy_grid"][()]
             nuclear_temperature_value = nuclear_temperature["value"][()]
             self.prompt_spectrum = DataMaxwellian(
@@ -126,7 +130,7 @@ class ReactionNeutronFission(ReactionBase):
         # Delayed products
         self.delayed_yields = [None] * self.N_delayed
         self.delayed_spectrums = [None] * self.N_delayed
-        self.delayed_decay_rates = [None] * self.N_delayed
+        self.delayed_decay_rates = np.zeros(self.N_delayed)
         for i, name in enumerate(delayed_products):
             delayed_product = delayed_products[name]
             # Yield
@@ -161,7 +165,9 @@ class ReactionNeutronFission(ReactionBase):
                 )
 
             # Decay rate
-            self.delayed_decay_rates[i] = 1.0 / delayed_product["mean_emission_time"][()]
+            self.delayed_decay_rates[i] = (
+                1.0 / delayed_product["mean_emission_time"][()]
+            )
 
     def __repr__(self):
         text = super().__repr__()

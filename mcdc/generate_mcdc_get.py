@@ -31,12 +31,12 @@ targets = {
     "reaction": [
         ("xs", 1),
     ],
-    "neutron_elastic_scattering_reaction": [
-        ("mu_energy_grid", 1),
-        ("mu_energy_offset", 1),
-        ("mu", 1),
-        ("mu_PDF", 1),
-        ("mu_CDF", 1),
+    "multipdf": [
+        ("grid", 1),
+        ("offset", 1),
+        ("value", 1),
+        ("pdf", 1),
+        ("cdf", 1),
     ],
 }
 

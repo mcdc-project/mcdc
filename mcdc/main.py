@@ -506,7 +506,11 @@ def prepare():
 
     # Generate Numba-supported "Objects"
     data, structures, records = code_factory.generate_numba_objects(
-        objects.materials + objects.nuclides + objects.reactions + [objects.settings]
+        objects.materials
+        + objects.nuclides
+        + objects.reactions
+        + [objects.settings]
+        + objects.data_containers
     )
 
     settings = objects.settings
@@ -1539,8 +1543,9 @@ def prepare():
     if not nb.config.DISABLE_JIT:
         objects.settings = None
         objects.materials = None
-        objects.nuclide = None
+        objects.nuclides = None
         objects.reactions = None
+        objects.data_containers = None
 
     return data_tally, mcdc_arr, data
 

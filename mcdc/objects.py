@@ -43,7 +43,7 @@ def register_object(object_):
     from mcdc.reaction import ReactionBase
 
     global materials, nuclides, reactions, data_containers
-    
+
     if isinstance(object_, MaterialBase):
         object_list = materials
     elif isinstance(object_, Nuclide):

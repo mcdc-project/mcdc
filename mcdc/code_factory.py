@@ -2,6 +2,7 @@ import numpy as np
 
 ####
 
+from mcdc.data_container import DataContainer
 from mcdc.objects import (
     ObjectNonSingleton,
     ObjectPolymorphic,
@@ -32,7 +33,7 @@ def numbafy_object(object_, structures, records, data):
         if (
             x[:2] != "__"
             and not callable(getattr(object_, x))
-            and x not in ["label", "numbafied", "ID", "type"]
+            and x not in ["label", "numbafied", "ID", "type", "nuclide_composition"]
         )
     ]
     for attribute_name in attribute_names:
@@ -54,8 +55,21 @@ def numbafy_object(object_, structures, records, data):
 
             data.extend(attribute.flatten())
 
-        # List
+        # Data
+        elif isinstance(attribute, DataContainer):
+            numbafy_object(attribute, structures, records, data)
+            structure.append((f"{attribute_name}_type", "i8"))
+            structure.append((f"{attribute_name}_index", "i8"))
+            record += (attribute.type, attribute.ID_numba)
+
+        # List of objects
         elif type(attribute) == list:
+            if not isinstance(attribute[0], ObjectNonSingleton):
+                print(
+                    f"[ERROR] get a list of non-object for {attribute_name}: {attribute}"
+                )
+                exit()
+
             # List of non-polymorphic objects
             if not isinstance(attribute[0], ObjectPolymorphic):
                 structure.append((f"N_{attribute_name[:-1]}", "i8"))
@@ -91,9 +105,10 @@ def numbafy_object(object_, structures, records, data):
                     data[offset_type + i] = subobject.type
                     data[offset_id + i] = subobject.ID_numba
 
-        # Others
+        # Dictionary
         else:
-            pass
+            print(f"[ERROR] Unspported attribute: {attribute_name}: {attribute}")
+            exit()
 
     # Register the numbafied object
     object_.numbafied = True

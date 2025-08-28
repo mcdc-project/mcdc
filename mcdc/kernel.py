@@ -1,4 +1,5 @@
 import mcdc.mcdc_get as mcdc_get
+import mcdc.data_sampler as data_sampler
 
 import h5py, math, numba
 
@@ -3103,55 +3104,12 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc, data):
     # Sample scattering cosine
     # ==================================================================================
 
-    # Interpolation factor
-    E_grid = mcdc_get.neutron_elastic_scattering_reaction.mu_energy_grid_all(
-        reaction, data
-    )
-    idx = binary_search(P["E"], E_grid)
-    E0 = E_grid[idx]
-    E1 = E_grid[idx + 1]
-    f = (P["E"] - E0) - (E1 - E0)
-
-    # Sample which table to choose
-    xi = rng(P_new_arr)
-    if xi > f:
-        idx += 1
-
-    # Get the table
-    start = int(
-        mcdc_get.neutron_elastic_scattering_reaction.mu_energy_offset(
-            idx, reaction, data
-        )
-    )
-    if idx + 1 == len(E_grid):
-        end = len(E_grid)
-    else:
-        end = int(
-            mcdc_get.neutron_elastic_scattering_reaction.mu_energy_offset(
-                idx + 1, reaction, data
-            )
-        )
-    size = end - start
-    mu = mcdc_get.neutron_elastic_scattering_reaction.mu_chunk(
-        start, size, reaction, data
-    )
-    PDF = mcdc_get.neutron_elastic_scattering_reaction.mu_PDF_chunk(
-        start, size, reaction, data
-    )
-    CDF = mcdc_get.neutron_elastic_scattering_reaction.mu_CDF_chunk(
-        start, size, reaction, data
-    )
-
-    # Sample bin index
-    xi = rng(P_new_arr)
-    idx = binary_search(xi, CDF)
-    m = (PDF[idx + 1] - PDF[idx]) / (mu[idx + 1] - mu[idx])
-    p = PDF[idx]
-    c = CDF[idx]
-    if m == 0.0:
-        mu0 = mu[idx] + (xi - c) / p
-    else:
-        mu0 = mu[idx] + 1.0 / m * (math.sqrt(p**2 + 2 * m * (xi - c)) - p)
+    # Sample the scattering cosine from the multi-PDF distribution
+    data_idx = reaction["mu_index"]
+    multipdf = mcdc["data_multipdfs"][data_idx]
+    xi1 = rng(P_new_arr)
+    xi2 = rng(P_new_arr)
+    mu0 = data_sampler.sample_multipdf(P["E"], xi1, xi2, multipdf, data)
 
     # Scatter the direction in COM
     azi = 2.0 * PI * rng(P_arr)
