@@ -1,6 +1,6 @@
 from numba import njit
 
-from mcdc.src.algorithm import binary_search_with_length
+from mcdc.util import binary_search_with_length
 from mcdc.constant import COINCIDENCE_TOLERANCE, COINCIDENCE_TOLERANCE_TIME, INF
 
 

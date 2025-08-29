@@ -3,7 +3,7 @@
 import mcdc.code_factory as code_factory
 import mcdc.config as config
 import mcdc.objects as objects
-import mcdc.src.physics as physics
+import mcdc.physics as physics
 
 ########################################################################################
 
@@ -1535,9 +1535,10 @@ def prepare():
 
     # Pick physics model
     if settings.multigroup_mode:
-        physics.particle_speed = physics.particle_speed_mg
-        physics.macro_xs = physics.macro_xs_mg
-        physics.production_xs = physics.production_xs_mg
+        physics.common.particle_speed = physics.multigroup.particle_speed
+        physics.common.macro_xs = physics.multigroup.macro_xs
+        physics.common.neutron_production_xs = physics.multigroup.neutron_production_xs
+        physics.common.collision = physics.multigroup.collision
 
     # Delete objects if running in Numba mode
     if not nb.config.DISABLE_JIT:

@@ -4,7 +4,6 @@ import mcdc.data_sampler as data_sampler
 import h5py, math, numba
 
 from mcdc.mcdc_get import reaction
-from mcdc.src import physics
 from mpi4py import MPI
 from numba import (
     int64,
@@ -14,6 +13,9 @@ from numba import (
     uint64,
 )
 
+####
+
+import mcdc.physics.common as physics
 import mcdc.adapt as adapt
 import mcdc.src.geometry as geometry
 import mcdc.src.mesh as mesh_
@@ -23,11 +25,11 @@ import mcdc.type_ as type_
 from mcdc.adapt import toggle, for_cpu, for_gpu
 from mcdc.constant import *
 from mcdc.print_ import print_error
-from mcdc.src.algorithm import (
+from mcdc.util import (
     binary_search,
     binary_search_with_length,
-    evaluate_from_table,
 )
+from mcdc.physics.util import sample_isotropic_direction
 
 
 @njit
@@ -725,21 +727,6 @@ def distribute_work_dd(N, mcdc, precursor=False):
 # =============================================================================
 # Random sampling
 # =============================================================================
-
-
-@njit
-def sample_isotropic_direction(P_arr):
-    P = P_arr[0]
-    # Sample polar cosine and azimuthal angle uniformly
-    mu = 2.0 * rng(P_arr) - 1.0
-    azi = 2.0 * PI * rng(P_arr)
-
-    # Convert to Cartesian coordinates
-    c = (1.0 - mu**2) ** 0.5
-    y = math.cos(azi) * c
-    z = math.sin(azi) * c
-    x = mu
-    return x, y, z
 
 
 @njit
@@ -2561,7 +2548,7 @@ def eigenvalue_tally(P_arr, distance, mcdc, data):
     flux = distance * P["w"]
 
     # Get nu-fission
-    nuSigmaF = physics.production_xs(
+    nuSigmaF = physics.neutron_production_xs(
         REACTION_NEUTRON_FISSION, material, P_arr, mcdc, data
     )
 
@@ -3009,34 +2996,6 @@ def sample_phasespace_scattering_nuclide(P_arr, nuclide, P_new_arr):
 
 
 @njit
-def scattering_MG(P_arr, material, P_new_arr, data):
-    P_new = P_new_arr[0]
-    P = P_arr[0]
-    # Sample scattering angle
-    mu0 = 2.0 * rng(P_new_arr) - 1.0
-
-    # Scatter direction
-    azi = 2.0 * PI * rng(P_new_arr)
-    P_new["ux"], P_new["uy"], P_new["uz"] = scatter_direction(
-        P["ux"], P["uy"], P["uz"], mu0, azi
-    )
-
-    # Get outgoing spectrum
-    g = P["g"]
-    G = material["G"]
-    chi_s = mcdc_get.material.mgxs_chi_s_vector(g, material, data)
-
-    # Sample outgoing energy
-    xi = rng(P_new_arr)
-    tot = 0.0
-    for g_out in range(G):
-        tot += chi_s[g_out]
-        if tot > xi:
-            break
-    P_new["g"] = g_out
-
-
-@njit
 def scattering_CE(P_arr, material, P_new_arr, mcdc, data):
     P_new = P_new_arr[0]
     P = P_arr[0]
@@ -3140,32 +3099,6 @@ def scattering_CE(P_arr, material, P_new_arr, mcdc, data):
     P_new["uz"] = vz / P_speed
 
 
-@njit
-def scatter_direction(ux, uy, uz, mu0, azi):
-    cos_azi = math.cos(azi)
-    sin_azi = math.sin(azi)
-    Ac = (1.0 - mu0**2) ** 0.5
-
-    if uz != 1.0:
-        B = (1.0 - uz**2) ** 0.5
-        C = Ac / B
-
-        ux_new = ux * mu0 + (ux * uz * cos_azi - uy * sin_azi) * C
-        uy_new = uy * mu0 + (uy * uz * cos_azi + ux * sin_azi) * C
-        uz_new = uz * mu0 - cos_azi * Ac * B
-
-    # If dir = 0i + 0j + k, interchange z and y in the scattering formula
-    else:
-        B = (1.0 - uy**2) ** 0.5
-        C = Ac / B
-
-        ux_new = ux * mu0 + (ux * uy * cos_azi - uz * sin_azi) * C
-        uz_new = uz * mu0 + (uz * uy * cos_azi + ux * sin_azi) * C
-        uy_new = uy * mu0 - cos_azi * Ac * B
-
-    return ux_new, uy_new, uz_new
-
-
 # =============================================================================
 # Fission
 # =============================================================================
@@ -3257,61 +3190,6 @@ def fission(P_arr, prog, data):
         else:
             # Particle will participate in the future
             adapt.add_future(P_new_arr, prog)
-
-
-@njit
-def sample_phasespace_fission(P_arr, material, P_new_arr, mcdc, data):
-    P_new = P_new_arr[0]
-    P = P_arr[0]
-    # Get constants
-    G = material["G"]
-    J = material["J"]
-    g = P["g"]
-    nu = mcdc_get.material.mgxs_nu_f(g, material, data)
-    nu_p = mcdc_get.material.mgxs_nu_p(g, material, data)
-    if J > 0:
-        nu_d = mcdc_get.material.mgxs_nu_d_vector(g, material, data)
-
-    # Copy relevant attributes
-    P_new["x"] = P["x"]
-    P_new["y"] = P["y"]
-    P_new["z"] = P["z"]
-    P_new["t"] = P["t"]
-
-    # Sample isotropic direction
-    P_new["ux"], P_new["uy"], P_new["uz"] = sample_isotropic_direction(P_new_arr)
-
-    # Prompt or delayed?
-    xi = rng(P_new_arr) * nu
-    tot = nu_p
-    if xi < tot:
-        prompt = True
-        spectrum = mcdc_get.material.mgxs_chi_p_vector(g, material, data)
-    else:
-        prompt = False
-
-        # Determine delayed group and nuclide-dependent decay constant and spectrum
-        for j in range(J):
-            tot += nu_d[j]
-            if xi < tot:
-                # Delayed group determined
-                spectrum = mcdc_get.material.mgxs_chi_d_vector(j, material, data)
-                decay = mcdc_get.material.mgxs_decay_rate(j, material, data)
-                break
-
-    # Sample outgoing energy
-    xi = rng(P_new_arr)
-    tot = 0.0
-    for g_out in range(G):
-        tot += spectrum[g_out]
-        if tot > xi:
-            break
-    P_new["g"] = g_out
-
-    # Sample emission time
-    if not prompt:
-        xi = rng(P_new_arr)
-        P_new["t"] -= math.log(xi) / decay
 
 
 @njit
@@ -3638,7 +3516,7 @@ def sample_nuclide(material, P_arr, reaction_type, mcdc, data):
     xi = rng(P_arr) * physics.macro_xs(reaction_type, material, P_arr, mcdc, data)
     total = 0.0
     for i in range(material["N_nuclide"]):
-        nuclide = mcdc_get.nuclide.from_material(i, material, mcdc, data)
+        nuclide = mcdc_get.material.nuclide(i, material, mcdc, data)
         atomic_density = mcdc_get.material.atomic_densities(i, material, data)
         xs = physics.reaction_xs(P["E"], reaction_type, nuclide, mcdc, data)
         total += atomic_density * xs

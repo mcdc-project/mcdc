@@ -4,7 +4,7 @@ from numba import njit, int64
 
 import mcdc.adapt as adapt
 import mcdc.src.mesh as mesh
-import mcdc.src.physics as physics
+import mcdc.physics.common as physics
 import mcdc.src.surface as surface_
 import mcdc.type_ as type_
 

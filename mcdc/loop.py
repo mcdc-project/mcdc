@@ -1,5 +1,5 @@
 import mcdc.mcdc_get as mcdc_get
-import mcdc.src.physics as physics
+import mcdc.physics.common as physics
 
 from mpi4py import MPI
 from numba import njit, objmode
@@ -605,17 +605,7 @@ def step_particle(P_arr, data_tally, prog, data):
         # Analog collision
         else:
             # Get collision type
-            physics.collision(P_arr, mcdc, data)
-
-            # Perform collision
-            if P["event"] & EVENT_CAPTURE:
-                P["alive"] = False
-
-            elif P["event"] & EVENT_SCATTERING:
-                kernel.scattering(P_arr, prog, data)
-
-            elif P["event"] & EVENT_FISSION:
-                kernel.fission(P_arr, prog, data)
+            physics.collision(P_arr, prog, data)
 
     # Surface and domain crossing
     if P["event"] & EVENT_SURFACE_CROSSING:

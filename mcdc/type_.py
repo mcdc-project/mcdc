@@ -210,8 +210,8 @@ def make_type_particle(input_deck):
         # Weight
         ("w", float64),
         # IDs
-        ("material_ID", int64),
         ("cell_ID", int64),
+        ("material_ID", int64),
         ("surface_ID", int64),
         # Misc.
         ("alive", bool_),

@@ -32,7 +32,7 @@ from mcdc.constant import (
     SURFACE_SPHERE,
     SURFACE_QUADRIC,
 )
-from mcdc.src.algorithm import binary_search_with_length
+from mcdc.util import binary_search_with_length
 
 
 @njit

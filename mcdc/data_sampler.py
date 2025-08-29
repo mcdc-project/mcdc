@@ -4,7 +4,7 @@ import math
 
 import mcdc.mcdc_get as mcdc_get
 
-from mcdc.src.algorithm import binary_search
+from mcdc.util import binary_search
 
 
 def sample_multipdf(x, xi1, xi2, multipdf, data):
