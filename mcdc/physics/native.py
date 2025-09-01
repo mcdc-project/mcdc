@@ -81,27 +81,12 @@ def micro_xs(E, reaction_type, nuclide, mcdc, data):
                 return linear_interpolation(E, E0, E1, xs0, xs1)
 
             elif reaction_type == REACTION_NEUTRON_FISSION:
-                reaction = mcdc["fission_reactions"][reaction_idx]
+                reaction = mcdc["neutron_fission_reactions"][reaction_idx]
                 xs0 = mcdc_get.reaction.xs(idx, reaction, data)
                 xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
                 return linear_interpolation(E, E0, E1, xs0, xs1)
 
     return 0.0
-
-
-@njit
-def neutron_production_xs_(reaction_type, material, particle_container, mcdc, data):
-    particle = particle_container[0]
-    E = particle["E"]
-
-    # Sum over all nuclides
-    total = 0.0
-    for i in range(material["N_nuclide"]):
-        nuclide = mcdc_get.nuclide.from_material(i, material, mcdc, data)
-        atomic_density = mcdc_get.material.atomic_densities(i, material, data)
-        nu_xs = reaction_production_xs(E, reaction_type, nuclide, mcdc, data)
-        total += atomic_density * nu_xs
-    return total
 
 
 # ======================================================================================

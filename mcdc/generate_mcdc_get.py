@@ -31,6 +31,20 @@ targets = {
     "reaction": [
         ("xs", 1),
     ],
+    "neutron_fission": [
+        ("delayed_yield_type", 1),
+        ("delayed_yield_index", 1),
+        ("delayed_spectrum_type", 1),
+        ("delayed_spectrum_index", 1),
+        ("delayed_decay_rates", 1),
+    ],
+    "table": [
+        ("x", 1),
+        ("y", 1),
+    ],
+    "polynomial": [
+        ("coefficients", 1),
+    ],
     "multipdf": [
         ("grid", 1),
         ("offset", 1),
@@ -39,6 +53,13 @@ targets = {
         ("cdf", 1),
     ],
 }
+
+
+def getter_1d_length(object_name, attribute_name):
+    text = f"@njit\n"
+    text += f"def {attribute_name}_length({object_name}):\n"
+    text += f'    return int({object_name}["{attribute_name}_length"])\n\n\n'
+    return text
 
 
 def getter_1d_element(object_name, attribute_name):
@@ -107,6 +128,7 @@ for object_name in targets:
                 continue
             attribute_dim = attribute[1]
             if attribute_dim == 1:
+                text += getter_1d_length(object_name, attribute_name)
                 text += getter_1d_all(object_name, attribute_name)
                 text += getter_1d_element(object_name, attribute_name)
             if attribute_dim == 2:

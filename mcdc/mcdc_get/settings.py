@@ -2,6 +2,11 @@ from numba import njit
 
 
 @njit
+def census_time_length(settings):
+    return int(settings["census_time_length"])
+
+
+@njit
 def census_time_all(settings, data):
     start = settings["census_time_offset"]
     end = start + settings["census_time_length"]

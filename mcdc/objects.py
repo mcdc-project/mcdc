@@ -57,6 +57,4 @@ def register_object(object_):
         object_list = object_
     if isinstance(object_, ObjectNonSingleton):
         object_.ID = len(object_list)
-        if isinstance(object_, ObjectPolymorphic):
-            object_.ID_numba = sum([x.type == object_.type for x in object_list])
         object_list.append(object_)

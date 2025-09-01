@@ -13,7 +13,6 @@ from mcdc.constant import (
 from mcdc.data_container import DataMaxwellian, DataMultiPDF, DataPolynomial, DataTable
 from mcdc.objects import ObjectPolymorphic, register_object
 from mcdc.prints import print_1d_array
-from mcdc.util import cdf_from_pdf
 
 
 class ReactionBase(ObjectPolymorphic):
@@ -168,6 +167,7 @@ class ReactionNeutronFission(ReactionBase):
             self.delayed_decay_rates[i] = (
                 1.0 / delayed_product["mean_emission_time"][()]
             )
+
 
     def __repr__(self):
         text = super().__repr__()

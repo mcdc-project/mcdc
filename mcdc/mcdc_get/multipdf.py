@@ -2,6 +2,11 @@ from numba import njit
 
 
 @njit
+def grid_length(multipdf):
+    return int(multipdf["grid_length"])
+
+
+@njit
 def grid_all(multipdf, data):
     start = multipdf["grid_offset"]
     end = start + multipdf["grid_length"]
@@ -19,6 +24,11 @@ def grid_chunk(start, size, multipdf, data):
     start += multipdf["grid_offset"]
     end = start + size
     return data[start:end]
+
+
+@njit
+def offset_length(multipdf):
+    return int(multipdf["offset_length"])
 
 
 @njit
@@ -42,6 +52,11 @@ def offset_chunk(start, size, multipdf, data):
 
 
 @njit
+def value_length(multipdf):
+    return int(multipdf["value_length"])
+
+
+@njit
 def value_all(multipdf, data):
     start = multipdf["value_offset"]
     end = start + multipdf["value_length"]
@@ -62,6 +77,11 @@ def value_chunk(start, size, multipdf, data):
 
 
 @njit
+def pdf_length(multipdf):
+    return int(multipdf["pdf_length"])
+
+
+@njit
 def pdf_all(multipdf, data):
     start = multipdf["pdf_offset"]
     end = start + multipdf["pdf_length"]
@@ -79,6 +99,11 @@ def pdf_chunk(start, size, multipdf, data):
     start += multipdf["pdf_offset"]
     end = start + size
     return data[start:end]
+
+
+@njit
+def cdf_length(multipdf):
+    return int(multipdf["cdf_length"])
 
 
 @njit

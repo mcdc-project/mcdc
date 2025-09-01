@@ -33,7 +33,7 @@ def numbafy_object(object_, structures, records, data):
         if (
             x[:2] != "__"
             and not callable(getattr(object_, x))
-            and x not in ["label", "numbafied", "ID", "type", "nuclide_composition"]
+            and x not in ["label", "numbafied", "ID", "type", "nuclide_composition", "ID_numba"]
         )
     ]
     for attribute_name in attribute_names:
@@ -116,6 +116,7 @@ def numbafy_object(object_, structures, records, data):
     if isinstance(object_, ObjectSingleton):
         records[object_.label] = record
     elif isinstance(object_, ObjectNonSingleton):
+        object_.ID_numba = len(records[object_.label])
         records[object_.label].append(record)
 
 

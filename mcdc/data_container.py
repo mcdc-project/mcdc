@@ -61,7 +61,7 @@ class DataMultiPDF(DataContainer):
         self.value = value
         self.pdf = pdf
 
-        self.cdf = cdf_from_pdf(offset, value, pdf)
+        self.pdf, self.cdf = cdf_from_pdf(offset, value, pdf)
 
     def __repr__(self):
         text = super().__repr__()

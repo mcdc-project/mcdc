@@ -2,6 +2,11 @@ from numba import njit
 
 
 @njit
+def atomic_densities_length(material):
+    return int(material["atomic_densities_length"])
+
+
+@njit
 def atomic_densities_all(material, data):
     start = material["atomic_densities_offset"]
     end = start + material["atomic_densities_length"]
@@ -19,6 +24,11 @@ def atomic_densities_chunk(start, size, material, data):
     start += material["atomic_densities_offset"]
     end = start + size
     return data[start:end]
+
+
+@njit
+def mgxs_speed_length(material):
+    return int(material["mgxs_speed_length"])
 
 
 @njit
@@ -42,6 +52,11 @@ def mgxs_speed_chunk(start, size, material, data):
 
 
 @njit
+def mgxs_decay_rate_length(material):
+    return int(material["mgxs_decay_rate_length"])
+
+
+@njit
 def mgxs_decay_rate_all(material, data):
     start = material["mgxs_decay_rate_offset"]
     end = start + material["mgxs_decay_rate_length"]
@@ -59,6 +74,11 @@ def mgxs_decay_rate_chunk(start, size, material, data):
     start += material["mgxs_decay_rate_offset"]
     end = start + size
     return data[start:end]
+
+
+@njit
+def mgxs_capture_length(material):
+    return int(material["mgxs_capture_length"])
 
 
 @njit
@@ -82,6 +102,11 @@ def mgxs_capture_chunk(start, size, material, data):
 
 
 @njit
+def mgxs_scatter_length(material):
+    return int(material["mgxs_scatter_length"])
+
+
+@njit
 def mgxs_scatter_all(material, data):
     start = material["mgxs_scatter_offset"]
     end = start + material["mgxs_scatter_length"]
@@ -99,6 +124,11 @@ def mgxs_scatter_chunk(start, size, material, data):
     start += material["mgxs_scatter_offset"]
     end = start + size
     return data[start:end]
+
+
+@njit
+def mgxs_fission_length(material):
+    return int(material["mgxs_fission_length"])
 
 
 @njit
@@ -122,6 +152,11 @@ def mgxs_fission_chunk(start, size, material, data):
 
 
 @njit
+def mgxs_total_length(material):
+    return int(material["mgxs_total_length"])
+
+
+@njit
 def mgxs_total_all(material, data):
     start = material["mgxs_total_offset"]
     end = start + material["mgxs_total_length"]
@@ -142,6 +177,11 @@ def mgxs_total_chunk(start, size, material, data):
 
 
 @njit
+def mgxs_nu_s_length(material):
+    return int(material["mgxs_nu_s_length"])
+
+
+@njit
 def mgxs_nu_s_all(material, data):
     start = material["mgxs_nu_s_offset"]
     end = start + material["mgxs_nu_s_length"]
@@ -159,6 +199,11 @@ def mgxs_nu_s_chunk(start, size, material, data):
     start += material["mgxs_nu_s_offset"]
     end = start + size
     return data[start:end]
+
+
+@njit
+def mgxs_nu_p_length(material):
+    return int(material["mgxs_nu_p_length"])
 
 
 @njit
@@ -205,6 +250,11 @@ def mgxs_nu_d_chunk(start, size, material, data):
 
 
 @njit
+def mgxs_nu_d_total_length(material):
+    return int(material["mgxs_nu_d_total_length"])
+
+
+@njit
 def mgxs_nu_d_total_all(material, data):
     start = material["mgxs_nu_d_total_offset"]
     end = start + material["mgxs_nu_d_total_length"]
@@ -222,6 +272,11 @@ def mgxs_nu_d_total_chunk(start, size, material, data):
     start += material["mgxs_nu_d_total_offset"]
     end = start + size
     return data[start:end]
+
+
+@njit
+def mgxs_nu_f_length(material):
+    return int(material["mgxs_nu_f_length"])
 
 
 @njit

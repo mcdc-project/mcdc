@@ -9,6 +9,11 @@ def from_material(index, material, mcdc, data):
 
 
 @njit
+def xs_energy_grid_length(nuclide):
+    return int(nuclide["xs_energy_grid_length"])
+
+
+@njit
 def xs_energy_grid_all(nuclide, data):
     start = nuclide["xs_energy_grid_offset"]
     end = start + nuclide["xs_energy_grid_length"]
@@ -26,6 +31,11 @@ def xs_energy_grid_chunk(start, size, nuclide, data):
     start += nuclide["xs_energy_grid_offset"]
     end = start + size
     return data[start:end]
+
+
+@njit
+def total_xs_length(nuclide):
+    return int(nuclide["total_xs_length"])
 
 
 @njit
@@ -49,6 +59,11 @@ def total_xs_chunk(start, size, nuclide, data):
 
 
 @njit
+def reaction_type_length(nuclide):
+    return int(nuclide["reaction_type_length"])
+
+
+@njit
 def reaction_type_all(nuclide, data):
     start = nuclide["reaction_type_offset"]
     end = start + nuclide["reaction_type_length"]
@@ -66,6 +81,11 @@ def reaction_type_chunk(start, size, nuclide, data):
     start += nuclide["reaction_type_offset"]
     end = start + size
     return data[start:end]
+
+
+@njit
+def reaction_index_length(nuclide):
+    return int(nuclide["reaction_index_length"])
 
 
 @njit

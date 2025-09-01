@@ -2,6 +2,11 @@ from numba import njit
 
 
 @njit
+def xs_length(reaction):
+    return int(reaction["xs_length"])
+
+
+@njit
 def xs_all(reaction, data):
     start = reaction["xs_offset"]
     end = start + reaction["xs_length"]

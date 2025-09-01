@@ -1,15 +1,18 @@
 import math
+import numpy as np
 
 from numba import njit
 
 ####
 
 import mcdc.adapt as adapt
-import mcdc.data_sampler as data_sampler
+import mcdc.data_processor as data_processor
 import mcdc.kernel as kernel
+import mcdc.mcdc_get as mcdc_get
 import mcdc.physics.native as physics
+import mcdc.type_ as type_
 
-from mcdc.constant import E_THERMAL_THRESHOLD, PI, PI_HALF, PI_SQRT, SQRD_SPEED_TO_E
+from mcdc.constant import DATA_MAXWELLIAN, DATA_MULTIPDF, DATA_POLYNOMIAL, DATA_TABLE, E_THERMAL_THRESHOLD, PI, PI_HALF, PI_SQRT, SQRD_SPEED_TO_E
 from mcdc.physics.util import scatter_direction, sample_isotropic_direction
 
 
@@ -68,16 +71,9 @@ def elastic_scattering(particle_container, nuclide, reaction, prog, data):
     uy = vy / particle_speed
     uz = vz / particle_speed
 
-    # ==================================================================================
-    # Sample scattering cosine
-    # ==================================================================================
-
     # Sample the scattering cosine from the multi-PDF distribution
-    data_idx = reaction["mu_index"]
-    multipdf = mcdc["data_multipdfs"][data_idx]
-    xi1 = kernel.rng(particle_container)
-    xi2 = kernel.rng(particle_container)
-    mu0 = data_sampler.sample_multipdf(E, xi1, xi2, multipdf, data)
+    index = reaction["mu_index"]
+    mu0 = data_processor.sample_distribution(E, DATA_MULTIPDF, index, particle_container, mcdc, data)
 
     # Scatter the direction in COM
     azi = 2.0 * PI * kernel.rng(particle_container)
@@ -165,9 +161,15 @@ def sample_nucleus_velocity(A, particle_container, mcdc, data):
 
 
 @njit
-def fission(particle_container, prog, data):
-    particle = particle_container[0]
+def fission(particle_container, nuclide, reaction, prog, data):
     mcdc = adapt.mcdc_global(prog)
+
+    # Particle attributes
+    particle = particle_container[0]
+    E = particle['E']
+
+    # Nuclide properties
+    N_delayed = reaction['N_delayed']
 
     # Kill the current particle
     particle["alive"] = False
@@ -180,38 +182,61 @@ def fission(particle_container, prog, data):
         weight_eff = 1.0
         weight_new = particle["w"]
 
-    # Sample nuclide if CE
-    material = mcdc["materials"][particle["material_ID"]]
+    # Fission yields
+    nu_p = fission_yield_prompt(E, reaction, mcdc, data)
+    nu_d = np.zeros(N_delayed)
+    nu_d_total = 0.0
+    for j in range(N_delayed):
+        nu_d[j] = fission_yield_delayed(E, j, reaction, mcdc, data)
+        nu_d_total += nu_d[j]
+    nu = nu_p + nu_d_total
 
-    # Get number of secondaries
-    if mcdc["settings"]["multigroup_mode"]:
-        g = particle["g"]
-        nu = mcdc_get.material.mgxs_nu_f(g, material, data)
-    else:
-        nuclide = sample_nuclide(material, particle_container, XS_FISSION, mcdc)
-        E = particle["E"]
-        nu = get_nu(NU_FISSION, nuclide, E)
-    N = int(math.floor(weight_eff * nu / mcdc["k_eff"] + rng(particle_container)))
+    # Number of fission neutrons
+    N = int(math.floor(weight_eff * nu / mcdc["k_eff"] + kernel.rng(particle_container)))
 
+    # Set up secondary partice container
     particle_container_new = adapt.local_array(1, type_.particle_record)
     particle_new = particle_container_new[0]
 
+    # Create the secondaries
     for n in range(N):
-        # Create new particle
-        split_as_record(particle_container_new, particle_container)
+        # Set default attributes
+        kernel.split_as_record(particle_container_new, particle_container)
 
         # Set weight
         particle_new["w"] = weight_new
 
-        # Sample fission neutron phase space
-        if mcdc["settings"]["multigroup_mode"]:
-            sample_phasespace_fission(
-                particle_container, material, particle_container_new, mcdc, data
-            )
+        # Sample isotropic direction
+        ux_new, uy_new, uz_new = sample_isotropic_direction(particle_container_new)
+        particle_new["ux"] = ux_new
+        particle_new["uy"] = uy_new
+        particle_new["uz"] = uz_new
+
+        # Prompt or delayed?
+        prompt = True
+        delayed_group = -1
+        xi = kernel.rng(particle_container_new) * nu
+        total = nu_p
+        if xi > total:
+            prompt = False
+            # Determine delayed group
+            for j in range(N_delayed):
+                total += nu_d[j]
+                if xi < total:
+                    delayed_group = j
+                    break
+
+        # Sample outgoing energy
+        if prompt:
+            particle_new['E'] = sample_fission_spectrum_prompt(E, reaction, particle_container_new, mcdc, data)
         else:
-            sample_phasespace_fission_nuclide(
-                particle_container, nuclide, particle_container_new, mcdc
-            )
+            particle_new['E'] = sample_fission_spectrum_delayed(E, delayed_group, reaction, particle_container_new, mcdc, data)
+        
+        # Sample emission time
+        decay = mcdc_get.neutron_fission.delayed_decay_rates(delayed_group, reaction, data)
+        if not prompt:
+            xi = kernel.rng(particle_container_new)
+            particle_new["t"] -= math.log(xi) / decay
 
         # Eigenvalue mode: bank right away
         if mcdc["settings"]["eigenvalue_mode"]:
@@ -258,3 +283,31 @@ def fission(particle_container, prog, data):
         else:
             # Particle will participate in the future
             adapt.add_future(particle_container_new, prog)
+   
+
+@njit 
+def fission_yield_prompt(E, reaction, mcdc, data):
+    data_type = reaction["prompt_yield_type"]
+    index = reaction["prompt_yield_index"]
+    return data_processor.evaluate_data(E, data_type, index, mcdc, data)
+
+
+@njit 
+def fission_yield_delayed(E, group, reaction, mcdc, data):
+    data_type = int(mcdc_get.neutron_fission.delayed_yield_type(group, reaction, data))
+    index = int(mcdc_get.neutron_fission.delayed_yield_index(group, reaction, data))
+    return data_processor.evaluate_data(E, data_type, index, mcdc, data)
+
+
+@njit 
+def sample_fission_spectrum_prompt(E, reaction, rng_state, mcdc, data):
+    data_type = int(reaction["prompt_spectrum_type"])
+    index = int(reaction["prompt_spectrum_index"])
+    return data_processor.sample_distribution(E, data_type, index, rng_state, mcdc, data, True)
+
+
+@njit 
+def sample_fission_spectrum_delayed(E, group, reaction, rng_state, mcdc, data):
+    data_type = int(mcdc_get.neutron_fission.delayed_spectrum_type(group, reaction, data))
+    index = int(mcdc_get.neutron_fission.delayed_spectrum_index(group, reaction, data))
+    return data_processor.sample_distribution(E, data_type, index, rng_state, mcdc, data, True)
