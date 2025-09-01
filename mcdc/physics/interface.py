@@ -5,7 +5,7 @@ from numba import njit
 ###
 
 import mcdc.kernel as kernel
-import mcdc.physics.analog as analog
+import mcdc.physics.native as native
 import mcdc.mcdc_get as mcdc_get
 
 from mcdc.constant import *
@@ -19,7 +19,7 @@ from mcdc.util import binary_search, linear_interpolation
 
 @njit
 def particle_speed(particle_container, material, data):
-    return analog.particle_speed(particle_container)
+    return native.particle_speed(particle_container)
 
 
 # ======================================================================================
@@ -29,12 +29,12 @@ def particle_speed(particle_container, material, data):
 
 @njit
 def macro_xs(reaction_type, material, particle_container, mcdc, data):
-    return analog.macro_xs(reaction_type, material, particle_container, mcdc, data)
+    return native.macro_xs(reaction_type, material, particle_container, mcdc, data)
 
 
 @njit
 def neutron_production_xs(reaction_type, material, particle_container, mcdc, data):
-    return analog.neutron_production_xs(
+    return native.neutron_production_xs(
         reaction_type, material, particle_container, mcdc, data
     )
 
@@ -61,7 +61,7 @@ def collision_distance(particle_container, material, mcdc, data):
 
 @njit
 def collision(particle_container, prog, data):
-    analog.collision(particle_container, prog, data)
+    native.collision(particle_container, prog, data)
 
 
 # ======================================================================================

@@ -7,7 +7,7 @@ from numba import njit
 import mcdc.adapt as adapt
 import mcdc.data_sampler as data_sampler
 import mcdc.kernel as kernel
-import mcdc.physics.analog as physics
+import mcdc.physics.native as physics
 
 from mcdc.constant import E_THERMAL_THRESHOLD, PI, PI_HALF, PI_SQRT, SQRD_SPEED_TO_E
 from mcdc.physics.util import scatter_direction, sample_isotropic_direction
