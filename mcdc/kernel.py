@@ -1,12 +1,10 @@
 import mcdc.mcdc_get as mcdc_get
 import mcdc.data_sampler as data_sampler
 
-import h5py, math, numba
+import h5py, math
 
-from mcdc.mcdc_get import reaction
 from mpi4py import MPI
 from numba import (
-    int64,
     literal_unroll,
     njit,
     objmode,
@@ -15,11 +13,11 @@ from numba import (
 
 ####
 
-import mcdc.physics.common as physics
+import mcdc.physics.interface as physics
+import mcdc.geometry.common as geometry
+
 import mcdc.adapt as adapt
-import mcdc.src.geometry as geometry
 import mcdc.src.mesh as mesh_
-import mcdc.src.surface as surface_
 import mcdc.type_ as type_
 
 from mcdc.adapt import toggle, for_cpu, for_gpu
@@ -2039,7 +2037,7 @@ def score_surface_tally(P_arr, surface, tally, data_tally, mcdc):
 
     # Flux
     speed = physics.particle_speed(P_arr, material, data)
-    mu = surface_.get_normal_component(P_arr, speed, surface)
+    mu = geometry.surface.get_normal_component(P_arr, speed, surface)
     flux = P["w"] / abs(mu)
 
     # Score
@@ -2879,36 +2877,6 @@ def move_to_event(P_arr, data_tally, mcdc, data):
 
     # Move particle
     move_particle(P_arr, distance, material, data)
-
-
-# =============================================================================
-# Surface crossing
-# =============================================================================
-
-
-@njit
-def surface_crossing(P_arr, data_tally, prog):
-    P = P_arr[0]
-    mcdc = adapt.mcdc_global(prog)
-
-    # Apply BC
-    surface = mcdc["surfaces"][P["surface_ID"]]
-    if surface["BC"] == BC_VACUUM:
-        P["alive"] = False
-    elif surface["BC"] == BC_REFLECTIVE:
-        surface_.reflect(P_arr, surface)
-
-    # Score tally
-    # N_tally is an int64, tally_IDs is a numpy.ndarray
-    for i in range(surface["N_tally"]):
-        ID = surface["tally_IDs"][i]
-        tally = mcdc["surface_tallies"][ID]
-        score_surface_tally(P_arr, surface, tally, data_tally, mcdc)
-
-    # Need to check new cell later?
-    if P["alive"] and not surface["BC"] == BC_REFLECTIVE:
-        P["cell_ID"] = -1
-        P["material_ID"] = -1
 
 
 # =============================================================================

@@ -43,7 +43,7 @@ from mcdc.loop import (
     loop_eigenvalue,
     build_gpu_progs,
 )
-import mcdc.src.geometry as geometry
+import mcdc.geometry as geometry
 
 import mcdc.loop as loop
 
@@ -1535,10 +1535,10 @@ def prepare():
 
     # Pick physics model
     if settings.multigroup_mode:
-        physics.common.particle_speed = physics.multigroup.particle_speed
-        physics.common.macro_xs = physics.multigroup.macro_xs
-        physics.common.neutron_production_xs = physics.multigroup.neutron_production_xs
-        physics.common.collision = physics.multigroup.collision
+        physics.interface.particle_speed = physics.multigroup.particle_speed
+        physics.interface.macro_xs = physics.multigroup.macro_xs
+        physics.interface.neutron_production_xs = physics.multigroup.neutron_production_xs
+        physics.interface.collision = physics.multigroup.collision
 
     # Delete objects if running in Numba mode
     if not nb.config.DISABLE_JIT:

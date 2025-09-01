@@ -7,7 +7,6 @@ from numba import njit
 import mcdc.kernel as kernel
 import mcdc.physics.analog as analog
 import mcdc.mcdc_get as mcdc_get
-import mcdc.adapt as adapt
 
 from mcdc.constant import *
 from mcdc.util import binary_search, linear_interpolation

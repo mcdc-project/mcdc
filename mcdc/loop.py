@@ -1,12 +1,12 @@
 import mcdc.mcdc_get as mcdc_get
-import mcdc.physics.common as physics
+import mcdc.physics.interface as physics
 
 from mpi4py import MPI
 from numba import njit, objmode
 
 import mcdc.config as config
 import mcdc.adapt as adapt
-import mcdc.src.geometry as geometry
+import mcdc.geometry.common as geometry
 import mcdc.kernel as kernel
 import mcdc.print_ as print_module
 import mcdc.type_ as type_
@@ -609,7 +609,7 @@ def step_particle(P_arr, data_tally, prog, data):
 
     # Surface and domain crossing
     if P["event"] & EVENT_SURFACE_CROSSING:
-        kernel.surface_crossing(P_arr, data_tally, prog)
+        geometry.surface_crossing(P_arr, data_tally, prog)
         if P["event"] & EVENT_DOMAIN_CROSSING:
             if mcdc["surfaces"][P["surface_ID"]]["BC"] == BC_NONE:
                 kernel.domain_crossing(P_arr, prog)

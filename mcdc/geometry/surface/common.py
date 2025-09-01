@@ -7,15 +7,15 @@ import math
 
 from numba import njit
 
-import mcdc.src.surface.plane_x as plane_x
-import mcdc.src.surface.plane_y as plane_y
-import mcdc.src.surface.plane_z as plane_z
-import mcdc.src.surface.plane as plane
-import mcdc.src.surface.cylinder_x as cylinder_x
-import mcdc.src.surface.cylinder_y as cylinder_y
-import mcdc.src.surface.cylinder_z as cylinder_z
-import mcdc.src.surface.sphere as sphere
-import mcdc.src.surface.quadric as quadric
+import mcdc.geometry.surface.plane_x as plane_x
+import mcdc.geometry.surface.plane_y as plane_y
+import mcdc.geometry.surface.plane_z as plane_z
+import mcdc.geometry.surface.plane as plane
+import mcdc.geometry.surface.cylinder_x as cylinder_x
+import mcdc.geometry.surface.cylinder_y as cylinder_y
+import mcdc.geometry.surface.cylinder_z as cylinder_z
+import mcdc.geometry.surface.sphere as sphere
+import mcdc.geometry.surface.quadric as quadric
 
 from mcdc.constant import (
     COINCIDENCE_TOLERANCE,

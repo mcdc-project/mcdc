@@ -1,15 +1,17 @@
 import math
 
-from numba import njit, int64
+from numba import njit
+
+####
 
 import mcdc.adapt as adapt
 import mcdc.src.mesh as mesh
-import mcdc.physics.common as physics
-import mcdc.src.surface as surface_
+import mcdc.physics.interface as physics
 import mcdc.type_ as type_
 
 from mcdc.adapt import for_cpu, for_gpu
 from mcdc.constant import *
+from mcdc.geometry.surface import check_sense, get_distance
 
 
 # ======================================================================================
@@ -378,7 +380,7 @@ def check_cell(particle_container, cell, mcdc, data):
 
         if token >= 0:
             surface = mcdc["surfaces"][token]
-            value[N_value] = surface_.check_sense(particle_container, speed, surface)
+            value[N_value] = check_sense(particle_container, speed, surface)
             N_value += 1
 
         elif token == BOOL_NOT:
@@ -446,12 +448,37 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
     while idx < idx_end:
         candidate_surface_ID = mcdc["cells_data_surface"][idx]
         surface = mcdc["surfaces"][candidate_surface_ID]
-        d = surface_.get_distance(particle_container, speed, surface)
+        d = get_distance(particle_container, speed, surface)
         if d < distance:
             distance = d
             surface_ID = surface["ID"]
         idx += 1
     return distance, surface_ID
+
+
+@njit
+def surface_crossing(P_arr, data_tally, prog):
+    P = P_arr[0]
+    mcdc = adapt.mcdc_global(prog)
+
+    # Apply BC
+    surface = mcdc["surfaces"][P["surface_ID"]]
+    if surface["BC"] == BC_VACUUM:
+        P["alive"] = False
+    elif surface["BC"] == BC_REFLECTIVE:
+        surface_.reflect(P_arr, surface)
+
+    # Score tally
+    # N_tally is an int64, tally_IDs is a numpy.ndarray
+    for i in range(surface["N_tally"]):
+        ID = surface["tally_IDs"][i]
+        tally = mcdc["surface_tallies"][ID]
+        score_surface_tally(P_arr, surface, tally, data_tally, mcdc)
+
+    # Need to check new cell later?
+    if P["alive"] and not surface["BC"] == BC_REFLECTIVE:
+        P["cell_ID"] = -1
+        P["material_ID"] = -1
 
 
 # ======================================================================================
