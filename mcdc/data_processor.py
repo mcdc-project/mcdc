@@ -72,7 +72,7 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
     idx = binary_search(x, grid)
     x0 = grid[idx]
     x1 = grid[idx + 1]
-    f = (x - x0) - (x1 - x0)
+    f = (x - x0) / (x1 - x0)
 
     # Min and max values for scaling
     val_min = 0.0
