@@ -152,7 +152,9 @@ def collision(particle_container, prog, data):
             particle["alive"] = False
         elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
             reaction = mcdc["neutron_elastic_scattering_reactions"][reaction_idx]
-            neutron_reaction.elastic_scattering(particle_container, nuclide, reaction, prog, data)
+            neutron_reaction.elastic_scattering(
+                particle_container, nuclide, reaction, prog, data
+            )
         elif reaction_type == REACTION_NEUTRON_FISSION:
             reaction = mcdc["neutron_fission_reactions"][reaction_idx]
             neutron_reaction.fission(particle_container, nuclide, reaction, prog, data)

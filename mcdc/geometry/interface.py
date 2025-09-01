@@ -381,9 +381,7 @@ def check_cell(particle_container, cell, mcdc, data):
 
         if token >= 0:
             surface = mcdc["surfaces"][token]
-            value[N_value] = check_sense(
-                particle_container, speed, surface
-            )
+            value[N_value] = check_sense(particle_container, speed, surface)
             N_value += 1
 
         elif token == BOOL_NOT:

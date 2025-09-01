@@ -21,14 +21,14 @@ from mcdc.physics.util import scatter_direction, sample_isotropic_direction
 @njit
 def elastic_scattering(particle_container, nuclide, reaction, prog, data):
     mcdc = adapt.mcdc_global(prog)
-    
+
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
-   
+
     # Sample nucleus thermal velocity
     A = nuclide["atomic_weight_ratio"]
     if E > E_THERMAL_THRESHOLD:
@@ -99,7 +99,7 @@ def elastic_scattering(particle_container, nuclide, reaction, prog, data):
 
     # Final energy - LAB
     particle_speed = math.sqrt(vx * vx + vy * vy + vz * vz)
-    particle['E'] = SQRD_SPEED_TO_E * particle_speed * particle_speed
+    particle["E"] = SQRD_SPEED_TO_E * particle_speed * particle_speed
 
     # Final direction - LAB
     particle["ux"] = vx / particle_speed
@@ -141,7 +141,9 @@ def sample_nucleus_velocity(A, particle_container, mcdc, data):
 
         # Accept candidate V_tilda and mu_tilda?
         if kernel.rng(particle_container) > math.sqrt(
-            particle_speed * particle_speed + V_tilda * V_tilda - 2.0 * particle_speed * V_tilda * mu_tilda
+            particle_speed * particle_speed
+            + V_tilda * V_tilda
+            - 2.0 * particle_speed * V_tilda * mu_tilda
         ) / (particle_speed + V_tilda):
             break
 
@@ -203,9 +205,13 @@ def fission(particle_container, prog, data):
 
         # Sample fission neutron phase space
         if mcdc["settings"]["multigroup_mode"]:
-            sample_phasespace_fission(particle_container, material, particle_container_new, mcdc, data)
+            sample_phasespace_fission(
+                particle_container, material, particle_container_new, mcdc, data
+            )
         else:
-            sample_phasespace_fission_nuclide(particle_container, nuclide, particle_container_new, mcdc)
+            sample_phasespace_fission_nuclide(
+                particle_container, nuclide, particle_container_new, mcdc
+            )
 
         # Eigenvalue mode: bank right away
         if mcdc["settings"]["eigenvalue_mode"]:
@@ -223,10 +229,14 @@ def fission(particle_container, prog, data):
         idx_census = mcdc["idx_census"]
         if idx_census < mcdc["settings"]["N_census"] - 1:
             settings = mcdc["settings"]
-            if particle["t"] > mcdc_get.settings.census_time(idx_census + 1, settings, data):
+            if particle["t"] > mcdc_get.settings.census_time(
+                idx_census + 1, settings, data
+            ):
                 hit_census = True
                 hit_next_census = True
-            elif particle_new["t"] > mcdc_get.settings.census_time(idx_census, settings, data):
+            elif particle_new["t"] > mcdc_get.settings.census_time(
+                idx_census, settings, data
+            ):
                 hit_census = True
 
         if not hit_census:

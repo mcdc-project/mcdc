@@ -1537,7 +1537,9 @@ def prepare():
     if settings.multigroup_mode:
         physics.interface.particle_speed = physics.multigroup.particle_speed
         physics.interface.macro_xs = physics.multigroup.macro_xs
-        physics.interface.neutron_production_xs = physics.multigroup.neutron_production_xs
+        physics.interface.neutron_production_xs = (
+            physics.multigroup.neutron_production_xs
+        )
         physics.interface.collision = physics.multigroup.collision
 
     # Delete objects if running in Numba mode
