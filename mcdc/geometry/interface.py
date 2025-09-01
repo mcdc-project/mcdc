@@ -4,6 +4,8 @@ from numba import njit
 
 ####
 
+from mcdc.geometry.surface.interface import get_distance, check_sense, reflect
+
 import mcdc.adapt as adapt
 import mcdc.src.mesh as mesh
 import mcdc.physics.interface as physics
@@ -11,7 +13,6 @@ import mcdc.type_ as type_
 
 from mcdc.adapt import for_cpu, for_gpu
 from mcdc.constant import *
-from mcdc.geometry.surface import check_sense, get_distance
 
 
 # ======================================================================================
@@ -380,7 +381,9 @@ def check_cell(particle_container, cell, mcdc, data):
 
         if token >= 0:
             surface = mcdc["surfaces"][token]
-            value[N_value] = check_sense(particle_container, speed, surface)
+            value[N_value] = check_sense(
+                particle_container, speed, surface
+            )
             N_value += 1
 
         elif token == BOOL_NOT:
@@ -466,7 +469,7 @@ def surface_crossing(P_arr, data_tally, prog):
     if surface["BC"] == BC_VACUUM:
         P["alive"] = False
     elif surface["BC"] == BC_REFLECTIVE:
-        surface_.reflect(P_arr, surface)
+        reflect(P_arr, surface)
 
     # Score tally
     # N_tally is an int64, tally_IDs is a numpy.ndarray

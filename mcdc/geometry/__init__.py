@@ -1,1 +1,1 @@
-import mcdc.geometry.common as common
+import mcdc.geometry.interface as interface

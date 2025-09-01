@@ -106,62 +106,6 @@ def reaction_production_xs(E, reaction_type, nuclide, mcdc, data):
 
 
 # ======================================================================================
-# Sample nuclide speed
-# ======================================================================================
-
-
-@njit
-def sample_nucleus_speed(A, particle_container, mcdc, data):
-    particle = particle_container[0]
-    material = mcdc["materials"][particle["material_ID"]]
-
-    # Particle speed
-    P_speed = particle_speed(particle_container, material, data)
-
-    # Maxwellian parameter
-    beta = math.sqrt(2.0659834e-11 * A)
-    # The constant above is
-    #   (1.674927471e-27 kg) / (1.38064852e-19 cm^2 kg s^-2 K^-1) / (293.6 K)/2
-
-    # Sample nuclide speed candidate V_tilda and
-    #   nuclide-neutron polar cosine candidate mu_tilda via
-    #   rejection sampling
-    y = beta * P_speed
-    while True:
-        if kernel.rng(particle_container) < 2.0 / (2.0 + PI_SQRT * y):
-            x = math.sqrt(
-                -math.log(
-                    kernel.rng(particle_container) * kernel.rng(particle_container)
-                )
-            )
-        else:
-            cos_val = math.cos(PI_HALF * kernel.rng(particle_container))
-            x = math.sqrt(
-                -math.log(kernel.rng(particle_container))
-                - math.log(kernel.rng(particle_container)) * cos_val * cos_val
-            )
-        V_tilda = x / beta
-        mu_tilda = 2.0 * kernel.rng(particle_container) - 1.0
-
-        # Accept candidate V_tilda and mu_tilda?
-        if kernel.rng(particle_container) > math.sqrt(
-            P_speed * P_speed + V_tilda * V_tilda - 2.0 * P_speed * V_tilda * mu_tilda
-        ) / (P_speed + V_tilda):
-            break
-
-    # Set nuclide velocity - LAB
-    azi = 2.0 * PI * kernel.rng(particle_container)
-    ux, uy, uz = kernel.scatter_direction(
-        particle["ux"], particle["uy"], particle["uz"], mu_tilda, azi
-    )
-    Vx = ux * V_tilda
-    Vy = uy * V_tilda
-    Vz = uz * V_tilda
-
-    return Vx, Vy, Vz
-
-
-# ======================================================================================
 # helper functions
 # ======================================================================================
 
