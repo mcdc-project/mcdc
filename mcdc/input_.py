@@ -1926,6 +1926,7 @@ def make_particle_bank(size):
         ("g", np.uint64),
         ("E", np.float64),
         ("w", np.float64),
+        ("type", np.int64),
         ("rng_seed", np.uint64),
     ]
     iqmc_struct = [("w", np.float64, (1,))]

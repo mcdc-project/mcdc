@@ -24,6 +24,7 @@ if MPI.COMM_WORLD.Get_rank() == 0:
         particle["uy"] = 0.0
         particle["uz"] = 0.0
         particle["E"] = 1e6  # Arbitrary
+        particle["type"] = 0
 
     mcdc.save_particle_bank(bank, "source_particles")
 MPI.COMM_WORLD.Barrier()
