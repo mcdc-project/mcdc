@@ -6,6 +6,7 @@ from mcdc.constant import (
     BOOL_OR,
     BOOL_NOT,
     INF,
+    PARTICLE_NEUTRON,
     PI,
 )
 
@@ -363,6 +364,7 @@ class SourceCard(InputCard):
         self.group = np.array([1.0])
         self.energy = np.array([[1e6 - 1.0, 1e6 + 1.0], [1.0, 1.0]])
         self.time = np.array([0.0, 0.0])
+        self.particle_type = PARTICLE_NEUTRON
         self.prob = 1.0
 
 

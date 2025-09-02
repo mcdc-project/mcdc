@@ -209,6 +209,8 @@ def make_type_particle(input_deck):
         ("E", float64),
         # Weight
         ("w", float64),
+        # Type
+        ("type", int64),
         # IDs
         ("cell_ID", int64),
         ("material_ID", int64),
@@ -255,6 +257,7 @@ def make_type_particle_record(input_deck):
         ("g", int64),
         ("E", float64),
         ("w", float64),
+        ("type", int64),
         ("rng_seed", uint64),
     ]
 
@@ -486,6 +489,7 @@ def make_type_source(input_deck):
         ("white_y", float64),
         ("white_z", float64),
         ("time", float64, (2,)),
+        ("particle_type", int64),
         ("prob", float64),
     ]
 

@@ -38,6 +38,8 @@ from mcdc.constant import (
     GYRATION_RADIUS_ONLY_Y,
     GYRATION_RADIUS_ONLY_Z,
     INF,
+    PARTICLE_ELECTRON,
+    PARTICLE_NEUTRON,
     PCT_NONE,
     PCT_COMBING,
     PCT_COMBING_WEIGHT,
@@ -840,6 +842,8 @@ def source(**kw):
         [CE] 2D array of piecewise linear pdf [eV, value].
     time : array_like
         [t_min and t_max] in/at which source is emitted.
+    particle_type : str
+        Particle type, {'neutron', 'electron'}
     prob : float
         Relative probability (or strength) of the source.
 
@@ -863,6 +867,7 @@ def source(**kw):
                 "white_direction",
                 "energy",
                 "time",
+                'particle_type',
                 "prob",
             ],
             False,
@@ -878,6 +883,7 @@ def source(**kw):
     white = kw.get("white_direction")
     energy = kw.get("energy")
     time = kw.get("time")
+    particle_type = kw.get("particle_type")
     prob = kw.get("prob")
 
     # Make source card
@@ -962,6 +968,13 @@ def source(**kw):
     # Set time
     if time is not None:
         card.time = np.array(time)
+
+    # Set particle type
+    if particle_type is not None:
+        if particle_type == "neutron":
+            card.particle_type = PARTICLE_NEUTRON
+        elif particle_type == "electron":
+            card.particle_type = PARTICLE_ELECTRON
 
     # Set probability
     if prob is not None:

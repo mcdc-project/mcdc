@@ -941,6 +941,7 @@ def source_particle(P_rec_arr, seed, mcdc):
     P_rec["g"] = g
     P_rec["E"] = E
     P_rec["w"] = 1.0
+    P_rec["type"] = source["particle_type"]
 
 
 # =============================================================================
@@ -1012,6 +1013,7 @@ def get_particle(P_arr, bank, mcdc):
     P["g"] = P_rec["g"]
     P["E"] = P_rec["E"]
     P["w"] = P_rec["w"]
+    P["type"] = P_rec["type"]
     P["rng_seed"] = P_rec["rng_seed"]
 
     if mcdc["technique"]["iQMC"]:
@@ -1748,6 +1750,7 @@ def copy_recordlike(P_new_arr, P_rec_arr):
     P_new["g"] = P_rec["g"]
     P_new["E"] = P_rec["E"]
     P_new["w"] = P_rec["w"]
+    P_new["type"] = P_rec["type"]
     P_new["rng_seed"] = P_rec["rng_seed"]
     P_new["iqmc"]["w"] = P_rec["iqmc"]["w"]
 
@@ -1766,6 +1769,7 @@ def copy_particle(P_new_arr, P_arr):
     P_new["uz"] = P["uz"]
     P_new["g"] = P["g"]
     P_new["w"] = P["w"]
+    P_new["type"] = P["type"]
     P_new["alive"] = P["alive"]
     P_new["fresh"] = P["fresh"]
     P_new["material_ID"] = P["material_ID"]
