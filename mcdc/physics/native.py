@@ -89,6 +89,42 @@ def micro_xs(E, reaction_type, nuclide, mcdc, data):
     return 0.0
 
 
+@njit
+def neutron_production_xs(reaction_type, material, particle_container, mcdc, data):
+    particle = particle_container[0]
+    E = particle["E"]
+
+    if reaction_type == REACTION_NEUTRON_CAPTURE:
+        return 0.0
+    elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
+        return macro_xs(reaction_type, material, particle_container, mcdc, data)
+    elif reaction_type == REACTION_TOTAL:
+        elastic_type = REACTION_NEUTRON_ELASTIC_SCATTERING
+        fission_type = REACTION_NEUTRON_FISSION
+        elastic_xs = macro_xs(elastic_type, material, particle_container, mcdc, data)
+        fission_xs = neutron_production_xs(fission_type, material, particle_container, mcdc, data)
+        return elastic_xs + fission_xs
+    elif reaction_type == REACTION_NEUTRON_FISSION:
+        if not material['fissionable']:
+            return 0.0
+        total = 0.0
+        for i in range(material["N_nuclide"]):
+            nuclide = mcdc_get.nuclide.from_material(i, material, mcdc, data)
+            if not nuclide['fissionable']:
+                continue
+            atomic_density = mcdc_get.material.atomic_densities(i, material, data)
+            xs = micro_xs(E, reaction_type, nuclide, mcdc, data)
+            reaction_idx = int(mcdc_get.nuclide.reaction_index(i, nuclide, data))
+            reaction = mcdc["neutron_fission_reactions"][reaction_idx]
+            nu = neutron_reaction.fission_yield_prompt(E, reaction, mcdc, data)
+            for j in range(reaction['N_delayed']):
+                nu += neutron_reaction.fission_yield_delayed(E, j, reaction, mcdc, data)
+            total += atomic_density * nu * xs
+        return total
+    else:
+        return 0.0
+
+
 # ======================================================================================
 # Collision
 # ======================================================================================

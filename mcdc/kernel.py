@@ -2549,9 +2549,12 @@ def eigenvalue_tally(P_arr, distance, mcdc, data):
         REACTION_NEUTRON_FISSION, material, P_arr, mcdc, data
     )
 
+    adapt.global_add(mcdc["eigenvalue_tally_nuSigmaF"], 0, round(flux * nuSigmaF))
+    return
+
+    # TODO
     # Fission production (needed even during inactive cycle)
     # mcdc["eigenvalue_tally_nuSigmaF"][0] += flux * nuSigmaF
-    adapt.global_add(mcdc["eigenvalue_tally_nuSigmaF"], 0, round(flux * nuSigmaF))
 
     if mcdc["cycle_active"]:
         # Neutron density

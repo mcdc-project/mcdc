@@ -24,6 +24,8 @@ def evaluate_data(x, data_type, index, mcdc, data):
     elif data_type == DATA_POLYNOMIAL:
         polynomial = mcdc['data_polynomials'][index]
         return evaluate_polynomial(x, polynomial, data)
+    else:
+        return 0.0
 
 
 @njit
@@ -59,6 +61,8 @@ def sample_distribution(x, data_type, index, rng_state, mcdc, data, scale=False)
     elif data_type == DATA_MAXWELLIAN:
         maxwellian = mcdc['data_maxwellians'][index]
         return sample_maxwellian(x, rng_state, maxwellian, data)
+    else:
+        return 0.0
 
 
 @njit
