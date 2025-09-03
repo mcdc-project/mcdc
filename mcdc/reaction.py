@@ -46,6 +46,10 @@ def decode_type(type_):
         return "Electron bremsstrahlung"
     elif type_ == REACTION_ELECTRON_EXCITATION:
         return "Electron excitation"
+    elif type_ == REACTION_ELECTRON_ELASTIC_SCATTERING:
+        return "Electron elastic scattering"
+    elif type_ == REACTION_ELECTRON_IONIZATION:
+        return "Electron ionization"
 
 
 # ======================================================================================
@@ -322,8 +326,10 @@ class ReactionElectronIonization(ReactionBase):
         pp = (T_prim * (T_prim + 2 * me)) ** 0.5
         mu = (T_delta * (T_prim + 2.0 * me)) / (pd * pp)
 
-        if mu < -1.0: mu = -1.0
-        if mu >  1.0: mu =  1.0
+        if mu < -1.0:
+            mu = -1.0
+        if mu >  1.0:
+            mu =  1.0
 
         return mu
 
