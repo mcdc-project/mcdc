@@ -9,6 +9,10 @@ from mcdc.constant import (
     REACTION_NEUTRON_FISSION,
     REACTION_ELECTRON_BREMSSTRAHLUNG,
     REACTION_ELECTRON_EXCITATION,
+    REACTION_ELECTRON_ELASTIC_SCATTERING,
+    REACTION_ELECTRON_IONIZATION,
+    ELECTRON_REST_MASS_ENERGY,
+    PI
 )
 from mcdc.data_container import DataMaxwellian, DataMultiPDF, DataPolynomial, DataTable
 from mcdc.objects import ObjectPolymorphic, register_object
@@ -225,34 +229,13 @@ class ReactionElectronBremsstrahlung(ReactionBase):
 
         # Energy loss
         base = "energy_loss"
-        self.eloss_energy_grid = h5_group[f"{base}/energy_grid"][()]
-        self.eloss_energy_offset = h5_group[f"{base}/energy_offset"][()]
-        self.eloss = h5_group[f"{base}/value"][()]
-        self.eloss_PDF = h5_group[f"{base}/PDF"][()]
-
-        # CDF
-        eloss = h5_group[f"{base}/value"][()]
-        PDF = h5_group[f"{base}/PDF"][()]
-        offset = h5_group[f"{base}/energy_offset"][()]
-        self.eloss_CDF = np.zeros_like(PDF)
-        for i in range(len(offset)):
-            start = offset[i]
-            end = offset[i + 1] if i < len(offset) - 1 else len(PDF)
-            for idx in range(start, end - 2):
-                self.eloss_CDF[idx + 1] = (
-                    self.eloss_CDF[idx]
-                    + (PDF[idx] + PDF[idx + 1]) * (eloss[idx + 1] - eloss[idx]) * 0.5
-                )
-            # Ensure it ends at one
-            self.eloss_CDF[end - 1] = 1.0
+        grid = h5_group[f"{base}/energy"][()]
+        value = h5_group[f"{base}/value"][()]
+        self.eloss = DataTable(grid, value)
 
     def __repr__(self):
         text = super().__repr__()
-        text += " - Energy loss\n"
-        text += f"   - eloss_energy_grid {print_1d_array(self.eloss_energy_grid)}\n"
-        text += f"   - eloss_energy_offset {print_1d_array(self.eloss_energy_offset)}\n"
-        text += f"   - eloss {print_1d_array(self.eloss)}\n"
-        text += f"   - eloss_PDF {print_1d_array(self.eloss_PDF)}\n"
+        text += f"  - Energy loss: {data_container.decode_type(self.eloss.type)} [ID: {self.eloss.ID}]\n"
         return text
 
 
@@ -264,32 +247,100 @@ class ReactionElectronExcitation(ReactionBase):
 
         # Energy loss
         base = "energy_loss"
-        self.eloss_energy_grid = h5_group[f"{base}/energy_grid"][()]
-        self.eloss_energy_offset = h5_group[f"{base}/energy_offset"][()]
-        self.eloss = h5_group[f"{base}/value"][()]
-        self.eloss_PDF = h5_group[f"{base}/PDF"][()]
-
-        # CDF
-        eloss = h5_group[f"{base}/value"][()]
-        PDF = h5_group[f"{base}/PDF"][()]
-        offset = h5_group[f"{base}/energy_offset"][()]
-        self.eloss_CDF = np.zeros_like(PDF)
-        for i in range(len(offset)):
-            start = offset[i]
-            end = offset[i + 1] if i < len(offset) - 1 else len(PDF)
-            for idx in range(start, end - 2):
-                self.eloss_CDF[idx + 1] = (
-                    self.eloss_CDF[idx]
-                    + (PDF[idx] + PDF[idx + 1]) * (eloss[idx + 1] - eloss[idx]) * 0.5
-                )
-            # Ensure it ends at one
-            self.eloss_CDF[end - 1] = 1.0
+        grid = h5_group[f"{base}/energy"][()]
+        value = h5_group[f"{base}/value"][()]
+        self.eloss = DataTable(grid, value)
 
     def __repr__(self):
         text = super().__repr__()
-        text += " - Energy loss\n"
-        text += f"   - eloss_energy_grid {print_1d_array(self.eloss_energy_grid)}\n"
-        text += f"   - eloss_energy_offset {print_1d_array(self.eloss_energy_offset)}\n"
-        text += f"   - eloss {print_1d_array(self.eloss)}\n"
-        text += f"   - eloss_PDF {print_1d_array(self.eloss_PDF)}\n"
+        text += f"  - Energy loss: {data_container.decode_type(self.eloss.type)} [ID: {self.eloss.ID}]\n"
+        return text
+    
+
+class ReactionElectronElasticScattering(ReactionBase):
+    def __init__(self, h5_group):
+        label = "electron_elastic_scattering_reaction"
+        type_ = REACTION_ELECTRON_ELASTIC_SCATTERING
+        super().__init__(label, type_, h5_group)
+
+        # Large angle
+        large_angle = h5_group["large_angle"]
+        large_angle__xs = large_angle["xs"][()]
+        self.xs_large_angle = large_angle__xs
+        large_angle__grid = large_angle["scattering_cosine"]["energy_grid"][()]
+        large_angle__offset = large_angle["scattering_cosine"]["energy_offset"][()]
+        large_angle__value = large_angle["scattering_cosine"]["value"][()]
+        large_angle__pdf = large_angle["scattering_cosine"]["PDF"][()]
+        self.mu_large_angle = DataMultiPDF(large_angle__grid, large_angle__offset, large_angle__value, large_angle__pdf)
+
+        # Small Angle
+        small_angle = h5_group["small_angle"]
+        small_angle__xs = small_angle["xs"][()]
+        self.xs_small_angle = small_angle__xs
+        small_angle__grid = small_angle["scattering_cosine"]["energy_grid"][()]
+        small_angle__offset = small_angle["scattering_cosine"]["energy_offset"][()]
+        small_angle__value = small_angle["scattering_cosine"]["value"][()]
+        small_angle__pdf = small_angle["scattering_cosine"]["PDF"][()]
+        self.mu_small_angle = DataMultiPDF(small_angle__grid, small_angle__offset, small_angle__value, small_angle__pdf)
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += " - Large angle scattering:\n"
+        text += f"   - XS {print_1d_array(self.xs_large_angle)} /cm\n"
+        text += f"   - Scattering cosine: {data_container.decode_type(self.mu_large_angle.type)} [ID: {self.mu_large_angle.ID}]\n"
+        text += " - Small angle scattering:\n"
+        text += f"   - XS {print_1d_array(self.xs_small_angle)} /cm\n"
+        text += f"   - Scattering cosine: {data_container.decode_type(self.mu_small_angle.type)} [ID: {self.mu_small_angle.ID}]\n"
+        return text
+    
+
+class ReactionElectronIonization(ReactionBase):
+    def __init__(self, h5_group):
+        label = "electron_ionization_reaction"
+        type_ = REACTION_ELECTRON_IONIZATION
+        super().__init__(label, type_, h5_group)
+
+        subshells = h5_group["subshells"]
+        self.N_subshells = len(subshells)
+        self.subshell_names = [None] * self.N_subshells
+        self.subshell_xs = [None] * self.N_subshells
+        self.subshell_binding_energies = [None] * self.N_subshells
+
+        # Subshell data
+        for i, name in enumerate(subshells):
+            subshell = subshells[name]
+            self.subshell_names[i] = name
+            self.subshell_xs[i] = subshell["xs"][()]
+            self.subshell_binding_energies[i] = subshell["binding_energy"][()]
+    
+        self.me_c2 = ELECTRON_REST_MASS_ENERGY
+        self.pi = PI
+
+    def compute_mu_delta(self, T_delta, T_prim):
+        me = self.me_c2
+        pd = (T_delta * (T_delta + 2 * me)) ** 0.5
+        pp = (T_prim * (T_prim + 2 * me)) ** 0.5
+        mu = (T_delta * (T_prim + 2.0 * me)) / (pd * pp)
+
+        if mu < -1.0: mu = -1.0
+        if mu >  1.0: mu =  1.0
+
+        return mu
+
+    def sample_delta_direction(self, T_delta, T_prim, rng):
+        mu = self.compute_mu_delta(T_delta, T_prim)
+        phi = 2 * self.pi * rng()
+        sin = (1 - mu*mu) ** 0.5
+        ux = sin * np.cos(phi)
+        uy = sin * np.sin(phi)
+        uz = mu
+        return ux, uy, uz
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Number of subshells: {self.N_subshells}\n"
+        for i in range(self.N_subshells):
+            text += f"    - Name: {self.subshell_names[i]}\n"
+            text += f"    - XS: {print_1d_array(self.subshell_xs[i])} /cm\n"
+            text += f"    - Binding energy: {self.subshell_binding_energies[i]} eV\n"
         return text
