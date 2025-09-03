@@ -74,13 +74,13 @@ def print_progress(percent, mcdc):
                 )
             else:
                 idx = mcdc["idx_census"] + 1
-                N = len(objects.settings.census_time)
+                N = len(mcdc['settings']['census_time'])
                 sys.stdout.write(
                     " Census %i/%i: [%-28s] %d%%"
                     % (idx, N, "=" * int(percent * 28), percent * 100.0)
                 )
         else:
-            if objects.settings.use_gyration_radius:
+            if mcdc['settings']['use_gyration_radius']:
                 sys.stdout.write(
                     " [%-40s] %d%%" % ("=" * int(percent * 40), percent * 100.0)
                 )
@@ -108,7 +108,7 @@ def print_progress_iqmc(mcdc):
 
 def print_header_eigenvalue(mcdc):
     if master:
-        if objects.settings.use_gyration_radius:
+        if mcdc['settings']['use_gyration_radius']:
             print("\n #     k        GyRad.  k (avg)            ")
             print(" ====  =======  ======  ===================")
         elif mcdc["technique"]["iQMC"] and mcdc["technique"]["iqmc"]["mode"] == "fixed":
@@ -132,10 +132,10 @@ def print_progress_eigenvalue(mcdc):
         k_avg = mcdc["k_avg_running"]
         k_sdv = mcdc["k_sdv_running"]
         gr = mcdc["gyration_radius"][idx_cycle]
-        if objects.settings.use_progress_bar:
+        if mcdc['settings']['use_progress_bar']:
             sys.stdout.write("\r")
             sys.stdout.write("\033[K")
-        if objects.settings.use_gyration_radius:
+        if mcdc['settings']['use_gyration_radius']:
             if not mcdc["cycle_active"]:
                 print(" %-4i  %.5f  %6.2f" % (idx_cycle + 1, k_eff, gr))
             else:

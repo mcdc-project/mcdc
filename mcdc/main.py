@@ -87,7 +87,7 @@ def run():
         print_configuration()
         print(" Now running TNT...")
         if settings.eigenvalue_mode:
-            print_eigenvalue_header()
+            print_eigenvalue_header(mcdc)
 
     # Timer: preparation
     time_prep_end = MPI.Wtime()

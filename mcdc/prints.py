@@ -64,8 +64,8 @@ def print_configuration():
     sys.stdout.flush()
 
 
-def print_eigenvalue_header():
-    if objects.settings.use_gyration_radius:
+def print_eigenvalue_header(mcdc):
+    if mcdc['settings']['use_gyration_radius']:
         print("\n #     k        GyRad.  k (avg)            ")
         print(" ====  =======  ======  ===================")
     else:
