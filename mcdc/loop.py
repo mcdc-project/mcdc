@@ -366,7 +366,7 @@ def source_closeout(prog, idx_work, N_prog, data_tally):
 
 
 @njit
-def source_dd_resolution(data, prog):
+def source_dd_resolution(data_tally, prog, data):
     mcdc = adapt.mcdc_global(prog)
 
     kernel.dd_particle_send(mcdc)
@@ -393,14 +393,14 @@ def source_dd_resolution(data, prog):
                     kernel.weight_window(P_arr, mcdc)
 
                 # Particle loop
-                loop_particle(P_arr, data, mcdc)
+                loop_particle(P_arr, data_tally, mcdc, data)
 
                 # Tally history closeout for one-batch fixed-source simulation
                 if (
-                    not mcdc["setting"]["mode_eigenvalue"]
-                    and mcdc["setting"]["N_batch"] == 1
+                    not mcdc["settings"]["eigenvalue_mode"]
+                    and mcdc["settings"]["N_batch"] == 1
                 ):
-                    kernel.tally_accumulate(data, mcdc)
+                    kernel.tally_accumulate(data_tally, mcdc)
 
         # Send all domain particle banks
         kernel.dd_particle_send(mcdc)
@@ -442,7 +442,7 @@ def loop_source(seed, data_tally, mcdc, data):
         source_closeout(mcdc, idx_work, N_prog, data_tally)
 
     if mcdc["technique"]["domain_decomposition"]:
-        source_dd_resolution(data_tally, mcdc)
+        source_dd_resolution(data_tally, mcdc, data)
 
 
 def gpu_sources_spec():

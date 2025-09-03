@@ -1319,7 +1319,7 @@ def population_control(seed, mcdc):
 @njit
 def pct_combing(seed, mcdc):
     bank_census = mcdc["bank_census"]
-    M = mcdc["setting"]["N_particle"]
+    M = mcdc["settings"]["N_particle"]
     bank_source = mcdc["bank_source"]
 
     # Scan the bank
@@ -1362,7 +1362,7 @@ def pct_combing(seed, mcdc):
 @njit
 def pct_combing_weight(seed, mcdc):
     bank_census = mcdc["bank_census"]
-    M = mcdc["setting"]["N_particle"]
+    M = mcdc["settings"]["N_particle"]
     bank_source = mcdc["bank_source"]
 
     # Scan the bank based on weight
@@ -1456,7 +1456,7 @@ def pct_splitting_roulette(seed, mcdc):
 @njit
 def pct_splitting_roulette_weight(seed, mcdc):
     bank_census = mcdc["bank_census"]
-    M = mcdc["setting"]["N_particle"]
+    M = mcdc["settings"]["N_particle"]
     bank_source = mcdc["bank_source"]
 
     # Scan the bank based on weight
@@ -2178,7 +2178,7 @@ def census_based_tally_output(data_tally, mcdc):
                 )
             else:
                 f = h5py.File(
-                    mcdc["setting"]["output_name"]
+                    mcdc["settings"]["output_name"]
                     + "-batch_%i-census_%i.h5" % (idx_batch, idx_census),
                     "a",
                 )
@@ -2717,12 +2717,12 @@ def update_weight_windows(data, mcdc):
     # accessing most recent tally dump
     with objmode():
         f = h5py.File(
-            mcdc["setting"]["output_name"]
+            mcdc["settings"]["output_name"]
             + "-batch_%i-census_%i.h5" % (idx_batch, idx_census),
             "r",
         )
         tallies = f["tallies/mesh_tally_" + str(mcdc["technique"]["ww"]["tally_idx"])]
-        if mcdc["setting"]["census_tally_frequency"] > 1:
+        if mcdc["settings"]["census_tally_frequency"] > 1:
             old_flux = tallies["flux"]["score"][-1]
         else:
             old_flux = tallies["flux"]["score"]
@@ -3059,14 +3059,14 @@ def uq_tally_closeout_batch(data_tally, mcdc):
 
 @njit
 def uq_tally_closeout(data_tally, mcdc):
-    N_history = mcdc["setting"]["N_particle"]
+    N_history = mcdc["settings"]["N_particle"]
 
     data_tally[TALLY_UQ_BATCH_VAR] = (
         data_tally[TALLY_UQ_BATCH_VAR] / N_history - data_tally[TALLY_SUM_SQ]
     ) / (N_history - 1)
 
     # If we're here, N_batch > 1
-    N_history = mcdc["setting"]["N_batch"]
+    N_history = mcdc["settings"]["N_batch"]
 
     # Store results
     mean = data_tally[TALLY_SUM] / N_history

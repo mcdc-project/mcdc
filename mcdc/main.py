@@ -1737,17 +1737,17 @@ def generate_hdf5(data_tally, mcdc):
         dd_mesh = dd_mergemesh(mcdc, data_tally)
 
     if mcdc["mpi_master"]:
-        if objects.settings.use_progress_bar:
+        if mcdc['settings']['use_progress_bar']:
             print_msg("")
         print_msg(" Generating output HDF5 files...")
 
-        with h5py.File(objects.settings.output_name + ".h5", "w") as f:
+        with h5py.File(mcdc['settings']['output_name'] + ".h5", "w") as f:
             # Version
             version = importlib.metadata.version("mcdc")
             f["version"] = version
 
             # Input deck
-            if objects.settings.save_input_deck:
+            if mcdc['settings']['save_input_deck']:
                 input_group = f.create_group("input_deck")
                 # cardlist_to_h5group(objects.nuclides, input_group, "nuclide")
                 # cardlist_to_h5group(objects.materials, input_group, "material")
@@ -1772,7 +1772,7 @@ def generate_hdf5(data_tally, mcdc):
                 )
 
             # No need to output tally if time census-based tally is used
-            if objects.settings.use_census_based_tally:
+            if mcdc['settings']['use_census_based_tally']:
                 return
 
             # Mesh tallies
@@ -2036,7 +2036,7 @@ def generate_hdf5(data_tally, mcdc):
                         f.create_dataset(group_name + "uq_var", data=uq_var)
 
             # Eigenvalues
-            if objects.settings.eigenvalue_mode:
+            if mcdc['settings']['eigenvalue_mode']:
                 if mcdc["technique"]["iQMC"]:
                     f.create_dataset("k_eff", data=mcdc["k_eff"])
                     if mcdc["technique"]["iqmc"]["mode"] == "batched":
@@ -2045,7 +2045,7 @@ def generate_hdf5(data_tally, mcdc):
                         f.create_dataset("k_mean", data=mcdc["k_avg_running"])
                         f.create_dataset("k_sdev", data=mcdc["k_sdv_running"])
                 else:
-                    N_cycle = objects.settings.N_cycle
+                    N_cycle = mcdc['settings']['N_cycle']
                     f.create_dataset("k_cycle", data=mcdc["k_cycle"][:N_cycle])
                     f.create_dataset("k_mean", data=mcdc["k_avg_running"])
                     f.create_dataset("k_sdev", data=mcdc["k_sdv_running"])
@@ -2055,7 +2055,7 @@ def generate_hdf5(data_tally, mcdc):
                     f.create_dataset("global_tally/precursor/mean", data=mcdc["C_avg"])
                     f.create_dataset("global_tally/precursor/sdev", data=mcdc["C_sdv"])
                     f.create_dataset("global_tally/precursor/max", data=mcdc["C_max"])
-                    if objects.settings.use_gyration_radius:
+                    if mcdc['settings']['use_gyration_radius']:
                         f.create_dataset(
                             "gyration_radius", data=mcdc["gyration_radius"][:N_cycle]
                         )
@@ -2099,7 +2099,7 @@ def generate_hdf5(data_tally, mcdc):
                 f.create_dataset("iqmc/final_residual", data=T["iqmc"]["residual"])
 
     # Save particle?
-    if objects.settings.save_particle:
+    if mcdc['settings']['save_particle']:
         # Gather source bank
         # TODO: Parallel HDF5 and mitigation of large data passing
         N = mcdc["bank_source"]["size"][0]
@@ -2258,7 +2258,7 @@ def recombine_tallies(file="output.h5"):
 
 def save_runtime(mcdc):
     if mcdc["mpi_master"]:
-        with h5py.File(objects.settings.output_name + ".h5", "a") as f:
+        with h5py.File(mcdc['settings']['output_name'] + ".h5", "a") as f:
             for name in [
                 "total",
                 "preparation",

@@ -67,8 +67,8 @@ def print_banner(mcdc):
 def print_progress(percent, mcdc):
     if master:
         sys.stdout.write("\r")
-        if not objects.settings.eigenvalue_mode:
-            if objects.settings.N_census == 1:
+        if not mcdc['settings']['eigenvalue_mode']:
+            if mcdc['settings']['N_census'] == 1:
                 sys.stdout.write(
                     " [%-28s] %d%%" % ("=" * int(percent * 28), percent * 100.0)
                 )
