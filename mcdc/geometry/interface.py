@@ -7,6 +7,7 @@ from numba import njit
 from mcdc.geometry.surface.interface import get_distance, check_sense, reflect
 
 import mcdc.adapt as adapt
+import mcdc.kernel as kernel
 import mcdc.src.mesh as mesh
 import mcdc.physics.interface as physics
 import mcdc.type_ as type_
@@ -458,7 +459,7 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
 
 
 @njit
-def surface_crossing(P_arr, data_tally, prog):
+def surface_crossing(P_arr, data_tally, prog, data):
     P = P_arr[0]
     mcdc = adapt.mcdc_global(prog)
 
@@ -474,7 +475,7 @@ def surface_crossing(P_arr, data_tally, prog):
     for i in range(surface["N_tally"]):
         ID = surface["tally_IDs"][i]
         tally = mcdc["surface_tallies"][ID]
-        score_surface_tally(P_arr, surface, tally, data_tally, mcdc)
+        kernel.score_surface_tally(P_arr, surface, tally, data_tally, mcdc, data)
 
     # Need to check new cell later?
     if P["alive"] and not surface["BC"] == BC_REFLECTIVE:

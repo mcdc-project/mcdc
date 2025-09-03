@@ -13,7 +13,7 @@ from numba import (
 ####
 
 import mcdc.physics.interface as physics
-import mcdc.geometry.interface as geometry
+import mcdc.geometry as geometry
 
 import mcdc.adapt as adapt
 import mcdc.src.mesh as mesh_
@@ -1807,9 +1807,10 @@ def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc, data):
 
 
 @njit
-def score_surface_tally(P_arr, surface, tally, data_tally, mcdc):
+def score_surface_tally(P_arr, surface, tally, data_tally, mcdc, data):
     # TODO: currently not supporting filters
     P = P_arr[0]
+    material = mcdc["materials"][P["material_ID"]]
 
     stride = tally["stride"]
 

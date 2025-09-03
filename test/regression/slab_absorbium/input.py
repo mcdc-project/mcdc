@@ -44,4 +44,6 @@ mcdc.tally.mesh_tally(
     scores=["flux", "total"],
 )
 
+mcdc.tally.surface_tally(s4)
+
 mcdc.run()

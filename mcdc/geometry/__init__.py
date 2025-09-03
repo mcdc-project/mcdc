@@ -1,1 +1,2 @@
-import mcdc.geometry.interface as interface
+from mcdc.geometry.interface import *
+import mcdc.geometry.surface as surface

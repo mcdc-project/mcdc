@@ -591,7 +591,7 @@ def step_particle(P_arr, data_tally, prog, data):
 
     # Surface and domain crossing
     if P["event"] & EVENT_SURFACE_CROSSING:
-        geometry.surface_crossing(P_arr, data_tally, prog)
+        geometry.surface_crossing(P_arr, data_tally, prog, data)
         if P["event"] & EVENT_DOMAIN_CROSSING:
             if mcdc["surfaces"][P["surface_ID"]]["BC"] == BC_NONE:
                 kernel.domain_crossing(P_arr, prog)
