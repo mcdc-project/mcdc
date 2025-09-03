@@ -149,3 +149,8 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
     val_high = mcdc_get.multipdf.value(end - 1, multipdf, data)
     return val_min + (sample - val_low) / (val_high - val_low) * (val_max - val_min)
 
+
+@njit
+def sample_maxwellian(x, rng_state, maxwellian, data):
+    # TODO
+    return -1.0
