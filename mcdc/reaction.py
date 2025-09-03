@@ -16,9 +16,9 @@ from mcdc.prints import print_1d_array
 
 
 class ReactionBase(ObjectPolymorphic):
-    def __init__(self, label, type_, h5_group):
+    def __init__(self, label, type_, xs):
         super().__init__(label, type_)
-        self.xs = h5_group["xs"][()]
+        self.xs = xs
 
         # Register the instance
         register_object(self)
@@ -50,25 +50,38 @@ def decode_type(type_):
 
 
 class ReactionNeutronCapture(ReactionBase):
-    def __init__(self, h5_group):
+    def __init__(self, xs):
         label = "neutron_capture_reaction"
         type_ = REACTION_NEUTRON_CAPTURE
-        super().__init__(label, type_, h5_group)
+        super().__init__(label, type_, xs)
+    
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        xs = h5_group["xs"][()]
+        return cls(xs)
 
 
 class ReactionNeutronElasticScattering(ReactionBase):
-    def __init__(self, h5_group):
+    def __init__(self, xs, mu):
         label = "neutron_elastic_scattering_reaction"
         type_ = REACTION_NEUTRON_ELASTIC_SCATTERING
-        super().__init__(label, type_, h5_group)
+        super().__init__(label, type_, xs)
 
+        self.mu = mu
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        xs = h5_group["xs"][()]
+        
         # Scattering cosine
         base = "scattering_cosine"
         grid = h5_group[f"{base}/energy_grid"][()]
         offset = h5_group[f"{base}/energy_offset"][()]
         value = h5_group[f"{base}/value"][()]
         pdf = h5_group[f"{base}/PDF"][()]
-        self.mu = DataMultiPDF(grid, offset, value, pdf)
+        mu = DataMultiPDF(grid, offset, value, pdf)
+
+        return cls(xs, mu)
 
     def __repr__(self):
         text = super().__repr__()
@@ -77,41 +90,52 @@ class ReactionNeutronElasticScattering(ReactionBase):
 
 
 class ReactionNeutronFission(ReactionBase):
-    def __init__(self, h5_group):
+    def __init__(self, xs, prompt_yield, prompt_spectrum, delayed_yields, delayed_spectrums, delayed_decay_rates):
         label = "neutron_fission_reaction"
         type_ = REACTION_NEUTRON_FISSION
-        super().__init__(label, type_, h5_group)
+        super().__init__(label, type_, xs)
 
+        self.prompt_yield = prompt_yield
+        self.prompt_spectrum = prompt_spectrum
+        self.N_delayed = len(delayed_yields)
+        self.delayed_yields = delayed_yields
+        self.delayed_spectrums = delayed_spectrums
+        self.delayed_decay_rates = delayed_decay_rates
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        xs = h5_group["xs"][()]
+       
+        # The products
         products = h5_group["products"]
         prompt_product = products["prompt_neutron"]
 
         # Delayed neutron groups
         delayed_products = []
-        self.N_delayed = 0
+        N_delayed = 0
         if "delayed_neutrons" in products.keys():
             delayed_products = products["delayed_neutrons"]
-            self.N_delayed = len(products["delayed_neutrons"])
+            N_delayed = len(products["delayed_neutrons"])
 
         # Prompt neutron: yield
-        self.prompt_yield = None
+        prompt_yield = None
         if prompt_product["yield"].attrs["type"] == "table":
             x = prompt_product["yield"]["energy_grid"][()]
             y = prompt_product["yield"]["value"][()]
-            self.prompt_yield = DataTable(x, y)
+            prompt_yield = DataTable(x, y)
         elif prompt_product["yield"].attrs["type"] == "polynomial":
             coeffs = prompt_product["yield"]["polynomial_coefficient"][()]
-            self.prompt_yield = DataPolynomial(coeffs)
+            prompt_yield = DataPolynomial(coeffs)
 
         # Prompt neutron: energy spectrum
-        self.prompt_spectrum = None
+        prompt_spectrum = None
         if prompt_product["energy_out"].attrs["type"] == "multi_pdf":
             grid = prompt_product["energy_out"]["energy_grid"][()]
             offset = prompt_product["energy_out"]["energy_offset"][()]
             value = prompt_product["energy_out"]["value"][()]
             pdf = prompt_product["energy_out"]["PDF"][()]
-            self.prompt_spectrum = DataMultiPDF(grid, offset, value, pdf)
+            prompt_spectrum = DataMultiPDF(grid, offset, value, pdf)
         elif prompt_product["energy_out"].attrs["type"] == "maxwellian":
-            print(prompt_product["energy_out"].keys())
             restriction_energy = prompt_product["energy_out"][
                 "maxwell_restriction_energy"
             ][()]
@@ -120,26 +144,26 @@ class ReactionNeutronFission(ReactionBase):
             ]
             nuclear_temperature_energy_grid = nuclear_temperature["energy_grid"][()]
             nuclear_temperature_value = nuclear_temperature["value"][()]
-            self.prompt_spectrum = DataMaxwellian(
+            prompt_spectrum = DataMaxwellian(
                 restriction_energy,
                 nuclear_temperature_energy_grid,
                 nuclear_temperature_value,
             )
 
         # Delayed products
-        self.delayed_yields = [None] * self.N_delayed
-        self.delayed_spectrums = [None] * self.N_delayed
-        self.delayed_decay_rates = np.zeros(self.N_delayed)
+        delayed_yields = [None] * N_delayed
+        delayed_spectrums = [None] * N_delayed
+        delayed_decay_rates = np.zeros(N_delayed)
         for i, name in enumerate(delayed_products):
             delayed_product = delayed_products[name]
             # Yield
             if delayed_product["yield"].attrs["type"] == "table":
                 x = delayed_product["yield"]["energy_grid"][()]
                 y = delayed_product["yield"]["value"][()]
-                self.delayed_yields[i] = DataTable(x, y)
+                delayed_yields[i] = DataTable(x, y)
             elif delayed_product["yield"].attrs["type"] == "polynomial":
                 coeffs = delayed_product["yield"]["polynomial_coefficient"][()]
-                self.delayed_yields[i] = DataPolynomial(coeffs)
+                delayed_yields[i] = DataPolynomial(coeffs)
 
             # Energy spectrum
             if delayed_product["energy_out"].attrs["type"] == "multi_pdf":
@@ -147,7 +171,7 @@ class ReactionNeutronFission(ReactionBase):
                 offset = delayed_product["energy_out"]["energy_offset"][()]
                 value = delayed_product["energy_out"]["value"][()]
                 pdf = delayed_product["energy_out"]["PDF"][()]
-                self.delayed_spectrums[i] = DataMultiPDF(grid, offset, value, pdf)
+                delayed_spectrums[i] = DataMultiPDF(grid, offset, value, pdf)
             elif delayed_product["energy_out"].attrs["type"] == "maxwellian":
                 restriction_energy = delayed_product["energy_out"][
                     "reastriction_energy"
@@ -157,16 +181,18 @@ class ReactionNeutronFission(ReactionBase):
                 ][()]
                 nuclear_temperature_energy_grid = nuclear_temperature["energy_grid"][()]
                 nuclear_temperature_value = nuclear_temperature["value"][()]
-                self.delayed_spectrums[i] = DataMaxwellian(
+                delayed_spectrums[i] = DataMaxwellian(
                     restriction_energy,
                     nuclear_temperature_energy_grid,
                     nuclear_temperature_value,
                 )
 
             # Decay rate
-            self.delayed_decay_rates[i] = (
+            delayed_decay_rates[i] = (
                 1.0 / delayed_product["mean_emission_time"][()]
             )
+    
+        return cls(xs, prompt_yield, prompt_spectrum, delayed_yields, delayed_spectrums, delayed_decay_rates)
 
 
     def __repr__(self):

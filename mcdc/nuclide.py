@@ -51,7 +51,7 @@ class Nuclide(ObjectNonSingleton):
                     self.fissionable = True
                     ReactionClass = ReactionNeutronFission
 
-                reaction = ReactionClass(f[f"neutron_reactions/{reaction_type}"])
+                reaction = ReactionClass.from_h5_group(f[f"neutron_reactions/{reaction_type}"])
                 self.reactions.append(reaction)
 
                 # Accumulate total XS
