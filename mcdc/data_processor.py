@@ -67,44 +67,48 @@ def sample_distribution(x, data_type, index, rng_state, mcdc, data, scale=False)
 
 @njit
 def sample_multipdf(x, rng_state, multipdf, data, scale=False):
-    # Generate random numbers
-    xi1 = kernel.rng(rng_state)
-    xi2 = kernel.rng(rng_state)
-
-    # Interpolation factor
     grid = mcdc_get.multipdf.grid_all(multipdf, data)
-    idx = binary_search(x, grid)
-    x0 = grid[idx]
-    x1 = grid[idx + 1]
-    f = (x - x0) / (x1 - x0)
 
-    # Min and max values for scaling
-    val_min = 0.0
-    val_max = 1.0
-    if scale:
-        # First table
-        start = int(mcdc_get.multipdf.offset(idx, multipdf, data))
-        end = int(mcdc_get.multipdf.offset(idx + 1, multipdf, data))
-        val0_min = mcdc_get.multipdf.value(start, multipdf, data)
-        val0_max = mcdc_get.multipdf.value(end - 1, multipdf, data)
-        
-        # Second table
-        start = end
-        if idx + 2 == len(grid):
-            end = mcdc_get.multipdf.value_length(multipdf)
-        else:
-            end = int(mcdc_get.multipdf.offset(idx + 2, multipdf, data))
-        val1_min = mcdc_get.multipdf.value(start, multipdf, data)
-        val1_max = mcdc_get.multipdf.value(end - 1, multipdf, data)
+    # Edge cases
+    if x < grid[0]:
+        idx = 0
+        scale = False
+    elif x > grid[-1]:
+        idx = len(grid) - 1
+        scale = False
+    else:
+        # Interpolation factor
+        idx = binary_search(x, grid)
+        x0 = grid[idx]
+        x1 = grid[idx + 1]
+        f = (x - x0) / (x1 - x0)
+    
+        # Min and max values for scaling
+        val_min = 0.0
+        val_max = 1.0
+        if scale:
+            # First table
+            start = int(mcdc_get.multipdf.offset(idx, multipdf, data))
+            end = int(mcdc_get.multipdf.offset(idx + 1, multipdf, data))
+            val0_min = mcdc_get.multipdf.value(start, multipdf, data)
+            val0_max = mcdc_get.multipdf.value(end - 1, multipdf, data)
+            
+            # Second table
+            start = end
+            if idx + 2 == len(grid):
+                end = mcdc_get.multipdf.value_length(multipdf)
+            else:
+                end = int(mcdc_get.multipdf.offset(idx + 2, multipdf, data))
+            val1_min = mcdc_get.multipdf.value(start, multipdf, data)
+            val1_max = mcdc_get.multipdf.value(end - 1, multipdf, data)
 
-        # Both
-        val_min = val0_min + f * (val1_min - val0_min)
-        val_max = val0_max + f * (val1_max - val0_max)
+            # Both
+            val_min = val0_min + f * (val1_min - val0_min)
+            val_max = val0_max + f * (val1_max - val0_max)
 
-
-    # Sample which table to choose
-    if xi1 > f:
-        idx += 1
+        # Sample which table to choose
+        if kernel.rng(rng_state) > f:
+            idx += 1
 
     # Get the table range
     start = int(mcdc_get.multipdf.offset(idx, multipdf, data))
@@ -117,12 +121,15 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
     # The CDF
     cdf = mcdc_get.multipdf.cdf_chunk(start, size, multipdf, data)
 
+    # Generate random numbers
+    xi = kernel.rng(rng_state)
+
     # Sample bin index
-    idx = binary_search(xi2, cdf)
+    idx = binary_search(xi, cdf)
     c = cdf[idx]
 
     # Get the other values
-    idx += start # Apply the offset as these are not chun-extracted like the cdf
+    idx += start # Apply the offset as these are not chunk-extracted like the cdf
     p0 = mcdc_get.multipdf.pdf(idx, multipdf, data)
     p1 = mcdc_get.multipdf.pdf(idx + 1, multipdf, data)
     val0 = mcdc_get.multipdf.value(idx, multipdf, data)
@@ -130,9 +137,9 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
 
     m = (p1 - p0) / (val1 - val0)
     if m == 0.0:
-        sample = val0 + (xi2 - c) / p0
+        sample = val0 + (xi - c) / p0
     else:
-        sample = val0 + 1.0 / m * (math.sqrt(p0**2 + 2 * m * (xi2 - c)) - p0)
+        sample = val0 + 1.0 / m * (math.sqrt(p0**2 + 2 * m * (xi - c)) - p0)
 
     if not scale:
         return sample
