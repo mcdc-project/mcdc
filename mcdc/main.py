@@ -1181,7 +1181,6 @@ def prepare():
         "domain_decomposition",
         "weight_roulette",
         "iQMC",
-        "branchless_collision",
         "uq",
     ]:
         copy_field(mcdc["technique"], input_deck.technique, name)

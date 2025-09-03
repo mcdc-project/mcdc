@@ -104,7 +104,6 @@ class InputDeck:
                     "azi": np.array([-PI, PI]),
                 },
             },
-            "branchless_collision": False,
             "uq": False,
         }
 

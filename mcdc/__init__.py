@@ -7,7 +7,6 @@ from mcdc.input_ import (
     implicit_capture,
     weighted_emission,
     population_control,
-    branchless_collision,
     time_census,
     weight_window,
     iQMC,

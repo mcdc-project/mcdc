@@ -1239,15 +1239,6 @@ def population_control(pct="splitting-roulette"):
     card["weighted_emission"] = False
 
 
-def branchless_collision():
-    """
-    Activate branchless collision variance reduction technique (implies no weighted emission).
-    """
-    card = global_.input_deck.technique
-    card["branchless_collision"] = True
-    card["weighted_emission"] = False
-
-
 def time_census(t, tally_frequency=None):
     """
     Set time-census boundaries.

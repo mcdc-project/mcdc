@@ -2652,47 +2652,6 @@ def move_to_event(P_arr, data_tally, mcdc, data):
 
 
 # =============================================================================
-# Branchless collision
-# =============================================================================
-
-
-@njit
-def branchless_collision(P_arr, prog):
-    P = P_arr[0]
-    mcdc = adapt.mcdc_global(prog)
-
-    material = mcdc["materials"][P["material_ID"]]
-
-    # Adjust weight
-    SigmaT = get_MacroXS(XS_TOTAL, material, P_arr, mcdc)
-    n_scatter = get_MacroXS(XS_NU_SCATTER, material, P_arr, mcdc)
-    n_fission = get_MacroXS(XS_NU_FISSION, material, P_arr, mcdc) / mcdc["k_eff"]
-    n_total = n_fission + n_scatter
-    P["w"] *= n_total / SigmaT
-
-    P_rec_arr = adapt.local_array(1, type_.particle_record)
-
-    # Set spectrum and decay rate
-    if rng(P_arr) < n_scatter / n_total:
-        sample_phasespace_scattering(P_arr, material, P_arr, mcdc)
-    else:
-        if mcdc["setting"]["mode_MG"]:
-            sample_phasespace_fission(P_arr, material, P_arr, mcdc)
-        else:
-            nuclide = sample_nuclide(material, P_arr, XS_NU_FISSION, mcdc)
-            sample_phasespace_fission_nuclide(P_arr, nuclide, P_arr, mcdc)
-
-            # Beyond time census or time boundary?
-            idx_census = mcdc["idx_census"]
-            if P["t"] > mcdc["setting"]["census_time"][idx_census]:
-                P["alive"] = False
-                split_as_record(P_rec_arr, P_arr)
-                adapt.add_active(P_rec_arr, prog)
-            elif P["t"] > mcdc["setting"]["time_boundary"]:
-                P["alive"] = False
-
-
-# =============================================================================
 # Weight window
 # =============================================================================
 

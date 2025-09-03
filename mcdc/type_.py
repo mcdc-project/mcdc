@@ -836,7 +836,6 @@ def make_type_technique(input_deck):
         ("weight_window", bool_),
         ("weight_roulette", bool_),
         ("iQMC", bool_),
-        ("branchless_collision", bool_),
         ("domain_decomposition", bool_),
         ("uq", bool_),
     ]

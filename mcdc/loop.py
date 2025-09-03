@@ -587,14 +587,7 @@ def step_particle(P_arr, data_tally, prog, data):
 
     # Collision
     if P["event"] & EVENT_COLLISION:
-        # Branchless collision?
-        if mcdc["technique"]["branchless_collision"]:
-            kernel.branchless_collision(P_arr, prog)
-
-        # Analog collision
-        else:
-            # Get collision type
-            physics.collision(P_arr, prog, data)
+        physics.collision(P_arr, prog, data)
 
     # Surface and domain crossing
     if P["event"] & EVENT_SURFACE_CROSSING:
