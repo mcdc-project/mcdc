@@ -505,13 +505,7 @@ def prepare():
     """
 
     # Generate Numba-supported "Objects"
-    data, structures, records = code_factory.generate_numba_objects(
-        objects.materials
-        + objects.nuclides
-        + objects.reactions
-        + [objects.settings]
-        + objects.data_containers
-    )
+    data, structures, records = code_factory.generate_numba_objects()
 
     settings = objects.settings
 

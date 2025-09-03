@@ -2,6 +2,8 @@ import numpy as np
 
 ####
 
+import mcdc.objects as objects
+
 from mcdc.data_container import DataContainer
 from mcdc.objects import (
     ObjectNonSingleton,
@@ -23,6 +25,10 @@ type_map = {
 
 
 def numbafy_object(object_, structures, records, data):
+    # Skip if already numbafied
+    if object_.numbafied:
+        return
+
     structure = []
     record = ()
 
@@ -33,7 +39,15 @@ def numbafy_object(object_, structures, records, data):
         if (
             x[:2] != "__"
             and not callable(getattr(object_, x))
-            and x not in ["label", "numbafied", "ID", "type", "nuclide_composition", "ID_numba"]
+            and x
+            not in [
+                "label",
+                "numbafied",
+                "ID",
+                "type",
+                "nuclide_composition",
+                "ID_numba",
+            ]
         )
     ]
     for attribute_name in attribute_names:
@@ -120,7 +134,15 @@ def numbafy_object(object_, structures, records, data):
         records[object_.label].append(record)
 
 
-def generate_numba_objects(object_list):
+def generate_numba_objects():
+    object_list = (
+        objects.materials
+        + objects.nuclides
+        + objects.reactions
+        + [objects.settings]
+        + objects.data_containers
+    )
+
     # Containers for structures and records for all object types
     structures = {}
     records = {}
@@ -132,11 +154,6 @@ def generate_numba_objects(object_list):
 
     # Loop over all objects
     for object_ in object_list:
-        # Skip if already numbafied
-        if object_.numbafied:
-            continue
-
-        # Numbafy!
         numbafy_object(object_, structures, records, data)
 
     data = np.array(data, dtype=np.float64)
