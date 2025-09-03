@@ -52,11 +52,6 @@ class Settings(ObjectSingleton):
     use_census_based_tally: bool = False
     census_tally_frequency: int = 0
 
-    # Initial condition source
-    use_IC_file: bool = False
-    IC_file_name: str = ""
-    N_precursor: int = 0
-
     # Particle bank-related
     save_particle: bool = False
     active_bank_buffer: int = 100

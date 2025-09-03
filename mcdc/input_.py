@@ -1015,8 +1015,6 @@ def setting(**kw):
         Whether to run a k-eigenvalue problem.
     source_file : str
         Source file path and name.
-    IC_file : str
-        Path to a file containing a description of an initial condition.
     active_bank_buff : int
         Size of the particle active bank buffer.
     census_bank_buff : int
@@ -1047,7 +1045,6 @@ def setting(**kw):
                 "save_input_deck",
                 "k_eff",
                 "source_file",
-                "IC_file",
                 "active_bank_buff",
                 "census_bank_buff",
                 "source_bank_buff",
@@ -1066,7 +1063,6 @@ def setting(**kw):
     save_input_deck = kw.get("save_input_deck")
     k_eff = kw.get("k_eff")
     source_file = kw.get("source_file")
-    IC_file = kw.get("IC_file")
     bank_active_buff = kw.get("active_bank_buff")
     bank_census_buff = kw.get("census_bank_buff")
     bank_source_buff = kw.get("source_bank_buff")
@@ -1132,21 +1128,6 @@ def setting(**kw):
         card_setting = global_.input_deck.setting
         with h5py.File(source_file, "r") as f:
             card_setting["N_particle"] = f["particles_size"][()]
-
-    # IC file
-    if IC_file is not None:
-        card["IC_file"] = True
-        card["IC_file_name"] = IC_file
-
-        # Set number of particles
-        card_setting = global_.input_deck.setting
-        with h5py.File(IC_file, "r") as f:
-            card_setting["N_particle"] = f["IC/neutrons_size"][()]
-            card_setting["N_precursor"] = f["IC/precursors_size"][()]
-
-    # TODO: Allow both source and IC files
-    if IC_file and source_file:
-        print_error("Using both source and IC files is not supported yet.")
 
 
 def eigenmode(
@@ -1690,84 +1671,6 @@ def weight_roulette(w_threshold=0.2, w_survive=1.0):
     card["weight_roulette"] = True
     card["wr_threshold"] = w_threshold
     card["wr_survive"] = w_survive
-
-
-def IC_generator(
-    N_neutron=0,
-    N_precursor=0,
-    cycle_stretch=1.0,
-    neutron_density=None,
-    max_neutron_density=None,
-    precursor_density=None,
-    max_precursor_density=None,
-):
-    """
-    Activate initial condition generator.
-
-    The initial condition generator samples initial neutrons and precursors
-    during an eigenvalue simulation.
-
-    Parameters
-    ----------
-    N_neutron : int
-        Neutron target size.
-    N_precursor : int
-        Delayed neutron precursor target size.
-    cycle_stretch : float
-        Factor to stretch number of cycles. Higher cycle stretch reduces inter-cycle
-        correlation.
-    neutron_density, max_neutron_density : float
-        Total and maximum neutron density, required if `N_neutron` > 0.
-    precursor_density, max_precursor_density : float
-        Total and maximum precursor density, required if `N_precursor` > 0.
-
-    Returns
-    -------
-        None (in-place card alterations).
-    """
-
-    # Turn on eigenmode and population control
-    eigenmode()
-    population_control()
-
-    # Set parameters
-    card = global_.input_deck.technique
-    card["IC_generator"] = True
-    card["IC_N_neutron"] = N_neutron
-    card["IC_N_precursor"] = N_precursor
-
-    # Setting parameters
-    card_setting = global_.input_deck.setting
-    N_particle = card_setting["N_particle"]
-
-    # Check optional parameters
-    if N_neutron > 0.0:
-        if neutron_density is None or max_neutron_density is None:
-            print_error("IC generator requires neutron_density and max_neutron_density")
-        card["IC_neutron_density"] = N_particle * neutron_density
-        card["IC_neutron_density_max"] = max_neutron_density
-    if N_precursor > 0.0:
-        if precursor_density is None:
-            print_error(
-                "IC generator requires precursor_density and max_precursor_density"
-            )
-        card["IC_precursor_density"] = N_particle * precursor_density
-        card["IC_precursor_density_max"] = max_precursor_density
-
-    # Set number of active cycles
-    n = card["IC_neutron_density"]
-    n_max = card["IC_neutron_density_max"]
-    C = card["IC_precursor_density"]
-    C_max = card["IC_precursor_density_max"]
-    N_cycle1 = 0.0
-    N_cycle2 = 0.0
-    if N_neutron > 0:
-        N_cycle1 = math.ceil(cycle_stretch * math.ceil(n_max / n * N_neutron))
-    if N_precursor > 0:
-        N_cycle2 = math.ceil(cycle_stretch * math.ceil(C_max / C * N_precursor))
-    N_cycle = max(N_cycle1, N_cycle2)
-    card_setting["N_cycle"] = N_cycle
-    card_setting["N_active"] = N_cycle
 
 
 def uq(**kw):

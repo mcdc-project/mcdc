@@ -706,19 +706,14 @@ def source_particle_dd(seed, mcdc):
 
 
 @njit
-def distribute_work_dd(N, mcdc, precursor=False):
+def distribute_work_dd(N, mcdc):
     work_start = 0
     work_size = N
     work_size_total = N
 
-    if not precursor:
-        mcdc["mpi_work_start"] = work_start
-        mcdc["mpi_work_size"] = work_size
-        mcdc["mpi_work_size_total"] = work_size_total
-    else:
-        mcdc["mpi_work_start_precursor"] = work_start
-        mcdc["mpi_work_size_precursor"] = work_size
-        mcdc["mpi_work_size_total_precursor"] = work_size_total
+    mcdc["mpi_work_start"] = work_start
+    mcdc["mpi_work_size"] = work_size
+    mcdc["mpi_work_size_total"] = work_size_total
 
 
 # =============================================================================
@@ -1096,67 +1091,11 @@ def manage_particle_banks(seed, mcdc):
     # Zero out census bank
     set_bank_size(mcdc["bank_census"], 0)
 
-    # Manage IC bank
-    if mcdc["technique"]["IC_generator"] and mcdc["cycle_active"]:
-        manage_IC_bank(mcdc)
-
     # Accumulate time
     if mcdc["mpi_master"]:
         with objmode(time_end="float64"):
             time_end = MPI.Wtime()
         mcdc["runtime_bank_management"] += time_end - time_start
-
-
-@njit
-def manage_IC_bank(mcdc):
-    # Buffer bank
-    buff_n = np.zeros(
-        mcdc["technique"]["IC_bank_neutron_local"]["particles"].shape[0],
-        dtype=type_.particle_record,
-    )
-    buff_p = np.zeros(
-        mcdc["technique"]["IC_bank_precursor_local"]["precursors"].shape[0],
-        dtype=type_.precursor,
-    )
-
-    with objmode(Nn="int64", Np="int64"):
-        # Create MPI-supported numpy object
-        Nn = get_bank_size(mcdc["technique"]["IC_bank_neutron_local"])
-        Np = get_bank_size(mcdc["technique"]["IC_bank_precursor_local"])
-
-        neutrons = MPI.COMM_WORLD.gather(
-            mcdc["technique"]["IC_bank_neutron_local"]["particles"][:Nn]
-        )
-        precursors = MPI.COMM_WORLD.gather(
-            mcdc["technique"]["IC_bank_precursor_local"]["precursors"][:Np]
-        )
-
-        if mcdc["mpi_master"]:
-            neutrons = np.concatenate(neutrons[:])
-            precursors = np.concatenate(precursors[:])
-
-            # Set output buffer
-            Nn = neutrons.shape[0]
-            Np = precursors.shape[0]
-            for i in range(Nn):
-                buff_n[i] = neutrons[i]
-            for i in range(Np):
-                buff_p[i] = precursors[i]
-
-    # Set global bank from buffer
-    if mcdc["mpi_master"]:
-        start_n = add_bank_size(mcdc["technique"]["IC_bank_neutron"], Nn)
-        start_p = add_bank_size(mcdc["technique"]["IC_bank_precursor"], Np)
-        for i in range(Nn):
-            mcdc["technique"]["IC_bank_neutron"]["particles"][start_n + i] = buff_n[i]
-        for i in range(Np):
-            mcdc["technique"]["IC_bank_precursor"]["precursors"][start_p + i] = buff_p[
-                i
-            ]
-
-    # Reset local banks
-    set_bank_size(mcdc["technique"]["IC_bank_neutron_local"], 0)
-    set_bank_size(mcdc["technique"]["IC_bank_precursor_local"], 0)
 
 
 @njit
@@ -1201,31 +1140,6 @@ def bank_scanning_weight(bank, mcdc):
     W_global = buff[0]
 
     return w_start, w_cdf, W_global
-
-
-@njit
-def bank_scanning_DNP(bank, mcdc):
-    N_DNP_local = get_bank_size(bank)
-
-    # Get sum of ceil-ed local DNP weights
-    N_local = 0
-    for i in range(N_DNP_local):
-        DNP = bank["precursors"][i]
-        N_local += math.ceil(DNP["w"])
-
-    # Starting index
-    buff = np.zeros(1, dtype=np.int64)
-    with objmode():
-        MPI.COMM_WORLD.Exscan(np.array([N_local]), buff, MPI.SUM)
-    idx_start = buff[0]
-
-    # Global size
-    buff[0] += N_local
-    with objmode():
-        MPI.COMM_WORLD.Bcast(buff, mcdc["mpi_size"] - 1)
-    N_global = buff[0]
-
-    return idx_start, N_local, N_global
 
 
 @njit
@@ -1354,7 +1268,7 @@ def bank_rebalance(mcdc):
 
 
 @njit
-def distribute_work(N, mcdc, precursor=False):
+def distribute_work(N, mcdc):
     size = mcdc["mpi_size"]
     rank = mcdc["mpi_rank"]
 
@@ -1377,145 +1291,9 @@ def distribute_work(N, mcdc, precursor=False):
     else:
         work_start += rem
 
-    if not precursor:
-        mcdc["mpi_work_start"] = work_start
-        mcdc["mpi_work_size"] = work_size
-        mcdc["mpi_work_size_total"] = work_size_total
-    else:
-        mcdc["mpi_work_start_precursor"] = work_start
-        mcdc["mpi_work_size_precursor"] = work_size
-        mcdc["mpi_work_size_total_precursor"] = work_size_total
-
-
-# =============================================================================
-# IC generator
-# =============================================================================
-
-
-@for_cpu()
-def pn_over_one():
-    with objmode():
-        print_error("Pn > 1.0.")
-
-
-@for_gpu()
-def pn_over_one():
-    pass
-
-
-@for_cpu()
-def pp_over_one():
-    with objmode():
-        print_error("Pp > 1.0.")
-
-
-@for_gpu()
-def pp_over_one():
-    pass
-
-
-@njit
-def bank_IC(P_arr, prog):
-    P = P_arr[0]
-
-    mcdc = adapt.mcdc_global(prog)
-
-    # TODO: Consider multi-nuclide material
-    material = mcdc["nuclides"][P["material_ID"]]
-
-    # =========================================================================
-    # Neutron
-    # =========================================================================
-
-    # Neutron weight
-    g = P["g"]
-    SigmaT = material["total"][g]
-    weight = P["w"]
-    flux = weight / SigmaT
-    v = material["speed"][g]
-    wn = flux / v
-
-    # Neutron target weight
-    Nn = mcdc["technique"]["IC_N_neutron"]
-    tally_n = mcdc["technique"]["IC_neutron_density"]
-    N_cycle = mcdc["setting"]["N_active"]
-    wn_prime = tally_n * N_cycle / Nn
-
-    # Sampling probability
-    Pn = wn / wn_prime
-
-    # TODO: Splitting for Pn > 1.0
-    if Pn > 1.0:
-        pn_over_one()
-
-    # Sample particle
-    if rng(P_arr) < Pn:
-        P_new_arr = adapt.local_array(1, type_.particle)
-        P_new = P_new_arr[0]
-        split_as_record(P_new_arr, P_arr)
-        P_new["w"] = 1.0
-        P_new["t"] = 0.0
-        adapt.add_IC(P_new_arr, prog)
-
-        # Accumulate fission
-        SigmaF = material["fission"][g]
-        # mcdc["technique"]["IC_fission_score"][0] += v * SigmaF
-        adapt.global_add(mcdc["technique"]["IC_fission_score"], 0, round(v * SigmaF))
-
-    # =========================================================================
-    # Precursor
-    # =========================================================================
-
-    # Sample precursor?
-    Np = mcdc["technique"]["IC_N_precursor"]
-    if Np == 0:
-        return
-
-    # Precursor weight
-    J = material["J"]
-    nu_d = material["nu_d"][g]
-    SigmaF = material["fission"][g]
-    decay = material["decay"]
-    total = 0.0
-    for j in range(J):
-        total += nu_d[j] / decay[j]
-    wp = flux * total * SigmaF / mcdc["k_eff"]
-
-    # Material has no precursor
-    if total == 0.0:
-        return
-
-    # Precursor target weight
-    tally_C = mcdc["technique"]["IC_precursor_density"]
-    wp_prime = tally_C * N_cycle / Np
-
-    # Sampling probability
-    Pp = wp / wp_prime
-
-    # TODO: Splitting for Pp > 1.0
-    if Pp > 1.0:
-        pp_over_one()
-
-    # Sample precursor
-    if rng(P_arr) < Pp:
-        idx = add_bank_size(mcdc["technique"]["IC_bank_precursor_local"], 1)
-        precursor = mcdc["technique"]["IC_bank_precursor_local"]["precursors"][idx]
-        precursor["x"] = P["x"]
-        precursor["y"] = P["y"]
-        precursor["z"] = P["z"]
-        precursor["w"] = wp_prime / wn_prime
-
-        # Sample group
-        xi = rng(P_arr) * total
-        total = 0.0
-        for j in range(J):
-            total += nu_d[j] / decay[j]
-            if total > xi:
-                break
-        precursor["g"] = j
-
-        # Set inducing neutron group
-        precursor["n_g"] = g
+    mcdc["mpi_work_start"] = work_start
+    mcdc["mpi_work_size"] = work_size
+    mcdc["mpi_work_size_total"] = work_size_total
 
 
 # =============================================================================
@@ -2612,7 +2390,6 @@ def eigenvalue_tally_closeout_history(mcdc):
     buff_nmax = np.zeros(1, np.float64)
     buff_C = np.zeros(1, np.float64)
     buff_Cmax = np.zeros(1, np.float64)
-    buff_IC_fission = np.zeros(1, np.float64)
     with objmode():
         MPI.COMM_WORLD.Allreduce(
             np.array(mcdc["eigenvalue_tally_nuSigmaF"]), buff_nuSigmaF, MPI.SUM
@@ -2626,12 +2403,6 @@ def eigenvalue_tally_closeout_history(mcdc):
                 np.array(mcdc["eigenvalue_tally_C"]), buff_C, MPI.SUM
             )
             MPI.COMM_WORLD.Allreduce(np.array([mcdc["C_max"]]), buff_Cmax, MPI.MAX)
-            if mcdc["technique"]["IC_generator"]:
-                MPI.COMM_WORLD.Allreduce(
-                    np.array(mcdc["technique"]["IC_fission_score"]),
-                    buff_IC_fission,
-                    MPI.SUM,
-                )
 
     # Update and store k_eff
     mcdc["k_eff"] = buff_nuSigmaF[0] / N_particle
@@ -2640,7 +2411,6 @@ def eigenvalue_tally_closeout_history(mcdc):
     # Normalize other eigenvalue/global tallies
     tally_n = buff_n[0] / N_particle
     tally_C = buff_C[0] / N_particle
-    tally_IC_fission = buff_IC_fission[0]
 
     # Maximum densities
     mcdc["n_max"] = buff_nmax[0]
@@ -2664,14 +2434,10 @@ def eigenvalue_tally_closeout_history(mcdc):
                 (mcdc["k_sdv"] / N - mcdc["k_avg_running"] ** 2) / (N - 1)
             )
 
-        if mcdc["technique"]["IC_generator"]:
-            mcdc["technique"]["IC_fission"] += tally_IC_fission
-
     # Reset accumulators
     mcdc["eigenvalue_tally_nuSigmaF"][0] = 0.0
     mcdc["eigenvalue_tally_n"][0] = 0.0
     mcdc["eigenvalue_tally_C"][0] = 0.0
-    mcdc["technique"]["IC_fission_score"][0] = 0.0
 
     # =====================================================================
     # Gyration radius

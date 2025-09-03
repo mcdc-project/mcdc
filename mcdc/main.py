@@ -1181,7 +1181,6 @@ def prepare():
         "domain_decomposition",
         "weight_roulette",
         "iQMC",
-        "IC_generator",
         "branchless_collision",
         "uq",
     ]:
@@ -1202,20 +1201,6 @@ def prepare():
     elif pct == "splitting-roulette-weight":
         mcdc["technique"]["pct"] = PCT_SPLITTING_ROULETTE_WEIGHT
     mcdc["technique"]["pc_factor"] = input_deck.technique["pc_factor"]
-
-    # =========================================================================
-    # IC generator
-    # =========================================================================
-
-    for name in [
-        "IC_N_neutron",
-        "IC_N_precursor",
-        "IC_neutron_density",
-        "IC_neutron_density_max",
-        "IC_precursor_density",
-        "IC_precursor_density_max",
-    ]:
-        copy_field(mcdc["technique"], input_deck.technique, name)
 
     # =========================================================================
     # Weight window (WW)
@@ -1431,13 +1416,6 @@ def prepare():
     mcdc["bank_source"]["tag"] = "source"
     mcdc["bank_future"]["tag"] = "future"
 
-    # IC generator banks
-    if mcdc["technique"]["IC_generator"]:
-        mcdc["technique"]["IC_bank_neutron_local"]["tag"] = "neutron"
-        mcdc["technique"]["IC_bank_precursor_local"]["tag"] = "precursor"
-        mcdc["technique"]["IC_bank_neutron"]["tag"] = "neutron"
-        mcdc["technique"]["IC_bank_precursor"]["tag"] = "precursor"
-
     # =========================================================================
     # Eigenvalue (or fixed-source)
     # =========================================================================
@@ -1480,58 +1458,10 @@ def prepare():
         MPI.COMM_WORLD.Barrier()
 
     # =========================================================================
-    # IC file
-    # =========================================================================
-
-    if settings.use_IC_file:
-        with h5py.File(mcdc["setting"]["IC_file_name"], "r") as f:
-            # =================================================================
-            # Set neutron source
-            # =================================================================
-
-            # Get source particle size
-            N_particle = f["IC/neutrons_size"][()]
-
-            # Redistribute work
-            kernel.distribute_work(N_particle, mcdc)
-            N_local = mcdc["mpi_work_size"]
-            start = mcdc["mpi_work_start"]
-            end = start + N_local
-
-            # Add particles to source bank
-            mcdc["bank_source"]["particles"][:N_local] = f["IC/neutrons"][start:end]
-            mcdc["bank_source"]["size"] = N_local
-
-            # =================================================================
-            # Set precursor source
-            # =================================================================
-
-            # Get source particle size
-            N_precursor = f["IC/precursors_size"][()]
-
-            # Redistribute work
-            kernel.distribute_work(N_precursor, mcdc, True)  # precursor = True
-            N_local = mcdc["mpi_work_size_precursor"]
-            start = mcdc["mpi_work_start_precursor"]
-            end = start + N_local
-
-            # Add particles to source bank
-            mcdc["bank_precursor"]["precursors"][:N_local] = f["IC/precursors"][
-                start:end
-            ]
-            mcdc["bank_precursor"]["size"] = N_local
-
-            # Set precursor strength
-            if N_precursor > 0 and N_particle > 0:
-                mcdc["precursor_strength"] = mcdc["bank_precursor"]["precursors"][0][
-                    "w"
-                ]
-
-    loop.setup_gpu(mcdc)
-
-    # =========================================================================
     # Finalize data: wrapping into a tuple
     # =========================================================================
+    
+    loop.setup_gpu(mcdc)
 
     # Pick physics model
     if settings.multigroup_mode:
@@ -2168,24 +2098,6 @@ def generate_hdf5(data_tally, mcdc):
                 )
                 f.create_dataset("iqmc/sweep_count", data=T["iqmc"]["sweep_count"])
                 f.create_dataset("iqmc/final_residual", data=T["iqmc"]["residual"])
-
-            # IC generator
-            if mcdc["technique"]["IC_generator"]:
-                Nn = mcdc["technique"]["IC_bank_neutron"]["size"][0]
-                Np = mcdc["technique"]["IC_bank_precursor"]["size"][0]
-                f.create_dataset(
-                    "IC/neutrons",
-                    data=mcdc["technique"]["IC_bank_neutron"]["particles"][:Nn],
-                )
-                f.create_dataset(
-                    "IC/precursors",
-                    data=mcdc["technique"]["IC_bank_precursor"]["precursors"][:Np],
-                )
-                f.create_dataset("IC/neutrons_size", data=Nn)
-                f.create_dataset("IC/precursors_size", data=Np)
-                f.create_dataset(
-                    "IC/fission", data=mcdc["technique"]["IC_fission"] / Nn
-                )
 
     # Save particle?
     if objects.settings.save_particle:

@@ -562,17 +562,6 @@ def add_future(particle, prog):
 
 
 @for_cpu()
-def add_IC(particle, prog):
-    kernel.add_particle(particle, prog["technique"]["IC_bank_neutron_local"])
-
-
-@for_gpu()
-def add_IC(particle, prog):
-    mcdc = mcdc_global(prog)
-    kernel.add_particle(particle, mcdc["technique"]["IC_bank_neutron_local"])
-
-
-@for_cpu()
 def global_add(ary, idx, val):
     result = ary[idx]
     ary[idx] += val
