@@ -84,14 +84,13 @@ class DataMaxwellian(DataContainer):
         super().__init__(label, type_)
 
         self.U = restriction_energy
-        self.T_energy_grid = nuclear_temperature_energy_grid
-        self.T = nuclear_temperature_value
+        self.T = DataTable(nuclear_temperature_energy_grid, nuclear_temperature_value)
 
     def __repr__(self):
         text = super().__repr__()
         text += f"  - U {print_1d_array(self.U)}\n"
-        text += f"  - T_energy_grid {print_1d_array(self.T_energy_grid)}\n"
-        text += f"  - T {print_1d_array(self.T)}\n"
+        text += f"  - T energy_grid {print_1d_array(self.T.x)}\n"
+        text += f"  - T {print_1d_array(self.T.y)}\n"
         return text
 
 

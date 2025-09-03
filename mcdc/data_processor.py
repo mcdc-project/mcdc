@@ -7,7 +7,7 @@ from numba import njit
 import mcdc.kernel as kernel
 import mcdc.mcdc_get as mcdc_get
 
-from mcdc.constant import DATA_MAXWELLIAN, DATA_MULTIPDF, DATA_POLYNOMIAL, DATA_TABLE
+from mcdc.constant import DATA_MAXWELLIAN, DATA_MULTIPDF, DATA_POLYNOMIAL, DATA_TABLE, PI
 
 from mcdc.util import binary_search, linear_interpolation
 
@@ -60,7 +60,7 @@ def sample_distribution(x, data_type, index, rng_state, mcdc, data, scale=False)
         return sample_multipdf(x, rng_state, multipdf, data, scale)
     elif data_type == DATA_MAXWELLIAN:
         maxwellian = mcdc['data_maxwellians'][index]
-        return sample_maxwellian(x, rng_state, maxwellian, data)
+        return sample_maxwellian(x, rng_state, maxwellian, mcdc, data)
     else:
         return 0.0
 
@@ -151,6 +151,23 @@ def sample_multipdf(x, rng_state, multipdf, data, scale=False):
 
 
 @njit
-def sample_maxwellian(x, rng_state, maxwellian, data):
-    # TODO
-    return -1.0
+def sample_maxwellian(x, rng_state, maxwellian, mcdc, data):
+    # Get nuclear temperature
+    table = mcdc['data_tables'][maxwellian['T_index']]
+    T = evaluate_table(x, table, data)
+    U = maxwellian['U']
+
+    # Rejection sampling
+    while True:
+        xi1 = kernel.rng(rng_state)
+        xi2 = kernel.rng(rng_state)
+        xi3 = kernel.rng(rng_state)
+        cos = math.cos(0.5 * PI * xi3)
+        cos_square = cos * cos
+        sample = -T * (math.log(xi1) + math.log(xi2) * cos_square)
+
+        # Accept sample
+        if sample >= 0.0 and sample <= x - U:
+            break
+
+    return sample
