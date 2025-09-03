@@ -4,12 +4,13 @@ import numpy as np
 
 import mcdc.objects as objects
 
-from mcdc.data_container import DataContainer
+from mcdc.data_container import DataContainer, DataMaxwellian, DataMultiPDF, DataPolynomial, DataTable
 from mcdc.objects import (
     ObjectNonSingleton,
     ObjectPolymorphic,
     ObjectSingleton,
 )
+from mcdc.reaction import ReactionNeutronFission
 
 # ======================================================================================
 # Python object to Numba structured data converter
@@ -142,6 +143,29 @@ def generate_numba_objects():
         + [objects.settings]
         + objects.data_containers
     )
+
+    # Create necessary dummies
+    if not objects.settings.multigroup_mode:
+        vector = np.zeros(1)
+        if not any([isinstance(x, DataPolynomial) for x in object_list]):
+            polynomial = DataPolynomial(vector)
+            object_list += [polynomial]
+            data_1d = polynomial
+        if not any([isinstance(x, DataTable) for x in object_list]):
+            table = DataTable(vector, vector)
+            object_list += [table]
+            data_1d = table
+        if not any([isinstance(x, DataMultiPDF) for x in object_list]):
+            multipdf = DataMultiPDF(vector, vector, vector, vector)
+            object_list += [multipdf]
+            distribution = multipdf
+        if not any([isinstance(x, DataMaxwellian) for x in object_list]):
+            maxwellian = DataMaxwellian(0.0, vector, vector)
+            object_list += [maxwellian]
+            distribution = maxwellian
+        if not any([isinstance(x, ReactionNeutronFission) for x in object_list]):
+            fission = ReactionNeutronFission(vector, data_1d, distribution, [data_1d], [distribution], vector)
+            object_list += [fission]
 
     # Containers for structures and records for all object types
     structures = {}
