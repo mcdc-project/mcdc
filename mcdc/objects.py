@@ -2,6 +2,7 @@ class ObjectBase:
     def __init__(self, label):
         self.label = label
         self.numbafied = False
+        register_object(self)
 
 
 class ObjectSingleton(ObjectBase):
@@ -12,7 +13,6 @@ class ObjectSingleton(ObjectBase):
 class ObjectNonSingleton(ObjectBase):
     def __init__(self, label):
         super().__init__(label)
-        self.ID = -1
 
 
 class ObjectPolymorphic(ObjectNonSingleton):

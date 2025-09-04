@@ -132,7 +132,7 @@ TINY = 1e-10
 COINCIDENCE_TOLERANCE = TINY * 1e1
 COINCIDENCE_TOLERANCE_TIME = TINY * 1e-2
 INF = 1e10
-PI = math.acos(-1.0)
+PI = math.pi
 PI_SQRT = math.sqrt(PI)
 PI_HALF = PI / 2.0
 BANKMAX = 100  # Default maximum active bank
@@ -166,7 +166,6 @@ SQRD_SPEED_TO_E = 5.2270376e-13
 BOLTZMANN_K = 8.61733326e-5  # eV/K
 T_ROOM = 294  # K
 E_THERMAL_THRESHOLD = 400 * BOLTZMANN_K * T_ROOM
-PI = math.pi
 ELECTRON_REST_MASS_ENERGY =  510998.95069 # eV
 
 # Weight Windows Methods

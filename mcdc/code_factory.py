@@ -99,7 +99,7 @@ def numbafy_object(object_, structures, records, data):
                     # Generate the numba object
                     if not subobject.numbafied:
                         numbafy_object(subobject, structures, records, data)
-                    data[offset + i] = subobject.ID
+                    data[offset + i] = subobject.ID_numba
 
             # List of polymorphic objects
             else:

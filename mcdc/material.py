@@ -168,10 +168,6 @@ class MaterialMG(MaterialBase):
                 if np.sum(self.mgxs_chi_d[dg, :]) > 0.0:
                     self.mgxs_chi_d[dg, :] /= np.sum(self.mgxs_chi_d[dg, :])
 
-        # Register the material
-        self.ID = len(objects.materials)
-        objects.materials.append(self)
-
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Multigroup data\n"
@@ -218,11 +214,9 @@ class Material(MaterialBase):
                     found = True
                     break
 
-            # Create and register the nuclide to objects if needed
+            # Create the nuclide to objects if needed
             if not found:
                 nuclide = Nuclide(nuclide_name)
-                nuclide.ID = len(objects.nuclides)
-                objects.nuclides.append(nuclide)
 
             # Register the nuclide composition
             self.nuclides.append(nuclide)
@@ -232,10 +226,6 @@ class Material(MaterialBase):
             # Some flags
             if nuclide.fissionable:
                 self.fissionable = True
-
-        # Register the material
-        self.ID = len(objects.materials)
-        objects.materials.append(self)
 
     def __repr__(self):
         text = super().__repr__()

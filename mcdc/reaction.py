@@ -12,10 +12,9 @@ from mcdc.constant import (
     REACTION_ELECTRON_ELASTIC_SCATTERING,
     REACTION_ELECTRON_IONIZATION,
     ELECTRON_REST_MASS_ENERGY,
-    PI
 )
 from mcdc.data_container import DataMaxwellian, DataMultiPDF, DataPolynomial, DataTable
-from mcdc.objects import ObjectPolymorphic, register_object
+from mcdc.objects import ObjectPolymorphic
 from mcdc.prints import print_1d_array
 
 
@@ -23,9 +22,6 @@ class ReactionBase(ObjectPolymorphic):
     def __init__(self, label, type_, xs):
         super().__init__(label, type_)
         self.xs = xs
-
-        # Register the instance
-        register_object(self)
 
     def __repr__(self):
         text = "\n"
@@ -244,16 +240,24 @@ class ReactionElectronBremsstrahlung(ReactionBase):
 
 
 class ReactionElectronExcitation(ReactionBase):
-    def __init__(self, h5_group):
+    def __init__(self, xs, eloss):
         label = "electron_excitation_reaction"
         type_ = REACTION_ELECTRON_EXCITATION
-        super().__init__(label, type_, h5_group)
+        super().__init__(label, type_, xs)
+
+        self.eloss = eloss
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        xs = h5_group["xs"][()]
 
         # Energy loss
         base = "energy_loss"
         grid = h5_group[f"{base}/energy"][()]
         value = h5_group[f"{base}/value"][()]
-        self.eloss = DataTable(grid, value)
+        eloss = DataTable(grid, value)
+
+        return cls(xs, eloss)
 
     def __repr__(self):
         text = super().__repr__()
@@ -318,7 +322,6 @@ class ReactionElectronIonization(ReactionBase):
             self.subshell_binding_energies[i] = subshell["binding_energy"][()]
     
         self.me_c2 = ELECTRON_REST_MASS_ENERGY
-        self.pi = PI
 
     def compute_mu_delta(self, T_delta, T_prim):
         me = self.me_c2
