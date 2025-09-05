@@ -7,8 +7,9 @@ from numpy.typing import NDArray
 
 import mcdc.objects as objects
 
-from mcdc.constant import MATERIAL, MATERIAL_MG
+from mcdc.constant import MATERIAL, MATERIAL_MG, MATERIAL_ELEMENTAL
 from mcdc.nuclide import Nuclide
+from mcdc.element import Element
 from mcdc.objects import ObjectOverriding
 from mcdc.prints import print_1d_array, print_error
 
@@ -233,6 +234,50 @@ class Material(MaterialBase):
         for nuclide in self.nuclide_composition.keys():
             text += f"    - {nuclide.name:<5} | {self.nuclide_composition[nuclide]}\n"
         return text
+    
+
+class MaterialElemental(MaterialBase):
+    def __init__(
+        self,
+        name: str = "",
+        element_composition: dict = {},
+    ):
+        type_ = MATERIAL_ELEMENTAL
+        super().__init__(type_, name)
+
+        self.elements = []
+        self.atomic_densities = np.zeros(len(element_composition))
+
+        # Helper dictionary connecting elements to respective atomic densities
+        self.element_composition = {}
+
+        # Loop over the items in the composition
+        for i, (key, value) in enumerate(element_composition.items()):
+            element_name = key
+            atomic_density = value
+
+            # Check if element is already created
+            found = False
+            for element in objects.elements:
+                if element.name == element_name:
+                    found = True
+                    break
+
+            # Create the element to objects if needed
+            if not found:
+                element = Element(element_name)
+
+            # Register the element composition
+            self.elements.append(element)
+            self.atomic_densities[i] = atomic_density
+            self.element_composition[element] = atomic_density
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Element composition [atoms/barn-cm]\n"
+        for element in self.element_composition.keys():
+            text += f"    - {element.name:<5} | {self.element_composition[element]}\n"
+        return text
 
 
 def decode_type(type_):
@@ -240,3 +285,5 @@ def decode_type(type_):
         return "Material"
     elif type_ == MATERIAL_MG:
         return "Multigroup material"
+    if type_ == MATERIAL_ELEMENTAL:
+        return "Elemental material"
