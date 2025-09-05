@@ -243,7 +243,8 @@ class ReactionElectronBremsstrahlung(ReactionBase):
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Energy loss: {data_container.decode_type(self.eloss.type)} [ID: {self.eloss.ID}]\n"
+        text += ("  - Energy loss: "
+                  f"{data_container.decode_type(self.eloss.type)} [ID: {self.eloss.ID}]\n")
         return text
 
 
@@ -269,9 +270,10 @@ class ReactionElectronExcitation(ReactionBase):
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Energy loss: {data_container.decode_type(self.eloss.type)} [ID: {self.eloss.ID}]\n"
+        text += ("  - Energy loss: "
+                 f"{data_container.decode_type(self.eloss.type)} [ID: {self.eloss.ID}]\n")
         return text
-    
+
 
 class ReactionElectronElasticScattering(ReactionBase):
     def __init__(self, xs, large_angle_xs, mu_large_angle, small_angle_xs, mu_small_angle):
@@ -295,7 +297,8 @@ class ReactionElectronElasticScattering(ReactionBase):
         large_angle_offset = large_angle["scattering_cosine"]["energy_offset"][()]
         large_angle_value = large_angle["scattering_cosine"]["value"][()]
         large_angle_pdf = large_angle["scattering_cosine"]["PDF"][()]
-        mu_large_angle = DataMultiPDF(large_angle_grid, large_angle_offset, large_angle_value, large_angle_pdf)
+        mu_large_angle = DataMultiPDF(large_angle_grid, large_angle_offset, 
+                                      large_angle_value, large_angle_pdf)
 
         # Small Angle
         small_angle = h5_group["small_angle"]
@@ -304,7 +307,8 @@ class ReactionElectronElasticScattering(ReactionBase):
         small_angle_offset = small_angle["scattering_cosine"]["energy_offset"][()]
         small_angle_value = small_angle["scattering_cosine"]["value"][()]
         small_angle_pdf = small_angle["scattering_cosine"]["PDF"][()]
-        mu_small_angle = DataMultiPDF(small_angle_grid, small_angle_offset, small_angle_value, small_angle_pdf)
+        mu_small_angle = DataMultiPDF(small_angle_grid, small_angle_offset, 
+                                      small_angle_value, small_angle_pdf)
 
         return cls(xs, large_angle_xs, mu_large_angle, small_angle_xs, mu_small_angle)
 
@@ -312,15 +316,20 @@ class ReactionElectronElasticScattering(ReactionBase):
         text = super().__repr__()
         text += " - Large angle scattering:\n"
         text += f"   - XS {print_1d_array(self.xs_large_angle)} barn\n"
-        text += f"   - Scattering cosine: {data_container.decode_type(self.mu_large_angle.type)} [ID: {self.mu_large_angle.ID}]\n"
+        text += ("   - Scattering cosine: "
+                 f"{data_container.decode_type(self.mu_large_angle.type)}" 
+                 f"[ID: {self.mu_large_angle.ID}]\n")
         text += " - Small angle scattering:\n"
         text += f"   - XS {print_1d_array(self.xs_small_angle)} barn\n"
-        text += f"   - Scattering cosine: {data_container.decode_type(self.mu_small_angle.type)} [ID: {self.mu_small_angle.ID}]\n"
+        text += (f"   - Scattering cosine: "
+                 f"{data_container.decode_type(self.mu_small_angle.type)}" 
+                 f"[ID: {self.mu_small_angle.ID}]\n")
         return text
-    
+
 
 class ReactionElectronIonization(ReactionBase):
-    def __init__(self, xs, N_subshells, subshell_name, subshell_xs, subshell_binding_energy, subshell_product):
+    def __init__(self, xs, N_subshells, subshell_name, subshell_xs, 
+                 subshell_binding_energy, subshell_product):
         label = "electron_ionization_reaction"
         type_ = REACTION_ELECTRON_IONIZATION
         super().__init__(label, type_, xs)
@@ -352,31 +361,12 @@ class ReactionElectronIonization(ReactionBase):
             product_offset = subshell["product"]["energy_offset"][()]
             product_value = subshell["product"]["value"][()]
             product_pdf = subshell["product"]["PDF"][()]
-            subshell_product[i] = DataMultiPDF(product_grid, product_offset, product_value, product_pdf)
+            subshell_product[i] = DataMultiPDF(product_grid, product_offset, 
+                                               product_value, product_pdf)
 
-        return cls(xs, N_subshells, subshell_name, subshell_xs, subshell_binding_energy, subshell_product)
+        return cls(xs, N_subshells, subshell_name, subshell_xs,
+                   subshell_binding_energy, subshell_product)
 
-    def compute_mu_delta(self, T_delta, T_prim):
-        me = ELECTRON_REST_MASS_ENERGY
-        pd = (T_delta * (T_delta + 2 * me)) ** 0.5
-        pp = (T_prim * (T_prim + 2 * me)) ** 0.5
-        mu = (T_delta * (T_prim + 2.0 * me)) / (pd * pp)
-
-        if mu < -1.0:
-            mu = -1.0
-        if mu >  1.0:
-            mu =  1.0
-
-        return mu
-
-    def sample_delta_direction(self, T_delta, T_prim, rng):
-        mu = self.compute_mu_delta(T_delta, T_prim)
-        phi = 2 * np.pi * rng()
-        sin = (1 - mu*mu) ** 0.5
-        ux = sin * np.cos(phi)
-        uy = sin * np.sin(phi)
-        uz = mu
-        return ux, uy, uz
 
     def __repr__(self):
         text = super().__repr__()

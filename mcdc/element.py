@@ -30,6 +30,7 @@ class Element(ObjectNonSingleton):
         with h5py.File(f"{dir_name}/{file_name}", "r") as f:
             self.name = f["element_name"][()].decode()
             self.atomic_number = f["atomic_number"][()]
+            self.atomic_weight_ratio = f["atomic_weight_ratio"][()]
             self.xs_energy_grid = f["electron_reactions/xs_energy_grid"][()]
 
             self.reactions = []
@@ -62,7 +63,8 @@ class Element(ObjectNonSingleton):
         text += "Element\n"
         text += f"  - ID: {self.ID}\n"
         text += f"  - Name: {self.name}\n"
-        text += f"  - Atomic number (Z): {self.atomic_number}\n"
+        text += f"  - Atomic number: {self.atomic_number}\n"
+        text += f"  - Atomic weight ratio: {self.atomic_weight_ratio}\n"
         text += f"  - XS energy grid {print_1d_array(self.xs_energy_grid)} eV\n"
         text += "  - Reactions\n"
         for reaction in self.reactions:
