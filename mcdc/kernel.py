@@ -1,7 +1,13 @@
 import h5py, math, numba
 
 from mpi4py import MPI
-from numba import int64, literal_unroll, njit, objmode, uint64, prange
+from numba import (
+    int64,
+    literal_unroll,
+    njit,
+    objmode,
+    uint64,
+)
 
 import mcdc.adapt as adapt
 import mcdc.src.geometry as geometry
@@ -2333,7 +2339,7 @@ def tally_reduce(data, mcdc):
             dd_reduce(data, mcdc)
 
 
-@njit(cache=True, fastmath=True, inline="always")
+@njit
 def tally_accumulate(data, mcdc):
     tally_bin = data[TALLY]
 
@@ -2342,8 +2348,7 @@ def tally_accumulate(data, mcdc):
     sum2 = tally_bin[TALLY_SUM_SQ]
 
     sum_ += score
-    np.multiply(score, score, out=score)
-
+    score *= score
     sum2 += score
     score[:] = 0.0
 
