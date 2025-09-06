@@ -48,13 +48,36 @@ if __name__ == "__main__":
     _ = run_once()
 
     # use warmed-up JIT compiler
-    build_model(1e3)
-    pr = cProfile.Profile()
-    pr.enable()
-    wall = run_once()
-    pr.disable()
-    print(f"Wall time (profiled run): {wall:.3f} s")
+    profiling = False
+    if profiling:
+        build_model(1e4)
 
-    # output top 25 cumulative time offenders from results of cProfile
-    p = pstats.Stats(pr).sort_stats("cumulative")
-    p.print_stats(25)
+        pr = cProfile.Profile()
+        pr.enable()
+        wall = run_once()
+        pr.disable()
+
+        # output top 25 cumulative time offenders from results of cProfile
+        p = pstats.Stats(pr).sort_stats("cumulative")
+        p.print_stats(25)
+    else:
+        runs = 20
+        runtimes = []
+        for _ in range(runs):
+            build_model(1e4)
+            runtimes.append(run_once())
+        print(
+            f"mean +/- stdev runtime for {runs} runs: {np.mean(runtimes):.3f} +/- {np.std(runtimes):.3f}"
+        )
+
+        # 1e3
+        # new, no Numba: 0.712s +/- 0.056s
+        # new, Numba: 0.302s +/- 0.077s
+        # old, no Numba: 2.072s +/- 0.046s
+        # old, Numba: 0.329s +/- 0.074
+
+        # 1e4
+        # new, no Numba: 6.125s +/- 0.088s
+        # new, Numba: 1.989s +/- 0.106s
+        # old, no Numba: 20.278s +/- 1.141s
+        # old, Numba: 2.167s +/- 0.088s
