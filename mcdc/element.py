@@ -25,7 +25,7 @@ class Element(ObjectNonSingleton):
         super().__init__(label)
 
         # Set attributes from the hdf5 file
-        dir_name = os.getenv("MCDC_ELECTRON_XSLIB")
+        dir_name = os.getenv("MCDC_XSLIB")
         file_name = f"{element_name}.h5"
         with h5py.File(f"{dir_name}/{file_name}", "r") as f:
             self.name = f["element_name"][()].decode()
@@ -37,7 +37,7 @@ class Element(ObjectNonSingleton):
             self.total_xs = np.zeros_like(self.xs_energy_grid)
 
             for reaction_type in f["electron_reactions"]:
-                if reaction_type == "xs_energy_grid":
+                if reaction_type in ["xs_energy_grid", "total"]:
                     continue
 
                 if reaction_type == "bremsstrahlung":

@@ -276,7 +276,7 @@ class MaterialElemental(MaterialBase):
         text = super().__repr__()
         text += "  - Element composition [atoms/barn-cm]\n"
         for element in self.element_composition.keys():
-            text += f"    - {element.name:<5} | {self.element_composition[element]}\n"
+            text += f"    - {element.name:<2} | {self.element_composition[element]}\n"
         return text
 
 
