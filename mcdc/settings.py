@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 import mcdc.objects as objects
 
 from mcdc.constant import *
-from mcdc.material import MaterialMG
+from mcdc.material import MaterialElemental, MaterialMG
 from mcdc.objects import ObjectSingleton
 from mcdc.prints import print_error
 
@@ -28,6 +28,7 @@ class Settings(ObjectSingleton):
     # Simulation mode
     multigroup_mode: bool = False
     eigenvalue_mode: bool = False
+    elemental_mode: bool = False
 
     # k-eigenvalue
     N_inactive: int = 0
@@ -71,6 +72,9 @@ class Settings(ObjectSingleton):
 
         # Set multgroup mode
         self.multigroup_mode = isinstance(objects.materials[0], MaterialMG)
+        
+        # Set elemental mode
+        self.elemental_mode = isinstance(objects.materials[0], MaterialElemental)
 
         # Register the settings
         objects.settings = self

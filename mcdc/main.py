@@ -1464,6 +1464,13 @@ def prepare():
             physics.multigroup.neutron_production_xs
         )
         physics.interface.collision = physics.multigroup.collision
+    if settings.elemental_mode:
+        physics.interface.particle_speed = physics.elemental.particle_speed
+        physics.interface.macro_xs = physics.elemental.macro_xs
+        physics.interface.neutron_production_xs = (
+            physics.elemental.neutron_production_xs
+        )
+        physics.interface.collision = physics.elemental.collision
 
     # Delete objects if running in Numba mode
     if not nb.config.DISABLE_JIT:

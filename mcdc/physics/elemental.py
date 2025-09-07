@@ -39,7 +39,7 @@ from mcdc.util import linear_interpolation
 # ======================================================================================
 
 @njit
-def electron_speed(particle_container):
+def particle_speed(particle_container):
     E = particle_container[0]["E"]
 
     gamma = 1.0 + E / ELECTRON_REST_MASS_ENERGY
