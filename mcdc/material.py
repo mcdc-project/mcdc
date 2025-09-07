@@ -7,9 +7,9 @@ from numpy.typing import NDArray
 
 import mcdc.objects as objects
 
-from mcdc.constant import MATERIAL, MATERIAL_MG, MATERIAL_ELEMENTAL
+from mcdc.constant import MATERIAL, MATERIAL_MG
 from mcdc.nuclide import Nuclide
-from mcdc.element import Element
+from mcdc.element import Element, ISOTOPIC_ABUNDANCE
 from mcdc.objects import ObjectOverriding
 from mcdc.prints import print_1d_array, print_error
 
@@ -31,6 +31,119 @@ class MaterialBase(ObjectOverriding):
         text += f"  - Name: {self.name}\n"
         text += f"  - Fissionable: {self.fissionable}\n"
         return text
+
+
+def decode_type(type_):
+    if type_ == MATERIAL:
+        return "Material"
+    elif type_ == MATERIAL_MG:
+        return "Multigroup material"
+
+
+# ======================================================================================
+# Native
+# ======================================================================================
+
+
+class Material(MaterialBase):
+    def __init__(
+        self,
+        name: str = "",
+        nuclide_composition: dict = {},
+        element_composition: dict = {},
+    ):
+        type_ = MATERIAL
+        super().__init__(type_, name)
+
+        self.nuclides = []
+        self.elements = []
+        self.element_densities = np.zeros(len(element_composition))
+        self.nuclide_densities = np.zeros(len(nuclide_composition))
+
+        # Helper dictionary connecting elements and nuclides to respective densities
+        self.element_composition = {}
+        self.nuclide_composition = {}
+
+        # ==============================================================================
+        # Argument checks
+        # ==============================================================================
+
+        # TODO: Need either nuclide or element composition, not both
+
+        # ==============================================================================
+        # Element-based construction
+        # ==============================================================================
+
+        # Loop over the items in the composition
+        for i, (key, value) in enumerate(element_composition.items()):
+            element_name = key
+            element_density = value
+
+            # Check if element is already created
+            found = False
+            for element in objects.elements:
+                if element.name == element_name:
+                    found = True
+                    break
+
+            # Create the element to objects if needed
+            if not found:
+                element = Element(element_name)
+
+            # Register the element composition
+            self.elements.append(element)
+            self.element_densities[i] = element_density
+            self.element_composition[element] = element_density
+
+            # Create nuclide composition from the given element composition
+            set_nuclides_from_elements(self)
+
+        # ==============================================================================
+        # Nuclide-based construction
+        # ==============================================================================
+
+        # Loop over the items in the composition
+        for i, (key, value) in enumerate(nuclide_composition.items()):
+            nuclide_name = key
+            nuclide_density = value
+
+            # Check if nuclide is already created
+            found = False
+            for nuclide in objects.nuclides:
+                if nuclide.name == nuclide_name:
+                    found = True
+                    break
+
+            # Create the nuclide to objects if needed
+            if not found:
+                nuclide = Nuclide(nuclide_name)
+
+            # Register the nuclide composition
+            self.nuclides.append(nuclide)
+            self.nuclide_densities[i] = nuclide_density
+            self.nuclide_composition[nuclide] = nuclide_density
+
+            # Some flags
+            if nuclide.fissionable:
+                self.fissionable = True
+
+            # Create element composition from the given nuclide composition
+            set_elements_from_nuclides(self)
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Element composition [atoms/barn-cm]\n"
+        for element in self.element_composition.keys():
+            text += f"    - {element.name:<3} | {self.element_composition[element]}\n"
+        text += f"  - Nuclide composition [atoms/barn-cm]\n"
+        for nuclide in self.nuclide_composition.keys():
+            text += f"    - {nuclide.name:<5} | {self.nuclide_composition[nuclide]}\n"
+        return text
+    
+
+# ======================================================================================
+# Multigroup
+# ======================================================================================
 
 
 class MaterialMG(MaterialBase):
@@ -188,26 +301,23 @@ class MaterialMG(MaterialBase):
         return text
 
 
-class Material(MaterialBase):
-    def __init__(
-        self,
-        name: str = "",
-        nuclide_composition: dict = {},
-    ):
-        type_ = MATERIAL
-        super().__init__(type_, name)
+# ======================================================================================
+# Helpers
+# ======================================================================================
 
-        self.nuclides = []
-        self.atomic_densities = np.zeros(len(nuclide_composition))
+def set_nuclides_from_elements(material):
+    material.nuclides = []
+    material.nuclide_densities = []
+    material.nuclide_composition = {}
 
-        # Helper dictionary connecting nuclides to respective atomic densities
-        self.nuclide_composition = {}
+    for element, element_density in material.element_composition.items():
+        # To make sure that the abundance is normalized
+        norm = 0.0
+        for (_, abundance) in ISOTOPIC_ABUNDANCE[element.name].items():
+            norm += abundance
 
-        # Loop over the items in the composition
-        for i, (key, value) in enumerate(nuclide_composition.items()):
-            nuclide_name = key
-            atomic_density = value
-
+        # Loop over the nuclide composition
+        for nuclide_name, abundance in ISOTOPIC_ABUNDANCE[element.name].items():
             # Check if nuclide is already created
             found = False
             for nuclide in objects.nuclides:
@@ -219,71 +329,15 @@ class Material(MaterialBase):
             if not found:
                 nuclide = Nuclide(nuclide_name)
 
+            # Calculate nuclide density
+            nuclide_density = element_density * abundance / norm
+            
             # Register the nuclide composition
-            self.nuclides.append(nuclide)
-            self.atomic_densities[i] = atomic_density
-            self.nuclide_composition[nuclide] = atomic_density
-
-            # Some flags
-            if nuclide.fissionable:
-                self.fissionable = True
-
-    def __repr__(self):
-        text = super().__repr__()
-        text += f"  - Nuclide composition [atoms/barn-cm]\n"
-        for nuclide in self.nuclide_composition.keys():
-            text += f"    - {nuclide.name:<5} | {self.nuclide_composition[nuclide]}\n"
-        return text
-    
-
-class MaterialElemental(MaterialBase):
-    def __init__(
-        self,
-        name: str = "",
-        element_composition: dict = {},
-    ):
-        type_ = MATERIAL_ELEMENTAL
-        super().__init__(type_, name)
-
-        self.elements = []
-        self.atomic_densities = np.zeros(len(element_composition))
-
-        # Helper dictionary connecting elements to respective atomic densities
-        self.element_composition = {}
-
-        # Loop over the items in the composition
-        for i, (key, value) in enumerate(element_composition.items()):
-            element_name = key
-            atomic_density = value
-
-            # Check if element is already created
-            found = False
-            for element in objects.elements:
-                if element.name == element_name:
-                    found = True
-                    break
-
-            # Create the element to objects if needed
-            if not found:
-                element = Element(element_name)
-
-            # Register the element composition
-            self.elements.append(element)
-            self.atomic_densities[i] = atomic_density
-            self.element_composition[element] = atomic_density
-
-    def __repr__(self):
-        text = super().__repr__()
-        text += "  - Element composition [atoms/barn-cm]\n"
-        for element in self.element_composition.keys():
-            text += f"    - {element.name:<2} | {self.element_composition[element]}\n"
-        return text
+            material.nuclides.append(nuclide)
+            material.nuclide_densities.append(nuclide_density)
+            material.nuclide_composition[nuclide] = nuclide_density
 
 
-def decode_type(type_):
-    if type_ == MATERIAL:
-        return "Material"
-    elif type_ == MATERIAL_MG:
-        return "Multigroup material"
-    if type_ == MATERIAL_ELEMENTAL:
-        return "Elemental material"
+def set_elements_from_nuclides(material):
+    # TODO
+    pass

@@ -25,5 +25,5 @@ from mcdc.main import (
     recombine_tallies,
 )
 
-from mcdc.material import Material, MaterialMG, MaterialElemental
+from mcdc.material import Material, MaterialMG
 from mcdc.settings import Settings
