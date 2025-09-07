@@ -1,2 +1,4 @@
 import mcdc.physics.interface as interface
-import mcdc.physics.multigroup as multigroup
+
+import mcdc.physics.neutron as neutron
+import mcdc.physics.electron as electron

@@ -593,10 +593,6 @@ def prepare():
 
     # Now, set up the global variable container
 
-    # Get modes
-    mode_MG = settings.multigroup_mode
-    mode_CE = not mode_MG
-
     # ==================================================================================
     # Set with records
     # ==================================================================================
@@ -1458,12 +1454,12 @@ def prepare():
 
     # Pick physics model
     if settings.multigroup_mode:
-        physics.interface.particle_speed = physics.multigroup.particle_speed
-        physics.interface.macro_xs = physics.multigroup.macro_xs
-        physics.interface.neutron_production_xs = (
-            physics.multigroup.neutron_production_xs
+        physics.neutron.interface.particle_speed = physics.neutron.multigroup.particle_speed
+        physics.neutron.interface.macro_xs = physics.neutron.multigroup.macro_xs
+        physics.neutron.interface.neutron_production_xs = (
+            physics.neutron.multigroup.neutron_production_xs
         )
-        physics.interface.collision = physics.multigroup.collision
+        physics.neutron.interface.collision = physics.neutron.multigroup.collision
 
     # Delete objects if running in Numba mode
     if not nb.config.DISABLE_JIT:

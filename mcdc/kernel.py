@@ -2786,9 +2786,9 @@ def sample_nuclide(material, P_arr, reaction_type, mcdc, data):
     total = 0.0
     for i in range(material["N_nuclide"]):
         nuclide = mcdc_get.material.nuclide(i, material, mcdc, data)
-        atomic_density = mcdc_get.material.atomic_densities(i, material, data)
+        nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
         xs = physics.reaction_xs(P["E"], reaction_type, nuclide, mcdc, data)
-        total += atomic_density * xs
+        total += nuclide_density * xs
         if total > xi:
             break
     return nuclide

@@ -23,7 +23,7 @@ from mcdc.physics.util import scatter_direction
 
 
 from mcdc.constant import (
-    REACTION_ELECTRON_TOTAL,
+    REACTION_TOTAL,
     REACTION_ELECTRON_ELASTIC_SCATTERING,
     REACTION_ELECTRON_ELASTIC_SMALL_ANGLE,
     REACTION_ELECTRON_ELASTIC_LARGE_ANGLE,
@@ -53,7 +53,7 @@ def particle_speed(particle_container):
 # ======================================================================================
 
 @njit
-def macro_xs_element(reaction_type, material, particle_container, mcdc, data):
+def macro_xs(reaction_type, material, particle_container, mcdc, data):
     particle = particle_container[0]
     E = particle["E"]
 
@@ -61,16 +61,16 @@ def macro_xs_element(reaction_type, material, particle_container, mcdc, data):
     total = 0.0
     for i in range(material["N_element"]):
         element = mcdc_get.element.from_material(i, material, mcdc, data)
-        atomic_density = mcdc_get.material.atomic_densities(i, material, data)
+        nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
         xs = micro_xs_element(E, reaction_type, element, mcdc, data)
-        total += atomic_density * xs
+        total += nuclide_density * xs
     return total
 
 
 @njit
 def micro_xs_element(E, reaction_type, element, mcdc, data):
     # Total reaction
-    if reaction_type == REACTION_ELECTRON_TOTAL:
+    if reaction_type == REACTION_TOTAL:
         idx, E0, E1 = evaluate_xs_energy_grid(E, element, data)
         xs0 = mcdc_get.element.total_xs(idx, element, data)
         xs1 = mcdc_get.element.total_xs(idx + 1, element, data)
@@ -125,18 +125,18 @@ def electron_production_xs(reaction_type, material, particle_container, mcdc, da
         reaction_type = REACTION_ELECTRON_ELASTIC_SCATTERING
 
     if reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
-        return macro_xs_element(reaction_type, material, particle_container, mcdc, data)
+        return macro_xs(reaction_type, material, particle_container, mcdc, data)
 
     if reaction_type == REACTION_ELECTRON_EXCITATION:
-        return macro_xs_element(reaction_type, material, particle_container, mcdc, data)
+        return macro_xs(reaction_type, material, particle_container, mcdc, data)
 
     if reaction_type == REACTION_ELECTRON_BREMSSTRAHLUNG:
-        return macro_xs_element(reaction_type, material, particle_container, mcdc, data)
+        return macro_xs(reaction_type, material, particle_container, mcdc, data)
 
     if reaction_type == REACTION_ELECTRON_IONIZATION:
-        return 2.0 * macro_xs_element(reaction_type, material, particle_container, mcdc, data)
+        return 2.0 * macro_xs(reaction_type, material, particle_container, mcdc, data)
 
-    if reaction_type == REACTION_ELECTRON_TOTAL:
+    if reaction_type == REACTION_TOTAL:
         total = 0.0
         total += electron_production_xs(REACTION_ELECTRON_ELASTIC_SCATTERING, 
                                         material, particle_container, mcdc, data)
@@ -163,14 +163,14 @@ def collision(particle_container, prog, data):
     # Sample colliding element
     # ==================================================================================
 
-    SigmaT = macro_xs_element(REACTION_ELECTRON_TOTAL, material, particle_container, mcdc, data)
+    SigmaT = macro_xs_element(REACTION_TOTAL, material, particle_container, mcdc, data)
     xi = kernel.rng(particle_container) * SigmaT
     total = 0.0
     for i in range(material["N_element"]):
         element = mcdc_get.element.from_material(i, material, mcdc, data)
-        atomic_density = mcdc_get.material.atomic_densities(i, material, data)
-        sigmaT = micro_xs_element(particle["E"], REACTION_ELECTRON_TOTAL, element, mcdc, data)
-        SigmaT_element = atomic_density * sigmaT
+        nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
+        sigmaT = micro_xs_element(particle["E"], REACTION_TOTAL, element, mcdc, data)
+        SigmaT_element = nuclide_density * sigmaT
         total += SigmaT_element
         if total > xi:
             break

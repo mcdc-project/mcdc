@@ -328,14 +328,14 @@ class ReactionElectronElasticScattering(ReactionBase):
 
 
 class ReactionElectronIonization(ReactionBase):
-    def __init__(self, xs, N_subshells, subshell_name, subshell_xs, 
+    def __init__(self, xs, N_subshell, subshell_name, subshell_xs, 
                  subshell_binding_energy, subshell_product):
         label = "electron_ionization_reaction"
         type_ = REACTION_ELECTRON_IONIZATION
         super().__init__(label, type_, xs)
 
-        self.N_subshells = N_subshells
-        self.subshell_name = subshell_name
+        self.N_subshell = N_subshell
+        # self.subshell_name = subshell_name
         self.subshell_xs = subshell_xs
         self.subshell_binding_energy = subshell_binding_energy
         self.subshell_product = subshell_product
@@ -345,11 +345,11 @@ class ReactionElectronIonization(ReactionBase):
         xs = h5_group["xs"][()]
 
         subshells = h5_group["subshells"]
-        N_subshells = len(subshells)
-        subshell_name = [None] * N_subshells
-        subshell_xs = [None] * N_subshells
-        subshell_binding_energy = [None] * N_subshells
-        subshell_product = [None] * N_subshells
+        N_subshell = len(subshells)
+        subshell_name = [None] * N_subshell
+        subshell_xs = np.zeros((N_subshell, len(xs)))
+        subshell_binding_energy = np.zeros(N_subshell)
+        subshell_product = [None] * N_subshell
 
         # Subshell data
         for i, name in enumerate(subshells):
@@ -364,14 +364,14 @@ class ReactionElectronIonization(ReactionBase):
             subshell_product[i] = DataMultiPDF(product_grid, product_offset, 
                                                product_value, product_pdf)
 
-        return cls(xs, N_subshells, subshell_name, subshell_xs,
+        return cls(xs, N_subshell, subshell_name, subshell_xs,
                    subshell_binding_energy, subshell_product)
 
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Number of subshells: {self.N_subshells}\n"
-        for i in range(self.N_subshells):
+        text += f"  - Number of subshells: {self.N_subshell}\n"
+        for i in range(self.N_subshell):
             text += f"    - Name: {self.subshell_name[i]}\n"
             text += f"    - XS: {print_1d_array(self.subshell_xs[i])} barn\n"
             text += f"    - Binding energy: {self.subshell_binding_energy[i]} eV\n"

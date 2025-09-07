@@ -2,26 +2,26 @@ from numba import njit
 
 
 @njit
-def atomic_densities_length(material):
-    return int(material["atomic_densities_length"])
+def nuclide_densities_length(material):
+    return int(material["nuclide_densities_length"])
 
 
 @njit
-def atomic_densities_all(material, data):
-    start = material["atomic_densities_offset"]
-    end = start + material["atomic_densities_length"]
+def nuclide_densities_all(material, data):
+    start = material["nuclide_densities_offset"]
+    end = start + material["nuclide_densities_length"]
     return data[start:end]
 
 
 @njit
-def atomic_densities(index, material, data):
-    offset = material["atomic_densities_offset"]
+def nuclide_densities(index, material, data):
+    offset = material["nuclide_densities_offset"]
     return data[offset + index]
 
 
 @njit
-def atomic_densities_chunk(start, size, material, data):
-    start += material["atomic_densities_offset"]
+def nuclide_densities_chunk(start, size, material, data):
+    start += material["nuclide_densities_offset"]
     end = start + size
     return data[start:end]
 

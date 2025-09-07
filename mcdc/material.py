@@ -95,9 +95,6 @@ class Material(MaterialBase):
             self.element_densities[i] = element_density
             self.element_composition[element] = element_density
 
-            # Create nuclide composition from the given element composition
-            set_nuclides_from_elements(self)
-
         # ==============================================================================
         # Nuclide-based construction
         # ==============================================================================
@@ -127,7 +124,11 @@ class Material(MaterialBase):
             if nuclide.fissionable:
                 self.fissionable = True
 
-            # Create element composition from the given nuclide composition
+
+        # Create undefined compositions
+        if self.nuclides == []:
+            set_nuclides_from_elements(self)
+        if self.elements == []:
             set_elements_from_nuclides(self)
 
     def __repr__(self):
@@ -325,7 +326,7 @@ def set_nuclides_from_elements(material):
                     found = True
                     break
 
-            # Create the nuclide to objects if needed
+            # Create the nuclide if needed
             if not found:
                 nuclide = Nuclide(nuclide_name)
 
@@ -337,7 +338,48 @@ def set_nuclides_from_elements(material):
             material.nuclide_densities.append(nuclide_density)
             material.nuclide_composition[nuclide] = nuclide_density
 
+    material.nuclide_densities = np.array(material.nuclide_densities)
+
 
 def set_elements_from_nuclides(material):
-    # TODO
-    pass
+    material.elements = []
+    material.element_densities = []
+    material.element_composition = {}
+
+    # Get the list of the element names
+    element_names = []
+    for nuclide in material.nuclides:
+        name = nuclide.name[:2]
+        if name[1].isdigit():
+            name = name[0]
+        if name not in element_names:
+            element_names.append(name)
+    material.element_densities = np.zeros(len(element_names))
+
+    # Iterate over all named elements
+    for i, element_name in enumerate(element_names):
+        # Check if element is already created
+        found = False
+        for element in objects.elements:
+            if element.name == element_name:
+                found = True
+                break
+
+        # Create the element if needed
+        if not found:
+            element = Element(element_name)
+
+        material.elements.append(element)
+
+        # Iterate over all nuclides to get the total density
+        density = 0.0
+        for nuclide, nuclide_density in material.nuclide_composition.items():
+            # Skip if non-isotope
+            if nuclide.name[:len(element_name)] != element_name:
+                continue
+
+            # Accumulate density
+            density += material.nuclide_composition[nuclide]
+        
+        material.element_densities[i] = density
+        material.element_composition[element] = density
