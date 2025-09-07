@@ -9,10 +9,14 @@ import mcdc.mcdc_get as mcdc_get
 import mcdc.physics.neutron_reaction as neutron_reaction
 
 from mcdc.constant import (
+    ELECTRON_REST_MASS_ENERGY,
+    PARTICLE_ELECTRON,
+    PARTICLE_NEUTRON,
     REACTION_TOTAL,
     REACTION_NEUTRON_CAPTURE,
     REACTION_NEUTRON_ELASTIC_SCATTERING,
     REACTION_NEUTRON_FISSION,
+    SPEED_OF_LIGHT,
     SQRT_E_TO_SPEED,
 )
 from mcdc.physics.util import evaluate_xs_energy_grid
@@ -27,7 +31,24 @@ from mcdc.util import linear_interpolation
 @njit
 def particle_speed(particle_container):
     particle = particle_container[0]
-    return math.sqrt(particle["E"]) * SQRT_E_TO_SPEED
+
+    if particle['type'] == PARTICLE_NEUTRON:
+        return speed_neutron(particle['E'])
+    elif particle['type'] == PARTICLE_ELECTRON:
+        return speed_electron(particle['E'])
+    return -1.0
+
+
+@njit
+def speed_neutron(E):
+    return math.sqrt(E) * SQRT_E_TO_SPEED
+
+
+@njit
+def speed_electron(E):
+    gamma = 1.0 + E / ELECTRON_REST_MASS_ENERGY
+    beta_sq = 1.0 - 1.0 / (gamma * gamma)
+    return math.sqrt(beta_sq) * SPEED_OF_LIGHT
 
 
 # ======================================================================================
