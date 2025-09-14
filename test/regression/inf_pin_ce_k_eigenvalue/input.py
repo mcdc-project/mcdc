@@ -5,7 +5,7 @@ import mcdc
 
 
 # Set the XS library directory
-os.environ["MCDC_XSLIB"] = os.path.dirname(os.getcwd())
+os.environ["MCDC_XSLIB"] = os.path.dirname(os.getcwd()) + "/dummy_data"
 
 # =============================================================================
 # Set model
