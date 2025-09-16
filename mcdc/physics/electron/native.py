@@ -1,15 +1,15 @@
 import math
 import numpy as np
 
-from numba import njit
+#from numba import njit
 
 ####
 
-from mcdc import adapt
-from mcdc import data_processor
-from mcdc import kernel
-from mcdc import mcdc_get
-from mcdc import type_
+import mcdc.adapt as adapt
+import mcdc.data_processor as data_processor
+import mcdc.kernel as kernel
+import mcdc.objects as objects
+import mcdc.type_ as type_
 
 from mcdc.constant import (DATA_MULTIPDF,
                            DATA_TABLE,
@@ -20,7 +20,7 @@ from mcdc.constant import (DATA_MULTIPDF,
                            TINY
                            )
 from mcdc.physics.util import scatter_direction
-
+from mcdc.util import binary_search
 
 from mcdc.constant import (
     REACTION_TOTAL,
@@ -31,14 +31,14 @@ from mcdc.constant import (
     REACTION_ELECTRON_BREMSSTRAHLUNG,
     REACTION_ELECTRON_IONIZATION
 )
-from mcdc.physics.util import evaluate_xs_energy_grid
+
 from mcdc.util import linear_interpolation
 
 # ======================================================================================
 # Particle attributes
 # ======================================================================================
 
-@njit
+#@njit
 def particle_speed(particle_container):
     E = particle_container[0]["E"]
 
@@ -47,105 +47,206 @@ def particle_speed(particle_container):
 
     return math.sqrt(beta_sq) * SPEED_OF_LIGHT
 
+# ======================================================================================
+# Temporary functions for testing without numba
+# ======================================================================================
+
+def evaluate_xs_energy_grid(e, element):
+    energy_grid = element.xs_energy_grid
+    idx = binary_search(e, energy_grid)
+    e0 = energy_grid[idx]
+    e1 = energy_grid[idx + 1]
+    return idx, e0, e1
+
+def reaction_index(index, element):
+    offset = element["reaction_index_offset"]
+    return offset + index
+
+def atomic_densities(index, material):
+    offset = material["atomic_densities_offset"]
+    return offset + index
+
+def sample_multipdf(x, rng_state, multipdf, scale=False):
+    grid = multipdf.grid
+
+    # Edge cases
+    if x < grid[0]:
+        idx = 0
+        scale = False
+    elif x > grid[-1]:
+        idx = len(grid) - 1
+        scale = False
+    else:
+        # Interpolation factor
+        idx = binary_search(x, grid)
+        x0 = grid[idx]
+        x1 = grid[idx + 1]
+        f = (x - x0) / (x1 - x0)
+    
+        # Min and max values for scaling
+        val_min = 0.0
+        val_max = 1.0
+        if scale:
+            # First table
+            start = int(multipdf.offset[idx])
+            end = int(multipdf.offset[idx + 1]) if (idx + 1) < len(multipdf.offset) else len(multipdf.value)
+            val0_min = multipdf.value[start]
+            val0_max = multipdf.value[end - 1]
+            
+            # Second table
+            start = end
+            if idx + 2 == len(grid):
+                end = len(multipdf.value)
+            else:
+                end = int(multipdf.offset[idx + 2])
+            val1_min = multipdf.value[start]
+            val1_max = multipdf.value[end - 1]
+
+            # Both
+            val_min = val0_min + f * (val1_min - val0_min)
+            val_max = val0_max + f * (val1_max - val0_max)
+
+        # Sample which table to choose
+        if kernel.rng(rng_state) > f:
+            idx += 1
+
+    # Get the table range
+    start = int(multipdf.offset[idx])
+    if idx + 1 == len(grid):
+        end = len(multipdf.value)
+    else:
+        end = int(multipdf.offset[idx + 1])
+
+    # The CDF
+    cdf = multipdf.cdf[start:end]
+
+    # Generate random numbers
+    xi = kernel.rng(rng_state)
+
+    # Sample bin index
+    idx = binary_search(xi, cdf)
+    c = cdf[idx]
+
+    # Get the other values
+    idx += start
+    p0 = multipdf.pdf[idx]
+    p1 = multipdf.pdf[idx + 1]
+    val0 = multipdf.value[idx]
+    val1 = multipdf.value[idx + 1]
+
+    m = (p1 - p0) / (val1 - val0)
+
+    if m == 0.0:
+        sample = val0 + (xi - c) / p0
+    else:
+        sample = val0 + 1.0 / m * (math.sqrt(p0**2 + 2 * m * (xi - c)) - p0)
+
+    if not scale:
+        return sample
+    
+    # Scale against the bounds
+    val_low = multipdf.value[start]
+    val_high = multipdf.value[end - 1]
+    return val_min + (sample - val_low) / (val_high - val_low) * (val_max - val_min)
+
+#@njit
+def sample_distribution(x, data_type, index, rng_state, scale=False):
+    if data_type == DATA_MULTIPDF:
+        multipdf = index
+        return sample_multipdf(x, rng_state, multipdf, scale)
+    else:
+        return 0.0
+    
+#@njit
+def evaluate_table(x, table):
+    grid = table.x
+    idx = binary_search(x, grid)
+    x1 = grid[idx]
+    x2 = grid[idx + 1]
+    y = table.y   
+    y1 = y[idx]
+    y2 = y[idx + 1]
+    return linear_interpolation(x, x1, x2, y1, y2)
+
+
+def evaluate_data(x, data_type, index):
+    if data_type == DATA_TABLE:
+        table = index
+        return evaluate_table(x, table)
+    else:
+        return 0.0
 
 # ======================================================================================
 # Material properties
 # ======================================================================================
 
-@njit
-def macro_xs(reaction_type, material, particle_container, mcdc, data):
+#@njit
+def macro_xs(reaction_type, material, particle_container):
     particle = particle_container[0]
     E = particle["E"]
 
     # Sum over all elements
     total = 0.0
-    for i in range(material["N_element"]):
-        element = mcdc_get.element.from_material(i, material, mcdc, data)
-        nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
-        xs = micro_xs_element(E, reaction_type, element, mcdc, data)
-        total += nuclide_density * xs
+    elements = material.elements
+    N_elements = len(elements)
+    element_densities = material.element_densities
+    for i in range(N_elements):
+        element = elements[i]
+        element_density = element_densities[i]
+        xs = micro_xs(E, reaction_type, element)
+        total += element_density * xs
     return total
 
 
-@njit
-def micro_xs_element(E, reaction_type, element, mcdc, data):
-    # Total reaction
-    if reaction_type == REACTION_TOTAL:
-        idx, E0, E1 = evaluate_xs_energy_grid(E, element, data)
-        xs0 = mcdc_get.element.total_xs(idx, element, data)
-        xs1 = mcdc_get.element.total_xs(idx + 1, element, data)
-        return linear_interpolation(E, E0, E1, xs0, xs1)
-
-    # Search if the reaction exists
-    for i in range(element["N_reaction"]):
-        the_type = int(mcdc_get.element.reaction_type(i, element, data))
-
+#@njit
+def micro_xs(E, reaction_type, element):
+    idx, E0, E1 = evaluate_xs_energy_grid(E, element)
+ 
+    for reaction in element.reactions:
+        the_type = int(reaction.type)
         if the_type == reaction_type:
             # Reaction exists!
-            reaction_idx = int(mcdc_get.element.reaction_index(i, element, data))
-            idx, E0, E1 = evaluate_xs_energy_grid(E, element, data)
-
-            if reaction_type == REACTION_ELECTRON_BREMSSTRAHLUNG:
-                reaction = mcdc["electron_bremsstrahlung_reactios"][reaction_idx]
-                xs0 = mcdc_get.reaction.xs(idx, reaction, data)
-                xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
-                return linear_interpolation(E, E0, E1, xs0, xs1)
-
-            if reaction_type == REACTION_ELECTRON_EXCITATION:
-                reaction = mcdc["electron_excitation_reactions"][reaction_idx]
-                xs0 = mcdc_get.reaction.xs(idx, reaction, data)
-                xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
-                return linear_interpolation(E, E0, E1, xs0, xs1)
-
-            if reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
-                reaction = mcdc["electron_elastic_scattering_reactions"][reaction_idx]
-                xs0 = mcdc_get.reaction.xs(idx, reaction, data)
-                xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
-                return linear_interpolation(E, E0, E1, xs0, xs1)
-
-            if reaction_type == REACTION_ELECTRON_IONIZATION:
-                reaction = mcdc["electron_ionization_reactions"][reaction_idx]
-                xs0 = mcdc_get.reaction.xs(idx, reaction, data)
-                xs1 = mcdc_get.reaction.xs(idx + 1, reaction, data)
-                return linear_interpolation(E, E0, E1, xs0, xs1)
-
+            xs0 = reaction.xs[idx]
+            xs1 = reaction.xs[idx + 1]
+            return linear_interpolation(E, E0, E1, xs0, xs1)
+        
     return 0.0
 
 
-@njit
-def electron_production_xs(reaction_type, material, particle_container, mcdc, data):
+#@njit
+def electron_production_xs(reaction_type, material, particle_container):
     particle = particle_container[0]
     E = particle["E"]
 
     if E < EEDL_THRESHOLD:
         return 0.0
 
-    if reaction_type in (REACTION_ELECTRON_ELASTIC_SMALL_ANGLE, 
+    if reaction_type in (REACTION_ELECTRON_ELASTIC_SMALL_ANGLE,
                          REACTION_ELECTRON_ELASTIC_LARGE_ANGLE):
         reaction_type = REACTION_ELECTRON_ELASTIC_SCATTERING
 
     if reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
-        return macro_xs(reaction_type, material, particle_container, mcdc, data)
+        return macro_xs(reaction_type, material, particle_container)
 
     if reaction_type == REACTION_ELECTRON_EXCITATION:
-        return macro_xs(reaction_type, material, particle_container, mcdc, data)
+        return macro_xs(reaction_type, material, particle_container)
 
     if reaction_type == REACTION_ELECTRON_BREMSSTRAHLUNG:
-        return macro_xs(reaction_type, material, particle_container, mcdc, data)
+        return macro_xs(reaction_type, material, particle_container)
 
     if reaction_type == REACTION_ELECTRON_IONIZATION:
-        return 2.0 * macro_xs(reaction_type, material, particle_container, mcdc, data)
+        return 2.0 * macro_xs(reaction_type, material, particle_container)
 
     if reaction_type == REACTION_TOTAL:
         total = 0.0
-        total += electron_production_xs(REACTION_ELECTRON_ELASTIC_SCATTERING, 
-                                        material, particle_container, mcdc, data)
-        total += electron_production_xs(REACTION_ELECTRON_EXCITATION, 
-                                        material, particle_container, mcdc, data)
-        total += electron_production_xs(REACTION_ELECTRON_BREMSSTRAHLUNG, 
-                                        material, particle_container, mcdc, data)
-        total += electron_production_xs(REACTION_ELECTRON_IONIZATION, 
-                                        material, particle_container, mcdc, data)
+        total += electron_production_xs(REACTION_ELECTRON_ELASTIC_SCATTERING,
+                                        material, particle_container)
+        total += electron_production_xs(REACTION_ELECTRON_EXCITATION,
+                                        material, particle_container)
+        total += electron_production_xs(REACTION_ELECTRON_BREMSSTRAHLUNG,
+                                        material, particle_container)
+        total += electron_production_xs(REACTION_ELECTRON_IONIZATION,
+                                        material, particle_container)
         return total
 
 
@@ -153,24 +254,28 @@ def electron_production_xs(reaction_type, material, particle_container, mcdc, da
 # Collision
 # ======================================================================================
 
-@njit
-def collision(particle_container, prog, data):
+#@njit
+def collision(particle_container, prog):
     particle = particle_container[0]
-    mcdc = adapt.mcdc_global(prog)
-    material = mcdc["materials"][particle["material_ID"]]
+    material = objects.materials[particle["material_ID"]]
 
     # ==================================================================================
     # Sample colliding element
     # ==================================================================================
 
-    SigmaT = macro_xs_element(REACTION_TOTAL, material, particle_container, mcdc, data)
+    SigmaT = macro_xs(REACTION_TOTAL, material, particle_container)
     xi = kernel.rng(particle_container) * SigmaT
     total = 0.0
-    for i in range(material["N_element"]):
-        element = mcdc_get.element.from_material(i, material, mcdc, data)
-        nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
-        sigmaT = micro_xs_element(particle["E"], REACTION_TOTAL, element, mcdc, data)
-        SigmaT_element = nuclide_density * sigmaT
+
+    elements = material.elements
+    N_elements = len(elements)
+    element_densities = material.element_densities
+
+    for i in range(N_elements): 
+        element = elements[i]
+        element_density = element_densities[i]
+        sigmaT = micro_xs(particle["E"], REACTION_TOTAL, element)
+        SigmaT_element = element_density * sigmaT
         total += SigmaT_element
         if total > xi:
             break
@@ -181,39 +286,41 @@ def collision(particle_container, prog, data):
 
     xi = kernel.rng(particle_container) * sigmaT
     total = 0.0
-    for i in range(element["N_reaction"]):
-        reaction_type = int(mcdc_get.element.reaction_type(i, element, data))
-        reaction_xs = micro_xs_element(particle["E"], reaction_type, element, mcdc, data)
+
+    reactions = element.reactions
+    N_reaction = len(reactions)
+    for i in range(N_reaction):
+        reaction = reactions[i]
+        E = particle["E"]
+        reaction_type = int(reaction.type)
+        reaction_xs = micro_xs(E, reaction_type, element)
         total += reaction_xs
         if total < xi:
             continue
 
         # Reaction is sampled
-        reaction_idx = int(mcdc_get.element.reaction_index(i, element, data))
         if reaction_type == REACTION_ELECTRON_BREMSSTRAHLUNG:
-            reaction = mcdc["electron_bremsstrahlung_reaction"][reaction_idx]
-            bremsstrahlung(particle_container, element, reaction, prog, data)
+            #reaction = "electron_bremsstrahlung_reaction"
+            bremsstrahlung(particle_container, element, reaction)
 
         elif reaction_type == REACTION_ELECTRON_EXCITATION:
-            reaction = mcdc["electron_excitation_reactions"][reaction_idx]
-            excitation(particle_container, element, reaction, prog, data
-                       )
+            #reaction = "electron_excitation_reaction"
+            excitation(particle_container, element, reaction)
         elif reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
-            reaction = mcdc["electron_elastic_scattering_reactions"][reaction_idx]
-            elastic_scattering(particle_container, element, reaction, prog, data)
+            #reaction = "electron_elastic_scattering_reaction"
+            elastic_scattering(particle_container, element, reaction)
 
         elif reaction_type == REACTION_ELECTRON_IONIZATION:
-            reaction = mcdc["electron_ionization_reactions"][reaction_idx]
-            ionization(particle_container, element, reaction, prog, data)
+            #reaction = "electron_ionization_reaction"
+            ionization(particle_container, element, reaction, prog)
 
 
 # ======================================================================================
 # Elastic scattering
 # ======================================================================================
-'''
-@njit
-def elastic_scattering(particle_container, element, reaction, prog, data):
-    mcdc = adapt.mcdc_global(prog)
+
+#@njit
+def elastic_scattering(particle_container, element, reaction):
 
     # Particle attributes
     particle = particle_container[0]
@@ -229,12 +336,8 @@ def elastic_scattering(particle_container, element, reaction, prog, data):
     uz = particle["uz"]
 
     # Branch XS
-    xs_L = data_processor.evaluate_data(
-        E, DATA_TABLE, int(reaction["large_angle_xs_index"]), mcdc, data
-    )
-    xs_S = data_processor.evaluate_data(
-        E, DATA_TABLE, int(reaction["small_angle_xs_index"]), mcdc, data
-    )
+    xs_L = element.large_angle_xs(E, particle_container)
+    xs_S = element.small_angle_xs(E, particle_container)
 
     xs_tot = xs_L + xs_S
     use_large = True
@@ -250,12 +353,12 @@ def elastic_scattering(particle_container, element, reaction, prog, data):
     # =========================================================================
 
     # Particle speed
-    particle_speed = electron_speed(particle_container)
+    speed_lab = particle_speed(particle_container)
 
     # Electron velocity - LAB
-    vx = particle_speed * ux
-    vy = particle_speed * uy
-    vz = particle_speed * uz
+    vx = speed_lab * ux
+    vy = speed_lab * uy
+    vz = speed_lab * uz
 
     # COM velocity
     beta_COM = p_c / (E_e + M_c2)
@@ -270,25 +373,25 @@ def elastic_scattering(particle_container, element, reaction, prog, data):
     vz = vz - COM_z
 
     # Electron speed - COM
-    particle_speed = math.sqrt(vx * vx + vy * vy + vz * vz)
+    speed_com = math.sqrt(vx * vx + vy * vy + vz * vz)
 
     # Electron initial direction - COM
-    ux = vx / particle_speed
-    uy = vy / particle_speed
-    uz = vz / particle_speed
+    ux = vx / speed_com
+    uy = vy / speed_com
+    uz = vz / speed_com
 
     # Sample the scattering cosine from the multi-PDF distribution
-    index = int(reaction["mu_large_angle_index"]) if use_large else int(reaction["mu_small_angle_index"])
-    mu0 = data_processor.sample_distribution(E, DATA_MULTIPDF, index, particle_container, mcdc, data)
+    index = reaction.mu_large_angle if use_large else reaction.mu_small_angle
+    mu0 = sample_distribution(E, DATA_MULTIPDF, index, particle_container)
 
     # Scatter the direction in COM
     azi = 2.0 * PI * kernel.rng(particle_container)
     ux_new, uy_new, uz_new = scatter_direction(ux, uy, uz, mu0, azi)
 
     # Electron final velocity - COM
-    vx = particle_speed * ux_new
-    vy = particle_speed * uy_new
-    vz = particle_speed * uz_new
+    vx = speed_com * ux_new
+    vy = speed_com * uy_new
+    vz = speed_com * uz_new
 
     # =========================================================================
     # COM to LAB
@@ -300,31 +403,29 @@ def elastic_scattering(particle_container, element, reaction, prog, data):
     vz += COM_z
 
     # Final relativistic kinetic energy from speed - LAB
-    particle_speed = math.sqrt(vx * vx + vy * vy + vz * vz)
-    gamma_out = 1.0 / math.sqrt(1.0 - (particle_speed / SPEED_OF_LIGHT) ** 2)
+    speed_lab_out = math.sqrt(vx * vx + vy * vy + vz * vz)
+    gamma_out = 1.0 / math.sqrt(1.0 - (speed_lab_out / SPEED_OF_LIGHT) ** 2)
     particle["E"] = (gamma_out - 1.0) * ELECTRON_REST_MASS_ENERGY
 
     # Final direction - LAB
-    particle["ux"] = vx / particle_speed
-    particle["uy"] = vy / particle_speed
-    particle["uz"] = vz / particle_speed
-'''
+    particle["ux"] = vx / speed_lab_out
+    particle["uy"] = vy / speed_lab_out
+    particle["uz"] = vz / speed_lab_out
+
 
 # ======================================================================================
 # Excitation
 # ======================================================================================
 
-@njit
-def excitation(particle_container, element, reaction, prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
+#@njit
+def excitation(particle_container, element, reaction):
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
 
     # Sample energy loss
-    dE = data_processor.evaluate_data(E, reaction["eloss_index"], particle_container, mcdc, data)
-
+    e_loss = reaction.eloss
+    dE = evaluate_data(E, DATA_TABLE, e_loss)
     particle["E"] -= dE
 
 
@@ -332,17 +433,15 @@ def excitation(particle_container, element, reaction, prog, data):
 # Bremmstrahlung
 # ======================================================================================
 
-@njit
-def bremsstrahlung(particle_container, element, reaction, prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
+#@njit
+def bremsstrahlung(particle_container, element, reaction):
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
 
     # Sample energy loss
-    dE = data_processor.evaluate_data(E, reaction["eloss_index"], particle_container, mcdc, data)
-
+    e_loss = reaction.eloss
+    dE = evaluate_data(E, DATA_TABLE, e_loss)
     particle["E"] -= dE
 
 
@@ -350,7 +449,7 @@ def bremsstrahlung(particle_container, element, reaction, prog, data):
 # Ionization
 # ======================================================================================
 
-@njit
+#@njit
 def compute_mu_delta(T_delta, T_prim):
     me = ELECTRON_REST_MASS_ENERGY
     pd = (T_delta * (T_delta + 2 * me)) ** 0.5
@@ -363,7 +462,7 @@ def compute_mu_delta(T_delta, T_prim):
     return mu
 
 
-@njit
+#@njit
 def sample_delta_direction(T_delta, T_prim, particle_container):
     mu = compute_mu_delta(T_delta, T_prim)
     phi = 2.0 * PI * kernel.rng(particle_container)
@@ -373,38 +472,39 @@ def sample_delta_direction(T_delta, T_prim, particle_container):
     uz = mu
     return ux, uy, uz
 
-'''
-@njit
-def ionization(particle_container, element, reaction, prog, data):
-    mcdc = adapt.mcdc_global(prog)
 
+#@njit
+def ionization(particle_container, element, reaction, prog):
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
 
-    N = int(reaction["N_subshells"])
+    N = reaction.N_subshell
     total = 0.0
     
     for i in range(N):
-        idx = int(reaction["subshell_xs_index"][i])
-        total += data_processor.evaluate_data(E, DATA_TABLE, idx, mcdc, data)
+        subshell_xs = reaction.subshell_xs[i]
+        total += evaluate_data(E, DATA_TABLE, subshell_xs)
 
     xi = kernel.rng(particle_container) * total
     chosen = 0
     run = 0.0
 
     for i in range(N):
-        idx = int(reaction["subshell_xs_index"][i])
-        run += data_processor.evaluate_data(E, DATA_TABLE, idx, mcdc, data)
+        subshell_xs = reaction.subshell_xs[i]
+        run += evaluate_data(E, DATA_TABLE, subshell_xs)
+        if run >= xi:
+            chosen = i
+            break
 
     # Binding energy
-    B = reaction["subshell_binding_energy"][chosen]
+    B = reaction.subshell_binding_energy[chosen]
     if E <= B + TINY:
         return
 
     # Sample energy of the secondary electron
-    prod_index = int(reaction["secondary_energy_index"][chosen])
-    T_delta = data_processor.sample_distribution(E, DATA_MULTIPDF, prod_index, particle_container, mcdc, data, True)
+    secondary_multipdf = reaction.subshell_product[chosen]
+    T_delta = sample_distribution(E, DATA_MULTIPDF, secondary_multipdf, particle_container, True)
 
     E_out = E - B - T_delta
     particle["E"] = E_out
@@ -418,4 +518,7 @@ def ionization(particle_container, element, reaction, prog, data):
     particle_new["ux"] = ux_d
     particle_new["uy"] = uy_d
     particle_new["uz"] = uz_d
-'''
+    particle_new["w"] = particle["w"]
+    particle_new["alive"] = True
+
+    adapt.add_active(particle_container_new, prog)

@@ -335,7 +335,7 @@ class ReactionElectronIonization(ReactionBase):
         super().__init__(label, type_, xs)
 
         self.N_subshell = N_subshell
-        # self.subshell_name = subshell_name
+        #self.subshell_name = subshell_name
         self.subshell_xs = subshell_xs
         self.subshell_binding_energy = subshell_binding_energy
         self.subshell_product = subshell_product
@@ -372,7 +372,7 @@ class ReactionElectronIonization(ReactionBase):
         text = super().__repr__()
         text += f"  - Number of subshells: {self.N_subshell}\n"
         for i in range(self.N_subshell):
-            text += f"    - Name: {self.subshell_name[i]}\n"
+            #text += f"    - Name: {self.subshell_name[i]}\n"
             text += f"    - XS: {print_1d_array(self.subshell_xs[i])} barn\n"
             text += f"    - Binding energy: {self.subshell_binding_energy[i]} eV\n"
             prod = self.subshell_product[i]
