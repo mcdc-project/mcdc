@@ -9,9 +9,12 @@ from mcdc.constant import (
     REACTION_NEUTRON_FISSION,
     REACTION_ELECTRON_BREMSSTRAHLUNG,
     REACTION_ELECTRON_EXCITATION,
+    REACTION_ELECTRON_ELASTIC_SCATTERING,
+    REACTION_ELECTRON_IONIZATION,
+    ELECTRON_REST_MASS_ENERGY,
 )
 from mcdc.data_container import DataMaxwellian, DataMultiPDF, DataPolynomial, DataTable
-from mcdc.objects import ObjectPolymorphic, register_object
+from mcdc.objects import ObjectPolymorphic
 from mcdc.prints import print_1d_array
 
 
@@ -20,14 +23,11 @@ class ReactionBase(ObjectPolymorphic):
         super().__init__(label, type_)
         self.xs = xs
 
-        # Register the instance
-        register_object(self)
-
     def __repr__(self):
         text = "\n"
         text += f"{decode_type(self.type)}\n"
         text += f"  - ID: {self.ID}\n"
-        text += f"  - XS {print_1d_array(self.xs)} /cm\n"
+        text += f"  - XS {print_1d_array(self.xs)} barn\n"
         return text
 
 
@@ -42,6 +42,10 @@ def decode_type(type_):
         return "Electron bremsstrahlung"
     elif type_ == REACTION_ELECTRON_EXCITATION:
         return "Electron excitation"
+    elif type_ == REACTION_ELECTRON_ELASTIC_SCATTERING:
+        return "Electron elastic scattering"
+    elif type_ == REACTION_ELECTRON_IONIZATION:
+        return "Electron ionization"
 
 
 # ======================================================================================
@@ -218,78 +222,159 @@ class ReactionNeutronFission(ReactionBase):
 
 
 class ReactionElectronBremsstrahlung(ReactionBase):
-    def __init__(self, h5_group):
+    def __init__(self, xs, eloss):
         label = "electron_bremsstrahlung_reaction"
         type_ = REACTION_ELECTRON_BREMSSTRAHLUNG
-        super().__init__(label, type_, h5_group)
+        super().__init__(label, type_, xs)
+
+        self.eloss = eloss
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        xs = h5_group["xs"][()]
 
         # Energy loss
         base = "energy_loss"
-        self.eloss_energy_grid = h5_group[f"{base}/energy_grid"][()]
-        self.eloss_energy_offset = h5_group[f"{base}/energy_offset"][()]
-        self.eloss = h5_group[f"{base}/value"][()]
-        self.eloss_PDF = h5_group[f"{base}/PDF"][()]
+        grid = h5_group[f"{base}/energy"][()]
+        value = h5_group[f"{base}/value"][()]
+        eloss = DataTable(grid, value)
 
-        # CDF
-        eloss = h5_group[f"{base}/value"][()]
-        PDF = h5_group[f"{base}/PDF"][()]
-        offset = h5_group[f"{base}/energy_offset"][()]
-        self.eloss_CDF = np.zeros_like(PDF)
-        for i in range(len(offset)):
-            start = offset[i]
-            end = offset[i + 1] if i < len(offset) - 1 else len(PDF)
-            for idx in range(start, end - 2):
-                self.eloss_CDF[idx + 1] = (
-                    self.eloss_CDF[idx]
-                    + (PDF[idx] + PDF[idx + 1]) * (eloss[idx + 1] - eloss[idx]) * 0.5
-                )
-            # Ensure it ends at one
-            self.eloss_CDF[end - 1] = 1.0
+        return cls(xs, eloss)
 
     def __repr__(self):
         text = super().__repr__()
-        text += " - Energy loss\n"
-        text += f"   - eloss_energy_grid {print_1d_array(self.eloss_energy_grid)}\n"
-        text += f"   - eloss_energy_offset {print_1d_array(self.eloss_energy_offset)}\n"
-        text += f"   - eloss {print_1d_array(self.eloss)}\n"
-        text += f"   - eloss_PDF {print_1d_array(self.eloss_PDF)}\n"
+        text += ("  - Energy loss: "
+                  f"{data_container.decode_type(self.eloss.type)} [ID: {self.eloss.ID}]\n")
         return text
 
 
 class ReactionElectronExcitation(ReactionBase):
-    def __init__(self, h5_group):
+    def __init__(self, xs, eloss):
         label = "electron_excitation_reaction"
         type_ = REACTION_ELECTRON_EXCITATION
-        super().__init__(label, type_, h5_group)
+        super().__init__(label, type_, xs)
+
+        self.eloss = eloss
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        xs = h5_group["xs"][()]
 
         # Energy loss
         base = "energy_loss"
-        self.eloss_energy_grid = h5_group[f"{base}/energy_grid"][()]
-        self.eloss_energy_offset = h5_group[f"{base}/energy_offset"][()]
-        self.eloss = h5_group[f"{base}/value"][()]
-        self.eloss_PDF = h5_group[f"{base}/PDF"][()]
+        grid = h5_group[f"{base}/energy"][()]
+        value = h5_group[f"{base}/value"][()]
+        eloss = DataTable(grid, value)
 
-        # CDF
-        eloss = h5_group[f"{base}/value"][()]
-        PDF = h5_group[f"{base}/PDF"][()]
-        offset = h5_group[f"{base}/energy_offset"][()]
-        self.eloss_CDF = np.zeros_like(PDF)
-        for i in range(len(offset)):
-            start = offset[i]
-            end = offset[i + 1] if i < len(offset) - 1 else len(PDF)
-            for idx in range(start, end - 2):
-                self.eloss_CDF[idx + 1] = (
-                    self.eloss_CDF[idx]
-                    + (PDF[idx] + PDF[idx + 1]) * (eloss[idx + 1] - eloss[idx]) * 0.5
-                )
-            # Ensure it ends at one
-            self.eloss_CDF[end - 1] = 1.0
+        return cls(xs, eloss)
 
     def __repr__(self):
         text = super().__repr__()
-        text += " - Energy loss\n"
-        text += f"   - eloss_energy_grid {print_1d_array(self.eloss_energy_grid)}\n"
-        text += f"   - eloss_energy_offset {print_1d_array(self.eloss_energy_offset)}\n"
-        text += f"   - eloss {print_1d_array(self.eloss)}\n"
-        text += f"   - eloss_PDF {print_1d_array(self.eloss_PDF)}\n"
+        text += ("  - Energy loss: "
+                 f"{data_container.decode_type(self.eloss.type)} [ID: {self.eloss.ID}]\n")
+        return text
+
+
+class ReactionElectronElasticScattering(ReactionBase):
+    def __init__(self, xs, large_angle_xs, mu_large_angle, small_angle_xs, mu_small_angle):
+        label = "electron_elastic_scattering_reaction"
+        type_ = REACTION_ELECTRON_ELASTIC_SCATTERING
+        super().__init__(label, type_, xs)
+
+        self.xs_large_angle = large_angle_xs
+        self.mu_large_angle = mu_large_angle
+        self.xs_small_angle = small_angle_xs
+        self.mu_small_angle = mu_small_angle
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        xs = h5_group["xs"][()]
+
+        # Large angle
+        large_angle = h5_group["large_angle"]
+        large_angle_xs = large_angle["xs"][()]
+        large_angle_grid = large_angle["scattering_cosine"]["energy_grid"][()]
+        large_angle_offset = large_angle["scattering_cosine"]["energy_offset"][()]
+        large_angle_value = large_angle["scattering_cosine"]["value"][()]
+        large_angle_pdf = large_angle["scattering_cosine"]["PDF"][()]
+        mu_large_angle = DataMultiPDF(large_angle_grid, large_angle_offset, 
+                                      large_angle_value, large_angle_pdf)
+
+        # Small Angle
+        small_angle = h5_group["small_angle"]
+        small_angle_xs = small_angle["xs"][()]
+        small_angle_grid = small_angle["scattering_cosine"]["energy_grid"][()]
+        small_angle_offset = small_angle["scattering_cosine"]["energy_offset"][()]
+        small_angle_value = small_angle["scattering_cosine"]["value"][()]
+        small_angle_pdf = small_angle["scattering_cosine"]["PDF"][()]
+        mu_small_angle = DataMultiPDF(small_angle_grid, small_angle_offset, 
+                                      small_angle_value, small_angle_pdf)
+
+        return cls(xs, large_angle_xs, mu_large_angle, small_angle_xs, mu_small_angle)
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += " - Large angle scattering:\n"
+        text += f"   - XS {print_1d_array(self.xs_large_angle)} barn\n"
+        text += ("   - Scattering cosine: "
+                 f"{data_container.decode_type(self.mu_large_angle.type)}" 
+                 f"[ID: {self.mu_large_angle.ID}]\n")
+        text += " - Small angle scattering:\n"
+        text += f"   - XS {print_1d_array(self.xs_small_angle)} barn\n"
+        text += (f"   - Scattering cosine: "
+                 f"{data_container.decode_type(self.mu_small_angle.type)}" 
+                 f"[ID: {self.mu_small_angle.ID}]\n")
+        return text
+
+
+class ReactionElectronIonization(ReactionBase):
+    def __init__(self, xs, N_subshell, subshell_name, subshell_xs, 
+                 subshell_binding_energy, subshell_product):
+        label = "electron_ionization_reaction"
+        type_ = REACTION_ELECTRON_IONIZATION
+        super().__init__(label, type_, xs)
+
+        self.N_subshell = N_subshell
+        #self.subshell_name = subshell_name
+        self.subshell_xs = subshell_xs
+        self.subshell_binding_energy = subshell_binding_energy
+        self.subshell_product = subshell_product
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        xs = h5_group["xs"][()]
+
+        subshells = h5_group["subshells"]
+        N_subshell = len(subshells)
+        subshell_name = [None] * N_subshell
+        subshell_xs = np.zeros((N_subshell, len(xs)))
+        subshell_binding_energy = np.zeros(N_subshell)
+        subshell_product = [None] * N_subshell
+
+        # Subshell data
+        for i, name in enumerate(subshells):
+            subshell = subshells[name]
+            subshell_name[i] = name
+            subshell_xs[i] = subshell["xs"][()]
+            subshell_binding_energy[i] = subshell["binding_energy"][()]
+            product_grid = subshell["product"]["energy_grid"][()]
+            product_offset = subshell["product"]["energy_offset"][()]
+            product_value = subshell["product"]["value"][()]
+            product_pdf = subshell["product"]["PDF"][()]
+            subshell_product[i] = DataMultiPDF(product_grid, product_offset, 
+                                               product_value, product_pdf)
+
+        return cls(xs, N_subshell, subshell_name, subshell_xs,
+                   subshell_binding_energy, subshell_product)
+
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Number of subshells: {self.N_subshell}\n"
+        for i in range(self.N_subshell):
+            #text += f"    - Name: {self.subshell_name[i]}\n"
+            text += f"    - XS: {print_1d_array(self.subshell_xs[i])} barn\n"
+            text += f"    - Binding energy: {self.subshell_binding_energy[i]} eV\n"
+            prod = self.subshell_product[i]
+            text += f"    - Product: {data_container.decode_type(prod.type)} [ID: {prod.ID}]\n"
         return text

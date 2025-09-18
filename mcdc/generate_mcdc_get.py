@@ -2,7 +2,7 @@ import ast
 
 targets = {
     "material": [
-        ("atomic_densities", 1),
+        ("nuclide_densities", 1),
         ("mgxs_speed", 1),
         ("mgxs_decay_rate", 1),
         ("mgxs_capture", 1),
@@ -19,6 +19,13 @@ targets = {
         ("mgxs_chi_d", 2, ("J", "G")),
     ],
     "nuclide": [
+        ("from_material",),
+        ("xs_energy_grid", 1),
+        ("total_xs", 1),
+        ("reaction_type", 1),
+        ("reaction_index", 1),
+    ],
+    "element": [
         ("from_material",),
         ("xs_energy_grid", 1),
         ("total_xs", 1),

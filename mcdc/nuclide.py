@@ -4,8 +4,6 @@ import os
 
 ####
 
-import mcdc.objects as objects
-
 from mcdc.reaction import (
     ReactionNeutronCapture,
     ReactionNeutronElasticScattering,

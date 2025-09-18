@@ -24,7 +24,7 @@ skip = args.skip
 if name == "ALL":
     names = []
     for item in os.listdir():
-        if os.path.isdir(item):
+        if os.path.isdir(item) and item != 'dummy_data':
             names.append(item)
 else:
     names = [item for item in os.listdir() if fnmatch.fnmatch(item, name)]

@@ -71,7 +71,7 @@ class Settings(ObjectSingleton):
 
         # Set multgroup mode
         self.multigroup_mode = isinstance(objects.materials[0], MaterialMG)
-
+        
         # Register the settings
         objects.settings = self
 

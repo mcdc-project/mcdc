@@ -20,6 +20,7 @@ type_map = {
     np.float64: "f8",
     float: "f8",
     str: "U32",
+    np.int64: "f8",
     int: "i8",
     bool: "?",
 }
@@ -47,6 +48,7 @@ def numbafy_object(object_, structures, records, data):
                 "ID",
                 "type",
                 "nuclide_composition",
+                "element_composition",
                 "ID_numba",
             ]
         )
@@ -122,7 +124,7 @@ def numbafy_object(object_, structures, records, data):
 
         # Dictionary
         else:
-            print(f"[ERROR] Unspported attribute: {attribute_name}: {attribute}")
+            print(f"[ERROR] Unsupported attribute: {attribute_name}: {attribute}")
             exit()
 
     # Register the numbafied object
@@ -139,6 +141,7 @@ def generate_numba_objects():
     object_list = (
         objects.materials
         + objects.nuclides
+        + objects.elements
         + objects.reactions
         + [objects.settings]
         + objects.data_containers

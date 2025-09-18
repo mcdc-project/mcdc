@@ -5,8 +5,10 @@ from numba import njit
 ###
 
 import mcdc.kernel as kernel
-import mcdc.physics.native as native
 import mcdc.mcdc_get as mcdc_get
+
+import mcdc.physics.neutron.interface as neutron
+import mcdc.physics.electron.interface as electron
 
 from mcdc.constant import *
 from mcdc.util import binary_search, linear_interpolation
@@ -19,7 +21,12 @@ from mcdc.util import binary_search, linear_interpolation
 
 @njit
 def particle_speed(particle_container, material, data):
-    return native.particle_speed(particle_container)
+    particle = particle_container[0]
+    if particle['type'] == PARTICLE_NEUTRON:
+        return neutron.particle_speed(particle_container, material, data)
+    elif particle['type'] == PARTICLE_ELECTRON:
+        return electron.particle_speed(particle['E'])
+    return -1.0
 
 
 # ======================================================================================
@@ -29,14 +36,22 @@ def particle_speed(particle_container, material, data):
 
 @njit
 def macro_xs(reaction_type, material, particle_container, mcdc, data):
-    return native.macro_xs(reaction_type, material, particle_container, mcdc, data)
+    particle = particle_container[0]
+    if particle['type'] == PARTICLE_NEUTRON:
+        return neutron.macro_xs(reaction_type, material, particle_container, mcdc, data)
+    elif particle['type'] == PARTICLE_ELECTRON:
+        return electron.macro_xs(reaction_type, material, particle_container, mcdc, data)
+    return -1.0
 
 
 @njit
 def neutron_production_xs(reaction_type, material, particle_container, mcdc, data):
-    return native.neutron_production_xs(
-        reaction_type, material, particle_container, mcdc, data
-    )
+    particle = particle_container[0]
+    if particle['type'] == PARTICLE_NEUTRON:
+        return neutron.neutron_production_xs(
+            reaction_type, material, particle_container, mcdc, data
+        )
+    return -1.0
 
 
 # ======================================================================================
@@ -61,4 +76,8 @@ def collision_distance(particle_container, material, mcdc, data):
 
 @njit
 def collision(particle_container, prog, data):
-    native.collision(particle_container, prog, data)
+    particle = particle_container[0]
+    if particle['type'] == PARTICLE_NEUTRON:
+        neutron.collision(particle_container, prog, data)
+    elif particle['type'] == PARTICLE_ELECTRON:
+        electron.collision(particle_container, prog, data)
