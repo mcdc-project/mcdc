@@ -39,6 +39,7 @@ from mcdc.constant import (
     GYRATION_RADIUS_ONLY_Z,
     INF,
     PARTICLE_NEUTRON,
+    PARTICLE_ELECTRON,
     PCT_NONE,
     PCT_COMBING,
     PCT_COMBING_WEIGHT,
@@ -842,7 +843,7 @@ def source(**kw):
     time : array_like
         [t_min and t_max] in/at which source is emitted.
     particle_type : str
-        Particle type, {'neutron'}
+        Particle type, {'neutron', 'electron'}
     prob : float
         Relative probability (or strength) of the source.
 
@@ -972,6 +973,8 @@ def source(**kw):
     if particle_type is not None:
         if particle_type == "neutron":
             card.particle_type = PARTICLE_NEUTRON
+        elif particle_type == "electron":
+            card.particle_type = PARTICLE_ELECTRON
 
     # Set probability
     if prob is not None:
