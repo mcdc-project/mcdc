@@ -48,7 +48,6 @@ def numbafy_object(object_, structures, records, data):
                 "ID",
                 "type",
                 "nuclide_composition",
-                "element_composition",
                 "ID_numba",
             ]
         )
@@ -141,7 +140,6 @@ def generate_numba_objects():
     object_list = (
         objects.materials
         + objects.nuclides
-        + objects.elements
         + objects.reactions
         + [objects.settings]
         + objects.data_containers

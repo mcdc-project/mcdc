@@ -25,13 +25,6 @@ targets = {
         ("reaction_type", 1),
         ("reaction_index", 1),
     ],
-    "element": [
-        ("from_material",),
-        ("xs_energy_grid", 1),
-        ("total_xs", 1),
-        ("reaction_type", 1),
-        ("reaction_index", 1),
-    ],
     "settings": [
         ("census_time", 1),
     ],

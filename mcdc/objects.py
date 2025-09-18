@@ -31,7 +31,6 @@ class ObjectOverriding(ObjectPolymorphic):
 settings = None  # Singleton
 materials = []  # Overriding-polymorphic
 nuclides = []  # Non-singleton
-elements = []  # Non-singleton
 reactions = []  # Polymorphic
 data_containers = []  # Polymorphic
 
@@ -41,17 +40,14 @@ def register_object(object_):
     from mcdc.data_container import DataContainer
     from mcdc.material import MaterialBase
     from mcdc.nuclide import Nuclide
-    from mcdc.element import Element
     from mcdc.reaction import ReactionBase
 
-    global materials, nuclides, elements, reactions, data_containers
+    global materials, nuclides, reactions, data_containers
 
     if isinstance(object_, MaterialBase):
         object_list = materials
     elif isinstance(object_, Nuclide):
         object_list = nuclides
-    elif isinstance(object_, Element):
-        object_list = elements
     elif isinstance(object_, ReactionBase):
         object_list = reactions
     elif isinstance(object_, DataContainer):
