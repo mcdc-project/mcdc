@@ -25,7 +25,7 @@ def particle_speed(particle_container, material, data):
     if particle['type'] == PARTICLE_NEUTRON:
         return neutron.particle_speed(particle_container, material, data)
     elif particle['type'] == PARTICLE_ELECTRON:
-        return electron.particle_speed(particle['E'])
+        return electron.particle_speed(particle_container, material, data)
     return -1.0
 
 

@@ -68,7 +68,12 @@ class Material(MaterialBase):
         # Argument checks
         # ==============================================================================
 
-        # TODO: Need either nuclide or element composition, not both
+        # Check that either nuclide or element composition is provided, not both
+        if len(nuclide_composition) > 0 and len(element_composition) > 0:
+            print_error("Cannot specify both nuclide_composition and element_composition")
+        
+        if len(nuclide_composition) == 0 and len(element_composition) == 0:
+            print_error("Must specify either nuclide_composition or element_composition")
 
         # ==============================================================================
         # Element-based construction

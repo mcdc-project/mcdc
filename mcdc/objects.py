@@ -41,6 +41,7 @@ def register_object(object_):
     from mcdc.data_container import DataContainer
     from mcdc.material import MaterialBase
     from mcdc.nuclide import Nuclide
+    from mcdc.element import Element
     from mcdc.reaction import ReactionBase
 
     global materials, nuclides, elements, reactions, data_containers

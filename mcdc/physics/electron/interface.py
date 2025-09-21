@@ -15,9 +15,9 @@ from mcdc.constant import REACTION_TOTAL, INF
 # ======================================================================================
 
 
-@njit
+# @njit
 def particle_speed(particle_container, material, data):
-    return native.particle_speed(particle_container)
+    return native.particle_speed(particle_container, material, data)
 
 
 # ======================================================================================
@@ -25,7 +25,7 @@ def particle_speed(particle_container, material, data):
 # ======================================================================================
 
 
-@njit
+# @njit
 def macro_xs(reaction_type, material, particle_container, mcdc, data):
     return native.macro_xs(reaction_type, material, particle_container, mcdc, data)
 
@@ -35,6 +35,6 @@ def macro_xs(reaction_type, material, particle_container, mcdc, data):
 # ======================================================================================
 
 
-@njit
-def collision(particle_container, prog, data):
-    native.collision(particle_container, prog, data)
+# @njit
+def collision(particle_container, prog):
+    native.collision(particle_container, prog)

@@ -38,7 +38,7 @@ from mcdc.util import linear_interpolation
 # ======================================================================================
 
 #@njit
-def particle_speed(particle_container):
+def particle_speed(particle_container, material, data):
     E = particle_container[0]["E"]
 
     gamma = 1.0 + E / ELECTRON_REST_MASS_ENERGY
@@ -180,12 +180,14 @@ def evaluate_data(x, data_type, index):
 # ======================================================================================
 
 #@njit
-def macro_xs(reaction_type, material, particle_container):
+def macro_xs(reaction_type, material, particle_container, mcdc, data):
     particle = particle_container[0]
     E = particle["E"]
 
     # Sum over all elements
     total = 0.0
+    mat_id = particle["material_ID"]
+    material = objects.materials[mat_id]
     elements = material.elements
     N_elements = len(elements)
     element_densities = material.element_densities
@@ -334,9 +336,15 @@ def elastic_scattering(particle_container, element, reaction):
     uy = particle["uy"]
     uz = particle["uz"]
 
-    # Branch XS
-    xs_L = element.large_angle_xs(E, particle_container)
-    xs_S = element.small_angle_xs(E, particle_container)
+    # Branch XS: interpolate per-branch cross sections from reaction data
+    def _interp_branch_xs(E_in, elem, xs_array):
+        idx_b, e0_b, e1_b = evaluate_xs_energy_grid(E_in, elem)
+        xs0_b = xs_array[idx_b]
+        xs1_b = xs_array[idx_b + 1]
+        return linear_interpolation(E_in, e0_b, e1_b, xs0_b, xs1_b)
+
+    xs_L = _interp_branch_xs(E, element, reaction.xs_large_angle)
+    xs_S = _interp_branch_xs(E, element, reaction.xs_small_angle)
 
     xs_tot = xs_L + xs_S
     use_large = True
