@@ -880,6 +880,8 @@ def prepare():
                 score_type = SCORE_TIME_MOMENT_MU_SQ
             elif score_name == "space-moment-mu-sq":
                 score_type = SCORE_SPACE_MOMENT_MU_SQ
+            elif score_name == "edep":
+                score_type = SCORE_EDEP
             mcdc["mesh_tallies"][i]["scores"][j] = score_type
 
         # Filter grid sizes
@@ -1859,6 +1861,8 @@ def generate_hdf5(data_tally, mcdc):
                         score_name = "time-moment-mu-sq"
                     elif score_type == SCORE_SPACE_MOMENT_MU_SQ:
                         score_name = "space-moment-mu-sq"
+                    elif score_type == SCORE_EDEP:
+                        score_name = "edep"
                     group_name = "tallies/mesh_tally_%i/%s/" % (ID, score_name)
 
                     mean = score_tally_bin[TALLY_SUM]

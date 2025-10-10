@@ -72,7 +72,9 @@ class Element(ObjectNonSingleton):
         return text
 
 
-# For future use
+# Natural isotopic abundance data from 
+# https://www.nndc.bnl.gov/walletcards/search.html
+
 ISOTOPIC_ABUNDANCE = {
     "H": {
         "H1": (99.972 + 99.999) / 2,

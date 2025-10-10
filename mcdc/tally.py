@@ -55,7 +55,7 @@ def mesh_tally(
     E : array_like[float], optional
         Energies that demarcate energy tally bins. This overrides `g` in
         continuous-energy mode.
-    scores : list of str {"flux", "total", "fission", "density"}
+    scores : list of str {"flux", "total", "fission", "density", "edep"}
         List of physical quantities to be scored.
 
     Returns
@@ -86,8 +86,8 @@ def mesh_tally(
         card.g = np.linspace(0, G, G + 1) - 0.5
     else:
         card.g = g
-    if not objects.settings.multigroup_mode:
-        card.g = E
+    #if not objects.settings.multigroup_mode:
+    #    card.g = E
 
     # Calculate total number bins
     Nx = len(card.x) - 1
@@ -117,6 +117,7 @@ def mesh_tally(
                 "space-moment-current",
                 "time-moment-mu-sq",
                 "space-moment-mu-sq",
+                "edep",
             ],
         )
         card.scores.append(score_checked)

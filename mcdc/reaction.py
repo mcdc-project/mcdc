@@ -327,14 +327,14 @@ class ReactionElectronElasticScattering(ReactionBase):
 
 
 class ReactionElectronIonization(ReactionBase):
-    def __init__(self, xs, N_subshell, subshell_name, subshell_xs, 
+    def __init__(self, xs, energy_grid,  N_subshell, subshell_xs, 
                  subshell_binding_energy, subshell_product):
         label = "electron_ionization_reaction"
         type_ = REACTION_ELECTRON_IONIZATION
         super().__init__(label, type_, xs)
 
+        self.energy_grid = energy_grid
         self.N_subshell = N_subshell
-        #self.subshell_name = subshell_name
         self.subshell_xs = subshell_xs
         self.subshell_binding_energy = subshell_binding_energy
         self.subshell_product = subshell_product
@@ -342,38 +342,54 @@ class ReactionElectronIonization(ReactionBase):
     @classmethod
     def from_h5_group(cls, h5_group):
         xs = h5_group["xs"][()]
+        energy_grid = h5_group["energy_grid"][()]
 
         subshells = h5_group["subshells"]
-        N_subshell = len(subshells)
-        subshell_name = [None] * N_subshell
-        subshell_xs = np.zeros((N_subshell, len(xs)))
-        subshell_binding_energy = np.zeros(N_subshell)
-        subshell_product = [None] * N_subshell
+        subshell_name = []
+        subshell_xs = []
+        subshell_binding_energy = []
+        subshell_product = []
 
         # Subshell data
-        for i, name in enumerate(subshells):
+        for name in subshells:
             subshell = subshells[name]
-            subshell_name[i] = name
-            subshell_xs[i] = subshell["xs"][()]
-            subshell_binding_energy[i] = subshell["binding_energy"][()]
+            subshell_name.append(name)
+            xs = subshell["xs"][()]
+            subshell_xs.append(DataTable(energy_grid, xs))
+            subshell_binding_energy.append(subshell["binding_energy"][()])
             product_grid = subshell["product"]["energy_grid"][()]
             product_offset = subshell["product"]["energy_offset"][()]
             product_value = subshell["product"]["value"][()]
             product_pdf = subshell["product"]["PDF"][()]
-            subshell_product[i] = DataMultiPDF(product_grid, product_offset, 
-                                               product_value, product_pdf)
+            subshell_product.append(
+                DataMultiPDF(product_grid, product_offset, product_value, product_pdf)
+            )
 
-        return cls(xs, N_subshell, subshell_name, subshell_xs,
-                   subshell_binding_energy, subshell_product)
+        N_subshell = len(subshell_name)
+        subshell_binding_energy = np.asarray(subshell_binding_energy)
+
+        return cls(
+            xs,
+            energy_grid,
+            N_subshell,
+            subshell_xs,
+            subshell_binding_energy,
+            subshell_product,
+        )
 
 
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Number of subshells: {self.N_subshell}\n"
         for i in range(self.N_subshell):
-            #text += f"    - Name: {self.subshell_name[i]}\n"
-            text += f"    - XS: {print_1d_array(self.subshell_xs[i])} barn\n"
             text += f"    - Binding energy: {self.subshell_binding_energy[i]} eV\n"
+            xs = self.subshell_xs[i]
+            if isinstance(xs, DataTable):
+                xs_values = xs.y
+            else:
+                xs_values = xs
+            text += f"    - XS: {print_1d_array(xs_values)} barn\n"
+            text += f"    - Energy grid: {print_1d_array(self.energy_grid)} eV\n"
             prod = self.subshell_product[i]
             text += f"    - Product: {data_container.decode_type(prod.type)} [ID: {prod.ID}]\n"
         return text

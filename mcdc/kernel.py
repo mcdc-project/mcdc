@@ -1807,6 +1807,54 @@ def score_mesh_tally(P_arr, distance, tally, data_tally, mcdc, data):
 
 
 @njit
+def score_mesh_tally_edep(P_arr, edep, tally, data_tally, mcdc, data):
+    P = P_arr[0]
+    mesh = tally["filter"]
+    stride = tally["stride"]
+
+    # Angular indices
+    mu_idx, azi_idx = mesh_get_angular_index(P_arr, mesh)
+
+    # Energy index
+    g_idx, outside_energy = mesh_get_energy_index(
+        P_arr, mesh, False
+    )
+
+    # Space-time indices
+    ix, iy, iz, it, outside = mesh_.structured.get_indices(P_arr, mesh)
+
+    # Outside grid?
+    if outside or outside_energy:
+        return
+
+    # Locate the edep score within this tally
+    i_edep = -1
+    N_score = tally["N_score"]
+    for i in range(N_score):
+        if tally["scores"][i] == SCORE_EDEP:
+            i_edep = i
+            break
+    if i_edep < 0:
+        return
+
+    # The tally index
+    idx = (
+        stride["tally"]
+        + mu_idx * stride["mu"]
+        + azi_idx * stride["azi"]
+        + g_idx * stride["g"]
+        + it * stride["t"]
+        + ix * stride["x"]
+        + iy * stride["y"]
+        + iz * stride["z"]
+    )
+
+    # Score: weight the local energy loss and accumulate
+    score = edep * P["w"]
+    adapt.global_add(data_tally, (TALLY_SCORE, idx + i_edep), round(score))
+
+
+@njit
 def score_surface_tally(P_arr, surface, tally, data_tally, mcdc, data):
     # TODO: currently not supporting filters
     P = P_arr[0]

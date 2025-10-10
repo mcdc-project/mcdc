@@ -587,7 +587,20 @@ def step_particle(P_arr, data_tally, prog, data):
 
     # Collision
     if P["event"] & EVENT_COLLISION:
-        physics.collision(P_arr, prog, data)
+        if P["type"] == PARTICLE_NEUTRON:
+            physics.collision(P_arr, prog, data)
+        elif P["type"] == PARTICLE_ELECTRON:
+            # Capture pre-collision energy for consistent energy-binning of edep
+            E_before = P["E"]
+            edep = physics.collision(P_arr, prog, data)
+            if edep > 0.0:
+                # Temporarily score edep using the pre-collision energy bin
+                E_after = P["E"]
+                P["E"] = E_before
+                for tally in mcdc["mesh_tallies"]:
+                    kernel.score_mesh_tally_edep(P_arr, edep, tally, data_tally, mcdc, data)
+
+                P["E"] = E_after
 
     # Surface and domain crossing
     if P["event"] & EVENT_SURFACE_CROSSING:
