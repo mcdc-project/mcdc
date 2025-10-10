@@ -79,6 +79,6 @@ def collision(particle_container, prog, data):
     particle = particle_container[0]
     if particle['type'] == PARTICLE_NEUTRON:
         return neutron.collision(particle_container, prog, data)
-    elif particle['type'] == PARTICLE_ELECTRON:
+    if particle['type'] == PARTICLE_ELECTRON:
         return electron.collision(particle_container, prog, data)
     return 0.0

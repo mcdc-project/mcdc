@@ -16,7 +16,7 @@ from mcdc.constant import REACTION_TOTAL, INF
 
 
 # @njit
-def particle_speed(particle_container):
+def particle_speed(particle_container, material, data):
     return native.particle_speed(particle_container)
 
 

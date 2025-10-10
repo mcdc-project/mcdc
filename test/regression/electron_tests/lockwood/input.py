@@ -1,0 +1,107 @@
+import numpy as np
+import os
+import math
+import mcdc
+from datetime import datetime
+
+# Set the XS library directory
+os.environ["MCDC_XSLIB"] = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "dummy_data")
+
+# =============================================================================
+# Set problem parameters
+# =============================================================================
+MATERIAL_SYMBOL = "U"
+CSDA_RANGE = 0.809 # g/cm2
+RHO_G_CM3 = 19.1   # g/cm3
+ATOMIC_WEIGHT_G_MOL = 235.98415
+AREAL_DENSITY_G_CM2 = 1.473e-2
+dz = AREAL_DENSITY_G_CM2 / RHO_G_CM3
+U_DENSITY_ATOMS_PER_BARN_CM = 4.8e-2
+TINY = 1e-8
+
+# parameters
+L = CSDA_RANGE / RHO_G_CM3 / 2  # cm
+N_LAYERS = int(L / dz)
+
+print(f"[DEBUG] Total thickness = {L:.6e} cm")
+print(f"[DEBUG] Layer thickness = {dz:.6e} cm")
+print(f"[DEBUG] Number of layers = {N_LAYERS}")
+
+# =============================================================================
+# Set materials
+# =============================================================================
+mat = mcdc.Material(
+    element_composition={MATERIAL_SYMBOL: U_DENSITY_ATOMS_PER_BARN_CM}
+)
+
+# =============================================================================
+# Set geometry (surfaces and cells)
+# =============================================================================
+# Z-direction surfaces for layers
+surfaces_z = []
+for i in range(N_LAYERS + 1):
+    z_pos = i * dz
+    if i == 0:
+        # First surface
+        s = mcdc.surface("plane-z", z=z_pos, bc="vacuum")
+    elif i == N_LAYERS:
+        # Last surface
+        s = mcdc.surface("plane-z", z=z_pos, bc="vacuum")
+    else:
+        # Internal
+        s = mcdc.surface("plane-z", z=z_pos)
+    surfaces_z.append(s)
+
+# X and Y boundaries
+boundary_size = L * 2
+x_min = mcdc.surface("plane-x", x=-boundary_size, bc="vacuum")
+x_max = mcdc.surface("plane-x", x=+boundary_size, bc="vacuum")
+y_min = mcdc.surface("plane-y", y=-boundary_size, bc="vacuum")
+y_max = mcdc.surface("plane-y", y=+boundary_size, bc="vacuum")
+
+# Create cells for each layer
+for i in range(N_LAYERS):
+    region = (+x_min & -x_max & +y_min & -y_max & 
+              +surfaces_z[i] & -surfaces_z[i+1])
+    mcdc.cell(region, mat)
+
+# =============================================================================
+# Set source
+# =============================================================================
+# Parallel beam of 1 MeV electrons entering at z=0
+theta = math.radians(0)
+
+mcdc.source(
+    z=[0.0 + TINY, 0.0 + TINY],
+    particle_type='electron',
+    energy=np.array([[1e6 - 1, 1e6 + 1], [0.5, 0.5]]),
+    direction=[math.sin(theta), 0.0 + TINY, math.cos(theta)]
+)
+
+# =============================================================================
+# Set tally
+# =============================================================================
+# Energy deposition tally along z-axis
+z_bins = np.linspace(0.0, L, N_LAYERS + 1)
+x_bins = np.array([-boundary_size, boundary_size])
+y_bins = np.array([-boundary_size, boundary_size])
+
+mcdc.tally.mesh_tally(
+    scores=["edep", "flux"],
+    x=x_bins,
+    y=y_bins,
+    z=z_bins
+)
+
+# =============================================================================
+# Settings and run
+# =============================================================================
+settings = mcdc.Settings(
+    N_particle=int(20),
+    N_batch=2,
+    active_bank_buffer=1000
+)
+settings.save_input_deck = True
+settings.output_name = f"lockwood_output_{datetime.now():%Y%m%d_%H%M%S}"
+
+mcdc.run()
