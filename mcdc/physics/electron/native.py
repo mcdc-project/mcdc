@@ -36,7 +36,6 @@ from mcdc.util import linear_interpolation
 # Particle attributes
 # ======================================================================================
 
-
 #@njit
 def particle_speed(particle_container):
     E = particle_container[0]["E"]
@@ -257,9 +256,6 @@ def electron_production_xs(reaction_type, material, particle_container, mcdc, da
     particle = particle_container[0]
     E = particle["E"]
 
-    if E < ELECTRON_CUTOFF_ENERGY:
-        return 0.0
-
     if reaction_type in (REACTION_ELECTRON_ELASTIC_SMALL_ANGLE,
                          REACTION_ELECTRON_ELASTIC_LARGE_ANGLE):
         reaction_type = REACTION_ELECTRON_ELASTIC_SCATTERING
@@ -354,18 +350,19 @@ def collision(particle_container, prog, data):
         if reaction_type == REACTION_ELECTRON_BREMSSTRAHLUNG:
             #reaction = "electron_bremsstrahlung_reaction"
             edep_local += bremsstrahlung(particle_container, element, reaction)
-        elif reaction_type == REACTION_ELECTRON_EXCITATION:
+            return edep_local
+        if reaction_type == REACTION_ELECTRON_EXCITATION:
             #reaction = "electron_excitation_reaction"
             edep_local += excitation(particle_container, element, reaction)
-        elif reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
+            return edep_local
+        if reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
             #reaction = "electron_elastic_scattering_reaction"
             edep_local += elastic_scattering(particle_container, element, reaction)
-        elif reaction_type == REACTION_ELECTRON_IONIZATION:
+            return edep_local
+        if reaction_type == REACTION_ELECTRON_IONIZATION:
             #reaction = "electron_ionization_reaction"
             edep_local += ionization(particle_container, element, reaction, prog)
-
-        return edep_local
-    return 0.0
+            return edep_local
 
 
 # ======================================================================================
@@ -388,7 +385,7 @@ def elastic_scattering(particle_container, element, reaction):
     uy = particle["uy"]
     uz = particle["uz"]
 
-    # Branch XS: interpolate per-branch cross sections from reaction data
+    # Interpolate cross sections from reaction data
     def _interp_branch_xs(E_in, elem, xs_array):
         idx_b, e0_b, e1_b = evaluate_xs_energy_grid(E_in, elem)
         xs0_b = xs_array[idx_b]
@@ -507,7 +504,7 @@ def bremsstrahlung(particle_container, element, reaction):
     dE = evaluate_data(E, DATA_TABLE, e_loss)
     particle["E"] -= dE
 
-    return 0.0 # no local energy deposition
+    return dE # local energy deposition (when photon is not tracked)
 
 
 # ======================================================================================
@@ -587,4 +584,4 @@ def ionization(particle_container, element, reaction, prog):
 
     adapt.add_active(particle_container_new, prog)
 
-    return float(B)
+    return B

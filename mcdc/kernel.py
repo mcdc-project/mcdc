@@ -1851,7 +1851,7 @@ def score_mesh_tally_edep(P_arr, edep, tally, data_tally, mcdc, data):
 
     # Score: weight the local energy loss and accumulate
     score = edep * P["w"]
-    adapt.global_add(data_tally, (TALLY_SCORE, idx + i_edep), round(score))
+    adapt.global_add(data_tally, (TALLY_SCORE, idx + i_edep), score)
 
 
 @njit
