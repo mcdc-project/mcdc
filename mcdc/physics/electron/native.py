@@ -232,6 +232,9 @@ def micro_xs(E, reaction_type, element):
     idx, E0, E1 = evaluate_xs_energy_grid(E, element)
     N_reactions = len(element.reactions)
 
+    # ------------------------------------------------------------------
+    # Total xs
+    # ------------------------------------------------------------------
     if reaction_type == REACTION_TOTAL:
         xs0_sum = 0.0
         xs1_sum = 0.0
@@ -241,13 +244,43 @@ def micro_xs(E, reaction_type, element):
             xs1_sum += reaction.xs[idx + 1]
         return linear_interpolation(E, E0, E1, xs0_sum, xs1_sum)
 
+    # ------------------------------------------------------------------
+    # 2) Electron elastic scattering
+    #    REACTION_ELECTRON_ELASTIC_LARGE_ANGLE
+    #    REACTION_ELECTRON_ELASTIC_SMALL_ANGLE
+    # ------------------------------------------------------------------
+    if (reaction_type == REACTION_ELECTRON_ELASTIC_LARGE_ANGLE or
+        reaction_type == REACTION_ELECTRON_ELASTIC_SMALL_ANGLE):
+
+        elastic_reaction = None
+        for i in range(N_reactions):
+            r = element.reactions[i]
+            if int(r.type) == REACTION_ELECTRON_ELASTIC_SCATTERING:
+                elastic_reaction = r
+                break
+
+        if elastic_reaction is None:
+            return 0.0
+
+        if reaction_type == REACTION_ELECTRON_ELASTIC_LARGE_ANGLE:
+            xs_arr = elastic_reaction.xs_large_angle
+        else:
+            xs_arr = elastic_reaction.xs_small_angle
+
+        xs0 = xs_arr[idx]
+        xs1 = xs_arr[idx + 1]
+        return linear_interpolation(E, E0, E1, xs0, xs1)
+    
+    # ------------------------------------------------------------------
+    # Other reactions
+    # ------------------------------------------------------------------
     for i in range(N_reactions):
         reaction = element.reactions[i]
         if int(reaction.type) == reaction_type:
             xs0 = reaction.xs[idx]
             xs1 = reaction.xs[idx + 1]
             return linear_interpolation(E, E0, E1, xs0, xs1)
-
+        
     return 0.0
 
 
@@ -256,9 +289,8 @@ def electron_production_xs(reaction_type, material, particle_container, mcdc, da
     particle = particle_container[0]
     E = particle["E"]
 
-    if reaction_type in (REACTION_ELECTRON_ELASTIC_SMALL_ANGLE,
-                         REACTION_ELECTRON_ELASTIC_LARGE_ANGLE):
-        reaction_type = REACTION_ELECTRON_ELASTIC_SCATTERING
+    if reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
+        return macro_xs(reaction_type, material, particle_container, mcdc, data)
 
     if reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
         return macro_xs(reaction_type, material, particle_container, mcdc, data)
@@ -274,15 +306,21 @@ def electron_production_xs(reaction_type, material, particle_container, mcdc, da
 
     if reaction_type == REACTION_TOTAL:
         total = 0.0
-        total += electron_production_xs(REACTION_ELECTRON_ELASTIC_SCATTERING,
-                                        material, particle_container, mcdc, data)
-        total += electron_production_xs(REACTION_ELECTRON_EXCITATION,
-                                        material, particle_container, mcdc, data)
-        total += electron_production_xs(REACTION_ELECTRON_BREMSSTRAHLUNG,
-                                        material, particle_container, mcdc, data)
-        total += electron_production_xs(REACTION_ELECTRON_IONIZATION,
-                                        material, particle_container, mcdc, data)
+        total += electron_production_xs(
+            REACTION_ELECTRON_ELASTIC_SCATTERING, material, particle_container, mcdc, data
+        )
+        total += electron_production_xs(
+            REACTION_ELECTRON_EXCITATION, material, particle_container, mcdc, data
+        )
+        total += electron_production_xs(
+            REACTION_ELECTRON_BREMSSTRAHLUNG, material, particle_container, mcdc, data
+        )
+        total += electron_production_xs(
+            REACTION_ELECTRON_IONIZATION, material, particle_container, mcdc, data
+        )
         return total
+
+    return 0.0
 
 
 # ======================================================================================
@@ -294,10 +332,19 @@ def collision(particle_container, prog, data):
     particle = particle_container[0]
     material = objects.materials[particle["material_ID"]]
 
-    # Check if below threshold - absorb particle
+    ## DEBUGGING PRINTS
+    # ======================================================================================
+    # ======================================================================================
+    debug_energy = objects.settings.__dict__.get("debug_energy", False)
+
+
     if particle["E"] < ELECTRON_CUTOFF_ENERGY:
+        if debug_energy:
+            print(f"E_in={particle['E']:.3e}, cutoff -> deposit all")
         particle["alive"] = False
-        return particle["E"]  # All remaining energy deposited locally
+        return particle["E"]
+    # ======================================================================================
+    # ======================================================================================
 
     # ==================================================================================
     # Sample colliding element
@@ -315,11 +362,10 @@ def collision(particle_container, prog, data):
     xi = kernel.rng(particle_container) * SigmaT
     total = 0.0
     chosen = 0
-    for i in range(N_elements): 
+    for i in range(N_elements):
         element = elements[i]
-        element_density = element_densities[i]
         sigmaT = micro_xs(particle["E"], REACTION_TOTAL, element)
-        SigmaT_element = element_density * sigmaT
+        SigmaT_element = element_densities[i] * sigmaT
         total += SigmaT_element
         if total > xi:
             chosen = i
@@ -334,10 +380,7 @@ def collision(particle_container, prog, data):
     xi = kernel.rng(particle_container) * SigmaT_element
     total = 0.0
 
-    reactions = element.reactions
-    N_reaction = len(reactions)
-    for i in range(N_reaction):
-        reaction = reactions[i]
+    for reaction in element.reactions:
         E = particle["E"]
         reaction_type = int(reaction.type)
         reaction_xs = micro_xs(E, reaction_type, element)
@@ -346,24 +389,24 @@ def collision(particle_container, prog, data):
             continue
 
         edep_local = 0.0
-        # Reaction is sampled
         if reaction_type == REACTION_ELECTRON_BREMSSTRAHLUNG:
-            #reaction = "electron_bremsstrahlung_reaction"
-            edep_local += bremsstrahlung(particle_container, element, reaction)
-            return edep_local
-        if reaction_type == REACTION_ELECTRON_EXCITATION:
-            #reaction = "electron_excitation_reaction"
-            edep_local += excitation(particle_container, element, reaction)
-            return edep_local
-        if reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
-            #reaction = "electron_elastic_scattering_reaction"
-            edep_local += elastic_scattering(particle_container, element, reaction)
-            return edep_local
-        if reaction_type == REACTION_ELECTRON_IONIZATION:
-            #reaction = "electron_ionization_reaction"
-            edep_local += ionization(particle_container, element, reaction, prog)
-            return edep_local
+            edep_local = bremsstrahlung(particle_container, element, reaction)
+        elif reaction_type == REACTION_ELECTRON_EXCITATION:
+            edep_local = excitation(particle_container, element, reaction)
+        elif reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
+            edep_local = elastic_scattering(particle_container, element, reaction)
+        elif reaction_type == REACTION_ELECTRON_IONIZATION:
+            edep_local = ionization(particle_container, element, reaction, prog)
 
+
+        if debug_energy:
+            E_out = particle["E"]
+            print(
+                f"E_in={E:.3e}, reaction={reaction_type}, "
+                f"edep={edep_local:.3e}, E_out={E_out:.3e}"
+            )
+
+        return edep_local
 
 # ======================================================================================
 # Elastic scattering
@@ -375,6 +418,26 @@ def elastic_scattering(particle_container, element, reaction):
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
+
+    if E <= ELECTRON_CUTOFF_ENERGY:
+        return E
+    
+    # Interpolate cross sections from reaction data
+    def _interp_branch_xs(E_in, elem, xs_array):
+        idx, e0, e1 = evaluate_xs_energy_grid(E_in, elem)
+        xs0 = xs_array[idx]
+        xs1 = xs_array[idx + 1]
+        return linear_interpolation(E_in, e0, e1, xs0, xs1)
+    
+    xs_L = _interp_branch_xs(E, element, reaction.xs_large_angle)
+    xs_S = _interp_branch_xs(E, element, reaction.xs_small_angle)
+    xs_tot = xs_L + xs_S
+
+    if xs_tot == 0.0:
+        use_large = True
+    else:
+        use_large = kernel.rng(particle_container) < xs_L / xs_tot
+
     E0 = ELECTRON_REST_MASS_ENERGY  # eV
     E_e = E0 + E  # Total energy eV
     p_c = math.sqrt(max(0.0, E*E + 2.0*E*E0))  # p_e * c eV
@@ -384,25 +447,6 @@ def elastic_scattering(particle_container, element, reaction):
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
-
-    # Interpolate cross sections from reaction data
-    def _interp_branch_xs(E_in, elem, xs_array):
-        idx_b, e0_b, e1_b = evaluate_xs_energy_grid(E_in, elem)
-        xs0_b = xs_array[idx_b]
-        xs1_b = xs_array[idx_b + 1]
-        return linear_interpolation(E_in, e0_b, e1_b, xs0_b, xs1_b)
-
-    xs_L = _interp_branch_xs(E, element, reaction.xs_large_angle)
-    xs_S = _interp_branch_xs(E, element, reaction.xs_small_angle)
-
-    xs_tot = xs_L + xs_S
-    use_large = True
-    if xs_tot > 0.0:
-        if kernel.rng(particle_container) > xs_L / xs_tot:
-            use_large = False
-
-    if E <= ELECTRON_CUTOFF_ENERGY:
-        return 0.0
 
     # =========================================================================
     # COM kinematics
@@ -468,7 +512,8 @@ def elastic_scattering(particle_container, element, reaction):
     particle["uy"] = vy / speed_lab_out
     particle["uz"] = vz / speed_lab_out
 
-    return 0.0 # no local energy deposition
+    deposited = max(0.0, E - particle["E"])
+    return deposited
 
 
 # ======================================================================================
@@ -562,7 +607,9 @@ def ionization(particle_container, element, reaction, prog):
     # Binding energy
     B = reaction.subshell_binding_energy[chosen]
     if E <= B + TINY:
-        return 0.0
+        deposited = E
+        particle["E"] = 0.0
+        return deposited
 
     # Sample energy of the secondary electron
     secondary_multipdf = reaction.subshell_product[chosen]
@@ -570,8 +617,16 @@ def ionization(particle_container, element, reaction, prog):
 
     E_out = E - B - T_delta
     particle["E"] = E_out
+
+    deposited = B
+    if T_delta < ELECTRON_CUTOFF_ENERGY:
+        deposited += T_delta
+        return deposited
+    
+    # Sample direction of the secondary electron
     ux_d, uy_d, uz_d = sample_delta_direction(T_delta, E, particle_container)
 
+    # Create new particle for the secondary electron
     particle_container_new = adapt.local_array(1, type_.particle_record)
     particle_new = particle_container_new[0]
     kernel.split_as_record(particle_container_new, particle_container)
@@ -584,4 +639,4 @@ def ionization(particle_container, element, reaction, prog):
 
     adapt.add_active(particle_container_new, prog)
 
-    return B
+    return deposited

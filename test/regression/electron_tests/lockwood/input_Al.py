@@ -50,6 +50,9 @@ mat = mcdc.Material(
 s1 = mcdc.surface("plane-z", z=0, bc="vacuum")
 s2 = mcdc.surface("plane-z", z=L, bc="vacuum")
 
+surfL = mcdc.surface("plane-z", z=0+1e-6)
+surfR = mcdc.surface("plane-z", z=L-1e-6)
+
 mcdc.cell(+s1 & -s2, mat)
 
 # =============================================================================
@@ -59,7 +62,7 @@ mcdc.cell(+s1 & -s2, mat)
 theta = math.radians(0)
 
 mcdc.source(
-    z = [0.0 + TINY, 0.0 + TINY],
+    z = [0.0, 0.0],
     particle_type='electron',
     energy=np.array([[1e6 - 1, 1e6 + 1], [0.5, 0.5]]),
     direction=[math.sin(theta), 0.0+TINY, math.cos(theta)]
@@ -76,19 +79,21 @@ mcdc.tally.mesh_tally(
     z=z_bins
 )
 
-mcdc.tally.surface_tally(s1, scores=["net-current"])
-mcdc.tally.surface_tally(s2, scores=["net-current"])
+mcdc.tally.surface_tally(surfL, scores=["net-current"])
+mcdc.tally.surface_tally(surfR, scores=["net-current"])
 
 
 # =============================================================================
 # Settings and run
 # =============================================================================
 settings = mcdc.Settings(
-    N_particle=10000,
+    N_particle=1,
     active_bank_buffer=1000000
 )
 
 settings.save_input_deck = True
 settings.output_name = f"lockwood_output_{datetime.now():%Y%m%d_%H%M%S}"
+#settings.debug_energy = True
+
 
 mcdc.run()
