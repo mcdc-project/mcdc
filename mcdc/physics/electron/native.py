@@ -69,17 +69,25 @@ def atomic_densities(index, material):
 
 def sample_multipdf(x, rng_state, multipdf, scale=False):
     grid = multipdf.grid
+    val_min = 0.0
+    val_max = 1.0
 
     # Edge cases
-    if x < grid[0]:
+    if x <= grid[0]:
         idx = 0
         scale = False
-    elif x > grid[-1]:
+    elif x >= grid[-1]:
         idx = len(grid) - 1
         scale = False
     else:
         # Interpolation factor
         idx = binary_search(x, grid)
+        if idx < 0:
+            idx = 0
+            scale = False
+        elif idx >= len(grid) - 1:
+            idx = len(grid) - 2
+            scale = False
         x0 = grid[idx]
         x1 = grid[idx + 1]
         f = (x - x0) / (x1 - x0)
@@ -108,7 +116,7 @@ def sample_multipdf(x, rng_state, multipdf, scale=False):
             val_max = val0_max + f * (val1_max - val0_max)
 
         # Sample which table to choose
-        if kernel.rng(rng_state) > f:
+        if kernel.rng(rng_state) < f:
             idx += 1
 
     # Get the table range

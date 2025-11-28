@@ -87,8 +87,8 @@ mcdc.tally.surface_tally(surfR, scores=["net-current"])
 # Settings and run
 # =============================================================================
 settings = mcdc.Settings(
-    N_particle=1,
-    active_bank_buffer=1000000
+    N_particle=10,
+    active_bank_buffer=100000
 )
 
 settings.save_input_deck = True
