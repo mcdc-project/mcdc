@@ -5,7 +5,6 @@ from numba import njit
 
 ####
 
-import mcdc.code_factory.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
 import mcdc.object_.numba_types as type_
 from mcdc.print_ import print_structure
@@ -217,8 +216,6 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
 
 @njit
 def collision(particle_container, prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
     particle = particle_container[0]
     material = mcdc["native_materials"][particle["material_ID"]]
 
@@ -335,8 +332,6 @@ def collision(particle_container, prog, data):
 
 @njit
 def elastic_scattering(reaction, particle_container, nuclide, prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
@@ -471,8 +466,6 @@ def sample_nucleus_velocity(A, particle_container):
 
 @njit
 def inelastic_scattering(reaction, particle_container, nuclide, prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
@@ -605,7 +598,6 @@ def inelastic_scattering(reaction, particle_container, nuclide, prog, data):
 
 @njit
 def fission(reaction, particle_container, nuclide, prog, data):
-    mcdc = adapt.mcdc_global(prog)
     settings = mcdc["settings"]
 
     # Particle properties

@@ -10,7 +10,6 @@ from numba import (
 
 ####
 
-import mcdc.code_factory.adapt as adapt
 import mcdc.object_.numba_types as type_
 import mcdc.transport.mpi as mpi
 import mcdc.transport.particle as particle_module
@@ -370,7 +369,6 @@ def add_source(P_arr, prog):
 
 @adapt.for_gpu()
 def add_source(P_arr, prog):
-    mcdc = mcdc_global(prog)
     add_particle(P_arr, mcdc["bank_source"])
 
 
@@ -381,7 +379,6 @@ def add_census(P_arr, prog):
 
 @adapt.for_gpu()
 def add_census(P_arr, prog):
-    mcdc = mcdc_global(prog)
     add_particle(P_arr, mcdc["bank_census"])
 
 
@@ -392,5 +389,4 @@ def add_future(P_arr, prog):
 
 @adapt.for_gpu()
 def add_future(P_arr, prog):
-    mcdc = mcdc_global(prog)
     add_particle(P_arr, mcdc["bank_future"])

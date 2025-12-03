@@ -193,7 +193,6 @@ def loop_source(seed, mcdc, data):
 @njit
 def generate_source_particle(work_start, idx_work, seed, prog, data):
     """Get a source particle and put into one of the banks"""
-    mcdc = adapt.mcdc_global(prog)
     settings = mcdc["settings"]
 
     particle_container = np.zeros(1, type_.particle_data)
@@ -241,7 +240,6 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
 
 @njit
 def exhaust_active_bank(prog, data):
-    mcdc = adapt.mcdc_global(prog)
     particle_container = np.zeros(1, type_.particle)
     particle = particle_container[0]
 
@@ -259,13 +257,10 @@ def exhaust_active_bank(prog, data):
 @njit
 def prep_particle(particle_container, prog):
     particle = particle_container[0]
-    mcdc = adapt.mcdc_global(prog)
 
 
 @njit
 def source_closeout(prog, idx_work, N_prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
     # Tally history closeout for one-batch fixed-source simulation
     if not mcdc["settings"]["eigenvalue_mode"] and mcdc["settings"]["N_batch"] == 1:
         if not mcdc["settings"]["use_census_based_tally"]:
@@ -287,7 +282,6 @@ def source_closeout(prog, idx_work, N_prog, data):
 @njit
 def loop_particle(particle_container, prog, data):
     particle = particle_container[0]
-    mcdc = adapt.mcdc_global(prog)
 
     while particle["alive"]:
         step_particle(particle_container, prog, data)
@@ -296,7 +290,6 @@ def loop_particle(particle_container, prog, data):
 @njit
 def step_particle(particle_container, prog, data):
     particle = particle_container[0]
-    mcdc = adapt.mcdc_global(prog)
 
     # Determine and move to event
     move_to_event(particle_container, mcdc, data)

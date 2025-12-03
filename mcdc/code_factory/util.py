@@ -1,4 +1,4 @@
-from numba import types
+from numba import njit, types, uintp
 from numba.extending import intrinsic
 
 

@@ -133,7 +133,7 @@ def preparation():
     from mcdc.print_ import print_error
 
     # ==================================================================================
-    # Simulation settings
+    # Adjust simulation settings as needed
     # ==================================================================================
 
     # Get settings
@@ -154,7 +154,7 @@ def preparation():
             tally._use_census_based_tally(N_bin)
 
     # ==================================================================================
-    # Simulation parameters
+    # Adjust simulation parameters as needed
     # ==================================================================================
 
     # Normalize source probability
@@ -224,7 +224,7 @@ def preparation():
     importlib.reload(mcdc_set)
 
     # ==================================================================================
-    # Adapt functions
+    # Adapt functions as needed
     # ==================================================================================
 
     # Pick physics model
@@ -246,10 +246,13 @@ def preparation():
         rng.wrapping_add = rng.wrapping_add_python
         rng.wrapping_mul = rng.wrapping_mul_python
 
+    # TODO: Find out why the following is needed to avoid circular import
+    import mcdc.transport.particle_bank as particle_bank_module
+
     # ==================================================================================
-    # Source file
-    #   TODO: Use parallel h5py
+    # Source particles from file
     # ==================================================================================
+    # TODO: Use parallel h5py, may need to compile for speed
 
     import h5py
 
@@ -277,14 +280,6 @@ def preparation():
     # ==================================================================================
     # Platform targeting, adapters, and toggles for portability
     # ==================================================================================
-
-    # Adapt kernels
-    import numba as nb
-    import mcdc.code_factory.adapt as adapt
-    import mcdc.transport.mpi as mpi
-
-    # TODO: Find out why the following is needed to avoid circular import
-    import mcdc.transport.particle_bank as particle_bank_module
 
     # Build GPU program if desired
     if settings.target_gpu:

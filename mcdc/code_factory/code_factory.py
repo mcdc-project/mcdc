@@ -10,11 +10,11 @@ from mpi4py import MPI
 ####
 
 import mcdc
-import mcdc.code_factory.adapt as adapt
 import mcdc.config as config
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
 
+from mcdc.code_factory.util import cast_uintp_to_voidptr, cast_voidptr_to_uintp
 from mcdc.object_.base import (
     ObjectBase,
     ObjectNonSingleton,
@@ -642,7 +642,7 @@ def create_data_array(size, dtype):
             data_tally_ptr = harmonize.alloc_managed_bytes(size)
         else:
             data_tally_ptr = harmonize.alloc_device_bytes(size)
-        data_tally_uint = adapt.voidptr_to_uintp(data_tally_ptr)
+        data_tally_uint = cast_voidptr_to_uintp(data_tally_ptr)
         data_tally = numba.carray(data_tally_ptr, (size,), dtype)
         return data_tally, data_tally_uint
     else:
@@ -658,7 +658,7 @@ def create_mcdc_array(dtype):
             mcdc_ptr = harmonize.alloc_managed_bytes(dtype.itemsize)
         else:
             mcdc_ptr = harmonize.alloc_device_bytes(dtype.itemsize)
-        mcdc_uint = adapt.voidptr_to_uintp(mcdc_ptr)
+        mcdc_uint = cast_voidptr_to_uintp(mcdc_ptr)
         mcdc_array = numba.carray(mcdc_ptr, (1,), dtype)
         return mcdc_array, mcdc_uint
     else:

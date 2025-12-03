@@ -105,7 +105,6 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
 @njit
 def collision(particle_container, prog, data):
     particle = particle_container[0]
-    mcdc = adapt.mcdc_global(prog)
 
     # Get the reaction cross-sections
     SigmaT = macro_xs(REACTION_TOTAL, particle_container, mcdc, data)
@@ -140,7 +139,6 @@ def collision(particle_container, prog, data):
 
 @njit
 def scattering(particle_container, prog, data):
-    mcdc = adapt.mcdc_global(prog)
 
     # Particle attributes
     particle = particle_container[0]
@@ -217,7 +215,6 @@ def scattering(particle_container, prog, data):
 
 @njit
 def fission(particle_container, prog, data):
-    mcdc = adapt.mcdc_global(prog)
     settings = mcdc["settings"]
 
     # Particle properties
