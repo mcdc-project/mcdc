@@ -20,90 +20,6 @@ import mcdc.config as config
 
 from mcdc.print_ import print_error
 
-
-# =============================================================================
-# Error Messangers
-# =============================================================================
-
-
-def unknown_target(target):
-    print_error(f"ERROR: Unrecognized target '{target}'")
-
-
-# =============================================================================
-# uintp/voidptr casters
-# =============================================================================
-
-
-@intrinsic
-def cast_uintp_to_voidptr(typingctx, src):
-    # check for accepted types
-    if isinstance(src, types.Integer):
-        # create the expected type signature
-        result_type = types.voidptr
-        sig = result_type(types.uintp)
-
-        # defines the custom code generation
-        def codegen(context, builder, signature, args):
-            # llvm IRBuilder code here
-            [src] = args
-            rtype = signature.return_type
-            llrtype = context.get_value_type(rtype)
-            return builder.inttoptr(src, llrtype)
-
-        return sig, codegen
-
-
-@intrinsic
-def cast_voidptr_to_uintp(typingctx, src):
-    # check for accepted types
-    if isinstance(src, types.RawPointer):
-        # create the expected type signature
-        result_type = types.uintp
-        sig = result_type(types.voidptr)
-
-        # defines the custom code generation
-        def codegen(context, builder, signature, args):
-            # llvm IRBuilder code here
-            [src] = args
-            rtype = signature.return_type
-            llrtype = context.get_value_type(rtype)
-            return builder.ptrtoint(src, llrtype)
-
-        return sig, codegen
-
-
-@njit()
-def uintp_to_voidptr(value):
-    val = numba.uintp(value)
-    return cast_uintp_to_voidptr(val)
-
-
-@njit()
-def voidptr_to_uintp(value):
-    return cast_voidptr_to_uintp(value)
-
-
-def leak(arg):
-    pass
-
-
-@intrinsic
-def leak_inner(typingctx, kind):
-    def codegen(context, builder, signature, args):
-        context.nrt.incref(builder, kind, args[0])
-
-    return numba.void(kind), codegen
-
-
-@numba.extending.overload(leak)
-def leak_overload(arg):
-    def impl(arg):
-        leak_inner(arg)
-
-    return impl
-
-
 # =============================================================================
 # Generic GPU/CPU Local Array Variable Constructors
 # =============================================================================
@@ -267,8 +183,6 @@ def builtin_local_array(context, builder, sig, args):
 # Decorators
 # =============================================================================
 
-toggle_rosters = {}
-
 target_rosters = {}
 
 late_jit_roster = set()
@@ -297,36 +211,6 @@ def overwrite_func(func, revised_func):
     new_fn_name = revised_func.__name__
     module = __import__(mod_name, fromlist=[fn_name])
     setattr(module, fn_name, revised_func)
-
-
-def toggle(flag):
-    def toggle_inner(func):
-        global toggle_rosters
-        if flag not in toggle_rosters:
-            toggle_rosters[flag] = [False, []]
-        toggle_rosters[flag][1].append(func)
-        return func
-
-    return toggle_inner
-
-
-def set_toggle(flag, val):
-    toggle_rosters[flag][0] = val
-
-
-def eval_toggle():
-    global toggle_rosters
-    for _, pair in toggle_rosters.items():
-        val = pair[0]
-        roster = pair[1]
-        for func in roster:
-            if val:
-                overwrite_func(func, numba.njit(func))
-            else:
-                global do_nothing_id
-                name = func.__name__
-                arg_count = len(inspect.signature(func).parameters)
-                overwrite_func(func, numba.njit(generate_do_nothing(arg_count)))
 
 
 blankout_roster = {}
@@ -384,26 +268,12 @@ def for_gpu(on_target=[]):
     return for_("gpu", on_target=on_target)
 
 
-def target_for(target):
-    pass
-
-
 def jit_on_target():
     def jit_on_target_inner(func):
         late_jit_roster.add(func)
         return func
 
     return jit_on_target_inner
-
-
-def nopython_mode(is_on):
-    if is_on:
-        return
-    if not isinstance(target_rosters["cpu"], dict):
-        return
-
-    for impl in target_rosters["cpu"].values():
-        overwrite_func(impl, impl)
 
 
 # =============================================================================
@@ -413,11 +283,6 @@ def nopython_mode(is_on):
 
 SIMPLE_ASYNC = True
 
-none_type = None
-mcdc_global_type = None
-mcdc_data_type = None
-mcdc_shared_type = None
-state_spec = None
 mcdc_global_gpu = None
 mcdc_data_gpu = None
 group_gpu = None
@@ -431,64 +296,6 @@ tally_width = None
 tally_length = None
 tally_size = None
 tally_shape_literal = None
-
-
-def gpu_forward_declare(
-    args, data_shape, global_type, particle_type, particle_data_type
-):
-
-    if args.gpu_rocm_path != None:
-        harm.config.set_rocm_path(args.gpu_rocm_path)
-
-    if args.gpu_cuda_path != None:
-        harm.config.set_cuda_path(args.gpu_cuda_path)
-
-    global none_type, mcdc_global_type, mcdc_data_type, mcdc_shared_type
-    global state_spec
-    global mcdc_global_gpu, mcdc_data_gpu
-    global group_gpu, thread_gpu
-    global particle_gpu, particle_record_gpu
-    global step_async, find_cell_async, halt_early
-    global tally_width, tally_length, tally_size
-
-    tally_size = data_shape[0] * 8
-
-    global tally_shape_literal
-    tally_shape_literal = data_shape
-
-    none_type = numba.from_dtype(np.dtype([]))
-    mcdc_global_type = numba.types.Array(numba.from_dtype(global_type), (1,), "C")
-    # mcdc_global_type = numba.from_dtype(global_type)
-
-    tally_dims = len(data_shape)
-    mcdc_data_type = numba.types.Array(numba.float64, tally_dims, "C")
-    state_spec = (
-        {
-            "global": mcdc_global_type,
-            "data": mcdc_data_type,
-        },
-        none_type,
-        none_type,
-    )
-    access_fns = harm.RuntimeSpec.access_fns(state_spec)
-    mcdc_global_gpu = access_fns["device"]["global"]["indirect"]
-    mcdc_data_gpu = access_fns["device"]["data"]["direct"]
-    group_gpu = access_fns["group"]
-    thread_gpu = access_fns["thread"]
-    particle_gpu = numba.from_dtype(particle_type)
-    particle_record_gpu = numba.from_dtype(particle_data_type)
-
-    def step(prog: numba.uintp, P: particle_gpu):
-        pass
-
-    def find_cell(prog: numba.uintp, P: particle_gpu):
-        pass
-
-    import harmonize
-
-    step_async, find_cell_async = harmonize.RuntimeSpec.async_dispatch(step, find_cell)
-    interface = harmonize.RuntimeSpec.program_interface()
-    halt_early = interface["halt_early"]
 
 
 # =============================================================================
@@ -563,83 +370,3 @@ def global_max(ary, idx, val):
 @for_gpu()
 def global_max(ary, idx, val):
     return harm.array_atomic_max(ary, idx, val)
-
-
-# =========================================================================
-# Program Specifications
-# =========================================================================
-
-state_spec = None
-one_event_fns = None
-multi_event_fns = None
-
-
-device_gpu, group_gpu, thread_gpu = None, None, None
-iterate_async = None
-
-
-def make_spec(target):
-    global state_spec, one_event_fns, multi_event_fns
-    global device_gpu, group_gpu, thread_gpu
-    global iterate_async
-    if target == "gpu":
-        state_spec = (dev_state_type, grp_state_type, thd_state_type)
-        one_event_fns = [iterate]
-        # multi_event_fns = [source,move,scattering,fission,leakage,bcollision]
-        device_gpu, group_gpu, thread_gpu = harm.RuntimeSpec.access_fns(state_spec)
-        (iterate_async,) = harm.RuntimeSpec.async_dispatch(iterate)
-    elif target != "cpu":
-        unknown_target(target)
-
-
-@njit
-def empty_base_func(prog):
-    pass
-
-
-def make_gpu_loop(
-    state_spec,
-    work_make_fn,
-    step_fn,
-    check_fn,
-    arg_type,
-    initial_fn=empty_base_func,
-    final_fn=empty_base_func,
-):
-    async_fn_list = [step_fn]
-    device_gpu, group_gpu, thread_gpu = harm.RuntimeSpec.access_fns(state_spec)
-
-    def make_work(prog: numba.uintp) -> numba.boolean:
-        return work_make_fn(prog)
-
-    def initialize(prog: numba.uintp):
-        initial_fn(prog)
-
-    def finalize(prog: numba.uintp):
-        final_fn(prog)
-
-    def step(prog: numba.uintp, arg: arg_type):
-
-        step_async()
-
-    (step_async,) = harm.RuntimeSpec.async_dispatch(step)
-
-    pass
-
-
-# =========================================================================
-# Compilation and Main Adapter
-# =========================================================================
-
-
-def compiler(func, target):
-    if target == "cpu":
-        return jit(func, nopython=True, nogil=True)  # , parallel=True)
-    elif target == "cpus":
-        return jit(func, nopython=True, nogil=True, parallel=True)
-    elif target == "gpu_device":
-        return cuda.jit(func, device=True)
-    elif target == "gpu":
-        return cuda.jit(func)
-    else:
-        unknown_target(target)
