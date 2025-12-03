@@ -7,7 +7,7 @@ from numba import njit, objmode, uint64
 import mcdc.code_factory.adapt as adapt
 import mcdc.config as config
 import mcdc.mcdc_get as mcdc_get
-import mcdc.object_.numba_types as type_
+import mcdc.numba_types as type_
 import mcdc.output as output_module
 import mcdc.transport.geometry as geometry
 import mcdc.transport.mpi as mpi

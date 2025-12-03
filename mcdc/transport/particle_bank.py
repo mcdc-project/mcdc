@@ -10,7 +10,7 @@ from numba import (
 
 ####
 
-import mcdc.object_.numba_types as type_
+import mcdc.numba_types as type_
 import mcdc.transport.mpi as mpi
 import mcdc.transport.particle as particle_module
 import mcdc.transport.technique as technique

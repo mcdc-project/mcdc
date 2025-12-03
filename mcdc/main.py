@@ -208,11 +208,13 @@ def preparation():
     # Generate Numba-supported "Objects"
     # ==================================================================================
 
-    import mcdc.code_factory.code_factory as code_factory
+    from mcdc.code_factory.numba_objects_generator import generate_numba_objects
 
     if MPI.COMM_WORLD.Get_rank() == 0:
-        code_factory.make_literals(simulation)
-    mcdc_container, data = code_factory.generate_numba_objects(simulation)
+        from mcdc.code_factory.numba_objects_generator import make_literals
+
+        make_literals(simulation)
+    mcdc_container, data = generate_numba_objects(simulation)
     mcdc = mcdc_container[0]
 
     # Reload mcdc getters and setters
@@ -341,7 +343,7 @@ def visualize(
     mcdc_container, data = preparation()
     mcdc = mcdc_container[0]
 
-    import mcdc.object_.numba_types as type_
+    import mcdc.numba_types as type_
 
     # Color assignment for materials (by material ID)
     if colors is not None:

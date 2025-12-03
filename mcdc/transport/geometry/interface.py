@@ -5,7 +5,6 @@ from numba import njit
 
 ####
 
-import mcdc.code_factory.code_factory as code_factory
 import mcdc.code_factory.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
 import mcdc.transport.literals as literals
