@@ -46,7 +46,8 @@ native_physics_tests = ["pincell", "pincell-k_eigenvalue"]
 if not include_native_physics:
     for name in native_physics_tests:
         print(Fore.YELLOW + "Note: Skipping %s" % name + Style.RESET_ALL)
-        names.remove(name)
+        if name in names:
+            names.remove(name)
 
 # Skip domain decomp tests unless there are 4 MPI processes
 temp = names.copy()

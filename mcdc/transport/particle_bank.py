@@ -143,11 +143,14 @@ def manage_particle_banks(mcdc):
         technique.population_control(mcdc)
     else:
         # Swap census and source bank
-        size = get_bank_size(mcdc["bank_census"])
-        set_bank_size(mcdc["bank_source"], size)
-        mcdc["bank_source"]["particles"][:size] = mcdc["bank_census"]["particles"][
-            :size
-        ]
+        source_bank = mcdc["bank_source"]
+        census_bank = mcdc["bank_census"]
+
+        size = get_bank_size(census_bank)
+        if size >= source_bank["particles"].shape[0]:
+            full_bank_print(source_bank)
+        source_bank["particles"][:size] = census_bank["particles"][:size]
+        set_bank_size(source_bank, size)
     # TODO: Population control future bank?
 
     # MPI rebalance
@@ -228,6 +231,18 @@ def total_weight(bank):
     buff = np.zeros(1, np.float64)
     with objmode():
         MPI.COMM_WORLD.Allreduce(W_local, buff, MPI.SUM)
+    return buff[0]
+
+
+@njit
+def total_size(bank):
+    # Local total weight
+    local_size = np.ones(1, np.int64) * bank["size"]
+
+    # MPI Allreduce
+    buff = np.zeros(1, np.int64)
+    with objmode():
+        MPI.COMM_WORLD.Allreduce(local_size, buff, MPI.SUM)
     return buff[0]
 
 

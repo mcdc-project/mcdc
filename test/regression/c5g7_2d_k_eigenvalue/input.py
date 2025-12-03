@@ -193,8 +193,8 @@ mcdc.TallyMesh(mesh=mesh, scores=["flux"])
 
 # Settings
 mcdc.settings.N_particle = 20
-mcdc.settings.census_bank_buffer_ratio = 3.0
-mcdc.settings.source_bank_buffer_ratio = 2.0
+mcdc.settings.census_bank_buffer_ratio = 4.0
+mcdc.settings.source_bank_buffer_ratio = 3.0
 mcdc.settings.set_eigenmode(N_inactive=1, N_active=2, gyration_radius="infinite-z")
 
 # Techniques

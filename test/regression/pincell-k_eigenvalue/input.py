@@ -38,6 +38,8 @@ mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True, time=0.0, energy=14.1e6)
 mcdc.settings.N_particle = 30
 mcdc.settings.time_boundary = 1.0
 mcdc.settings.active_bank_buffer = 1000
+mcdc.settings.census_bank_buffer_ratio = 3.0
+mcdc.settings.source_bank_buffer_ratio = 3.0
 mcdc.settings.set_eigenmode(N_inactive=1, N_active=2)
 
 # Tally

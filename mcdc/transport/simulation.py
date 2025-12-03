@@ -91,9 +91,9 @@ def fixed_source_simulation(mcdc_arr, data):
             # Terminate census loop if all banks are empty
             if (
                 idx_census > 0
-                and particle_bank_module.get_bank_size(mcdc["bank_source"]) == 0
-                and particle_bank_module.get_bank_size(mcdc["bank_census"]) == 0
-                and particle_bank_module.get_bank_size(mcdc["bank_future"]) == 0
+                and particle_bank_module.total_size(mcdc["bank_source"]) == 0
+                and particle_bank_module.total_size(mcdc["bank_census"]) == 0
+                and particle_bank_module.total_size(mcdc["bank_future"]) == 0
             ):
                 break
 
