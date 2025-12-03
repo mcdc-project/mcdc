@@ -210,7 +210,7 @@ def scattering(particle_container, prog, data):
             particle["E"] = particle_new["E"]
             particle["w"] = particle_new["w"]
         else:
-            particle_bank_module.add_active(particle_container_new, prog)
+            particle_bank_module.bank_active_particle(particle_container_new, prog)
 
 
 @njit
@@ -303,7 +303,7 @@ def fission(particle_container, prog, data):
 
         # Eigenvalue mode: bank right away
         if settings["eigenvalue_mode"]:
-            particle_bank_module.add_census(particle_container_new, prog)
+            particle_bank_module.bank_census_particle(particle_container_new, prog)
             continue
         # Below is only relevant for fixed-source problem
 
@@ -338,14 +338,14 @@ def fission(particle_container, prog, data):
                 particle["E"] = particle_new["E"]
                 particle["w"] = particle_new["w"]
             else:
-                particle_bank_module.add_active(particle_container_new, prog)
+                particle_bank_module.bank_active_particle(particle_container_new, prog)
 
         # Hit future census --> add to future bank
         elif hit_future_census:
             # Particle will participate in the future
-            particle_bank_module.add_future(particle_container_new, prog)
+            particle_bank_module.bank_future_particle(particle_container_new, prog)
 
         # Hit current census --> add to census bank
         else:
             # Particle will participate after the current census is completed
-            particle_bank_module.add_census(particle_container_new, prog)
+            particle_bank_module.bank_census_particle(particle_container_new, prog)

@@ -47,7 +47,7 @@ def add_particle(P_arr, bank):
 
     # Check if bank is full
     if idx >= bank["particles"].shape[0]:
-        full_bank_print(bank)
+        report_full_bank(bank)
 
     # Set particle
     particle_module.copy(bank["particles"][idx : idx + 1], P_arr)
@@ -112,7 +112,7 @@ def check_future_bank(mcdc, data):
 
         # Promote the future particle to census bank
         if P["t"] < next_census_time:
-            add_census(P_arr, mcdc)
+            bank_census_particle(P_arr, mcdc)
             add_bank_size(bank_future, -1)
 
             # Consolidate the emptied space in the future bank
@@ -147,7 +147,7 @@ def manage_particle_banks(mcdc):
 
         size = get_bank_size(census_bank)
         if size >= source_bank["particles"].shape[0]:
-            full_bank_print(source_bank)
+            report_full_bank(source_bank)
         source_bank["particles"][:size] = census_bank["particles"][:size]
         set_bank_size(source_bank, size)
     # TODO: Population control future bank?
@@ -337,23 +337,23 @@ def bank_rebalance(mcdc):
 
 
 @adapt.for_cpu()
-def full_bank_print(bank):
+def report_full_bank(bank):
     with objmode():
         print_error("Particle %s bank is full." % bank["tag"])
 
 
 @adapt.for_gpu()
-def full_bank_print(bank):
+def report_full_bank(bank):
     pass
 
 
 @adapt.for_cpu()
-def add_active(P_arr, prog):
+def bank_active_particle(P_arr, prog):
     add_particle(P_arr, prog["bank_active"])
 
 
 @adapt.for_gpu()
-def add_active(P_rec_arr, prog):
+def bank_active_particle(P_rec_arr, prog):
     P_arr = local_array(1, type_.particle)
     kernel.recordlike_to_particle(P_arr, P_rec_arr)
     if SIMPLE_ASYNC:
@@ -363,30 +363,30 @@ def add_active(P_rec_arr, prog):
 
 
 @adapt.for_cpu()
-def add_source(P_arr, prog):
+def bank_source_particle(P_arr, prog):
     add_particle(P_arr, prog["bank_source"])
 
 
 @adapt.for_gpu()
-def add_source(P_arr, prog):
+def bank_source_particle(P_arr, prog):
     add_particle(P_arr, mcdc["bank_source"])
 
 
 @adapt.for_cpu()
-def add_census(P_arr, prog):
+def bank_census_particle(P_arr, prog):
     add_particle(P_arr, prog["bank_census"])
 
 
 @adapt.for_gpu()
-def add_census(P_arr, prog):
+def bank_census_particle(P_arr, prog):
     add_particle(P_arr, mcdc["bank_census"])
 
 
 @adapt.for_cpu()
-def add_future(P_arr, prog):
+def bank_future_particle(P_arr, prog):
     add_particle(P_arr, prog["bank_future"])
 
 
 @adapt.for_gpu()
-def add_future(P_arr, prog):
+def bank_future_particle(P_arr, prog):
     add_particle(P_arr, mcdc["bank_future"])

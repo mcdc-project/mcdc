@@ -157,7 +157,7 @@ def inspect_geometry(particle_container, mcdc, data):
 
     # Report lost particle
     if event == EVENT_LOST:
-        report_lost(particle_container, mcdc)
+        report_lost_particle(particle_container, mcdc)
 
     # Assign particle event
     particle["event"] = event
@@ -261,7 +261,7 @@ def locate_particle(particle_container, mcdc, data):
 
     # Report lost particle
     if particle_is_lost:
-        report_lost(particle_container, mcdc)
+        report_lost_particle(particle_container, mcdc)
 
     return not particle_is_lost
 
@@ -390,7 +390,7 @@ def check_cell(particle_container, cell, mcdc, data):
 
 
 @for_cpu()
-def report_lost(particle_container, mcdc):
+def report_lost_particle(particle_container, mcdc):
     """
     Report lost particle and terminate it
     """
@@ -409,7 +409,7 @@ def report_lost(particle_container, mcdc):
 
 
 @for_gpu()
-def report_lost(particle_container, mcdc):
+def report_lost_particle(particle_container, mcdc):
     particle = particle_container[0]
 
     particle["alive"] = False
