@@ -194,7 +194,7 @@ def manage_particle_banks(mcdc):
 
     # Redistribute work and rebalance bank size across MPI ranks
     if serial:
-        mpi.distribute_work(mcdc["bank_source"]["size"], mcdc)
+        mpi.distribute_work(get_bank_size(mcdc["bank_source"]), mcdc)
     else:
         bank_rebalance(mcdc)
 
