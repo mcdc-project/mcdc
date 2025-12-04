@@ -96,6 +96,17 @@ def find_bin(
 
 
 @njit
+def atomic_add(array, idx, value):
+    array[idx] += value
+    return array[idx]
+
+
+# ======================================================================================
+# Interpolations
+# ======================================================================================
+
+
+@njit
 def linear_interpolation(x, x1, x2, y1, y2):
     return y1 + (x - x1) * (y2 - y1) / (x2 - x1)
 

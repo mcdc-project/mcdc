@@ -4,7 +4,6 @@ from numba import njit, objmode, uint64
 
 ####
 
-import mcdc.code_factory.adapt as adapt
 import mcdc.config as config
 import mcdc.mcdc_get as mcdc_get
 import mcdc.numba_types as type_
@@ -68,9 +67,9 @@ def fixed_source_simulation(mcdc_arr, data):
             if use_census_based_tally:
                 tally_module.filter.set_census_based_time_grid(mcdc, data)
 
-            # Check and accordingly promote future particles to censused particles
+            # Accordingly promote future particles to censused particles
             if particle_bank_module.get_bank_size(mcdc["bank_future"]) > 0:
-                particle_bank_module.check_future_bank(mcdc, data)
+                particle_bank_module.promote_future_particles(mcdc, data)
 
             # Loop over source particles
             seed_source = rng.split_seed(uint64(seed_census), rng.SEED_SPLIT_SOURCE)
@@ -174,7 +173,7 @@ def eigenvalue_simulation(mcdc_arr, data):
 @njit
 def loop_source(seed, mcdc, data):
     # Progress bar indicator
-    N_prog = 0
+    N_progress = 0
 
     # Loop over particle sources
     work_start = mcdc["mpi_work_start"]
@@ -187,11 +186,11 @@ def loop_source(seed, mcdc, data):
         # Run the source particle and its secondaries
         exhaust_active_bank(mcdc, data)
 
-        source_closeout(mcdc, idx_work, N_prog, data)
+        source_closeout(mcdc, idx_work, N_progress, data)
 
 
 @njit
-def generate_source_particle(work_start, idx_work, seed, prog, data):
+def generate_source_particle(work_start, idx_work, seed, mcdc, data):
     """Get a source particle and put into one of the banks"""
     settings = mcdc["settings"]
 
@@ -229,38 +228,38 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
 
     # Put into the right bank
     if not hit_census:
-        particle_bank_module.bank_active_particle(particle_container, prog)
+        particle_bank_module.bank_active_particle(particle_container, mcdc)
     elif not hit_next_census:
         # Particle will participate after the current census
-        particle_bank_module.bank_census_particle(particle_container, prog)
+        particle_bank_module.bank_census_particle(particle_container, mcdc)
     else:
         # Particle will participate in the future
-        particle_bank_module.bank_future_particle(particle_container, prog)
+        particle_bank_module.bank_future_particle(particle_container, mcdc)
 
 
 @njit
-def exhaust_active_bank(prog, data):
+def exhaust_active_bank(mcdc, data):
     particle_container = np.zeros(1, type_.particle)
     particle = particle_container[0]
 
     # Loop until active bank is exhausted
     while particle_bank_module.get_bank_size(mcdc["bank_active"]) > 0:
         # Get particle from active bank
-        particle_bank_module.get_particle(particle_container, mcdc["bank_active"], mcdc)
+        particle_bank_module.pop_particle(particle_container, mcdc["bank_active"])
 
-        prep_particle(particle_container, prog)
+        prep_particle(particle_container, mcdc)
 
         # Particle loop
         loop_particle(particle_container, mcdc, data)
 
 
 @njit
-def prep_particle(particle_container, prog):
+def prep_particle(particle_container, mcdc):
     particle = particle_container[0]
 
 
 @njit
-def source_closeout(prog, idx_work, N_prog, data):
+def source_closeout(mcdc, idx_work, N_progress, data):
     # Tally history closeout for one-batch fixed-source simulation
     if not mcdc["settings"]["eigenvalue_mode"] and mcdc["settings"]["N_batch"] == 1:
         if not mcdc["settings"]["use_census_based_tally"]:
@@ -268,8 +267,8 @@ def source_closeout(prog, idx_work, N_prog, data):
 
     # Progress printout
     percent = (idx_work + 1.0) / mcdc["mpi_work_size"]
-    if mcdc["settings"]["use_progress_bar"] and int(percent * 100.0) > N_prog:
-        N_prog += 1
+    if mcdc["settings"]["use_progress_bar"] and int(percent * 100.0) > N_progress:
+        N_progress += 1
         with objmode():
             print_progress(percent, mcdc)
 
@@ -280,15 +279,15 @@ def source_closeout(prog, idx_work, N_prog, data):
 
 
 @njit
-def loop_particle(particle_container, prog, data):
+def loop_particle(particle_container, mcdc, data):
     particle = particle_container[0]
 
     while particle["alive"]:
-        step_particle(particle_container, prog, data)
+        step_particle(particle_container, mcdc, data)
 
 
 @njit
-def step_particle(particle_container, prog, data):
+def step_particle(particle_container, mcdc, data):
     particle = particle_container[0]
 
     # Determine and move to event
@@ -300,15 +299,15 @@ def step_particle(particle_container, prog, data):
 
     # Collision
     if particle["event"] & EVENT_COLLISION:
-        physics.collision(particle_container, prog, data)
+        physics.collision(particle_container, mcdc, data)
 
     # Surface and domain crossing
     if particle["event"] & EVENT_SURFACE_CROSSING:
-        geometry.surface_crossing(particle_container, prog, data)
+        geometry.surface_crossing(particle_container, mcdc, data)
 
     # Census time crossing
     if particle["event"] & EVENT_TIME_CENSUS:
-        particle_bank_module.bank_census_particle(particle_container, prog)
+        particle_bank_module.bank_census_particle(particle_container, mcdc)
         particle["alive"] = False
 
     # Time boundary crossing
@@ -317,7 +316,7 @@ def step_particle(particle_container, prog, data):
 
     # Weight roulette
     if particle["alive"]:
-        technique.weight_roulette(particle_container, prog)
+        technique.weight_roulette(particle_container, mcdc)
 
 
 @njit

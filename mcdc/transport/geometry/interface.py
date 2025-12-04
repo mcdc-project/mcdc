@@ -5,14 +5,12 @@ from numba import njit
 
 ####
 
-import mcdc.code_factory.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
 import mcdc.transport.literals as literals
 import mcdc.transport.mesh as mesh
 import mcdc.transport.physics as physics
 import mcdc.transport.tally as tally_module
 
-from mcdc.code_factory.adapt import for_cpu, for_gpu
 from mcdc.constant import *
 from mcdc.transport.geometry.surface import get_distance, check_sense, reflect
 
@@ -389,7 +387,7 @@ def check_cell(particle_container, cell, mcdc, data):
     return value[0]
 
 
-@for_cpu()
+@njit
 def report_lost_particle(particle_container, mcdc):
     """
     Report lost particle and terminate it
@@ -403,15 +401,8 @@ def report_lost_particle(particle_container, mcdc):
     idx_batch = mcdc["idx_batch"]
     idx_census = mcdc["idx_census"]
     idx_work = mcdc["idx_work"]
-    print("A particle is lost at (", x, y, z, t, ")")
-    print("\_(batch/census/work) indices: (", idx_batch, idx_census, idx_work, ")")
-    particle["alive"] = False
-
-
-@for_gpu()
-def report_lost_particle(particle_container, mcdc):
-    particle = particle_container[0]
-
+    print("\nA particle is lost at (", x, y, z, t, ")")
+    print("  (batch/census/work) indices: (", idx_batch, idx_census, idx_work, ")\n")
     particle["alive"] = False
 
 
@@ -444,7 +435,7 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
 
 
 @njit
-def surface_crossing(P_arr, prog, data):
+def surface_crossing(P_arr, mcdc, data):
     P = P_arr[0]
 
     # Apply BC

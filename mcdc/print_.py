@@ -29,7 +29,7 @@ def print_1d_array(arr):
 
 
 def print_error(text):
-    print(Fore.RED + f"[ERROR]: {text}\n")
+    print(Fore.RED + f"\n[ERROR]: {text}\n")
     print(Style.RESET_ALL)
     sys.stdout.flush()
     sys.exit()
@@ -121,19 +121,6 @@ def print_structure(struct):
 def print_msg(msg):
     if master:
         print(msg)
-        sys.stdout.flush()
-
-
-def print_error(msg):
-    print("ERROR: %s\n" % msg)
-    sys.stdout.flush()
-    sys.exit()
-
-
-def print_warning(msg):
-    if master:
-        print(Fore.RED + "Warning: %s\n" % msg)
-        print(Style.RESET_ALL)
         sys.stdout.flush()
 
 
