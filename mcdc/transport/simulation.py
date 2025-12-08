@@ -35,7 +35,6 @@ caching = config.caching
 
 def fixed_source_simulation(mcdc_arr, data):
     # Ensure `mcdc` exist for the lifetime of the program by intentionally leaking their memory
-    # adapt.leak(mcdc_arr)
     mcdc = mcdc_arr[0]
 
     # Get some settings
@@ -122,7 +121,6 @@ def fixed_source_simulation(mcdc_arr, data):
 def eigenvalue_simulation(mcdc_arr, data):
     # Ensure `mcdc` exist for the lifetime of the program
     # by intentionally leaking their memory
-    # adapt.leak(mcdc_arr)
     mcdc = mcdc_arr[0]
 
     # Get some settings

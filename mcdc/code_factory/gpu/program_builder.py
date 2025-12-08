@@ -10,7 +10,7 @@ import mcdc.config as config
 
 def build_gpu_program(data):
     import harmonize
-    import object_.numba_types as type_
+    import mcdc.numba_types as type_
 
     # Compilation check
     if MPI.COMM_WORLD.Get_rank() != 0:
@@ -28,11 +28,12 @@ def build_gpu_program(data):
     if config.args.gpu_rocm_path != None:
         harmonize.config.set_rocm_path(config.args.gpu_rocm_path)
 
-    # None, simulation structure, and simulation data types
+    # Main types: none, simulation structure, and simulation data
     none_type = nb.from_dtype(np.dtype([]))
     simulation_type = nb.types.Array(nb.from_dtype(type_.simulation), (1,), "C")
     data_type = nb.types.Array(nb.float64, 1, "C")
 
+    # Set access functions
     state_spec = (
         {
             "global": simulation_type,
@@ -41,8 +42,6 @@ def build_gpu_program(data):
         none_type,
         none_type,
     )
-
-    # Set access functions
     access_fns = harmonize.RuntimeSpec.access_fns(state_spec)
     simulation_gpu = access_fns["device"]["global"]["indirect"]
     data_gpu = access_fns["device"]["data"]["direct"]
