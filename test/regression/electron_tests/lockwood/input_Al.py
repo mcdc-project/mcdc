@@ -19,7 +19,7 @@ dz = AREAL_DENSITY_G_CM2 / RHO_G_CM3
 AVAGADRO_NUMBER = 6.02214076e23  # atoms/mol
 MAT_DENSITY_ATOMS_PER_BARN_CM = AVAGADRO_NUMBER / ATOMIC_WEIGHT_G_MOL * RHO_G_CM3 / 1e24  # atoms/barn-cm
 TINY = 1e-8
-M = 5
+M = 1
 
 # parameters
 L = CSDA_RANGE / RHO_G_CM3 * M # cm
@@ -88,12 +88,13 @@ mcdc.tally.surface_tally(surfR, scores=["net-current"])
 # =============================================================================
 settings = mcdc.Settings(
     N_particle=10,
-    active_bank_buffer=100000
+    active_bank_buffer=1000
 )
 
 settings.save_input_deck = True
 settings.output_name = f"lockwood_output_{datetime.now():%Y%m%d_%H%M%S}"
-#settings.debug_energy = True
+settings.debug_energy = False
+settings.use_progress_bar = False
 
 
 mcdc.run()

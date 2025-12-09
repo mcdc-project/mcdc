@@ -342,7 +342,7 @@ class ReactionElectronIonization(ReactionBase):
     @classmethod
     def from_h5_group(cls, h5_group):
         xs_total = h5_group["xs"][()]
-        energy_grid = h5_group["energy_grid"][()]
+        
 
         subshells = h5_group["subshells"]
         subshell_name = []
@@ -355,7 +355,8 @@ class ReactionElectronIonization(ReactionBase):
             subshell = subshells[name]
             subshell_name.append(name)
             xs_sub = subshell["xs"][()]
-            subshell_xs.append(DataTable(energy_grid, xs_sub))
+            energy_grid_sub = subshell["energy_grid"][()]
+            subshell_xs.append(DataTable(energy_grid_sub, xs_sub))
             subshell_binding_energy.append(subshell["binding_energy"][()])
             product_grid = subshell["product"]["energy_grid"][()]
             product_offset = subshell["product"]["energy_offset"][()]
@@ -367,6 +368,7 @@ class ReactionElectronIonization(ReactionBase):
 
         N_subshell = len(subshell_name)
         subshell_binding_energy = np.asarray(subshell_binding_energy)
+        energy_grid = subshells[subshell_name[0]]["energy_grid"][()]
 
         return cls(
             xs_total,

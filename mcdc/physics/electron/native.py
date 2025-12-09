@@ -69,25 +69,17 @@ def atomic_densities(index, material):
 
 def sample_multipdf(x, rng_state, multipdf, scale=False):
     grid = multipdf.grid
-    val_min = 0.0
-    val_max = 1.0
 
     # Edge cases
-    if x <= grid[0]:
+    if x < grid[0]:
         idx = 0
         scale = False
-    elif x >= grid[-1]:
+    elif x > grid[-1]:
         idx = len(grid) - 1
         scale = False
     else:
         # Interpolation factor
         idx = binary_search(x, grid)
-        if idx < 0:
-            idx = 0
-            scale = False
-        elif idx >= len(grid) - 1:
-            idx = len(grid) - 2
-            scale = False
         x0 = grid[idx]
         x1 = grid[idx + 1]
         f = (x - x0) / (x1 - x0)
@@ -116,7 +108,7 @@ def sample_multipdf(x, rng_state, multipdf, scale=False):
             val_max = val0_max + f * (val1_max - val0_max)
 
         # Sample which table to choose
-        if kernel.rng(rng_state) < f:
+        if kernel.rng(rng_state) > f:
             idx += 1
 
     # Get the table range
@@ -167,36 +159,12 @@ def sample_distribution(x, data_type, index, rng_state, scale=False):
         return 0.0
     
 #@njit
-def evaluate_table(x, table, grid_override=None):
-    try:
-        grid = table.x
-        y = table.y
-    except AttributeError:
-        # Tuple/list (x, y)
-        if isinstance(table, (tuple, list)) and len(table) == 2:
-            grid, y = table
-        # Numpy arrays
-        elif isinstance(table, np.ndarray):
-            if table.ndim == 2:
-                if table.shape[0] == 2:
-                    grid, y = table[0], table[1]
-                elif table.shape[1] == 2:
-                    grid, y = table[:, 0], table[:, 1]
-                else:
-                    raise TypeError("Unsupported ndarray shape for evaluate_table; expected (2,N) or (N,2)")
-            elif table.ndim == 1:
-                if grid_override is None:
-                    raise TypeError("1D array provided without grid; pass grid_override or use (x,y)")
-                grid = grid_override
-                y = table
-            else:
-                raise TypeError("Unsupported ndarray rank for evaluate_table")
-        else:
-            raise TypeError("Unsupported table type for evaluate_table")
-
+def evaluate_table(x, table):
+    grid = table.x
     idx = binary_search(x, grid)
     x1 = grid[idx]
     x2 = grid[idx + 1]
+    y = table.y   
     y1 = y[idx]
     y2 = y[idx + 1]
     return linear_interpolation(x, x1, x2, y1, y2)
@@ -205,7 +173,7 @@ def evaluate_table(x, table, grid_override=None):
 def evaluate_data(x, data_type, index, grid_override=None):
     if data_type == DATA_TABLE:
         table = index
-        return evaluate_table(x, table, grid_override)
+        return evaluate_table(x, table)
     else:
         return 0.0
 
@@ -262,9 +230,9 @@ def micro_xs(E, reaction_type, element):
 
         elastic_reaction = None
         for i in range(N_reactions):
-            r = element.reactions[i]
-            if int(r.type) == REACTION_ELECTRON_ELASTIC_SCATTERING:
-                elastic_reaction = r
+            reaction = element.reactions[i]
+            if int(reaction.type) == REACTION_ELECTRON_ELASTIC_SCATTERING:
+                elastic_reaction = reaction
                 break
 
         if elastic_reaction is None:
