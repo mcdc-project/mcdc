@@ -16,7 +16,9 @@ from mcdc.constant import (DATA_MULTIPDF,
                            ELECTRON_REST_MASS_ENERGY,
                            SPEED_OF_LIGHT,
                            ELECTRON_CUTOFF_ENERGY,
-                           TINY
+                           TINY,
+                           NEUTRON_MASS,
+                           EV_TO_J
                            )
 from mcdc.physics.util import scatter_direction
 from mcdc.util import binary_search
@@ -387,7 +389,7 @@ def collision(particle_container, prog, data):
 # ======================================================================================
 # Elastic scattering
 # ======================================================================================
-
+'''
 #@njit
 def elastic_scattering(particle_container, element, reaction):
 
@@ -418,7 +420,8 @@ def elastic_scattering(particle_container, element, reaction):
     E_e = E0 + E  # Total energy eV
     p_c = math.sqrt(max(0.0, E*E + 2.0*E*E0))  # p_e * c eV
     A = element.atomic_weight_ratio
-    M_c2 = A * ELECTRON_REST_MASS_ENERGY
+    NEUTRON_REST_MASS_ENERGY = NEUTRON_MASS * SPEED_OF_LIGHT**2 / EV_TO_J
+    M_c2 = A * NEUTRON_REST_MASS_ENERGY
 
     ux = particle["ux"]
     uy = particle["uy"]
@@ -481,7 +484,7 @@ def elastic_scattering(particle_container, element, reaction):
     # Final relativistic kinetic energy from speed - LAB
     speed_lab_out = math.sqrt(vx * vx + vy * vy + vz * vz)
     gamma_out = 1.0 / math.sqrt(1.0 - (speed_lab_out / SPEED_OF_LIGHT) ** 2)
-    particle["E"] = (gamma_out - 1.0) * ELECTRON_REST_MASS_ENERGY
+    #particle["E"] = (gamma_out - 1.0) * ELECTRON_REST_MASS_ENERGY
 
     # Final direction - LAB
     particle["ux"] = vx / speed_lab_out
@@ -490,6 +493,41 @@ def elastic_scattering(particle_container, element, reaction):
 
     deposited = max(0.0, E - particle["E"])
     return deposited
+'''
+
+def elastic_scattering(particle_container, element, reaction):
+    particle = particle_container[0]
+    E = particle["E"]
+
+    if E <= ELECTRON_CUTOFF_ENERGY:
+        return E
+
+    def _interp_branch_xs(E_in, elem, xs_array):
+        idx, e0, e1 = evaluate_xs_energy_grid(E_in, elem)
+        xs0 = xs_array[idx]
+        xs1 = xs_array[idx + 1]
+        return linear_interpolation(E_in, e0, e1, xs0, xs1)
+    
+    xs_L = _interp_branch_xs(E, element, reaction.xs_large_angle)
+    xs_S = _interp_branch_xs(E, element, reaction.xs_small_angle)
+    xs_tot = xs_L + xs_S
+
+    if xs_tot == 0.0:
+        use_large = True
+    else:
+        use_large = kernel.rng(particle_container) < xs_L / xs_tot
+
+    index = reaction.mu_large_angle if use_large else reaction.mu_small_angle
+    mu0 = sample_distribution(E, DATA_MULTIPDF, index, particle_container)
+    azi = 2.0 * PI * kernel.rng(particle_container)
+
+    ux, uy, uz = particle["ux"], particle["uy"], particle["uz"]
+    ux_new, uy_new, uz_new = scatter_direction(ux, uy, uz, mu0, azi)
+    particle["ux"] = ux_new
+    particle["uy"] = uy_new
+    particle["uz"] = uz_new
+
+    return 0.0
 
 
 # ======================================================================================
@@ -525,7 +563,7 @@ def bremsstrahlung(particle_container, element, reaction):
     dE = evaluate_data(E, DATA_TABLE, e_loss)
     particle["E"] -= dE
 
-    return dE # local energy deposition (when photon is not tracked)
+    return 0.0 # local energy deposition (when photon is not tracked)
 
 
 # ======================================================================================
@@ -601,6 +639,33 @@ def ionization(particle_container, element, reaction, prog):
     
     # Sample direction of the secondary electron
     ux_d, uy_d, uz_d = sample_delta_direction(T_delta, E, particle_container)
+
+    # Compute momentum magnitudes (relativistic) for primary before and after, and for secondary
+    me = ELECTRON_REST_MASS_ENERGY  # ~511 keV (in eV units in the code)
+    # Use kinetic energies in eV for momentum calc:
+    p_before = math.sqrt(E * (E + 2*me))          # momentum of primary before (in units where c=1)
+    p_after  = math.sqrt(particle["E"] * (particle["E"] + 2*me))  # after losing B+T_delta
+    p_delta  = math.sqrt(T_delta * (T_delta + 2*me))  # momentum of secondary
+
+    # Unit vectors for directions
+    u_before = np.array([particle["ux"], particle["uy"], particle["uz"]])
+    u_delta  = np.array([ux_d, uy_d, uz_d])
+
+    # Momentum vectors
+    p_vec_before = p_before * u_before
+    p_vec_delta  = p_delta * u_delta
+
+    # Primary’s new momentum vector by conservation: p_before = p_after_vec + p_delta_vec
+    # => p_after_vec = p_before_vec - p_delta_vec
+    p_vec_after = p_vec_before - p_vec_delta
+
+    # Normalize and set primary’s new direction
+    if np.linalg.norm(p_vec_after) > 0:
+        u_after = p_vec_after / np.linalg.norm(p_vec_after)
+        particle["ux"] = float(u_after[0])
+        particle["uy"] = float(u_after[1])
+        particle["uz"] = float(u_after[2])
+    # (particle["E"] is already updated to new energy above)
 
     # Create new particle for the secondary electron
     particle_container_new = adapt.local_array(1, type_.particle_record)
