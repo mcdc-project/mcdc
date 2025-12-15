@@ -18,6 +18,10 @@ from mcdc.constant import (
     REACTION_NEUTRON_INELASTIC_SCATTERING,
     REFERENCE_FRAME_COM,
     REFERENCE_FRAME_LAB,
+    REACTION_ELECTRON_BREMSSTRAHLUNG,
+    REACTION_ELECTRON_EXCITATION,
+    REACTION_ELECTRON_ELASTIC_SCATTERING,
+    REACTION_ELECTRON_IONIZATION,
 )
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.distribution import (
@@ -74,6 +78,14 @@ def decode_type(type_):
         return "Neutron inelastic scattering"
     elif type_ == REACTION_NEUTRON_FISSION:
         return "Neutron fission"
+    elif type_ == REACTION_ELECTRON_IONIZATION:
+        return "Electron ionization"
+    elif type_ == REACTION_ELECTRON_ELASTIC_SCATTERING:
+        return "Electron elastic scattering"
+    elif type_ == REACTION_ELECTRON_BREMSSTRAHLUNG:
+        return "Electron bremsstrahlung"
+    elif type_ == REACTION_ELECTRON_EXCITATION:
+        return "Electron excitation"
 
 
 def decode_reference_frame(type_):
@@ -397,3 +409,124 @@ def set_energy_distribution(h5_group):
         print_error(f"Unsupported energy spectrum of type {spectrum_type}")
 
     return energy_spectrum
+
+
+# ======================================================================================
+# Electron ionization
+# ======================================================================================
+
+
+class ReactionElectronIonization(ReactionBase):
+    # Annotations for Numba mode
+    label: str = "electron_ionization_reaction"
+    #
+    energy_grid: NDArray[float64]
+    N_subshell: int
+    subshell_xs: list[DistributionBase]
+    subshell_binding_energy: NDArray[float64]
+    subshell_product: list[DistributionBase]
+
+    def __init__(
+        self,
+        MT,
+        xs,
+        xs_offset,
+        reference_frame,
+        energy_grid,
+        N_subshell,
+        subshell_xs,
+        subshell_binding_energy,
+        subshell_product,
+    ):
+        type_ = REACTION_ELECTRON_IONIZATION
+        super().__init__(type_, MT, xs, xs_offset, reference_frame)
+
+        self.energy_grid = energy_grid
+        self.N_subshell = N_subshell
+        self.subshell_xs = subshell_xs
+        self.subshell_binding_energy = subshell_binding_energy
+        self.subshell_product = subshell_product
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        # Basic reaction properties
+        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
+
+        subshells = h5_group["subshells"]
+
+        subshell_xs = []
+        subshell_binding_energy = []
+        subshell_product = []
+
+        subshell_names = list(subshells.keys())
+
+        # Subshell data
+        for name in subshell_names:
+            subshell = subshells[name]
+
+            # Subshell cross section
+            xs_sub = subshell["xs"][()]
+            energy_grid_sub = subshell["energy_grid"][()]
+            subshell_xs.append(DataTable(energy_grid_sub, xs_sub))
+
+            # Binding energy
+            subshell_binding_energy.append(subshell["binding_energy"][()])
+
+            # Secondary electron energy distribution
+            product_grid = subshell["product"]["energy_grid"][()]
+            product_offset = subshell["product"]["energy_offset"][()]
+            product_value = subshell["product"]["value"][()]
+            product_pdf = subshell["product"]["PDF"][()]
+
+            subshell_product.append(
+                DataMultiPDF(
+                    product_grid,
+                    product_offset,
+                    product_value,
+                    product_pdf,
+                )
+            )
+
+        N_subshell = len(subshell_names)
+        subshell_binding_energy = np.asarray(subshell_binding_energy)
+
+        # Common incident energy grid (assumed identical for all subshells)
+        energy_grid = subshells[subshell_names[0]]["energy_grid"][()]
+
+        return cls(
+            MT,
+            xs,
+            xs_offset,
+            reference_frame,
+            energy_grid,
+            N_subshell,
+            subshell_xs,
+            subshell_binding_energy,
+            subshell_product,
+        )
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Electron ionization\n"
+        text += f"  - Number of subshells: {self.N_subshell}\n"
+
+        for i in range(self.N_subshell):
+            text += f"    - Subshell {i + 1}\n"
+            text += (
+                f"      - Binding energy: {self.subshell_binding_energy[i]} eV\n"
+            )
+
+            xs = self.subshell_xs[i]
+            text += (
+                f"      - XS: {distribution.decode_type(xs.type)} "
+                f"[ID: {xs.ID}]\n"
+            )
+
+            prod = self.subshell_product[i]
+            text += (
+                f"      - Secondary electron spectrum: "
+                f"{distribution.decode_type(prod.type)} "
+                f"[ID: {prod.ID}]\n"
+            )
+
+        return text
