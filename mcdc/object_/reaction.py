@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 
 ####
 
-from mcdc.object_.data import DataTable
+from mcdc.object_.data import DataBase, DataTable
 import mcdc.object_.distribution as distribution
 
 from mcdc.constant import (
@@ -307,9 +307,9 @@ class ReactionElectronIonization(ReactionBase):
     #
     energy_grid: NDArray[float64]
     N_subshell: int
-    subshell_xs: list[DataTable]
+    subshell_xs: list[DataBase]
     subshell_binding_energy: NDArray[float64]
-    subshell_product: list[DistributionMultiTable]
+    subshell_product: list[DistributionBase]
 
     def __init__(
         self,
