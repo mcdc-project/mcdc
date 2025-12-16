@@ -96,7 +96,7 @@ REACTION_NEUTRON_INELASTIC_SCATTERING = 3
 REACTION_NEUTRON_FISSION = 4
 REACTION_NEUTRON_FISSION_PROMPT = 5
 REACTION_NEUTRON_FISSION_DELAYED = 6
-
+#
 REACTION_ELECTRON_ELASTIC_SCATTERING = 101
 REACTION_ELECTRON_ELASTIC_SMALL_ANGLE = 102
 REACTION_ELECTRON_ELASTIC_LARGE_ANGLE = 103
@@ -172,18 +172,32 @@ AXIS_Y = 1
 AXIS_Z = 2
 AXIS_T = 3
 
+# ======================================================================================
 # Physics
+# ======================================================================================
+
+# Constants
 LIGHT_SPEED = 2.99792458e10  # cm/s
-NEUTRON_MASS = 939.565413e6  # eV/c^2
 BOLTZMANN_K = 8.61733326e-5  # eV/K
+
+# Adjustables
 THERMAL_THRESHOLD_FACTOR = 400
 
-ELECTRON_MASS = 510.99895069e3 # eV/c^2
-ELECTRON_CUTOFF_ENERGY = 100   # eV
+# Neutron properties
+NEUTRON_MASS = 939.565413e6  # eV/c^2
+
+# Electron energy
+ELECTRON_MASS = 510.99895069e3  # eV/c^2
+ELECTRON_CUTOFF_ENERGY = 100  # eV (TODO: Is this adjustable?)
+
+# ======================================================================================
+# Techniques
+# ======================================================================================
 
 # Weight Windows Methods
 WW_USER = 0
 WW_PREVIOUS = 1
+
 # Weight Windows Modifications
 WW_MIN = 0
 WW_WOLLABER = 1
