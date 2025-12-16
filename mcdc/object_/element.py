@@ -4,15 +4,15 @@ import os
 
 ####
 
-from mcdc.reaction import (
+from mcdc.object_.reaction import (
     ReactionElectronBremsstrahlung,
     ReactionElectronExcitation,
     ReactionElectronElasticScattering,
     ReactionElectronIonization,
     decode_type,
 )
-from mcdc.objects import ObjectNonSingleton
-from mcdc.prints import print_1d_array
+from mcdc.object_.base import ObjectNonSingleton
+from mcdc.print_ import print_1d_array
 
 # ======================================================================================
 # Element class
@@ -20,6 +20,10 @@ from mcdc.prints import print_1d_array
 
 
 class Element(ObjectNonSingleton):
+    # Annotations for Numba mode
+    label: str = "element"
+    #
+
     def __init__(self, element_name):
         label = "element"
         super().__init__(label)
@@ -52,7 +56,9 @@ class Element(ObjectNonSingleton):
                 elif reaction_type == "ionization":
                     ReactionClass = ReactionElectronIonization
 
-                reaction = ReactionClass.from_h5_group(f[f"electron_reactions/{reaction_type}"])
+                reaction = ReactionClass.from_h5_group(
+                    f[f"electron_reactions/{reaction_type}"]
+                )
                 self.reactions.append(reaction)
 
                 # Accumulate total XS
@@ -72,7 +78,7 @@ class Element(ObjectNonSingleton):
         return text
 
 
-# Natural isotopic abundance data from 
+# Natural isotopic abundance data from
 # https://www.nndc.bnl.gov/walletcards/search.html
 
 ISOTOPIC_ABUNDANCE = {
