@@ -10,6 +10,7 @@ from mcdc.object_.technique import (
 
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell, Region
+    from mcdc.object_.element import Element
     from mcdc.object_.material import MaterialBase
     from mcdc.object_.nuclide import Nuclide
     from mcdc.object_.reaction import ReactionBase
@@ -57,6 +58,7 @@ class Simulation(ObjectSingleton):
     data: list[DataBase]
     distributions: list[DistributionBase]
     materials: list[MaterialBase]
+    elements: list[Element]
     nuclides: list[Nuclide]
     reactions: list[ReactionBase]
     sources: list[Source]
@@ -139,6 +141,7 @@ class Simulation(ObjectSingleton):
         self.data = [DataNone()]
         self.distributions = [DistributionNone()]
         self.materials = []
+        self.elements = []
         self.nuclides = []
         self.reactions = []
         self.sources = []
