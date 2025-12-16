@@ -9,7 +9,7 @@ version = "0.12.0"
 authors = [
   { name = "Ilham Variansyah", email = "variansi@oregonstate.edu" },
   { name = "Sam Pasmann", email = "spasmann@nd.edu" },
-  { name = "Joanna Morgan", email = "morgajoa@oregonstate.edu" },
+  { name = "Joanna Morgan", email = "morgan83@llnl.gov" },
   { name = "Kayla Clements", email = "clemekay@oregonstate.edu" },
   { name = "Braxton Cuneo", email = "bcuneo@seattleu.edu" },
   { name = "Caleb Shaw" },
@@ -30,13 +30,13 @@ maintainers = [
   { name = "Ilham Variansyah", email = "variansi@oregonstate.edu" },
   { name = "Braxton Cuneo", email = "bcuneo@seattleu.edu" },
   { name = "Kayla Clements", email = "clemekay@oregonstate.edu" },
-  { name = "Joanna Piper Morgan", email = "morgajoa@oregonstate.edu" },
+  { name = "Joanna Piper Morgan", email = "morgan83@llnl.gov" },
   { name = "Kyle E. Niemeyer", email = "kyle.niemeyer@oregonstate.edu" },
 ]
 
 description = "MC/DC (Monte Carlo Dynamic Code): a performant, scalable, and machine-portable Python-based Monte Carlo neutron transport package"
 readme = "README.md"
-requires-python = ">=3.9.1,<3.12"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 
 keywords = [

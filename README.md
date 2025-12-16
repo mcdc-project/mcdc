@@ -2,9 +2,9 @@
 
 ![mcdc_logo v1](https://user-images.githubusercontent.com/26186244/173467190-74d9b09a-ef7d-4f0e-8bdf-4a076de7c43c.svg)
 
-[![Build](https://github.com/CEMeNT-PSAAP/MCDC/actions/workflows/mpi_numba_reg.yml/badge.svg)](https://github.com/CEMeNT-PSAAP/MCDC/actions/workflows/mpi_numba_reg.yml)
+[![Build](https://github.com/CEMeNT-PSAAP/MCDC/actions/workflows/regression_test.yml/badge.svg)](https://github.com/CEMeNT-PSAAP/MCDC/actions/workflows/regression_test.yml)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.06415/status.svg)](https://doi.org/10.21105/joss.06415)
-[![ReadTheDocs](https://readthedocs.org/projects/mcdc/badge/?version=latest&style=flat)](https://mcdc.readthedocs.org/en/latest/ )
+[![ReadTheDocs](https://github.com/CEMeNT-PSAAP/MCDC/actions/workflows/docs_test.yml/badge.svg)](https://mcdc.readthedocs.org/en/latest/ )
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 

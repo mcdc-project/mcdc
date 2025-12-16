@@ -434,10 +434,17 @@ def set_structure(label, structures, accessor_targets, annotations):
         numpy_array = hint_origin == np.ndarray
 
         # MC/DC class
-        non_polymorphic = (
-            lambda x: issubclass(x, ObjectNonSingleton) and x not in polymorphic_bases
-        )
-        polymorphic_base = lambda x: x in polymorphic_bases
+        def non_polymorphic(x):
+            # Only treat real classes that inherit from ObjectNonSingleton
+            return (
+                isinstance(x, type)
+                and issubclass(x, ObjectNonSingleton)
+                and x not in polymorphic_bases
+            )
+
+        def polymorphic_base(x):
+            # Only treat real classes that are registered polymorphic bases
+            return isinstance(x, type) and x in polymorphic_bases
 
         # List of MC/DC classes
         list_of_non_polymorphics = hint_origin == list and non_polymorphic(hint_args[0])
@@ -772,7 +779,7 @@ class _FwdRefDict(dict):
         return ForwardRef(key)
 
 
-_SAFE_GLOBALS = {"__builtins__": {}}  # no builtins
+_SAFE_GLOBALS = {}  # no builtins
 _SAFE_LOCALS = _FwdRefDict(
     {
         # builtins

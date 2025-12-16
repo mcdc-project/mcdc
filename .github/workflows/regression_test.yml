@@ -5,19 +5,38 @@ on:
   pull_request:
 
 jobs:
-  python-regression-serial:
-    name: Python regression (serial)
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
+  regression-test:
+    name: ${{ matrix.mode }} (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.13']
+        mode:
+          - Python-Serial
+          - Python-MPI
+          - Numba-Serial
+          - Numba-MPI
+        include:
+          - mode: Python-Serial
+            timeout: 10
+          - mode: Python-MPI
+            timeout: 20
+          - mode: Numba-Serial
+            timeout: 120
+          - mode: Numba-MPI
+            timeout: 120
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Show environment info
@@ -37,136 +56,36 @@ jobs:
 
       - name: Install MC/DC
         run: |
-          pip install -e .[dev]
+          pip install -e ".[dev]"
           pip list
 
-      - name: Run Python regression tests (serial)
+      - name: Fetch regression test data
         working-directory: test/regression
         run: |
           git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
+
+      - name: Run regression tests (${{ matrix.mode }})
+        if: matrix.mode == 'Python-Serial'
+        working-directory: test/regression
+        run: |
           python run.py --include_native_physics
 
-  python-regression-mpi:
-    name: Python regression (MPI)
-    runs-on: ubuntu-22.04
-    timeout-minutes: 20
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
-
-      - name: Show environment info
-        run: |
-          pwd
-          ls
-          python --version
-          pip --version
-
-      - name: Set up MPI
-        uses: mpi4py/setup-mpi@v1
-
-      - name: Install mpi4py
-        run: |
-          pip install --upgrade pip
-          pip install --no-binary=mpi4py mpi4py
-
-      - name: Install MC/DC
-        run: |
-          pip install -e .[dev]
-          pip list
-
-      - name: Run Python regression tests (MPI)
+      - name: Run regression tests (${{ matrix.mode }})
+        if: matrix.mode == 'Python-MPI'
         working-directory: test/regression
         run: |
-          git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
           python run.py --include_native_physics --mpiexec=4
           python run.py --include_native_physics --mpiexec=16 --name=slab_reed_dd_3d
-  
-  numba-regression-serial:
-    name: Numba regression (serial)
-    runs-on: ubuntu-22.04
-    timeout-minutes: 120
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
-
-      - name: Show environment info
-        run: |
-          pwd
-          ls
-          python --version
-          pip --version
-
-      - name: Set up MPI
-        uses: mpi4py/setup-mpi@v1
-
-      - name: Install mpi4py
-        run: |
-          pip install --upgrade pip
-          pip install --no-binary=mpi4py mpi4py
-
-      - name: Install MC/DC
-        run: |
-          pip install -e .[dev]
-          pip list
-
-      - name: Run Numba regression tests (serial)
+      - name: Run regression tests (${{ matrix.mode }})
+        if: matrix.mode == 'Numba-Serial'
         working-directory: test/regression
         run: |
-          git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
           python run.py --include_native_physics --mode numba
 
-  numba-regression-mpi:
-    name: Numba regression (MPI)
-    runs-on: ubuntu-22.04
-    timeout-minutes: 120
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
-
-      - name: Show environment info
-        run: |
-          pwd
-          ls
-          python --version
-          pip --version
-
-      - name: Set up MPI
-        uses: mpi4py/setup-mpi@v1
-
-      - name: Install mpi4py
-        run: |
-          pip install --upgrade pip
-          pip install --no-binary=mpi4py mpi4py
-
-      - name: Install MC/DC
-        run: |
-          pip install -e .[dev]
-          pip list
-
-      - name: Run Numba regression tests (MPI)
+      - name: Run regression tests (${{ matrix.mode }})
+        if: matrix.mode == 'Numba-MPI'
         working-directory: test/regression
         run: |
-          git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
           python run.py --include_native_physics --mode numba --mpiexec=4
           python run.py --include_native_physics --mode numba --mpiexec=16 --name=slab_reed_dd_3d

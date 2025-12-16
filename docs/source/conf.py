@@ -10,26 +10,41 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import os, sys
-
-sys.path.insert(0, os.path.abspath("../.."))
-
-
-# On Read the Docs, need to mock any python packages that would require c
+import os
+import sys
 from unittest.mock import MagicMock
 
+# Make sure the project root (containing the `mcdc/` package) is importable
+HERE = os.path.abspath(os.path.dirname(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+# Try to import mcdc from the source tree / installed package
+try:
+    import mcdc  # noqa: F401
+except ImportError:
+    # As a last-resort for CI: mock mcdc so autosummary doesn't crash
+    # (better to have slightly-empty API docs than a failing build)
+    sys.modules["mcdc"] = MagicMock()
+
+# On Read the Docs / CI, mock heavy optional dependencies
 MOCK_MODULES = [
     "mpi4py",
+    "mpi4py.util.dtlib",
     "colorama",
     "cvxpy",
-    "mpi4py.util.dtlib",
     "sympy",
     "matplotlib.pyplot",
 ]
 sys.modules.update((mod_name, MagicMock()) for mod_name in MOCK_MODULES)
+
+# If you still need MPI.COMM_WORLD in docs build:
 from mpi4py import MPI
 
 MPI.COMM_WORLD.Get_size.return_value = 1
+MPI.COMM_WORLD.Get_rank.return_value = 0
+
 
 # -- Project information -----------------------------------------------------
 

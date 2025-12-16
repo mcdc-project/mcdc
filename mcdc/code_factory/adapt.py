@@ -276,17 +276,32 @@ late_jit_roster = set()
 do_nothing_id = 0
 
 
+do_nothing_id = 0
+
+
 def generate_do_nothing(arg_count, crash_on_call=None):
+    """
+    Create a no-op function (or one that always asserts) that takes
+    `arg_count` positional arguments.
+
+    On Python 3.13+, we can't rely on exec() mutating the current frame's
+    locals in a way eval() can see, so we execute into an explicit
+    namespace and pull the function out of that.
+    """
     global do_nothing_id
+
     name = f"do_nothing_{do_nothing_id}"
     args = ", ".join([f"arg_{i}" for i in range(arg_count)])
     source = f"def {name}({args}):\n"
-    if crash_on_call != None:
+    if crash_on_call is not None:
         source += f"    assert False, '{crash_on_call}'\n"
     else:
         source += "    pass\n"
-    exec(source)
-    result = eval(name)
+
+    ns = {}
+    exec(source, globals(), ns)
+    result = ns[name]
+
     do_nothing_id += 1
     return result
 
@@ -361,11 +376,19 @@ def for_(target, on_target=[]):
         if target not in target_rosters:
             target_rosters[target] = {}
         target_rosters[target][(mod_name, fn_name)] = func
-        # blank = blankout_fn(func)
+
         param_str = ", ".join(p for p in params)
-        jit_str = f"def jit_func({param_str}):\n    global target_rosters\n    return target_rosters['{target}'][('{mod_name}','{fn_name}')]"
-        exec(jit_str, globals(), locals())
-        result = eval("jit_func")
+        jit_str = (
+            f"def jit_func({param_str}):\n"
+            f"    global target_rosters\n"
+            f"    return target_rosters['{target}'][('{mod_name}','{fn_name}')]"
+        )
+
+        # Execute into an explicit namespace so we can reliably retrieve jit_func
+        ns = {}
+        exec(jit_str, globals(), ns)
+        result = ns["jit_func"]
+
         blank = blankout_fn(func)
         if target == "gpu":
             numba.core.extending.overload(blank, target=target)(result)
