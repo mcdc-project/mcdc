@@ -106,41 +106,6 @@ def reaction_micro_xs(E, reaction_base, element, data):
     return linear_interpolation(E, E0, E1, xs0, xs1)
 
 
-@njit
-def electron_production_xs(reaction_type, particle_container, mcdc, data):
-    particle = particle_container[0]
-    material_base = mcdc["materials"][particle["material_ID"]]
-    material = mcdc["native_materials"][material_base["child_ID"]]
-
-    if reaction_type == REACTION_TOTAL:
-        ionization_type = REACTION_ELECTRON_IONIZATION
-        elastic_type = REACTION_ELECTRON_ELASTIC_SCATTERING
-        bremsstrahlung_type = REACTION_ELECTRON_BREMSSTRAHLUNG
-        excitation_type = REACTION_ELECTRON_EXCITATION
-
-        ionization_xs = electron_production_xs(ionization_type, particle_container, mcdc, data)        
-        elastic_xs = electron_production_xs(elastic_type, particle_container, mcdc, data)
-        bremsstrahlung_xs = electron_production_xs(bremsstrahlung_type, particle_container, mcdc, data)
-        excitation_xs = electron_production_xs(excitation_type, particle_container, mcdc, data)
-
-        return ionization_xs + elastic_xs + bremsstrahlung_xs + excitation_xs
-
-    elif reaction_type == REACTION_ELECTRON_IONIZATION:
-        return 2 * macro_xs(reaction_type, particle_container, mcdc, data)
-
-    elif reaction_type == REACTION_ELECTRON_ELASTIC_SCATTERING:
-        return macro_xs(reaction_type, particle_container, mcdc, data)
-    
-    elif reaction_type == REACTION_ELECTRON_BREMSSTRAHLUNG:
-        return macro_xs(reaction_type, particle_container, mcdc, data)
-
-    elif reaction_type == REACTION_ELECTRON_EXCITATION:
-        return macro_xs(reaction_type, particle_container, mcdc, data)
-    
-    else:
-        return -1.0
-
-
 # ======================================================================================
 # Collision
 # ======================================================================================
@@ -168,10 +133,9 @@ def collision(particle_container, prog, data):
 
     SigmaT = macro_xs(REACTION_TOTAL, particle_container, mcdc, data)
 
+    # Loop over elements in the material
     xi = rng.lcg(particle_container) * SigmaT
     total = 0.0
-
-    # Loop over elements in the material
     for i in range(material["N_element"]):
         element_ID = int(mcdc_get.native_material.element_IDs(i, material, data))
         element = mcdc["elements"][element_ID]
@@ -187,23 +151,20 @@ def collision(particle_container, prog, data):
     # ==================================================================================
     # Sample and perform reaction
     # ==================================================================================
+    # TODO: The switches for the different reactions have a common code pattern.
+    #       Modularizing the pattern would improve maintainability.
+    #       Note that this also applies to other particle physics.
 
-    sigmaT_element = total_micro_xs(REACTION_TOTAL, E, element, data)
-
-    sigma_ionization = total_micro_xs(
-        REACTION_ELECTRON_IONIZATION, E, element, data
-    )
+    sigma_ionization = total_micro_xs(REACTION_ELECTRON_IONIZATION, E, element, data)
     sigma_elastic = total_micro_xs(
         REACTION_ELECTRON_ELASTIC_SCATTERING, E, element, data
     )
     sigma_bremsstrahlung = total_micro_xs(
         REACTION_ELECTRON_BREMSSTRAHLUNG, E, element, data
-        )
-    sigma_excitation = total_micro_xs(
-        REACTION_ELECTRON_EXCITATION, E, element, data
-        )
+    )
+    sigma_excitation = total_micro_xs(REACTION_ELECTRON_EXCITATION, E, element, data)
 
-    xi = rng.lcg(particle_container) * sigmaT_element
+    xi = rng.lcg(particle_container) * sigmaT
     total = 0.0
 
     # Ionization
@@ -218,10 +179,10 @@ def collision(particle_container, prog, data):
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, element, data)
-            
+
             if xi < total:
                 return ionization(reaction, particle_container, element, prog, data)
-            
+
     # Elastic scattering
     total += sigma_elastic
     if xi < total:
@@ -234,10 +195,12 @@ def collision(particle_container, prog, data):
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, element, data)
-            
+
             if xi < total:
-                return elastic_scattering(reaction, particle_container, element, prog, data)
-            
+                return elastic_scattering(
+                    reaction, particle_container, element, prog, data
+                )
+
     # Bremsstrahlung
     total += sigma_bremsstrahlung
     if xi < total:
@@ -250,10 +213,9 @@ def collision(particle_container, prog, data):
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, element, data)
-            
+
             if xi < total:
                 return bremsstrahlung(reaction, particle_container, element, prog, data)
-
 
     # Excitation
     total += sigma_excitation
@@ -268,7 +230,7 @@ def collision(particle_container, prog, data):
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, element, data)
-            
+
             if xi < total:
                 return excitation(reaction, particle_container, element, prog, data)
 
@@ -280,8 +242,8 @@ def collision(particle_container, prog, data):
 
 @njit
 def compute_scattering_eta(E, Z):
-    pc = math.sqrt(E * (E + 2*ELECTRON_MASS))
-    beta =  pc / (E + ELECTRON_MASS)
+    pc = math.sqrt(E * (E + 2 * ELECTRON_MASS))
+    beta = pc / (E + ELECTRON_MASS)
     tau = E / ELECTRON_MASS
 
     r = (FINE_STRUCTURE_CONSTANT * ELECTRON_MASS) / (0.885 * pc)
@@ -317,7 +279,7 @@ def elastic_scattering(reaction, particle_container, element, prog, data):
     E = particle["E"]
 
     # -------------------------------------------------------------------------
-    # Total elastic xs 
+    # Total elastic xs
     # -------------------------------------------------------------------------
     reaction_base_ID = int(reaction["parent_ID"])
     reaction_base = mcdc["reactions"][reaction_base_ID]
@@ -467,7 +429,7 @@ def ionization(reaction, particle_container, element, prog, data):
 
     # Current energy
     E = particle["E"]
-    
+
     # Sample subshell
     N = int(reaction["N_subshell"])
     xs_vals = np.empty(N, dtype=np.float64)
@@ -497,11 +459,13 @@ def ionization(reaction, particle_container, element, prog, data):
         particle["alive"] = False
         particle["E"] = 0.0
         return edep
-    
+
     # Sample secondary energy T_delta from distribution
     dist_ID = int(reaction["subshell_product_IDs"][chosen])
     dist_base = mcdc["distributions"][dist_ID]
-    T_delta = sample_distribution(E, dist_base, particle_container, mcdc, data, scale=True)
+    T_delta = sample_distribution(
+        E, dist_base, particle_container, mcdc, data, scale=True
+    )
 
     # Primary outgoing energy
     E_out = E - B - T_delta
@@ -519,14 +483,16 @@ def ionization(reaction, particle_container, element, prog, data):
     if T_delta <= ELECTRON_CUTOFF_ENERGY:
         edep += T_delta
         return edep
-    
+
     # Sample delta direction
-    ux_delta, uy_delta, uz_delta = sample_delta_direction(T_delta, E, particle_container)
+    ux_delta, uy_delta, uz_delta = sample_delta_direction(
+        T_delta, E, particle_container
+    )
 
     # Momentum conservation if primary alive
     if primary_alive_after:
-        p_before = math.sqrt(E * (E + 2*ELECTRON_MASS))
-        p_delta  = math.sqrt(T_delta * (T_delta + 2*ELECTRON_MASS))
+        p_before = math.sqrt(E * (E + 2 * ELECTRON_MASS))
+        p_delta = math.sqrt(T_delta * (T_delta + 2 * ELECTRON_MASS))
 
         ux_before = particle["ux"]
         uy_before = particle["uy"]
@@ -544,7 +510,7 @@ def ionization(reaction, particle_container, element, prog, data):
             particle["ux"] = px_after / norm
             particle["uy"] = py_after / norm
             particle["uz"] = pz_after / norm
-        
+
     # Add secondary particle to bank
     particle_container_new = np.zeros(1, type_.particle_data)
     particle_new = particle_container_new[0]
@@ -569,8 +535,8 @@ def compute_mu_delta(T_delta, T_prim):
     # Check in case of numerical issues
     if mu < -1.0:
         mu = -1.0
-    if mu >  1.0:
-        mu =  1.0
+    if mu > 1.0:
+        mu = 1.0
 
     return mu
 
