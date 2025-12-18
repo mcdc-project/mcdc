@@ -1,3 +1,6 @@
-import mcdc.physics.electron.interface as interface
-
-import mcdc.physics.electron.native as native
+from .interface import (
+    particle_speed,
+    macro_xs,
+    collision,
+)
+import mcdc.transport.physics.electron.native as native
