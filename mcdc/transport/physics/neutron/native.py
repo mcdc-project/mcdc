@@ -237,6 +237,7 @@ def collision(particle_container, prog, data):
         particle["w"] *= (SigmaT - SigmaC) / SigmaT
         SigmaT -= SigmaC
 
+    # Loop over nuclides in the material
     xi = rng.lcg(particle_container) * SigmaT
     total = 0.0
     for i in range(material["N_nuclide"]):
@@ -251,8 +252,7 @@ def collision(particle_container, prog, data):
             particle["w"] *= (sigmaT - sigmaC) / sigmaT
             sigmaT -= sigmaC
 
-        SigmaT_nuclide = nuclide_density * sigmaT
-        total += SigmaT_nuclide
+        total += nuclide_density * sigmaT
 
         if total > xi:
             break
@@ -260,6 +260,9 @@ def collision(particle_container, prog, data):
     # ==================================================================================
     # Sample and perform reaction
     # ==================================================================================
+    # TODO: The switches for the different reactions have a common code pattern.
+    #       Modularizing the pattern would improve maintainability.
+    #       Note that this also applies to other particle physics.
 
     sigma_elastic = total_micro_xs(
         REACTION_NEUTRON_ELASTIC_SCATTERING, E, nuclide, data
@@ -299,7 +302,6 @@ def collision(particle_container, prog, data):
     total += sigma_inelastic
     if xi < total:
         total -= sigma_inelastic
-
         for i in range(nuclide["N_inelastic_scattering_reaction"]):
             reaction_ID = int(
                 mcdc_get.nuclide.inelastic_scattering_reaction_IDs(i, nuclide, data)
@@ -307,8 +309,7 @@ def collision(particle_container, prog, data):
             reaction = mcdc["neutron_inelastic_scattering_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["reactions"][reaction_base_ID]
-            xs = reaction_micro_xs(E, reaction_base, nuclide, data)
-            total += xs
+            total += reaction_micro_xs(E, reaction_base, nuclide, data)
             if xi < total:
                 inelastic_scattering(reaction, particle_container, nuclide, prog, data)
                 return
