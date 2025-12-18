@@ -344,12 +344,12 @@ def elastic_large_xs(E, reaction, mcdc, data):
 
 
 # ==============================================================================
-# Excitation
+# Excitation (photon not tracked - all energy deposited)
 # ==============================================================================
 
 
 @njit
-def excitation(reaction, particle_container, element, prog, data):
+def excitation(reaction, particle_container, prog, data):
     mcdc = adapt.mcdc_global(prog)
 
     # Particle attributes
@@ -389,7 +389,7 @@ def evaluate_eloss(E, reaction, mcdc, data):
 
 
 @njit
-def bremsstrahlung(reaction, particle_container, element, prog, data):
+def bremsstrahlung(reaction, particle_container, prog, data):
     mcdc = adapt.mcdc_global(prog)
 
     # Particle attributes
