@@ -189,6 +189,8 @@ NEUTRON_MASS = 939.565413e6  # eV/c^2
 # Electron energy
 ELECTRON_MASS = 510.99895069e3  # eV/c^2
 ELECTRON_CUTOFF_ENERGY = 100  # eV (TODO: Is this adjustable?)
+FINE_STRUCTURE_CONSTANT = 7.2973525693e-3  # ~1/137
+MU_CUTOFF = 0.999999
 
 # ======================================================================================
 # Techniques

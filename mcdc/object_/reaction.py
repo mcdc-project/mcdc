@@ -302,13 +302,10 @@ class ReactionNeutronFission(ReactionBase):
 
 
 class ReactionElectronIonization(ReactionBase):
-    # Annotations for Numba mode
     label: str = "electron_ionization_reaction"
     #
-    energy_grid: NDArray[float64]
     N_subshell: int
     subshell_xs: list[DataBase]
-    subshell_binding_energy: NDArray[float64]
     subshell_product: list[DistributionBase]
 
     def __init__(
@@ -317,100 +314,196 @@ class ReactionElectronIonization(ReactionBase):
         xs,
         xs_offset,
         reference_frame,
-        energy_grid,
-        N_subshell,
         subshell_xs,
-        subshell_binding_energy,
         subshell_product,
     ):
         type_ = REACTION_ELECTRON_IONIZATION
         super().__init__(type_, MT, xs, xs_offset, reference_frame)
 
-        self.energy_grid = energy_grid
-        self.N_subshell = N_subshell
+        self.N_subshell = len(subshell_xs)
         self.subshell_xs = subshell_xs
-        self.subshell_binding_energy = subshell_binding_energy
         self.subshell_product = subshell_product
 
     @classmethod
     def from_h5_group(cls, h5_group):
-        # Basic reaction properties
         MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
         subshells = h5_group["subshells"]
-
-        subshell_xs = []
-        subshell_binding_energy = []
-        subshell_product = []
-
         subshell_names = list(subshells.keys())
 
-        # Subshell data
+        subshell_xs = []
+        subshell_product = []
+
         for name in subshell_names:
             subshell = subshells[name]
 
-            # Subshell cross section
-            xs_sub = subshell["xs"][()]
-            energy_grid_sub = subshell["energy_grid"][()]
-            subshell_xs.append(DataTable(energy_grid_sub, xs_sub))
-
-            # Binding energy
-            subshell_binding_energy.append(subshell["binding_energy"][()])
+            # Subshell cross section table (each has its own energy grid)
+            xs_sub = DataTable(
+                subshell["energy_grid"][()],
+                subshell["xs"][()]
+            )
+            subshell_xs.append(xs_sub)
 
             # Secondary electron energy distribution
-            product_grid = subshell["product"]["energy_grid"][()]
-            product_offset = subshell["product"]["energy_offset"][()]
-            product_value = subshell["product"]["value"][()]
-            product_pdf = subshell["product"]["PDF"][()]
-
-            subshell_product.append(
-                DistributionMultiTable(
-                    product_grid,
-                    product_offset,
-                    product_value,
-                    product_pdf,
-                )
+            product = subshell["product"]
+            prod_dist = DistributionMultiTable(
+                product["energy_grid"][()],
+                product["energy_offset"][()],
+                product["value"][()],
+                product["PDF"][()]
             )
-
-        N_subshell = len(subshell_names)
-        subshell_binding_energy = subshell_binding_energy
-
-        # Common incident energy grid (assumed identical for all subshells)
-        energy_grid = subshells[subshell_names[0]]["energy_grid"][()]
+            subshell_product.append(prod_dist)
 
         return cls(
             MT,
             xs,
             xs_offset,
             reference_frame,
-            energy_grid,
-            N_subshell,
             subshell_xs,
-            subshell_binding_energy,
             subshell_product,
         )
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Electron ionization\n"
         text += f"  - Number of subshells: {self.N_subshell}\n"
-
         for i in range(self.N_subshell):
-            text += f"    - Subshell {i + 1}\n"
-            text += f"      - Binding energy: {self.subshell_binding_energy[i]} eV\n"
-
-            xs = self.subshell_xs[i]
-            text += (
-                f"      - XS: {distribution.decode_type(xs.type)} " f"[ID: {xs.ID}]\n"
-            )
-
+            text += f"    - Subshell {i+1}\n"
+            text += f"      - XS: DataTable [ID: {self.subshell_xs[i].ID}]\n"
             prod = self.subshell_product[i]
             text += (
                 f"      - Secondary electron spectrum: "
-                f"{distribution.decode_type(prod.type)} "
-                f"[ID: {prod.ID}]\n"
+                f"{distribution.decode_type(prod.type)} [ID: {prod.ID}]\n"
             )
+        return text
 
+
+# ======================================================================================
+# Electron elastic scattering
+# ======================================================================================
+
+
+class ReactionElectronElasticScattering(ReactionBase):
+    label: str = "electron_elastic_scattering_reaction"
+    #
+    mu_cut: float
+    xs_large: DataBase
+    mu_table: DistributionMultiTable
+
+    def __init__(
+        self,
+        MT,
+        xs,
+        xs_offset,
+        reference_frame,
+        mu_cut,
+        xs_large,
+        mu_table,
+    ):
+        type_ = REACTION_ELECTRON_ELASTIC_SCATTERING
+        super().__init__(type_, MT, xs, xs_offset, reference_frame)
+        self.mu_cut = mu_cut
+        self.xs_large = xs_large
+        self.mu_table = mu_table
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
+
+        # Large angle data
+        large_angle = h5_group["large_angle"]
+        mu_cut = float(large_angle.attrs.get("mu_cut", 0.999999))
+
+        xs_large = DataTable(
+            large_angle["xs_energy"][()],
+            large_angle["xs"][()]
+        )
+
+        mu_g = large_angle["scattering_cosine"]
+        mu_table = DistributionMultiTable(
+            mu_g["energy_grid"][()],
+            mu_g["energy_offset"][()],
+            mu_g["value"][()],
+            mu_g["PDF"][()]
+        )
+
+        return cls(
+            MT,
+            xs,
+            xs_offset,
+            reference_frame,
+            mu_cut,
+            xs_large,
+            mu_table,
+        )
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Mu cut: {self.mu_cut}\n"
+        text += f"  - Large angle XS: DataTable [ID: {self.xs_large.ID}]\n"
+        text += (
+            f"  - Scattering cosine: {distribution.decode_type(self.mu_table.type)} "
+            f"[ID: {self.mu_table.ID}]\n"
+        )
+        return text
+
+
+# ======================================================================================
+# Electron bremsstrahlung
+# ======================================================================================
+
+
+class ReactionElectronBremsstrahlung(ReactionBase):
+    label: str = "electron_bremsstrahlung_reaction"
+    #
+    eloss: DataBase
+
+    def __init__(self, MT, xs, xs_offset, reference_frame, eloss):
+        type_ = REACTION_ELECTRON_BREMSSTRAHLUNG
+        super().__init__(type_, MT, xs, xs_offset, reference_frame)
+        self.eloss = eloss
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
+
+        base = h5_group["energy_loss"]
+        eloss = DataTable(base["energy"][()], base["value"][()])
+
+        return cls(MT, xs, xs_offset, reference_frame, eloss)
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Energy loss: DataTable [ID: {self.eloss.ID}]\n"
+        return text
+
+
+# ======================================================================================
+# Electron excitation
+# ======================================================================================
+
+
+class ReactionElectronExcitation(ReactionBase):
+    label: str = "electron_excitation_reaction"
+    #
+    eloss: DataBase
+
+    def __init__(self, MT, xs, xs_offset, reference_frame, eloss):
+        type_ = REACTION_ELECTRON_EXCITATION
+        super().__init__(type_, MT, xs, xs_offset, reference_frame)
+        self.eloss = eloss
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
+
+        base = h5_group["energy_loss"]
+        eloss = DataTable(base["energy"][()], base["value"][()])
+
+        return cls(MT, xs, xs_offset, reference_frame, eloss)
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Energy loss: DataTable [ID: {self.eloss.ID}]\n"
         return text
 
 
