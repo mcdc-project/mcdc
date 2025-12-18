@@ -11,7 +11,7 @@ import mcdc.transport.physics.electron.native as native
 
 
 @njit
-def particle_speed(particle_container, material, data):
+def particle_speed(particle_container, mcdc, data):
     return native.particle_speed(particle_container)
 
 
@@ -21,13 +21,8 @@ def particle_speed(particle_container, material, data):
 
 
 @njit
-def macro_xs(reaction_type, material, particle_container, mcdc, data):
-    return native.macro_xs(reaction_type, material, particle_container, mcdc, data)
-
-
-@njit
-def electron_production_xs(reaction_type, particle_container, mcdc, data):
-    return native.electron_production_xs(reaction_type, particle_container, mcdc, data)
+def macro_xs(reaction_type, particle_container, mcdc, data):
+    return native.macro_xs(reaction_type, particle_container, mcdc, data)
 
 
 # ======================================================================================
