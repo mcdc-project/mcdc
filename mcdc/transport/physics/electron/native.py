@@ -241,34 +241,6 @@ def collision(particle_container, prog, data):
 
 
 @njit
-def compute_scattering_eta(E, Z):
-    pc = math.sqrt(E * (E + 2 * ELECTRON_MASS))
-    beta = pc / (E + ELECTRON_MASS)
-    tau = E / ELECTRON_MASS
-
-    r = (FINE_STRUCTURE_CONSTANT * ELECTRON_MASS) / (0.885 * pc)
-    z_sq = float(Z) ** (2.0 / 3.0)
-    bracket = 1.13 + 3.76 * ((FINE_STRUCTURE_CONSTANT * float(Z)) / beta) ** 2
-    rel = math.sqrt(tau / (tau + 1.0))
-
-    return 0.25 * (r * r) * z_sq * bracket * rel
-
-
-@njit
-def sample_small_angle_mu_coulomb(E, Z, rng_state, mu_cut):
-    eta = compute_scattering_eta(E, Z)
-
-    x_cut = 1.0 - mu_cut
-    u = rng.lcg(rng_state)
-
-    denom = (1.0 / eta) - (1.0 / (eta + x_cut))
-    inv = (1.0 / eta) - u * denom
-    x = (1.0 / inv) - eta
-
-    return 1.0 - x
-
-
-@njit
 def elastic_scattering(reaction, particle_container, element, prog, data):
     mcdc = adapt.mcdc_global(prog)
 
@@ -334,6 +306,34 @@ def elastic_scattering(reaction, particle_container, element, prog, data):
     particle["uz"] = uz_new
 
     return 0.0
+
+
+@njit
+def compute_scattering_eta(E, Z):
+    pc = math.sqrt(E * (E + 2 * ELECTRON_MASS))
+    beta = pc / (E + ELECTRON_MASS)
+    tau = E / ELECTRON_MASS
+
+    r = (FINE_STRUCTURE_CONSTANT * ELECTRON_MASS) / (0.885 * pc)
+    z_sq = float(Z) ** (2.0 / 3.0)
+    bracket = 1.13 + 3.76 * ((FINE_STRUCTURE_CONSTANT * float(Z)) / beta) ** 2
+    rel = math.sqrt(tau / (tau + 1.0))
+
+    return 0.25 * (r * r) * z_sq * bracket * rel
+
+
+@njit
+def sample_small_angle_mu_coulomb(E, Z, rng_state, mu_cut):
+    eta = compute_scattering_eta(E, Z)
+
+    x_cut = 1.0 - mu_cut
+    u = rng.lcg(rng_state)
+
+    denom = (1.0 / eta) - (1.0 / (eta + x_cut))
+    inv = (1.0 / eta) - u * denom
+    x = (1.0 / inv) - eta
+
+    return 1.0 - x
 
 
 @njit
