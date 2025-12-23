@@ -1,0 +1,151 @@
+{
+  "name": "sphere_in_cube",
+  "complexity": "intermediate",
+  "prompt": "Create a homogeneous fission sphere (r=1.5, center 2,2,2) inside a pure-scattering cube (0-4), with vacuum boundaries. Tally fission on a mesh and on the sphere cell.",
+  "tool_calls": [
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "pure_f = mcdc.MaterialMG(fission=np.array([1.0]), nu_p=np.array([1.2]))",
+        "entity_type": "material",
+        "name": "pure_f"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "pure_s = mcdc.MaterialMG(scatter=np.array([[1.0]]))",
+        "entity_type": "material",
+        "name": "pure_s"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "sx1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition='vacuum')",
+        "entity_type": "surface",
+        "name": "sx1"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "sx2 = mcdc.Surface.PlaneX(x=4.0, boundary_condition='vacuum')",
+        "entity_type": "surface",
+        "name": "sx2"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "sy1 = mcdc.Surface.PlaneY(y=0.0, boundary_condition='vacuum')",
+        "entity_type": "surface",
+        "name": "sy1"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "sy2 = mcdc.Surface.PlaneY(y=4.0, boundary_condition='vacuum')",
+        "entity_type": "surface",
+        "name": "sy2"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "sz1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition='vacuum')",
+        "entity_type": "surface",
+        "name": "sz1"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "sz2 = mcdc.Surface.PlaneZ(z=4.0, boundary_condition='vacuum')",
+        "entity_type": "surface",
+        "name": "sz2"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "sphere = mcdc.Surface.Sphere(center=[2.0, 2.0, 2.0], radius=1.5)",
+        "entity_type": "surface",
+        "name": "sphere"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "inside_sphere = -sphere",
+        "entity_type": "region",
+        "name": "inside_sphere"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "inside_box = +sx1 & -sx2 & +sy1 & -sy2 & +sz1 & -sz2",
+        "entity_type": "region",
+        "name": "inside_box"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "mcdc.Cell(region=inside_box & ~inside_sphere, fill=pure_s)",
+        "entity_type": "cell",
+        "name": "outer_cell"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "sphere_cell = mcdc.Cell(region=inside_sphere, fill=pure_f)",
+        "entity_type": "cell",
+        "name": "sphere_cell"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "mcdc.Source(x=[0.0, 4.0], y=[0.0, 4.0], z=[0.0, 4.0], isotropic=True, energy_group=0, time=[0.0, 50.0])",
+        "entity_type": "source",
+        "name": "source"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "mesh = mcdc.MeshUniform(x=(0.0, 4.0, 1), y=(0.0, 4.0, 1), z=(0.0, 4.0, 1))",
+        "entity_type": "tally",
+        "name": "mesh"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "mcdc.TallyMesh(mesh=mesh, scores=['fission'])",
+        "entity_type": "tally",
+        "name": "tally_mesh"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "mcdc.TallyCell(cell=sphere_cell, scores=['fission'])",
+        "entity_type": "tally",
+        "name": "tally_cell"
+      }
+    },
+    {
+      "tool": "write_code",
+      "args": {
+        "code": "mcdc.settings.N_particle = 100\nmcdc.settings.N_batch = 2",
+        "entity_type": "settings",
+        "name": "settings"
+      }
+    }
+  ]
+}

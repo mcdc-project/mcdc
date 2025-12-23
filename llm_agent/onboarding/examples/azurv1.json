@@ -1,0 +1,71 @@
+{
+    "name": "azurv1",
+    "complexity": "intermediate",
+    "prompt": "Create an infinite medium with isotropic pulse source at origin. Material has capture=1/3, scatter=1/3, fission=1/3, nu_p=2.3. Reflecting boundaries at x=-1e10 and x=1e10. Tally flux on mesh from -20.5 to 20.5 with time bins.",
+    "tool_calls": [
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m = mcdc.MaterialMG(capture=np.array([1.0 / 3.0]), scatter=np.array([[1.0 / 3.0]]), fission=np.array([1.0 / 3.0]), nu_p=np.array([2.3]))",
+                "entity_type": "material",
+                "name": "m"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s1 = mcdc.Surface.PlaneX(x=-1e10, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "s1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s2 = mcdc.Surface.PlaneX(x=1e10, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "s2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+s1 & -s2, fill=m)",
+                "entity_type": "cell",
+                "name": "cell"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True, energy_group=0, time=0.0)",
+                "entity_type": "source",
+                "name": "source"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mesh = mcdc.MeshStructured(x=np.linspace(-20.5, 20.5, 202))",
+                "entity_type": "tally",
+                "name": "mesh"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyMesh(mesh=mesh, scores=['flux'], time=np.linspace(0.0, 20.0, 21))",
+                "entity_type": "tally",
+                "name": "tally"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.settings.N_particle = 100\nmcdc.settings.N_batch = 2",
+                "entity_type": "settings",
+                "name": "settings"
+            }
+        }
+    ]
+}

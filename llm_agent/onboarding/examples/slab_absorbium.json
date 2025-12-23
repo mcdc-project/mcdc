@@ -1,0 +1,127 @@
+{
+    "name": "slab_absorbium",
+    "complexity": "simple",
+    "prompt": "Create 3 slab layers (0-2-4-6) with different capture cross sections (1.0, 1.5, 2.0). Vacuum BC at both ends. Isotropic source throughout. Tally flux on mesh and net-current on boundary surface.",
+    "tool_calls": [
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m1 = mcdc.MaterialMG(capture=np.array([1.0]))",
+                "entity_type": "material",
+                "name": "m1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m2 = mcdc.MaterialMG(capture=np.array([1.5]))",
+                "entity_type": "material",
+                "name": "m2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m3 = mcdc.MaterialMG(capture=np.array([2.0]))",
+                "entity_type": "material",
+                "name": "m3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "s1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s2 = mcdc.Surface.PlaneZ(z=2.0)",
+                "entity_type": "surface",
+                "name": "s2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s3 = mcdc.Surface.PlaneZ(z=4.0)",
+                "entity_type": "surface",
+                "name": "s3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s4 = mcdc.Surface.PlaneZ(z=6.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "s4"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+s1 & -s2, fill=m2)",
+                "entity_type": "cell",
+                "name": "cell1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+s2 & -s3, fill=m3)",
+                "entity_type": "cell",
+                "name": "cell2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+s3 & -s4, fill=m1)",
+                "entity_type": "cell",
+                "name": "cell3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Source(z=[0.0, 6.0], isotropic=True, energy_group=0)",
+                "entity_type": "source",
+                "name": "source"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallySurface(surface=s4, scores=['net-current'])",
+                "entity_type": "tally",
+                "name": "tally_surface"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mesh = mcdc.MeshStructured(z=np.linspace(0.0, 6.0, 61))",
+                "entity_type": "tally",
+                "name": "mesh"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyMesh(mesh=mesh, mu=np.linspace(-1.0, 1.0, 32 + 1), scores=['flux', 'collision'])",
+                "entity_type": "tally",
+                "name": "tally_mesh"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.settings.N_particle = 100\nmcdc.settings.N_batch = 2",
+                "entity_type": "settings",
+                "name": "settings"
+            }
+        }
+    ]
+}

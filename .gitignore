@@ -7,6 +7,11 @@ mcdc.egg-info
 mcdc_xs
 MCDC-Xsec
 
+# LLM Agent
+llm_agent/vectorstore
+llm_agent/scraped_docs
+llm_agent/corpus/unused_docs
+
 # Python cache
 __pycache__
 *.pyc
@@ -56,6 +61,9 @@ docs/build
 docs/source/pythonapi/generated/
 
 *.csv
+# LLM Agent data files
+!llm_agent/onboarding/material_properties.csv
+!llm_agent/onboarding/nuclear_data.csv
 
 # Regression tests
 dummy_nuclide.h5

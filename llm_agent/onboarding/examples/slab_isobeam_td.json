@@ -1,0 +1,71 @@
+{
+    "name": "slab_isobeam_td",
+    "complexity": "intermediate",
+    "prompt": "Create a 1D time-dependent slab with pure absorber (capture=1.0). Vacuum BCs at x=0 and x=5. Isotropic beam source from left end with white direction (1,0,0), time=[0,5]. Tally flux on uniform mesh with time bins.",
+    "tool_calls": [
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m = mcdc.MaterialMG(capture=np.array([1.0]))",
+                "entity_type": "material",
+                "name": "m"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "s1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s2 = mcdc.Surface.PlaneX(x=5.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "s2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+s1 & -s2, fill=m)",
+                "entity_type": "cell",
+                "name": "cell"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Source(position=(0.0, 0.0, 0.0), white_direction=(1.0, 0.0, 0.0), energy_group=0, time=[0.0, 5.0])",
+                "entity_type": "source",
+                "name": "source"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mesh = mcdc.MeshUniform(x=(0.0, 0.1, 50))",
+                "entity_type": "tally",
+                "name": "mesh"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyMesh(mesh=mesh, scores=['flux'], time=np.linspace(0.0, 5.0, 51))",
+                "entity_type": "tally",
+                "name": "tally"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.settings.N_particle = 100\nmcdc.settings.N_batch = 2",
+                "entity_type": "settings",
+                "name": "settings"
+            }
+        }
+    ]
+}

@@ -1,0 +1,20 @@
+name,formula,density,aliases
+water,H2O,1.0,h2o;light water;lw
+heavy_water,D2O,1.1,d2o;heavy water;hw
+graphite,C,1.7,c;carbon;moderator
+beryllium,Be,1.85,be;reflector
+polyethylene,CH2,0.94,poly
+uranium_dioxide,UO2,10.5,uo2;uranium oxide;fuel
+plutonium_dioxide,PuO2,11.5,puo2;plutonium fuel
+thorium_dioxide,ThO2,10.0,tho2;thorium fuel
+zirconium,Zr,6.52,zr;zirc;zircaloy;zircaloy-4
+boron_carbide,B4C,2.52,b4c;boron;control rod
+cadmium,Cd,8.65,cd;control
+sodium,Na,0.97,na;coolant
+lead,Pb,11.34,pb;shielding
+lead_bismuth_eutectic,Pb0.445Bi0.555,10.24,lbe
+iron,Fe,7.87,fe;iron
+aluminum,Al,2.70,al;aluminium
+ss_304,Fe0.7Cr0.19Ni0.11,8.0,ss304;stainless steel 304
+ss_316,Fe0.65Cr0.17Ni0.12Mo0.025,8.0,ss316;stainless steel 316
+inconel_600,Ni0.76Cr0.15Fe0.08,8.47,inconel;inconel-600

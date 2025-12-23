@@ -1,0 +1,119 @@
+{
+    "name": "inf_pin_ce_k_eigenvalue",
+    "complexity": "advanced",
+    "prompt": "Create an infinite pin cell eigenvalue problem with UO2 fuel (cylinder r=0.4572) in borated water. Use continuous energy materials. Fuel: U235=0.0005581658948833916, U238=0.022404594715383263, O16=0.045831301393656466. Water: B10=0.0001357003217727274, H1=0.0684556951587359, O16=0.032785655643293984. Pitch=1.25984 with reflective boundaries. Enable eigenmode with N_inactive=1, N_active=2 and population control.",
+    "tool_calls": [
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "fuel = mcdc.Material(nuclide_composition={'U235': 0.0005581658948833916, 'U238': 0.022404594715383263, 'O16': 0.045831301393656466})",
+                "entity_type": "material",
+                "name": "fuel"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "water = mcdc.Material(nuclide_composition={'B10': 0.0001357003217727274, 'H1': 0.0684556951587359, 'O16': 0.032785655643293984})",
+                "entity_type": "material",
+                "name": "water"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "cy = mcdc.Surface.CylinderZ(center=[0.0, 0.0], radius=0.45720)",
+                "entity_type": "surface",
+                "name": "cy"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "pitch = 1.25984",
+                "entity_type": "settings",
+                "name": "pitch"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "x1 = mcdc.Surface.PlaneX(x=-pitch / 2, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "x1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "x2 = mcdc.Surface.PlaneX(x=pitch / 2, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "x2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "y1 = mcdc.Surface.PlaneY(y=-pitch / 2, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "y1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "y2 = mcdc.Surface.PlaneY(y=pitch / 2, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "y2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=-cy & +x1 & -x2 & +y1 & -y2, fill=fuel)",
+                "entity_type": "cell",
+                "name": "fuel_cell"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+cy & +x1 & -x2 & +y1 & -y2, fill=water)",
+                "entity_type": "cell",
+                "name": "water_cell"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Source(x=[-pitch / 2, pitch / 2], y=[-pitch / 2, pitch / 2], isotropic=True, energy=1e6)",
+                "entity_type": "source",
+                "name": "source"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyGlobal(scores=['flux', 'density'], energy=np.loadtxt('energy_grid.txt'), time=np.insert(np.logspace(-8, 2, 50), 0, 0.0))",
+                "entity_type": "tally",
+                "name": "tally"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.settings.N_particle = 100\nmcdc.settings.set_eigenmode(N_inactive=1, N_active=2)\nmcdc.settings.census_bank_buffer_ratio = 100.0",
+                "entity_type": "settings",
+                "name": "settings"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.simulation.population_control()",
+                "entity_type": "settings",
+                "name": "technique"
+            }
+        }
+    ]
+}

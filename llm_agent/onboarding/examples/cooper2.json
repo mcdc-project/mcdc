@@ -1,0 +1,151 @@
+{
+    "name": "cooper2",
+    "complexity": "intermediate",
+    "prompt": "Create a 2D shielding problem with a barrier. Room material has SigmaT=1.0, c=0.8. Barrier material has SigmaT=5.0, c=0.8. Domain is 0-4 x 0-4. Barrier at x=2.0-2.4 for y<2. Reflective BC at x=0, y=0. Vacuum at x=4, y=4. Isotropic source in region 0-1 x 0-1. Use MeshUniform for flux tally with implicit capture.",
+    "tool_calls": [
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m_barrier = mcdc.MaterialMG(capture=np.array([5.0]), scatter=np.array([[5.0 * 0.8]]))",
+                "entity_type": "material",
+                "name": "m_barrier"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m_room = mcdc.MaterialMG(capture=np.array([1.0]), scatter=np.array([[1.0 * 0.8]]))",
+                "entity_type": "material",
+                "name": "m_room"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sx1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "sx1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sx2 = mcdc.Surface.PlaneX(x=2.0)",
+                "entity_type": "surface",
+                "name": "sx2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sx3 = mcdc.Surface.PlaneX(x=2.4)",
+                "entity_type": "surface",
+                "name": "sx3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sx4 = mcdc.Surface.PlaneX(x=4.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "sx4"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sy1 = mcdc.Surface.PlaneY(y=0.0, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "sy1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sy2 = mcdc.Surface.PlaneY(y=2.0)",
+                "entity_type": "surface",
+                "name": "sy2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sy3 = mcdc.Surface.PlaneY(y=4.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "sy3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+sx1 & -sx2 & +sy1 & -sy2, fill=m_room)",
+                "entity_type": "cell",
+                "name": "cell1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+sx1 & -sx4 & +sy2 & -sy3, fill=m_room)",
+                "entity_type": "cell",
+                "name": "cell2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+sx3 & -sx4 & +sy1 & -sy2, fill=m_room)",
+                "entity_type": "cell",
+                "name": "cell3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+sx2 & -sx3 & +sy1 & -sy2, fill=m_barrier)",
+                "entity_type": "cell",
+                "name": "cell4"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Source(x=[0.0, 1.0], y=[0.0, 1.0], isotropic=True, energy_group=0, time=0.0)",
+                "entity_type": "source",
+                "name": "source"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mesh = mcdc.MeshUniform(x=(0.0, 0.1, 40), y=(0.0, 0.1, 40))",
+                "entity_type": "tally",
+                "name": "mesh"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyMesh(mesh=mesh, scores=['flux'])",
+                "entity_type": "tally",
+                "name": "tally"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.settings.N_particle = 50\nmcdc.settings.N_batch = 2",
+                "entity_type": "settings",
+                "name": "settings"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.simulation.implicit_capture()",
+                "entity_type": "settings",
+                "name": "technique"
+            }
+        }
+    ]
+}

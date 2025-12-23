@@ -1,0 +1,175 @@
+{
+    "name": "moving_pellet",
+    "complexity": "advanced",
+    "prompt": "Create a moving fuel pellet in air. Fuel has capture=0.5, fission=0.5, nu_p=2.5, speed=200000. Air has capture=0.002, scatter=0.008, speed=200000. Cylinder along z-axis at origin with radius 1.0, bounded by z=6 to z=9. Pellet moves in x direction [-0.5,1.0,-2.0] at times [2.0,5.0,1.0] and in z direction [-2,4,-10] at times [5.0,2.0,1.0]. Box container -5 to 5 in x,y and -10 to 10 in z with vacuum BCs.",
+    "tool_calls": [
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "fuel = mcdc.MaterialMG(capture=np.array([0.5]), fission=np.array([0.5]), nu_p=np.array([2.5]), speed=np.array([200000.0]))",
+                "entity_type": "material",
+                "name": "fuel"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "air = mcdc.MaterialMG(capture=np.array([0.002]), scatter=np.array([[0.008]]), speed=np.array([200000.0]))",
+                "entity_type": "material",
+                "name": "air"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "cylinder_z = mcdc.Surface.CylinderZ(center=[0.0, 0.0], radius=1.0)",
+                "entity_type": "surface",
+                "name": "cylinder_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "top_z = mcdc.Surface.PlaneZ(z=9.0)",
+                "entity_type": "surface",
+                "name": "top_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "bot_z = mcdc.Surface.PlaneZ(z=6.0)",
+                "entity_type": "surface",
+                "name": "bot_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "cylinder_z.move([[-0.5, 0.0, 0.0], [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0]], [2.0, 5.0, 1.0])",
+                "entity_type": "surface",
+                "name": "cylinder_z_move"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "top_z.move([[0.0, 0.0, -2.0], [0.0, 0.0, 4.0], [0.0, 0.0, -10.0]], [5.0, 2.0, 1.0])",
+                "entity_type": "surface",
+                "name": "top_z_move"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "bot_z.move([[0.0, 0.0, -2.0], [0.0, 0.0, 4.0], [0.0, 0.0, -10.0]], [5.0, 2.0, 1.0])",
+                "entity_type": "surface",
+                "name": "bot_z_move"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "min_x = mcdc.Surface.PlaneX(x=-5.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "min_x"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "max_x = mcdc.Surface.PlaneX(x=5.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "max_x"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "min_y = mcdc.Surface.PlaneY(y=-5.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "min_y"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "max_y = mcdc.Surface.PlaneY(y=5.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "max_y"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "min_z = mcdc.Surface.PlaneZ(z=-10.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "min_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "max_z = mcdc.Surface.PlaneZ(z=10.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "max_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "fuel_pellet_region = +bot_z & -top_z & -cylinder_z",
+                "entity_type": "region",
+                "name": "fuel_pellet_region"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=fuel_pellet_region, fill=fuel)",
+                "entity_type": "cell",
+                "name": "fuel_cell"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=~fuel_pellet_region & +min_x & -max_x & +min_y & -max_y & +min_z & -max_z, fill=air)",
+                "entity_type": "cell",
+                "name": "air_cell"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Source(x=[2.0, 3.0], y=[-0.5, 0.5], z=[-0.5, 0.5], isotropic=True, energy_group=0, time=[0.0, 9.0])",
+                "entity_type": "source",
+                "name": "source"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mesh = mcdc.MeshStructured(x=np.linspace(-5, 5, 201), z=np.linspace(-10, 10, 201))",
+                "entity_type": "tally",
+                "name": "mesh"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyMesh(mesh=mesh, scores=['fission'], time=np.linspace(0, 9, 46))",
+                "entity_type": "tally",
+                "name": "tally"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.settings.N_particle = 5\nmcdc.settings.N_batch = 2\nmcdc.settings.active_bank_buffer = 1000",
+                "entity_type": "settings",
+                "name": "settings"
+            }
+        }
+    ]
+}

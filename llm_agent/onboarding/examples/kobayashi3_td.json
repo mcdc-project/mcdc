@@ -1,0 +1,271 @@
+{
+    "name": "kobayashi3_td",
+    "complexity": "advanced",
+    "prompt": "Create a 3D dog-leg shielding benchmark. Shield material has capture=0.05, scatter=0.05. Void channel has very low cross sections. Box domain 60x100x60 with reflective BC at origin faces, vacuum at far faces. Source in corner cube 0-10. Void channels connect source region to far corner via L-shaped path. Tally flux on cells and mesh with time bins.",
+    "tool_calls": [
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m = mcdc.MaterialMG(capture=np.array([0.05]), scatter=np.array([[0.05]]))",
+                "entity_type": "material",
+                "name": "m"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m_void = mcdc.MaterialMG(capture=np.array([5e-5]), scatter=np.array([[5e-5]]))",
+                "entity_type": "material",
+                "name": "m_void"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sx1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "sx1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sx2 = mcdc.Surface.PlaneX(x=10.0)",
+                "entity_type": "surface",
+                "name": "sx2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sx3 = mcdc.Surface.PlaneX(x=30.0)",
+                "entity_type": "surface",
+                "name": "sx3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sx4 = mcdc.Surface.PlaneX(x=40.0)",
+                "entity_type": "surface",
+                "name": "sx4"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sx5 = mcdc.Surface.PlaneX(x=60.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "sx5"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sy1 = mcdc.Surface.PlaneY(y=0.0, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "sy1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sy2 = mcdc.Surface.PlaneY(y=10.0)",
+                "entity_type": "surface",
+                "name": "sy2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sy3 = mcdc.Surface.PlaneY(y=50.0)",
+                "entity_type": "surface",
+                "name": "sy3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sy4 = mcdc.Surface.PlaneY(y=60.0)",
+                "entity_type": "surface",
+                "name": "sy4"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sy5 = mcdc.Surface.PlaneY(y=100.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "sy5"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sz1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "sz1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sz2 = mcdc.Surface.PlaneZ(z=10.0)",
+                "entity_type": "surface",
+                "name": "sz2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sz3 = mcdc.Surface.PlaneZ(z=30.0)",
+                "entity_type": "surface",
+                "name": "sz3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sz4 = mcdc.Surface.PlaneZ(z=40.0)",
+                "entity_type": "surface",
+                "name": "sz4"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sz5 = mcdc.Surface.PlaneZ(z=60.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "sz5"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "source_cell = mcdc.Cell(region=+sx1 & -sx2 & +sy1 & -sy2 & +sz1 & -sz2, fill=m)",
+                "entity_type": "cell",
+                "name": "source_cell"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "channel_1 = +sx1 & -sx2 & +sy2 & -sy3 & +sz1 & -sz2",
+                "entity_type": "region",
+                "name": "channel_1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "channel_2 = +sx1 & -sx3 & +sy3 & -sy4 & +sz1 & -sz2",
+                "entity_type": "region",
+                "name": "channel_2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "channel_3 = +sx3 & -sx4 & +sy3 & -sy4 & +sz1 & -sz3",
+                "entity_type": "region",
+                "name": "channel_3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "channel_4 = +sx3 & -sx4 & +sy3 & -sy5 & +sz3 & -sz4",
+                "entity_type": "region",
+                "name": "channel_4"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "void_channel = channel_1 | channel_2 | channel_3 | channel_4",
+                "entity_type": "region",
+                "name": "void_channel"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "void_cell = mcdc.Cell(region=void_channel, fill=m_void)",
+                "entity_type": "cell",
+                "name": "void_cell"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "box = +sx1 & -sx5 & +sy1 & -sy5 & +sz1 & -sz5",
+                "entity_type": "region",
+                "name": "box"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "shield_cell = mcdc.Cell(region=box & ~void_channel, fill=m)",
+                "entity_type": "cell",
+                "name": "shield_cell"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Source(x=[0.0, 10.0], y=[0.0, 10.0], z=[0.0, 10.0], isotropic=True, energy_group=0, time=[0.0, 50.0])",
+                "entity_type": "source",
+                "name": "source"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyCell(cell=source_cell, scores=['flux'])",
+                "entity_type": "tally",
+                "name": "tally_source"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyCell(cell=void_cell, scores=['flux'])",
+                "entity_type": "tally",
+                "name": "tally_void"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyCell(cell=shield_cell, scores=['flux'])",
+                "entity_type": "tally",
+                "name": "tally_shield"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mesh = mcdc.MeshUniform(x=(0.0, 2.0, 30), y=(0.0, 2.0, 50))",
+                "entity_type": "tally",
+                "name": "mesh"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyMesh(mesh=mesh, scores=['flux'], time=np.linspace(0.0, 200.0, 21))",
+                "entity_type": "tally",
+                "name": "tally_mesh"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.settings.N_particle = 80\nmcdc.settings.N_batch = 2",
+                "entity_type": "settings",
+                "name": "settings"
+            }
+        }
+    ]
+}

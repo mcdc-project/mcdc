@@ -1,0 +1,151 @@
+{
+    "name": "slab_reed",
+    "complexity": "intermediate",
+    "prompt": "Create 4 slab layers along z-axis (0-2-3-5-8) with different absorbing materials. Reflective BC at z=0, vacuum at z=8. Two sources - one strong in region 0-2 and one weak in region 5-6. Tally flux on a structured mesh.",
+    "tool_calls": [
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m1 = mcdc.MaterialMG(capture=np.array([50.0]))",
+                "entity_type": "material",
+                "name": "m1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m2 = mcdc.MaterialMG(capture=np.array([5.0]))",
+                "entity_type": "material",
+                "name": "m2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m3 = mcdc.MaterialMG(capture=np.array([0.0]))",
+                "entity_type": "material",
+                "name": "m3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "m4 = mcdc.MaterialMG(capture=np.array([0.1]), scatter=np.array([[0.9]]))",
+                "entity_type": "material",
+                "name": "m4"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition='reflective')",
+                "entity_type": "surface",
+                "name": "s1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s2 = mcdc.Surface.PlaneZ(z=2.0)",
+                "entity_type": "surface",
+                "name": "s2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s3 = mcdc.Surface.PlaneZ(z=3.0)",
+                "entity_type": "surface",
+                "name": "s3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s4 = mcdc.Surface.PlaneZ(z=5.0)",
+                "entity_type": "surface",
+                "name": "s4"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "s5 = mcdc.Surface.PlaneZ(z=8.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "s5"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+s1 & -s2, fill=m1)",
+                "entity_type": "cell",
+                "name": "cell1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+s2 & -s3, fill=m2)",
+                "entity_type": "cell",
+                "name": "cell2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+s3 & -s4, fill=m3)",
+                "entity_type": "cell",
+                "name": "cell3"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Cell(region=+s4 & -s5, fill=m4)",
+                "entity_type": "cell",
+                "name": "cell4"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Source(z=[0.0, 2.0], isotropic=True, energy_group=0, probability=50.0)",
+                "entity_type": "source",
+                "name": "source1"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Source(z=[5.0, 6.0], isotropic=True, energy_group=0, probability=0.5)",
+                "entity_type": "source",
+                "name": "source2"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mesh = mcdc.MeshStructured(z=np.linspace(0.0, 8.0, 81))",
+                "entity_type": "tally",
+                "name": "mesh"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyMesh(mesh=mesh, scores=['flux'])",
+                "entity_type": "tally",
+                "name": "tally"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.settings.N_particle = 5000\nmcdc.settings.N_batch = 2",
+                "entity_type": "settings",
+                "name": "settings"
+            }
+        }
+    ]
+}

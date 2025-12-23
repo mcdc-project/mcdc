@@ -1,0 +1,271 @@
+{
+    "name": "fuel_array_packaged",
+    "complexity": "advanced",
+    "prompt": "Create a shooting star fuel assembly (crossed cylinders in X and Z) inside a spherical cover, surrounded by water. Fuel has capture=0.45, fission=0.55, nu_p=2.5. Cover has capture=0.05, scatter=0.95. Water has capture=0.02, scatter=0.08. CylinderZ and CylinderX with radius 1.0, bounded by planes at +/-2.5. Sphere at origin with radius 3.0. Create two copies via universes with translations at x=-5 and x=+5, with rotation on the right assembly.",
+    "tool_calls": [
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "fuel = mcdc.MaterialMG(capture=np.array([0.45]), fission=np.array([0.55]), nu_p=np.array([2.5]))",
+                "entity_type": "material",
+                "name": "fuel"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "cover = mcdc.MaterialMG(capture=np.array([0.05]), scatter=np.array([[0.95]]))",
+                "entity_type": "material",
+                "name": "cover"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "water = mcdc.MaterialMG(capture=np.array([0.02]), scatter=np.array([[0.08]]))",
+                "entity_type": "material",
+                "name": "water"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "cylinder_z = mcdc.Surface.CylinderZ(center=[0.0, 0.0], radius=1.0)",
+                "entity_type": "surface",
+                "name": "cylinder_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "cylinder_x = mcdc.Surface.CylinderX(center=[0.0, 0.0], radius=1.0)",
+                "entity_type": "surface",
+                "name": "cylinder_x"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "top_z = mcdc.Surface.PlaneZ(z=2.5)",
+                "entity_type": "surface",
+                "name": "top_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "bot_z = mcdc.Surface.PlaneZ(z=-2.5)",
+                "entity_type": "surface",
+                "name": "bot_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "top_x = mcdc.Surface.PlaneX(x=2.5)",
+                "entity_type": "surface",
+                "name": "top_x"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "bot_x = mcdc.Surface.PlaneX(x=-2.5)",
+                "entity_type": "surface",
+                "name": "bot_x"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "sphere = mcdc.Surface.Sphere(center=[0.0, 0.0, 0.0], radius=3.0)",
+                "entity_type": "surface",
+                "name": "sphere"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "pellet_z = -cylinder_z & +bot_z & -top_z",
+                "entity_type": "region",
+                "name": "pellet_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "pellet_x = -cylinder_x & +bot_x & -top_x",
+                "entity_type": "region",
+                "name": "pellet_x"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "shooting_star = pellet_z | pellet_x",
+                "entity_type": "region",
+                "name": "shooting_star"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "fuel_shooting_star = mcdc.Cell(region=shooting_star, fill=fuel)",
+                "entity_type": "cell",
+                "name": "fuel_shooting_star"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "cover_sphere = mcdc.Cell(region=-sphere & ~shooting_star, fill=cover)",
+                "entity_type": "cell",
+                "name": "cover_sphere"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "water_tank = mcdc.Cell(region=+sphere, fill=water)",
+                "entity_type": "cell",
+                "name": "water_tank"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "assembly = mcdc.Universe(cells=[fuel_shooting_star, cover_sphere, water_tank])",
+                "entity_type": "universe",
+                "name": "assembly"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "min_x = mcdc.Surface.PlaneX(x=-10.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "min_x"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mid_x = mcdc.Surface.PlaneX(x=0.0)",
+                "entity_type": "surface",
+                "name": "mid_x"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "max_x = mcdc.Surface.PlaneX(x=10.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "max_x"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "min_y = mcdc.Surface.PlaneY(y=-5.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "min_y"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "max_y = mcdc.Surface.PlaneY(y=5.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "max_y"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "min_z = mcdc.Surface.PlaneZ(z=-5.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "min_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "max_z = mcdc.Surface.PlaneZ(z=5.0, boundary_condition='vacuum')",
+                "entity_type": "surface",
+                "name": "max_z"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "container_left = +min_y & -max_y & +min_z & -max_z & +min_x & -mid_x",
+                "entity_type": "region",
+                "name": "container_left"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "container_right = +min_y & -max_y & +min_z & -max_z & +mid_x & -max_x",
+                "entity_type": "region",
+                "name": "container_right"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "assembly_left = mcdc.Cell(region=container_left, fill=assembly, translation=[-5, 0, 0])",
+                "entity_type": "cell",
+                "name": "assembly_left"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "assembly_right = mcdc.Cell(region=container_right, fill=assembly, translation=[+5, 0, 0], rotation=[0, 10, 0])",
+                "entity_type": "cell",
+                "name": "assembly_right"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.simulation.set_root_universe(cells=[assembly_left, assembly_right])",
+                "entity_type": "settings",
+                "name": "root"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.Source(x=[-0.1, 0.1], isotropic=True, energy_group=0)",
+                "entity_type": "source",
+                "name": "source"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mesh = mcdc.MeshStructured(x=np.linspace(-10, 10, 201), z=np.linspace(-5, 5, 101))",
+                "entity_type": "tally",
+                "name": "mesh"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.TallyMesh(mesh=mesh, scores=['fission'])",
+                "entity_type": "tally",
+                "name": "tally"
+            }
+        },
+        {
+            "tool": "write_code",
+            "args": {
+                "code": "mcdc.settings.N_particle = 100\nmcdc.settings.N_batch = 2\nmcdc.settings.active_bank_buffer = 1000",
+                "entity_type": "settings",
+                "name": "settings"
+            }
+        }
+    ]
+}

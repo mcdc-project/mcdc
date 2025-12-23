@@ -1,0 +1,46 @@
+# LLM Agent Requirements
+# ----------------------
+# Install with: pip install -r requirements.txt
+# Then install MCDC separately (see note at bottom)
+
+# Core LLM Framework
+langchain>=1.0.0
+langchain-core>=1.0.0
+langchain-chroma>=1.0.0
+langchain-huggingface>=1.0.0
+langchain-google-genai>=3.0.0
+langchain-community>=0.4.0
+langchain-text-splitters>=1.0.0
+
+# Embeddings & Vector Store
+chromadb>=1.0.0
+sentence-transformers>=5.0.0
+
+# Data Processing
+pandas
+numpy>=2.0.0
+
+# Visualization
+matplotlib
+
+# CLI Interface
+rich
+prompt-toolkit
+
+# Document Processing
+pypdf
+beautifulsoup4
+requests
+
+# Utilities
+python-dotenv
+pydantic>=2.0.0
+
+# --------------------------------------------------
+# MCDC
+# --------------------------------------------------
+# MCDC must be installed separately from the repo root:
+#   pip install -e .
+#
+# This installs MCDC's dependencies automatically:
+#   numba, numpy, scipy, matplotlib, mpi4py, h5py, colorama, sympy, cvxpy
