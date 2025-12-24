@@ -11,6 +11,7 @@ from typing import Annotated
 from mcdc.constant import MATERIAL, MATERIAL_MG
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.nuclide import Nuclide
+from mcdc.object_.element import Element
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
 

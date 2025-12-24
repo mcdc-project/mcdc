@@ -23,6 +23,7 @@ from mcdc.constant import (
     REACTION_ELECTRON_IONIZATION,
     REFERENCE_FRAME_COM,
     REFERENCE_FRAME_LAB,
+    MU_CUTOFF,
 )
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.distribution import (
@@ -50,7 +51,7 @@ class ReactionBase(ObjectPolymorphic):
     #
     MT: int
     xs: NDArray[float64]
-    xs_offset_: int  # "xs_offset" ir reserved for "xs"
+    xs_offset_: int  # "xs_offset" is reserved for "xs"
     reference_frame: int
 
     def __init__(self, type_, MT, xs, xs_offset, reference_frame):
@@ -305,8 +306,9 @@ class ReactionElectronIonization(ReactionBase):
     label: str = "electron_ionization_reaction"
     #
     N_subshell: int
-    subshell_xs: list[DataBase]
-    subshell_product: list[DistributionBase]
+    subshell_xs: DistributionBase
+    binding_energy: NDArray[float64]
+    subshell_product: DistributionBase
 
     def __init__(
         self,
@@ -315,6 +317,7 @@ class ReactionElectronIonization(ReactionBase):
         xs_offset,
         reference_frame,
         subshell_xs,
+        binding_energy,
         subshell_product,
     ):
         type_ = REACTION_ELECTRON_IONIZATION
@@ -322,6 +325,7 @@ class ReactionElectronIonization(ReactionBase):
 
         self.N_subshell = len(subshell_xs)
         self.subshell_xs = subshell_xs
+        self.binding_energy = binding_energy
         self.subshell_product = subshell_product
 
     @classmethod
@@ -333,6 +337,7 @@ class ReactionElectronIonization(ReactionBase):
 
         subshell_xs = []
         subshell_product = []
+        binding_energy = []
 
         for name in subshell_names:
             subshell = subshells[name]
@@ -343,6 +348,7 @@ class ReactionElectronIonization(ReactionBase):
                 subshell["xs"][()]
             )
             subshell_xs.append(xs_sub)
+            binding_energy.append(subshell[0].x[0])
 
             # Secondary electron energy distribution
             product = subshell["product"]
@@ -360,6 +366,7 @@ class ReactionElectronIonization(ReactionBase):
             xs_offset,
             reference_frame,
             subshell_xs,
+            binding_energy,
             subshell_product,
         )
 
@@ -385,9 +392,8 @@ class ReactionElectronIonization(ReactionBase):
 class ReactionElectronElasticScattering(ReactionBase):
     label: str = "electron_elastic_scattering_reaction"
     #
-    mu_cut: float
     xs_large: DataBase
-    mu_table: DistributionMultiTable
+    mu: DistributionMultiTable
 
     def __init__(
         self,
@@ -395,15 +401,14 @@ class ReactionElectronElasticScattering(ReactionBase):
         xs,
         xs_offset,
         reference_frame,
-        mu_cut,
         xs_large,
-        mu_table,
+        mu,
     ):
         type_ = REACTION_ELECTRON_ELASTIC_SCATTERING
         super().__init__(type_, MT, xs, xs_offset, reference_frame)
-        self.mu_cut = mu_cut
+        self.mu_cut = MU_CUTOFF
         self.xs_large = xs_large
-        self.mu_table = mu_table
+        self.mu = mu
 
     @classmethod
     def from_h5_group(cls, h5_group):
@@ -411,7 +416,6 @@ class ReactionElectronElasticScattering(ReactionBase):
 
         # Large angle data
         large_angle = h5_group["large_angle"]
-        mu_cut = float(large_angle.attrs.get("mu_cut", 0.999999))
 
         xs_large = DataTable(
             large_angle["xs_energy"][()],
@@ -419,7 +423,7 @@ class ReactionElectronElasticScattering(ReactionBase):
         )
 
         mu_g = large_angle["scattering_cosine"]
-        mu_table = DistributionMultiTable(
+        mu = DistributionMultiTable(
             mu_g["energy_grid"][()],
             mu_g["energy_offset"][()],
             mu_g["value"][()],
@@ -431,9 +435,8 @@ class ReactionElectronElasticScattering(ReactionBase):
             xs,
             xs_offset,
             reference_frame,
-            mu_cut,
             xs_large,
-            mu_table,
+            mu,
         )
 
     def __repr__(self):
@@ -441,8 +444,8 @@ class ReactionElectronElasticScattering(ReactionBase):
         text += f"  - Mu cut: {self.mu_cut}\n"
         text += f"  - Large angle XS: DataTable [ID: {self.xs_large.ID}]\n"
         text += (
-            f"  - Scattering cosine: {distribution.decode_type(self.mu_table.type)} "
-            f"[ID: {self.mu_table.ID}]\n"
+            f"  - Scattering cosine: {distribution.decode_type(self.mu.type)} "
+            f"[ID: {self.mu.ID}]\n"
         )
         return text
 
