@@ -14,6 +14,7 @@ from mcdc.object_.nuclide import Nuclide
 from mcdc.object_.element import Element
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
+from mcdc.object_.util import ISOTOPIC_ABUNDANCE
 
 # ======================================================================================
 # Material base class
@@ -63,17 +64,22 @@ class Material(MaterialBase):
     # Annotations for Numba mode
     label: str = "native_material"
     non_numba: list[str] = ["nuclide_composition"]
+    non_numba_element: list[str] = ["element_composition"]
     #
     nuclide_composition: dict[Nuclide, float]
+    element_composition: dict[Element, float]
     #
     nuclides: list[Nuclide]
+    elements: list[Element]
     nuclide_densities: NDArray[float64]
+    element_densities: NDArray[float64]
 
     def __init__(
         self,
         name: str = "",
         nuclide_composition: dict[str, float] = {},
-        temperature: float = 293.6,
+        element_composition: dict[str, float] = {},
+        temperature: float = 293.6
     ):
         type_ = MATERIAL
         super().__init__(type_, name)
@@ -84,14 +90,72 @@ class Material(MaterialBase):
         # Dictionary connecting nuclides to respective densities
         self.nuclide_composition = {}
 
+        # Dictionary connecting elements to respective densities
+        self.element_composition = {}
+
         # Numba representation of nuclide_composition
         self.nuclides = []
         self.nuclide_densities = np.zeros(len(nuclide_composition))
+
+        # Numba representation of element_composition
+        self.elements = []
+        self.element_densities = np.zeros(len(element_composition))
+
+        # ==============================================================================
+        # Argument checks
+        # ==============================================================================
+
+        # Check that either nuclide or element composition is provided, not both
+        if len(nuclide_composition) > 0 and len(element_composition) > 0:
+            print_error("Cannot specify both nuclide_composition and element_composition")
+        
+        if len(nuclide_composition) == 0 and len(element_composition) == 0:
+            print_error("Must specify either nuclide_composition or element_composition")
 
         # Check if library directory is set
         lib_dir = os.getenv("MCDC_LIB")
         if lib_dir is None:
             print_error("Environment variable MCDC_LIB is not set")
+
+        # ==============================================================================
+        # Element-based construction
+        # ==============================================================================
+
+        # Loop over the items in the composition
+        for i, (key, value) in enumerate(element_composition.items()):
+            element_name = key
+            element_density = value
+            temperature = 0.0  # Elements are always at 0 K
+
+            # Check if element is available in the library
+            file_name = f"{element_name}.h5"
+            if not file_name in os.listdir(lib_dir):
+                print_error(
+                    f"Element {element_name} is not available in the library"
+                )
+            
+            # Check if element is already created
+            found = False
+            for element in simulation.elements:
+                if (
+                    element.name == element_name
+                ):
+                    found = True
+                    break
+
+            # Create the element to objects if needed
+            if not found:
+                element = Element(element_name)
+
+            # Register the element composition
+            self.elements.append(element)
+            self.element_densities[i] = element_density
+            self.element_composition[element] = element_density
+
+
+        # ==============================================================================
+        # Nuclide-based construction
+        # ==============================================================================
 
         # Loop over the items in the composition
         for i, (key, value) in enumerate(nuclide_composition.items()):
@@ -131,17 +195,27 @@ class Material(MaterialBase):
             if nuclide.fissionable:
                 self.fissionable = True
 
+        # Create undefined compositions
+        if self.nuclides == []:
+            set_nuclides_from_elements(self)
+        if self.elements == []:
+            set_elements_from_nuclides(self)
+
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Temperature: {self.temperature} K\n"
         text += f"  - Nuclide composition [atoms/barn-cm]\n"
         for nuclide in self.nuclide_composition.keys():
             text += f"    - {nuclide.name:<5} | {self.nuclide_composition[nuclide]}\n"
+        text += f"  - Element composition [atoms/barn-cm]\n"
+        for element in self.element_composition.keys():
+            text += f"    - {element.name:<5} | {self.element_composition[element]}\n"
         return text
 
 
 # Currently supported temperatures
 TEMPERATURES = [0.1, 233.15, 273.15, 293.6, 600.0, 900.0, 1200.0, 2500.0]
+TEMPERATURES_ELEMENT = [0.0]
 
 
 # ======================================================================================
@@ -322,3 +396,110 @@ class MaterialMG(MaterialBase):
         text += f"    - speed {print_1d_array(self.mgxs_speed)}\n"
         text += f"    - lambda {print_1d_array(self.mgxs_decay_rate)}\n"
         return text
+
+
+# ======================================================================================
+# Helpers
+# ======================================================================================
+
+def set_nuclides_from_elements(material):
+    material.nuclides = []
+    material.nuclide_densities = []
+    material.nuclide_composition = {}
+
+    # Check if library directory is set
+    lib_dir = os.getenv("MCDC_LIB")
+    if lib_dir is None:
+        print_error("Environment variable MCDC_LIB is not set")
+
+    # Get supported temperature
+    nearest_temperature = min(
+        TEMPERATURES, key=lambda x: abs(x - material.temperature)
+    )
+
+    for element, element_density in material.element_composition.items():
+        # To make sure that the abundance is normalized
+        norm = 0.0
+        for (_, abundance) in ISOTOPIC_ABUNDANCE[element.name].items():
+            norm += abundance
+
+        # Loop over the nuclide composition
+        for nuclide_name, abundance in ISOTOPIC_ABUNDANCE[element.name].items():
+            # Check if nuclide-temperature is available in the library
+            file_name = f"{nuclide_name}-{nearest_temperature}K.h5"
+            if not file_name in os.listdir(lib_dir):
+                print_error(
+                    f"Nuclide {nuclide_name} at temperature {nearest_temperature} K is not available in the library"
+                )
+
+            # Check if nuclide is already created
+            found = False
+            for nuclide in simulation.nuclides:
+                if (
+                    nuclide.name == nuclide_name
+                    and nearest_temperature == nuclide.temperature
+                ):
+                    found = True
+                    break
+
+            # Create the nuclide to objects if needed
+            if not found:
+                nuclide = Nuclide(nuclide_name, nearest_temperature)
+
+            # Calculate nuclide density
+            nuclide_density = element_density * abundance / norm
+
+            # Register the nuclide composition
+            material.nuclides.append(nuclide)
+            material.nuclide_densities.append(nuclide_density)
+            material.nuclide_composition[nuclide] = nuclide_density
+
+            # Some flags
+            if nuclide.fissionable:
+                material.fissionable = True
+
+    material.nuclide_densities = np.array(material.nuclide_densities)
+
+
+def set_elements_from_nuclides(material):
+    material.elements = []
+    material.element_densities = []
+    material.element_composition = {}
+
+    # Get the list of the element names
+    element_names = []
+    for nuclide in material.nuclides:
+        name = nuclide.name[:2]
+        if name[1].isdigit():
+            name = name[0]
+        if name not in element_names:
+            element_names.append(name)
+    material.element_densities = np.zeros(len(element_names))
+
+    # Iterate over all named elements
+    for i, element_name in enumerate(element_names):
+        # Check if element is already created
+        found = False
+        for element in simulation.elements:
+            if element.name == element_name:
+                found = True
+                break
+
+        # Create the element to objects if needed
+        if not found:
+            element = Element(element_name)
+
+        material.elements.append(element)
+
+        # Iterate over all nuclides to get the total density
+        density = 0.0
+        for nuclide, nuclide_density in material.nuclide_composition.items():
+            # Skip if non-isotope
+            if nuclide.name[: len(element_name)] != element_name:
+                continue
+
+            # Accumulate density
+            density += material.nuclide_composition[nuclide]
+
+        material.element_densities[i] = density
+        material.element_composition[element] = density
