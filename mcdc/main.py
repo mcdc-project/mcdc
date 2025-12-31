@@ -213,6 +213,9 @@ def preparation():
     MPI.COMM_WORLD.Barrier()
 
     import importlib
+
+    importlib.invalidate_caches()
+
     import mcdc.transport.literals as literals
 
     importlib.reload(literals)
