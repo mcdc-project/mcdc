@@ -209,11 +209,18 @@ def preparation():
         from mcdc.code_factory.numba_objects_generator import make_literals
 
         make_literals(simulation)
+
+    MPI.COMM_WORLD.Barrier()
+
+    import importlib
+    import mcdc.transport.literals as literals
+
+    importlib.reload(literals)
+
     mcdc_arr, data = generate_numba_objects(simulation)
     mcdc = mcdc_arr[0]
 
     # Reload mcdc getters and setters
-    import importlib
     import mcdc.mcdc_get as mcdc_get
     import mcdc.mcdc_set as mcdc_set
 
