@@ -5,6 +5,7 @@
 
 from mcdc import mcdc_get
 from mcdc.print_ import print_error, print_structure
+import importlib
 
 
 def run():
@@ -211,9 +212,6 @@ def preparation():
         make_literals(simulation)
 
     MPI.COMM_WORLD.Barrier()
-
-    import importlib
-
     importlib.invalidate_caches()
 
     import mcdc.transport.literals as literals
