@@ -6,7 +6,6 @@ from numpy.typing import NDArray
 
 ####
 
-from mcdc.object_.cell import Region
 from mcdc.constant import (
     BC_NONE,
     BC_REFLECTIVE,
@@ -23,7 +22,9 @@ from mcdc.constant import (
     SURFACE_SPHERE,
 )
 from mcdc.object_.base import ObjectNonSingleton
+from mcdc.object_.cell import Region
 from mcdc.object_.tally import TallySurface
+from mcdc.object_.util import move_object
 
 
 # ======================================================================================
@@ -642,34 +643,7 @@ class Surface(ObjectNonSingleton):
         >>> s.N_move
         2
         """
-        self.moving = True
-        self.N_move = len(durations) + 1
-        self.N_move_grid = len(durations) + 2
-
-        if isinstance(velocities, np.ndarray):
-            velocities = velocities.tolist()
-            durations = durations.tolist()
-
-        # Add the statics for the rest of the simulation
-        move_velocities = velocities
-        move_velocities.append([0.0, 0.0, 0.0])
-        self.move_velocities = np.array(move_velocities)
-        #
-        move_durations = durations
-        move_durations.append(INF)
-        self.move_durations = np.array(move_durations)
-
-        # Set time grid and translations
-        self.move_time_grid = np.zeros(self.N_move_grid)
-        self.move_translations = np.zeros((self.N_move_grid, 3))
-        for n in range(self.N_move):
-            t_start = self.move_time_grid[n]
-            self.move_time_grid[n + 1] = t_start + self.move_durations[n]
-
-            trans_start = self.move_translations[n]
-            self.move_translations[n + 1] = (
-                trans_start + self.move_velocities[n] * self.move_durations[n]
-            )
+        move_object(self, velocities, durations)
 
 
 # ======================================================================================
