@@ -18,6 +18,7 @@ import mcdc.transport.physics as physics
 import mcdc.transport.rng as rng
 import mcdc.transport.tally as tally_module
 import mcdc.transport.technique as technique
+import mcdc.transport.sensitivity as sensitivity
 
 from mcdc.constant import *
 from mcdc.print_ import (
@@ -621,6 +622,11 @@ def move_to_event(particle_container, mcdc, data):
 
     if settings["eigenvalue_mode"]:
         tally_module.score.eigenvalue_tally(particle_container, distance, mcdc, data)
+
+    if settings["sensitivity_mode"]:
+        # Sensitivity response accumulator (track-length)
+        sensitivity.score_resp_cum_tracklength(particle_container, distance, mcdc, data)
+
 
     # Move particle
     particle_module.move(particle_container, distance, mcdc, data)

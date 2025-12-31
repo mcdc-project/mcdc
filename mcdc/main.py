@@ -250,6 +250,10 @@ def preparation():
             type_.particle,
             type_.particle_data,
         )
+    # Optional sensitivity module: keep kernels/data minimal unless requested
+    adapt.set_toggle(
+        "sensitivity", bool(getattr(simulation.settings, "sensitivity_mode", False))
+    )
 
     adapt.eval_toggle()
     adapt.target_for(config.target)

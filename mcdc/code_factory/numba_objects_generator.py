@@ -171,6 +171,30 @@ def generate_numba_objects(simulation):
         }
 
     # ==================================================================================
+    # Sensitivity (optional): inject per-particle cumulative response vector `resp_cum`
+    # only when requested. This keeps particle records lean when sensitivity is off.
+    #
+    # We add the field to BOTH `particle_data` (used in banks) and `particle` (used in
+    # transport). The field is a fixed-size vector of length `sensitivity_n_resp`.
+    # ==================================================================================
+    sens_on = bool(getattr(simulation.settings, "sensitivity_mode", False))
+    if sens_on:
+        n_resp = int(getattr(simulation.settings, "sensitivity_n_resp", 0))
+        if n_resp <= 0:
+            raise ValueError(
+                "sensitivity_mode=True but sensitivity_n_resp is not a positive integer"
+            )
+
+        resp_hint = parse_type_hint_str(f"Annotated[NDArray[float64], ({n_resp},)]")
+        annotations["particle_data"]["resp_cum"] = resp_hint
+        annotations["particle"]["resp_cum"] = resp_hint
+
+        # NEW: response-region cell IDs (length = n_resp)
+        cell_hint = parse_type_hint_str(f"Annotated[NDArray[int64], ({n_resp},)]")
+        annotations["settings"]["sensitivity_resp_cell_IDs"] = cell_hint
+
+
+    # ==================================================================================
     # Set the structures and accessor targets based on the annotations
     # ==================================================================================
 
