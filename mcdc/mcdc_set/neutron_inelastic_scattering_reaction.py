@@ -4,7 +4,9 @@ from numba import njit
 
 
 @njit
-def spectrum_probability_grid(index, neutron_inelastic_scattering_reaction, data, value):
+def spectrum_probability_grid(
+    index, neutron_inelastic_scattering_reaction, data, value
+):
     offset = neutron_inelastic_scattering_reaction["spectrum_probability_grid_offset"]
     data[offset + index] = value
 
@@ -26,14 +28,18 @@ def spectrum_probability_grid_last(neutron_inelastic_scattering_reaction, data, 
 
 
 @njit
-def spectrum_probability_grid_chunk(start, length, neutron_inelastic_scattering_reaction, data, value):
+def spectrum_probability_grid_chunk(
+    start, length, neutron_inelastic_scattering_reaction, data, value
+):
     start += neutron_inelastic_scattering_reaction["spectrum_probability_grid_offset"]
     end = start + length
     data[start:end] = value
 
 
 @njit
-def spectrum_probability_vector(index_1, neutron_inelastic_scattering_reaction, data, value):
+def spectrum_probability_vector(
+    index_1, neutron_inelastic_scattering_reaction, data, value
+):
     offset = neutron_inelastic_scattering_reaction["spectrum_probability_offset"]
     stride = neutron_inelastic_scattering_reaction["N_spectrum"]
     start = offset + index_1 * stride
@@ -42,14 +48,18 @@ def spectrum_probability_vector(index_1, neutron_inelastic_scattering_reaction, 
 
 
 @njit
-def spectrum_probability(index_1, index_2, neutron_inelastic_scattering_reaction, data, value):
+def spectrum_probability(
+    index_1, index_2, neutron_inelastic_scattering_reaction, data, value
+):
     offset = neutron_inelastic_scattering_reaction["spectrum_probability_offset"]
     stride = neutron_inelastic_scattering_reaction["N_spectrum"]
     data[offset + index_1 * stride + index_2] = value
 
 
 @njit
-def spectrum_probability_chunk(start, length, neutron_inelastic_scattering_reaction, data, value):
+def spectrum_probability_chunk(
+    start, length, neutron_inelastic_scattering_reaction, data, value
+):
     start += neutron_inelastic_scattering_reaction["spectrum_probability_offset"]
     end = start + length
     data[start:end] = value
@@ -78,7 +88,9 @@ def energy_spectrum_IDs_last(neutron_inelastic_scattering_reaction, data, value)
 
 
 @njit
-def energy_spectrum_IDs_chunk(start, length, neutron_inelastic_scattering_reaction, data, value):
+def energy_spectrum_IDs_chunk(
+    start, length, neutron_inelastic_scattering_reaction, data, value
+):
     start += neutron_inelastic_scattering_reaction["energy_spectrum_IDs_offset"]
     end = start + length
     data[start:end] = value

@@ -26,7 +26,9 @@ def spectrum_probability_grid_last(neutron_inelastic_scattering_reaction, data):
 
 
 @njit
-def spectrum_probability_grid_chunk(start, length, neutron_inelastic_scattering_reaction, data):
+def spectrum_probability_grid_chunk(
+    start, length, neutron_inelastic_scattering_reaction, data
+):
     start += neutron_inelastic_scattering_reaction["spectrum_probability_grid_offset"]
     end = start + length
     return data[start:end]
@@ -49,7 +51,9 @@ def spectrum_probability(index_1, index_2, neutron_inelastic_scattering_reaction
 
 
 @njit
-def spectrum_probability_chunk(start, length, neutron_inelastic_scattering_reaction, data):
+def spectrum_probability_chunk(
+    start, length, neutron_inelastic_scattering_reaction, data
+):
     start += neutron_inelastic_scattering_reaction["spectrum_probability_offset"]
     end = start + length
     return data[start:end]
@@ -78,7 +82,9 @@ def energy_spectrum_IDs_last(neutron_inelastic_scattering_reaction, data):
 
 
 @njit
-def energy_spectrum_IDs_chunk(start, length, neutron_inelastic_scattering_reaction, data):
+def energy_spectrum_IDs_chunk(
+    start, length, neutron_inelastic_scattering_reaction, data
+):
     start += neutron_inelastic_scattering_reaction["energy_spectrum_IDs_offset"]
     end = start + length
     return data[start:end]
