@@ -6,6 +6,7 @@
 from mcdc import mcdc_get
 from mcdc.print_ import print_error, print_structure
 
+
 def run():
     import mcdc.print_ as print_module
     from mpi4py import MPI
@@ -35,8 +36,7 @@ def run():
     # ==================================================================================
 
     # To compile adaptive sensitivities
-    if simulation.settings.sensitivity_mode:
-        import mcdc.transport.simulation
+    import mcdc.transport.simulation
 
     # Timer: preparation
     time_prep_start = MPI.Wtime()
@@ -116,6 +116,7 @@ def run():
 # ======================================================================================
 # Preparation
 # ======================================================================================
+
 
 def preparation():
     import math

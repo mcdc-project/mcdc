@@ -8,7 +8,6 @@ import mcdc.transport.rng as rng
 import mcdc.code_factory.adapt as adapt
 
 
-
 @adapt.toggle("sensitivity")
 def _copy_resp_cum(target_particle_container, source_particle_container):
     """Copy per-particle response accumulator (sensitivity mode only)."""
@@ -16,10 +15,12 @@ def _copy_resp_cum(target_particle_container, source_particle_container):
     source = source_particle_container[0]
     target["resp_cum"][:] = source["resp_cum"][:]
 
+
 @adapt.toggle("sensitivity")
 def _reset_resp_cum(particle_container):
     """Reset per-particle response accumulator for a new child history."""
     particle_container[0]["resp_cum"][:] = 0.0
+
 
 @njit
 def move(particle_container, distance, mcdc, data):

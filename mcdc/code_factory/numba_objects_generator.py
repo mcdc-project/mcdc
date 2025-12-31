@@ -193,7 +193,6 @@ def generate_numba_objects(simulation):
         cell_hint = parse_type_hint_str(f"Annotated[NDArray[int64], ({n_resp},)]")
         annotations["settings"]["sensitivity_resp_cell_IDs"] = cell_hint
 
-
     # ==================================================================================
     # Set the structures and accessor targets based on the annotations
     # ==================================================================================

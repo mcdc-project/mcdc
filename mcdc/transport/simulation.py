@@ -627,7 +627,6 @@ def move_to_event(particle_container, mcdc, data):
         # Sensitivity response accumulator (track-length)
         sensitivity.score_resp_cum_tracklength(particle_container, distance, mcdc, data)
 
-
     # Move particle
     particle_module.move(particle_container, distance, mcdc, data)
 

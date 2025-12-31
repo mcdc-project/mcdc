@@ -14,10 +14,12 @@ from mcdc.transport.distribution import (
 
 import mcdc.code_factory.adapt as adapt
 
+
 @adapt.toggle("sensitivity")
 def _init_resp_cum(P_rec_arr):
     """Initialize per-particle response accumulator for a new source history."""
     P_rec_arr[0]["resp_cum"][:] = 0.0
+
 
 @njit
 def source_particle(P_rec_arr, seed, mcdc, data):

@@ -25,6 +25,7 @@ def _unbank_resp_cum(P_arr, P_rec):
     """Copy resp_cum from a bank particle record into a live particle (sens only)."""
     P_arr[0]["resp_cum"][:] = P_rec["resp_cum"][:]
 
+
 # =============================================================================
 # Particle bank operations
 # =============================================================================
