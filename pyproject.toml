@@ -82,6 +82,7 @@ dev = [
   "black",
   "pre-commit",
   "pytest",
+  "tqdm", # for continuos energy processing
 ]
 
 [project.urls]

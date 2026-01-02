@@ -1,4 +1,3 @@
-import ACEtk
 import argparse
 import h5py
 import numpy as np
@@ -6,10 +5,31 @@ import os
 
 from tqdm import tqdm
 
-####
-
 import util
 from util import print_error, print_note
+
+try:
+    import ACEtk
+    import tools as njoy_tools
+
+    # Sanity check: if this is not a compiled extension, it's likely the *wrong* "tools" package
+    tools_path = getattr(njoy_tools, "__file__", "")
+    if not tools_path or not tools_path.endswith((".so", ".pyd", ".dylib")):
+        print_error(
+            "Imported a Python package named 'tools' that doesn't look like the NJOY tools bindings.\n"
+            f"Resolved tools at: {tools_path}\n"
+            "Set PYTHONPATH=$PYTHONPATH:<ACEtk dir>/build/_deps/tools-build/python\n"
+        )
+except:
+    print_error(
+        "ACEtk is not installed\n"
+        "   1. Follow installation instructions at:\n"
+        "      https://github.com/njoy/ACEtk\n"
+        "   2. Set\n"
+        "        PYTHONPATH=$PYTHONPATH:<ACEtk dir>/build/python\n"
+        "        PYTHONPATH=$PYTHONPATH:<ACEtk dir>/build/_deps/tools-build/python\n"
+    )
+
 
 parser = argparse.ArgumentParser(description="MC/DC data generator")
 parser.add_argument("--rewrite", dest="rewrite", action="store_true", default=False)
@@ -57,6 +77,7 @@ pbar = tqdm(
     disable=verbose,
     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}{postfix}",
 )
+
 for ace_name in pbar:
     # File header
     with open(f"{ace_dir}/{ace_name}", "r") as f:
@@ -210,7 +231,7 @@ for ace_name in pbar:
     xs0_block = ace_table.principal_cross_section_block
     xs_block = ace_table.cross_section_block
 
-    xs_energy = xs0_block.energies
+    xs_energy = np.array(xs0_block.energies.to_list())
     xs_elastic = xs0_block.elastic
     cross_sections = xs_block.cross_sections
     offsets = xs_block.energy_index
@@ -320,7 +341,9 @@ for ace_name in pbar:
 
                 # The distributions
                 energy_group = group.create_group(f"MT-{MT:03}/energy_spectrum-1")
-                util.load_energy_distribution(data, energy_group)
+                util.load_energy_distribution(
+                    data, energy_group, incident_grid=xs_energy
+                )
 
             else:
                 N_dist = data.number_distributions
@@ -380,7 +403,9 @@ for ace_name in pbar:
                         f"MT-{MT:03}/energy_spectrum-{i+1}"
                     )
                     distribution = data.distribution(i + 1)
-                    util.load_energy_distribution(distribution, energy_group)
+                    util.load_energy_distribution(
+                        data, energy_group, incident_grid=xs_energy
+                    )
 
     # Fissionable zone below
     if not fissionable:
@@ -412,7 +437,7 @@ for ace_name in pbar:
         decay_rates = np.zeros(N_DNP)
 
         for i in range(N_DNP):
-            idx = 1 + 1
+            idx = i + 1
             data = dnp_block.precursor_group_data(idx)
 
             if (
@@ -439,7 +464,7 @@ for ace_name in pbar:
         N_DNP = dnp_block.number_delayed_precursors
 
         for i in range(N_DNP):
-            idx = 1 + 1
+            idx = i + 1
             data = delayed_spectrum_block.energy_distribution_data(idx)
 
             if not isinstance(data, ACEtk.continuous.OutgoingEnergyDistributionData):
@@ -448,7 +473,7 @@ for ace_name in pbar:
             energy_group = fission_group.create_group(
                 f"delayed_neutron_precursors/energy_spectrum-{i+1}"
             )
-            util.load_energy_distribution(data, energy_group)
+            util.load_energy_distribution(data, energy_group, incident_grid=xs_energy)
 
     # ==================================================================================
     # Finalize

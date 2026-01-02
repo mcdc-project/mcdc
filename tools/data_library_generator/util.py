@@ -1,6 +1,7 @@
 import ACEtk
 import h5py
 import numpy as np
+import math
 
 
 def print_error(message):
@@ -78,6 +79,68 @@ def get_ace_name(Z, A, T, S=None):
     return f"{ID}{extension}"
 
 
+def _as_np(x):
+    """Convert ACEtk views / python lists to numpy arrays reliably."""
+    if hasattr(x, "to_list"):
+        return np.array(x.to_list())
+    return np.array(x)
+
+
+def _endf_interp(x, x1, x2, y1, y2, law):
+    # ENDF interpolation laws:
+    # 1 = histogram
+    # 2 = lin-lin
+    # 3 = lin-log(x)
+    # 4 = log(y)-lin(x)
+    # 5 = log(y)-log(x)
+    if law == 1:
+        return y1
+    if law == 2:
+        return y1 + (y2 - y1) * (x - x1) / (x2 - x1)
+    if law == 3:
+        return y1 + (y2 - y1) * (math.log(x / x1) / math.log(x2 / x1))
+    if law == 4:
+        return math.exp(
+            math.log(y1) + (math.log(y2) - math.log(y1)) * (x - x1) / (x2 - x1)
+        )
+    if law == 5:
+        return math.exp(
+            math.log(y1)
+            + (math.log(y2) - math.log(y1)) * (math.log(x / x1) / math.log(x2 / x1))
+        )
+    raise ValueError(f"Unsupported interpolation law: {law}")
+
+
+def _tab1_eval(x, grid, vals, boundaries, interpolants):
+    """Evaluate a TAB1-like table at x using ENDF interpolation regions."""
+    # Clamp outside range
+    if x <= grid[0]:
+        return vals[0]
+    if x >= grid[-1]:
+        return vals[-1]
+
+    i = int(np.searchsorted(grid, x) - 1)
+    i = max(0, min(i, len(grid) - 2))
+
+    # boundaries are 1-based point indices for region ends
+    law = int(interpolants[-1])
+    for k, end_pt_1based in enumerate(boundaries):
+        if i <= (int(end_pt_1based) - 2):
+            law = int(interpolants[k])
+            break
+
+    x1, x2 = float(grid[i]), float(grid[i + 1])
+    y1, y2 = float(vals[i]), float(vals[i + 1])
+
+    # log-safety fallback
+    if law in (3, 5) and (x <= 0 or x1 <= 0 or x2 <= 0):
+        law = 2
+    if law in (4, 5) and (y1 <= 0 or y2 <= 0):
+        law = 2
+
+    return _endf_interp(float(x), x1, x2, y1, y2, law)
+
+
 def load_fission_multiplicity(data, h5_group: h5py.Group):
     # Polynomial
     if data.type == 1:
@@ -149,11 +212,11 @@ def load_cosine_distribution(data, h5_group: h5py.Group):
             print_error("Angular distribution is not linearly-iterpolable")
 
 
-def load_energy_distribution(data, h5_group: h5py.Group):
+def load_energy_distribution(data, h5_group: h5py.Group, incident_grid=None):
     if isinstance(data, ACEtk.continuous.LevelScatteringDistribution):
         h5_group.attrs["type"] = "level-scattering"
 
-        C1 = np.array(data.C1)
+        C1 = _as_np(data.C1)
         C1 = h5_group.create_dataset("C1", data=C1)
         C1.attrs["unit"] = "MeV"
 
@@ -162,21 +225,185 @@ def load_energy_distribution(data, h5_group: h5py.Group):
     elif isinstance(data, ACEtk.continuous.EvaporationSpectrum):
         h5_group.attrs["type"] = "evaporation"
 
+        # Raw tabulation (what ACE gives you)
+        energy_raw = _as_np(data.energies)
+        temperature_raw = _as_np(data.temperatures)
+        restriction_energy = _as_np(data.restriction_energy)
+
+        # TAB1-like interpolation metadata
+        boundaries = _as_np(data.interpolation_data.boundaries).astype(int)
+        interpolants = _as_np(data.interpolation_data.interpolants).astype(int)
+
+        # If non lin-lin, resample temperature onto incident_grid (xs_energy)
         if not data.interpolation_data.is_linear_linear:
+            if incident_grid is None:
+                print_error(
+                    "Evaporation temperature is not linear-linear. "
+                    "Pass incident_grid so it can be resampled."
+                )
+
+            xg = np.asarray(incident_grid, dtype=float)
+            temperature = np.array(
+                [
+                    _tab1_eval(x, energy_raw, temperature_raw, boundaries, interpolants)
+                    for x in xg
+                ],
+                dtype=float,
+            )
+            energy = xg
+            h5_group.create_dataset("temperature_interpolation_resampled", data=True)
+        else:
+            energy = energy_raw
+            temperature = temperature_raw
+            h5_group.create_dataset("temperature_interpolation_resampled", data=False)
+
+        # Save raw + interpolation info (traceability)
+        h5_group.create_dataset("temperature_energy_grid_raw", data=energy_raw).attrs[
+            "unit"
+        ] = "MeV"
+        h5_group.create_dataset("temperature_raw", data=temperature_raw).attrs[
+            "unit"
+        ] = "MeV"
+        h5_group.create_dataset("temperature_interp_boundaries", data=boundaries)
+        h5_group.create_dataset("temperature_interp_interpolants", data=interpolants)
+
+        # Save the “effective” temperature grid/value used by the generator
+        h5_group.create_dataset("temperature_energy_grid", data=energy).attrs[
+            "unit"
+        ] = "MeV"
+        h5_group.create_dataset("temperature", data=temperature).attrs["unit"] = "MeV"
+        h5_group.create_dataset("restriction_energy", data=restriction_energy).attrs[
+            "unit"
+        ] = "MeV"
+
+    elif isinstance(data, ACEtk.continuous.SimpleMaxwellianFissionSpectrum):
+        h5_group.attrs["type"] = "maxwellian"
+
+        if all(_as_np(data.interpolation_data.interpolants) == 2):
+            interpolation = "linear"
+        elif all(_as_np(data.interpolation_data.interpolants) == 5):
+            interpolation = "log"
+        else:
             print_error(
-                "Evaporation distribution temperature is not linearly interpolable"
+                "Unsupported temperature interpolation law in Maxwellian distribution"
             )
 
-        energy = np.array(data.energies)
-        temperature = np.array(data.temperatures)
-        restriction_energy = np.array(data.restriction_energy)
+        energy = _as_np(data.energies)
+        temperature = _as_np(data.temperatures)
+        restriction_energy = _as_np(data.restriction_energy)
 
-        dataset = h5_group.create_dataset("temperature_energy_grid", data=energy)
-        dataset.attrs["unit"] = "MeV"
-        dataset = h5_group.create_dataset("temperature", data=temperature)
-        dataset.attrs["unit"] = "MeV"
-        dataset = h5_group.create_dataset("restriction_energy", data=restriction_energy)
-        dataset.attrs["unit"] = "MeV"
+        h5_group.create_dataset("temperature_interpolation", data=interpolation)
+        h5_group.create_dataset("temperature_energy_grid", data=energy).attrs[
+            "unit"
+        ] = "MeV"
+        h5_group.create_dataset("temperature", data=temperature).attrs["unit"] = "MeV"
+        h5_group.create_dataset("restriction_energy", data=restriction_energy).attrs[
+            "unit"
+        ] = "MeV"
+
+    elif isinstance(data, ACEtk.continuous.OutgoingEnergyDistributionData):
+        h5_group.attrs["type"] = "tabulated"
+
+        if not data.interpolation_data.is_linear_linear:
+            print_error(
+                "Non-linearly-interpolated energy distribution is not supported"
+            )
+
+        energy = _as_np(data.incident_energies)
+        h5_group.create_dataset("energy", data=energy).attrs["unit"] = "MeV"
+
+        NE = data.number_incident_energies
+        offset = np.zeros(NE, dtype=int)
+        energy_out = []
+        pdf = []
+        for i in range(NE):
+            distribution = data.distribution(i + 1)
+            offset[i] = len(energy_out)
+            energy_out.extend(distribution.outgoing_energies)
+            pdf.extend(distribution.pdf)
+
+        energy_out = np.array(energy_out)
+        pdf = np.array(pdf)
+
+        h5_group.create_dataset("offset", data=offset)
+        h5_group.create_dataset("value", data=energy_out).attrs["unit"] = "MeV"
+        h5_group.create_dataset("pdf", data=pdf)
+
+    elif isinstance(data, ACEtk.continuous.KalbachMannDistributionData):
+        h5_group.attrs["type"] = "kalbach-mann"
+
+        if not data.interpolation_data.is_linear_linear:
+            print_error("Non-linearly-interpolated kalbach-mann is not supported")
+
+        NE = data.number_incident_energies
+        energy = _as_np(data.incident_energies)
+        h5_group.create_dataset("energy", data=energy).attrs["unit"] = "MeV"
+
+        offset = np.zeros(NE, dtype=int)
+        energy_out = []
+        pdf = []
+        precompound_factor = []
+        angular_slope = []
+        for i, distribution in enumerate(data.distributions):
+            offset[i] = len(pdf)
+            energy_out.extend(distribution.outgoing_energies)
+            pdf.extend(distribution.pdf)
+            precompound_factor.extend(distribution.precompound_fraction_values)
+            angular_slope.extend(distribution.angular_distribution_slope_values)
+
+        h5_group.create_dataset("offset", data=offset)
+        h5_group.create_dataset("energy_out", data=np.array(energy_out)).attrs[
+            "unit"
+        ] = "MeV"
+        h5_group.create_dataset("pdf", data=np.array(pdf))
+        h5_group.create_dataset("precompound_factor", data=np.array(precompound_factor))
+        h5_group.create_dataset("angular_slope", data=np.array(angular_slope))
+
+    elif isinstance(data, ACEtk.continuous.EnergyAngleDistributionData):
+        h5_group.attrs["type"] = "energy-angle-tabulated"
+
+        if not data.interpolation_data.is_linear_linear:
+            print_error(
+                "Non-linearly-interpolated correlated-energy-angle is not supported"
+            )
+
+        NE = data.number_incident_energies
+        energy = _as_np(data.incident_energies)
+        h5_group.create_dataset("energy", data=energy).attrs["unit"] = "MeV"
+
+        offset = np.zeros(NE, dtype=int)
+        energy_out = []
+        pdf = []
+        cosine_offset = []
+        cosine = []
+        cosine_pdf = []
+        for i, distribution in enumerate(data.distributions):
+            offset[i] = len(pdf)
+            energy_out.extend(distribution.outgoing_energies)
+            pdf.extend(distribution.pdf)
+
+            for inner_distribution in distribution.distributions:
+                cosine_offset.append(len(cosine_pdf))
+                cosine.extend(inner_distribution.cosines)
+                cosine_pdf.extend(inner_distribution.pdf)
+
+        h5_group.create_dataset("offset", data=offset)
+        h5_group.create_dataset("energy_out", data=np.array(energy_out)).attrs[
+            "unit"
+        ] = "MeV"
+        h5_group.create_dataset("pdf", data=np.array(pdf))
+        h5_group.create_dataset("cosine_offset", data=np.array(cosine_offset))
+        h5_group.create_dataset("cosine", data=np.array(cosine))
+        h5_group.create_dataset("cosine_pdf", data=np.array(cosine_pdf))
+
+    elif isinstance(data, ACEtk.continuous.NBodyPhaseSpaceDistribution):
+        h5_group.attrs["type"] = "N-body"
+
+        if data.interpolation != 2:
+            print_error("Non-linearly-interpolable N-body energy distribution")
+
+        h5_group.create_dataset("value", data=_as_np(data.values)).attrs["unit"] = "MeV"
+        h5_group.create_dataset("pdf", data=_as_np(data.pdf))
 
     elif isinstance(data, ACEtk.continuous.SimpleMaxwellianFissionSpectrum):
         h5_group.attrs["type"] = "maxwellian"
@@ -329,6 +556,46 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         dataset = h5_group.create_dataset("value", data=data.values)
         dataset.attrs["unit"] = "MeV"
         h5_group.create_dataset("pdf", data=data.pdf)
+
+    elif isinstance(data, ACEtk.continuous.MultiDistributionData):
+        h5_group.attrs["type"] = "multi"
+
+        N = int(data.number_distributions)
+        h5_group.create_dataset("number_distributions", data=N)
+
+        # Store probabilities for each sub-distribution
+        prob_group = h5_group.create_group("probabilities")
+        for i in range(N):
+            p = data.probability(i + 1)
+            g = prob_group.create_group(f"distribution-{i+1}")
+
+            E = _as_np(p.energies)
+            P = _as_np(p.probabilities)
+
+            g.create_dataset("energy", data=E).attrs["unit"] = "MeV"
+            g.create_dataset("probability", data=P)
+
+            # Save interpolation metadata
+            b = _as_np(p.interpolation_data.boundaries).astype(int)
+            it = _as_np(p.interpolation_data.interpolants).astype(int)
+            g.create_dataset("interp_boundaries", data=b)
+            g.create_dataset("interp_interpolants", data=it)
+
+            # Optional convenience: resample probability onto incident_grid if given
+            if incident_grid is not None and (
+                not p.interpolation_data.is_linear_linear
+            ):
+                xg = np.asarray(incident_grid, dtype=float)
+                pres = np.array([_tab1_eval(x, E, P, b, it) for x in xg], dtype=float)
+                g.create_dataset("probability_on_incident_grid", data=pres)
+
+        # Store each outgoing-energy distribution recursively
+        dist_group = h5_group.create_group("distributions")
+        for i in range(N):
+            sub = dist_group.create_group(f"distribution-{i+1}")
+            load_energy_distribution(
+                data.distribution(i + 1), sub, incident_grid=incident_grid
+            )
 
     else:
         print_error(f"Unsupported energy distribution: {data}")

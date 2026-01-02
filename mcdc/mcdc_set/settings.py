@@ -30,3 +30,32 @@ def census_time_chunk(start, length, settings, data, value):
     start += settings["census_time_offset"]
     end = start + length
     data[start:end] = value
+
+
+@njit
+def sensitivity_resp_cell_IDs(index, settings, data, value):
+    offset = settings["sensitivity_resp_cell_IDs_offset"]
+    data[offset + index] = value
+
+
+@njit
+def sensitivity_resp_cell_IDs_all(settings, data, value):
+    start = settings["sensitivity_resp_cell_IDs_offset"]
+    size = settings["sensitivity_resp_cell_IDs_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def sensitivity_resp_cell_IDs_last(settings, data, value):
+    start = settings["sensitivity_resp_cell_IDs_offset"]
+    size = settings["sensitivity_resp_cell_IDs_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def sensitivity_resp_cell_IDs_chunk(start, length, settings, data, value):
+    start += settings["sensitivity_resp_cell_IDs_offset"]
+    end = start + length
+    data[start:end] = value

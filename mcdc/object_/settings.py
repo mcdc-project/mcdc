@@ -60,6 +60,13 @@ class Settings(ObjectSingleton):
     source_bank_buffer_ratio: float = 2.0
     future_bank_buffer_ratio: float = 1.5
 
+    # Sensitivity analysis (optional)
+    sensitivity_mode: bool = False
+    sensitivity_n_resp: int = 0
+    sensitivity_resp_cell_IDs: NDArray[np.int64] = field(
+        default_factory=lambda: np.zeros(0, dtype=np.int64)
+    )
+
     # Portability
     target_gpu: bool = False
 

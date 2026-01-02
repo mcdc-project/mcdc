@@ -5,6 +5,7 @@
 
 from mcdc import mcdc_get
 from mcdc.print_ import print_error, print_structure
+import importlib
 
 
 def run():
@@ -34,6 +35,9 @@ def run():
     # ==================================================================================
     # Preparation
     # ==================================================================================
+
+    # To compile adaptive sensitivities
+    import mcdc.transport.simulation
 
     # Timer: preparation
     time_prep_start = MPI.Wtime()
@@ -206,11 +210,18 @@ def preparation():
         from mcdc.code_factory.numba_objects_generator import make_literals
 
         make_literals(simulation)
+
+    MPI.COMM_WORLD.Barrier()
+    importlib.invalidate_caches()
+
+    import mcdc.transport.literals as literals
+
+    importlib.reload(literals)
+
     mcdc_arr, data = generate_numba_objects(simulation)
     mcdc = mcdc_arr[0]
 
     # Reload mcdc getters and setters
-    import importlib
     import mcdc.mcdc_get as mcdc_get
     import mcdc.mcdc_set as mcdc_set
 
@@ -250,6 +261,10 @@ def preparation():
             type_.particle,
             type_.particle_data,
         )
+    # Optional sensitivity module: keep kernels/data minimal unless requested
+    adapt.set_toggle(
+        "sensitivity", bool(getattr(simulation.settings, "sensitivity_mode", False))
+    )
 
     adapt.eval_toggle()
     adapt.target_for(config.target)

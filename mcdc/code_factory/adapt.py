@@ -326,7 +326,11 @@ def toggle(flag):
 
 
 def set_toggle(flag, val):
-    toggle_rosters[flag][0] = val
+    global toggle_rosters
+    if flag not in toggle_rosters:
+        toggle_rosters[flag] = [bool(val), []]
+    else:
+        toggle_rosters[flag][0] = bool(val)
 
 
 def eval_toggle():

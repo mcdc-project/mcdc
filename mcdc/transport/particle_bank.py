@@ -20,6 +20,12 @@ from mcdc.constant import *
 from mcdc.print_ import print_error
 
 
+@adapt.toggle("sensitivity")
+def _unbank_resp_cum(P_arr, P_rec):
+    """Copy resp_cum from a bank particle record into a live particle (sens only)."""
+    P_arr[0]["resp_cum"][:] = P_rec["resp_cum"][:]
+
+
 # =============================================================================
 # Particle bank operations
 # =============================================================================
@@ -80,6 +86,8 @@ def get_particle(P_arr, bank, mcdc):
     P["w"] = P_rec["w"]
     P["particle_type"] = P_rec["particle_type"]
     P["rng_seed"] = P_rec["rng_seed"]
+
+    _unbank_resp_cum(P_arr, P_rec)
 
     # Set default IDs and event
     P["alive"] = True
