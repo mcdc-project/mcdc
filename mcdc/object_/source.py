@@ -9,10 +9,11 @@ from typing import Annotated, Iterable
 
 import mcdc.object_.distribution as distribution
 
+from mcdc.constant import PARTICLE_NEUTRON, INF
 from mcdc.object_.base import ObjectNonSingleton
-from mcdc.constant import PARTICLE_NEUTRON
 from mcdc.object_.distribution import DistributionTabulated, DistributionPMF
 from mcdc.object_.simulation import simulation
+from mcdc.object_.util import move_object
 
 
 def decode_particle_type(type_):
@@ -49,6 +50,13 @@ class Source(ObjectNonSingleton):
     time_range: Annotated[NDArray[float64], (2,)]
     particle_type: int
     probability: float
+    moving: bool
+    N_move: int
+    N_move_grid: int
+    move_velocities: Annotated[NDArray[float64], ("N_move", 3)]
+    move_durations: Annotated[NDArray[float64], ("N_move",)]
+    move_time_grid: Annotated[NDArray[float64], ("N_move_grid",)]
+    move_translations: Annotated[NDArray[float64], ("N_move_grid", 3)]
 
     def __init__(
         self,
@@ -167,6 +175,15 @@ class Source(ObjectNonSingleton):
             self.discrete_time = False
             self.time_range = np.array(time)
 
+        # Moving source parameters
+        self.moving = False
+        self.N_move = 1
+        self.N_move_grid = 2
+        self.move_velocities = np.zeros((1, 3))
+        self.move_durations = np.array([INF])
+        self.move_time_grid = np.array([0.0, INF])
+        self.move_translations = np.zeros((2, 3))
+
     def __repr__(self):
         text = "\n"
         text += f"Source\n"
@@ -203,3 +220,36 @@ class Source(ObjectNonSingleton):
             text += f"  - Time: {self.time_range} s\n"
 
         return text
+
+    # ==================================================================================
+    # Source moving
+    # ==================================================================================
+
+    def move(self, velocities, durations):
+        """
+        Define piecewise-constant motion for the source.
+
+        Appends a final static segment (zero velocity, infinite duration) so that
+        the motion covers the whole simulation time.
+
+        Parameters
+        ----------
+        velocities : array_like, shape (N, 3) or list
+            Per-segment velocity vectors [cm/s].
+        durations : array_like, shape (N,) or list
+            Per-segment durations [s].
+
+        Notes
+        -----
+        - Internally converts lists to arrays and constructs
+          ``move_time_grid`` and cumulative ``move_translations``.
+        - Sets ``moving=True`` and ``N_move = len(durations) + 1``.
+
+        Examples
+        --------
+        >>> src = mcdc.Source(z=[-0.1, 0.1], isotropic=True, energy=0, time=[0.0, 1.0])
+        >>> src.move(velocities=[[0,0,1.0]], durations=[0.5]) # 0.5 s upward, then static
+        >>> s.N_move
+        2
+        """
+        move_object(self, velocities, durations)
