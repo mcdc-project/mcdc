@@ -6,6 +6,9 @@
 from mcdc import mcdc_get
 from mcdc.print_ import print_error, print_structure
 
+# Cache for preparation() result - speeds up repeated visualizations
+_visualize_cache = None
+
 
 def run():
     import mcdc.print_ as print_module
@@ -322,6 +325,104 @@ def preparation():
 # Visualize geometry
 # ======================================================================================
 
+from numba import njit
+import numpy as np
+from mcdc.transport.geometry.interface import locate_particle
+
+
+@njit(cache=True)
+def _compute_material_row(
+    first_coord,
+    second_midpoint,
+    first_key_idx,
+    second_key_idx,
+    reference_key_idx,
+    reference_val,
+    time_val,
+    particle_arr,
+    mcdc,
+    data,
+):
+    """
+    Compute material IDs for a single row of pixels using numba.
+
+    Parameters
+    ----------
+    first_coord : float
+        First axis coordinate
+    second_midpoint : np.ndarray
+        Midpoints along the second axis
+    first_key_idx : int
+        Index for first axis (0=x, 1=y, 2=z)
+    second_key_idx : int
+        Index for second axis (0=x, 1=y, 2=z)
+    reference_key_idx : int
+        Index for reference axis (0=x, 1=y, 2=z)
+    reference_val : float
+        Value for the reference (slice) coordinate
+    time_val : float
+        Time value for the visualization
+    particle_arr : np.ndarray
+        Pre-allocated particle array of size (1,) reused for computation.
+    mcdc : structured array
+        MCDC simulation data
+    data : structured array
+        Additional simulation data
+
+    Returns
+    -------
+    np.ndarray
+        1D array of material IDs for this row (-1 for lost/outside particles).
+    """
+    n_second = len(second_midpoint)
+    row_materials = np.empty(n_second, dtype=np.int32)
+
+    particle = particle_arr[0]
+
+    # Set time and energy
+    particle["t"] = time_val
+    particle["g"] = 0
+    particle["E"] = 1e6
+    particle["ux"] = 0.0
+    particle["uy"] = 0.0
+    particle["uz"] = 1.0
+
+    # Set reference coordinate
+    if reference_key_idx == 0:
+        particle["x"] = reference_val
+    elif reference_key_idx == 1:
+        particle["y"] = reference_val
+    else:
+        particle["z"] = reference_val
+
+    # Set first axis coordinate
+    if first_key_idx == 0:
+        particle["x"] = first_coord
+    elif first_key_idx == 1:
+        particle["y"] = first_coord
+    else:
+        particle["z"] = first_coord
+
+    for j in range(n_second):
+        # Set second axis coordinate
+        if second_key_idx == 0:
+            particle["x"] = second_midpoint[j]
+        elif second_key_idx == 1:
+            particle["y"] = second_midpoint[j]
+        else:
+            particle["z"] = second_midpoint[j]
+
+        # Reset IDs for fresh lookup
+        particle["cell_ID"] = -1
+        particle["material_ID"] = -1
+
+        if locate_particle(particle_arr, mcdc, data):
+            row_materials[j] = particle["material_ID"]
+        else:
+            row_materials[j] = -1
+
+    return row_materials
+
 
 def visualize(
     vis_type,
@@ -355,14 +456,15 @@ def visualize(
     """
     import matplotlib.pyplot as plt
     import numpy as np
+    import sys
 
     from matplotlib import colors as mpl_colors
 
-    ####
-
-    from mcdc.transport.distribution import sample_isotropic_direction
-
-    mcdc_container, data = preparation()
+    # Use cached preparation if available
+    global _visualize_cache
+    if _visualize_cache is None:
+        _visualize_cache = preparation()
+    mcdc_container, data = _visualize_cache
     mcdc = mcdc_container[0]
 
     import mcdc.numba_types as type_
@@ -409,10 +511,6 @@ def visualize(
     elif second_key == "z":
         second = z
 
-    # Axis pixels sizes
-    d_first = (first[1] - first[0]) / pixels[0]
-    d_second = (second[1] - second[0]) / pixels[1]
-
     # Axis pixels grids and midpoints
     first_grid = np.linspace(first[0], first[1], pixels[0] + 1)
     first_midpoint = 0.5 * (first_grid[1:] + first_grid[:-1])
@@ -420,42 +518,58 @@ def visualize(
     second_grid = np.linspace(second[0], second[1], pixels[1] + 1)
     second_midpoint = 0.5 * (second_grid[1:] + second_grid[:-1])
 
-    # Set dummy particle
-    import mcdc.code_factory.adapt as adapt
+    # Map axis keys to indices for the numba function
+    key_to_idx = {"x": 0, "y": 1, "z": 2}
+    first_idx = key_to_idx[first_key]
+    second_idx = key_to_idx[second_key]
+    ref_idx = key_to_idx[reference_key]
 
-    particle_container = np.zeros(1, type_.particle)
-    particle = particle_container[0]
-    particle[reference_key] = reference
-    particle["g"] = 0
-    particle["E"] = 1e6
+    # Create Color Palette for fast lookup
+    max_id = max(colors.keys())
+    palette = np.zeros((max_id + 1, 3))
+    for mat_id, col in colors.items():
+        palette[mat_id] = col
 
     for t in time:
-        # Set time
-        particle["t"] = t
+        # Pre-allocate particles
+        particle_container = np.zeros(1, dtype=type_.particle)
 
-        # Random direction
-        particle["ux"], particle["uy"], particle["uz"] = sample_isotropic_direction(
-            particle_container
-        )
+        # Material IDs grid
+        material_ids = np.empty((pixels[0], pixels[1]), dtype=np.int32)
+        last_progress = -1
 
-        # RGB color data for each pixels
-        pixel_data = np.zeros(pixels + (3,))
-
-        import mcdc.transport.geometry as geometry
-
-        # Loop over the two axes
+        # Loop over rows with progress bar
         for i in range(pixels[0]):
-            particle[first_key] = first_midpoint[i]
-            for j in range(pixels[1]):
-                particle[second_key] = second_midpoint[j]
+            row_materials = _compute_material_row(
+                first_midpoint[i],
+                second_midpoint,
+                first_idx,
+                second_idx,
+                ref_idx,
+                reference,
+                t,
+                particle_container,
+                mcdc,
+                data,
+            )
+            material_ids[i, :] = row_materials
 
-                # Get material
-                particle["cell_ID"] = -1
-                particle["material_ID"] = -1
-                if geometry.locate_particle(particle_container, mcdc, data):
-                    pixel_data[i, j] = colors[particle["material_ID"]]
-                else:
-                    pixel_data[i, j] = WHITE
+            # Update progress bar
+            percent = (i + 1) / pixels[0]
+            if int(percent * 100) > last_progress:
+                last_progress = int(percent * 100)
+                sys.stdout.write("\r Visualizing: [%-28s] %d%%" % ("=" * int(percent * 28), percent * 100))
+                sys.stdout.flush()
+
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+        # Color Mapping
+        pixel_data = np.full(pixels + (3,), WHITE)
+        valid_mask = material_ids >= 0
+        pixel_data[valid_mask] = palette[
+            material_ids[valid_mask]
+        ]  # Apply colors using palette lookup
 
         pixel_data = np.transpose(pixel_data, (1, 0, 2))
         plt.imshow(pixel_data, origin="lower", extent=first + second)
