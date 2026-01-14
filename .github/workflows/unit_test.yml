@@ -5,10 +5,10 @@ on:
   pull_request:
 
 jobs:
-  unit-test:
-    name: (py${{ matrix.python-version }})
+  regression-test:
+    name: ${{ matrix.mode }} (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: ${{ matrix.timeout }}
 
     strategy:
       fail-fast: false
@@ -42,8 +42,10 @@ jobs:
 
       - name: Install MC/DC
         run: |
-          pip install -e .[dev]
+          pip install -e ".[dev]"
           pip list
 
-      - name: Run unit tests
-        run: pytest
+      - name: Run unit tests (${{ matrix.mode }})
+        working-directory: test/unit
+        run: |
+          python run.py
