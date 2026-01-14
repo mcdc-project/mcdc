@@ -1,4 +1,4 @@
-import time, os
+import time, os, sys
 from pathlib import Path
 
 # Get all the test file paths
@@ -12,6 +12,7 @@ for path in paths:
     if any(part in EXCLUDE for part in path.parts):
         continue
     print(f"\nRunning {str(path)}")
+    sys.stdout.flush()
     os.system(f"pytest -q {str(path)}")
 end = time.perf_counter()
 total_time = end - start
