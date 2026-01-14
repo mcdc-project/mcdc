@@ -1,22 +1,13 @@
-import importlib
 import mcdc
 import numpy as np
 
-mcdc = importlib.reload(mcdc)
-
 ####
-
-import mcdc.numba_types as type_
 
 from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
     INF,
 )
 from mcdc.main import preparation
-from mcdc.transport.geometry.surface import (
-    interface,
-    plane_y,
-)
 
 
 # ======================================================================================
@@ -45,11 +36,19 @@ static_surface = structure["surfaces"][0]
 moving_surface = structure["surfaces"][1]
 
 # Particle object for testing
+import mcdc.numba_types as type_
+
 particle_container = np.zeros(1, type_.particle_data)
 particle = particle_container[0]
 
 # Miscellanies
 TINY = COINCIDENCE_TOLERANCE * 0.8  # Tiny value within coincidence tolerance
+
+# Load modules to be tested
+from mcdc.transport.geometry.surface import (
+    interface,
+    plane_y,
+)
 
 # =====================================================================================
 # Plane-Y core functions
