@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  regression-test:
+  unit-test:
     name: ${{ matrix.mode }} (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
