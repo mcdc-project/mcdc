@@ -6,7 +6,7 @@ on:
 
 jobs:
   unit-test:
-    name: $(py${{ matrix.python-version }})
+    name: (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
 
     strategy:
