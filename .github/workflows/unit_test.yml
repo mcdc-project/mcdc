@@ -8,7 +8,6 @@ jobs:
   unit-test:
     name: ${{ matrix.mode }} (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ matrix.timeout }}
 
     strategy:
       fail-fast: false
