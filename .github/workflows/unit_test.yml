@@ -6,7 +6,7 @@ on:
 
 jobs:
   unit-test:
-    name: ${{ matrix.mode }} (py${{ matrix.python-version }})
+    name: $(py${{ matrix.python-version }})
     runs-on: ubuntu-latest
 
     strategy:
@@ -44,7 +44,7 @@ jobs:
           pip install -e ".[dev]"
           pip list
 
-      - name: Run unit tests (${{ matrix.mode }})
+      - name: Run unit tests 
         working-directory: test/unit
         run: |
           python run.py
