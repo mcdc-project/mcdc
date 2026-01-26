@@ -132,7 +132,11 @@ def preparation():
     settings = simulation.settings
 
     # Set physics mode
-    settings.multigroup_mode = isinstance(simulation.materials[0], MaterialMG)
+    if len(simulation.materials) == 0:
+        # Default physics in dummy mode
+        settings.multigroup_mode = True
+    else:
+        settings.multigroup_mode = isinstance(simulation.materials[0], MaterialMG)
 
     # Set appropriate time boundary
     settings.time_boundary = min(

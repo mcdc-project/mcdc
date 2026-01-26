@@ -1159,9 +1159,14 @@ def make_size_rpn(cells):
 
 def make_literals(simulation):
     # Sizes
-    rpn_evaluation_buffer_size = int(
-        max([np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in simulation.cells])
-    )
+    if len(simulation.cells) == 0:
+        rpn_evaluation_buffer_size = 1
+    else:
+        rpn_evaluation_buffer_size = int(
+            max(
+                [np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in simulation.cells]
+            )
+        )
 
     path = f"{Path(mcdc.__file__).parent}"
     with open(f"{path}/transport/literals.py", "w") as f:

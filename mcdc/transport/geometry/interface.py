@@ -404,7 +404,7 @@ def report_lost(particle_container, mcdc):
     idx_census = mcdc["idx_census"]
     idx_work = mcdc["idx_work"]
     print("A particle is lost at (", x, y, z, t, ")")
-    print("\_(batch/census/work) indices: (", idx_batch, idx_census, idx_work, ")")
+    print("  (batch/census/work) indices: (", idx_batch, idx_census, idx_work, ")")
     particle["alive"] = False
 
 
