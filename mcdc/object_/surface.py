@@ -26,7 +26,6 @@ from mcdc.object_.cell import Region
 from mcdc.object_.tally import TallySurface
 from mcdc.object_.util import move_object
 
-
 # ======================================================================================
 # Surface
 # ======================================================================================

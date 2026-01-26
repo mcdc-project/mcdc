@@ -21,7 +21,6 @@ from mcdc.constant import (
 from mcdc.transport.data import evaluate_table
 from mcdc.transport.util import find_bin, linear_interpolation
 
-
 # ======================================================================================
 # General distribution samplers
 # ======================================================================================

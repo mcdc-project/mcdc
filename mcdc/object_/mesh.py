@@ -10,7 +10,6 @@ from mcdc.constant import INF, MESH_STRUCTURED, MESH_UNIFORM
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.print_ import print_1d_array
 
-
 # ======================================================================================
 # Mesh base class
 # ======================================================================================

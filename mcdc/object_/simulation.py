@@ -36,7 +36,6 @@ from mcdc.object_.particle import ParticleBank
 from mcdc.object_.settings import Settings
 from mcdc.object_.universe import Universe, Lattice
 
-
 # ======================================================================================
 # Simulation
 # ======================================================================================

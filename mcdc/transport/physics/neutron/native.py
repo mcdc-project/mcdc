@@ -42,7 +42,6 @@ from mcdc.transport.distribution import (
 from mcdc.transport.physics.util import evaluate_xs_energy_grid, scatter_direction
 from mcdc.transport.util import find_bin, linear_interpolation
 
-
 # ======================================================================================
 # Particle attributes
 # ======================================================================================
