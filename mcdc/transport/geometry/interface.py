@@ -16,7 +16,6 @@ from mcdc.code_factory.adapt import for_cpu, for_gpu
 from mcdc.constant import *
 from mcdc.transport.geometry.surface import get_distance, check_sense, reflect
 
-
 # ======================================================================================
 # Geometry inspection
 # ======================================================================================

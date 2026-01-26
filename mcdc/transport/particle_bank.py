@@ -19,7 +19,6 @@ import mcdc.transport.technique as technique
 from mcdc.constant import *
 from mcdc.print_ import print_error
 
-
 # =============================================================================
 # Particle bank operations
 # =============================================================================

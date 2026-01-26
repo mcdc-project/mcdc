@@ -24,7 +24,6 @@ from mcdc.constant import (
 from mcdc.transport.physics.util import scatter_direction
 from mcdc.transport.distribution import sample_isotropic_direction
 
-
 # ======================================================================================
 # Particle attributes
 # ======================================================================================

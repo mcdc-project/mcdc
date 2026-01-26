@@ -4,7 +4,6 @@ from numba import njit
 
 import mcdc.transport.physics.neutron.native as native
 
-
 # ======================================================================================
 # Particle attributes
 # ======================================================================================

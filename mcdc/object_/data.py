@@ -13,7 +13,6 @@ from mcdc.constant import (
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.print_ import print_1d_array
 
-
 # ======================================================================================
 # Data base class
 # ======================================================================================
