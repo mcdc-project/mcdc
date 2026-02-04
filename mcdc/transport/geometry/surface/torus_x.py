@@ -1,14 +1,12 @@
 """
 Torus: Implicit equation of a torus radially symmetric about the z-axis in the cartesian plane
 
-r^2 = f(x, y, z) = ( sqrt( (x - A)^2 + (y - B)^2) - R )^2 + (z - C)^2
+f(x, y, z) = ( sqrt[(x - A)^2 + (y - B)^2] - R )^2 + (z - C)^2 - r^2
 
 Where R is the radius of the shape as a whole, and r is the radius of the circle that is revolved to create the donut
 
-As this definition will inevitably include square roots, an upper and lower surface of the torus will need to be combined to make the entire shape
-
-Solving for z:
-z = C (+ or -) sqrt( r^2 - ( sqrt( (x - A)^2 + (y - B)^2) - R )^2 )
+Removing the square roots leaves you with the following equation:
+f (x, y, z) = ( x^2 + y^2 + z^2 + R^2 - a^2 )^2 - 4R^2 * (x^2 + y^2)
 """
 
 import math
@@ -32,12 +30,12 @@ def evaluate(particle_container, surface):
 
     Returns: (float)
     - If the return is 0, the particle occupies the exact space of the torus
-    - If the return is INF, the particle is not in the region of the torus
-    - If the return is positive or negative, the particle is above or below the torus in the z
+    - If the return is positive, the particle is outside the torus
+    - If the return is negative, the particle is inside the torus
     """
   
-    particle = particle_container[0]
     # Particle parameters
+    particle = particle_container[0]
     x = particle["x"]
     y = particle["y"]
     z = particle["z"]
@@ -49,15 +47,14 @@ def evaluate(particle_container, surface):
     B = surface["B"]
     C = surface["C"]
 
-    #This is the same issue that the reflection and normal component functions had, if the particle is outside the torus space
-    if (r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2) < 0:
-        return INF
+    # Shifting the origin point of the particle into the torus space, and treating the torus as centered on (0,0,0)
+    x -= A
+    y -= B
+    z -= C
 
-    # Check if the particle is above or below the centerline of the torus and use the appropriate sign for the square root
-    return (
-        (C + math.sqrt( r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z)
-        if z >= C else
-        -(C - math.sqrt( r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z)
+    return(
+        ( (x*x + y*y + z*z + R*R - r*r)**2 )
+        - (4*R*R * (x*x + y*y))
     )
 
 
