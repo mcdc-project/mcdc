@@ -42,7 +42,7 @@ class Source(ObjectNonSingleton):
     mono_direction: bool
     white_direction: bool
     direction: Annotated[NDArray[float64], (3,)]
-    polar: Annotated[NDArray[float64], (2,)]
+    polar_cosine: Annotated[NDArray[float64], (2,)]
     azimuthal: Annotated[NDArray[float64], (2,)]
     # Energy
     mono_energetic: bool
@@ -76,7 +76,7 @@ class Source(ObjectNonSingleton):
         direction: Iterable[float] | NoneType = None,
         white_direction: Iterable[float] | NoneType = None,
         isotropic: bool | NoneType = None,
-        polar: Iterable[float] | NoneType = None,
+        polar_cosine: Iterable[float] | NoneType = None,
         azimuthal: Iterable[float] | NoneType = None,
         #
         energy: float | NDArray[float64] | NoneType = None,
@@ -112,7 +112,7 @@ class Source(ObjectNonSingleton):
         self.mono_direction = False
         self.white_direction = False
         self.direction = np.array([0.0, 0.0, 0.0])
-        self.polar = np.array([-1.0, 1.0])
+        self.polar_cosine = np.array([-1.0, 1.0])
         self.azimuthal = np.array([0.0, 2.0 * PI])
 
         # Energy
@@ -157,10 +157,10 @@ class Source(ObjectNonSingleton):
         elif direction is not None:
             self.isotropic_direction = False
             self.direction = np.array(direction)
-            if polar is not None or azimuthal is not None:
+            if polar_cosine is not None or azimuthal is not None:
                 self.mono_direction = False
-                if polar is not None:
-                    self.polar = np.array(polar)
+                if polar_cosine is not None:
+                    self.polar_cosine = np.array(polar_cosine)
                 if azimuthal is not None:
                     self.azimuthal = np.array(azimuthal)
             else:

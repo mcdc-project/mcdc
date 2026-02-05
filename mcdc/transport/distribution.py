@@ -110,9 +110,9 @@ def sample_isotropic_direction(rng_state):
 
 
 @njit
-def sample_direction(polar, azimuthal, polar_coordinate, rng_state):
+def sample_direction(polar_cosine, azimuthal, polar_coordinate, rng_state):
     # Sample polar cosine and azimuthal angle
-    mu = sample_uniform(polar[0], polar[1], rng_state)
+    mu = sample_uniform(polar_cosine[0], polar_cosine[1], rng_state)
     azi = sample_uniform(azimuthal[0], azimuthal[1], rng_state)
 
     # Apply polar coordinate

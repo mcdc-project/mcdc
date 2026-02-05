@@ -55,7 +55,7 @@ def source_particle(P_rec_arr, seed, mcdc, data):
         uz = source["direction"][2]
     else:
         ux, uy, uz = sample_direction(
-            source["polar"], source["azimuthal"], source["direction"], P_rec_arr
+            source["polar_cosine"], source["azimuthal"], source["direction"], P_rec_arr
         )
 
     # Energy
