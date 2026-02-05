@@ -9,7 +9,7 @@ from typing import Annotated, Iterable
 
 import mcdc.object_.distribution as distribution
 
-from mcdc.constant import PARTICLE_NEUTRON, INF
+from mcdc.constant import PARTICLE_NEUTRON, INF, PI
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.distribution import DistributionTabulated, DistributionPMF
 from mcdc.object_.simulation import simulation
@@ -31,23 +31,30 @@ class Source(ObjectNonSingleton):
     label: str = "source"
     #
     name: str
+    # Position
     point_source: bool
     point: Annotated[NDArray[float64], (3,)]
     x: Annotated[NDArray[float64], (2,)]
     y: Annotated[NDArray[float64], (2,)]
     z: Annotated[NDArray[float64], (2,)]
+    # Direction
     isotropic_direction: bool
     mono_direction: bool
     white_direction: bool
     direction: Annotated[NDArray[float64], (3,)]
+    polar: Annotated[NDArray[float64], (2,)]
+    azimuthal: Annotated[NDArray[float64], (2,)]
+    # Energy
     mono_energetic: bool
     energy_group: int
     energy: float
     energy_group_pmf: DistributionPMF
     energy_pdf: DistributionTabulated
+    # Time
     discrete_time: bool
     time: float
     time_range: Annotated[NDArray[float64], (2,)]
+    #
     particle_type: int
     probability: float
     moving: bool
@@ -69,6 +76,8 @@ class Source(ObjectNonSingleton):
         direction: Iterable[float] | NoneType = None,
         white_direction: Iterable[float] | NoneType = None,
         isotropic: bool | NoneType = None,
+        polar: Iterable[float] | NoneType = None,
+        azimuthal: Iterable[float] | NoneType = None,
         #
         energy: float | NDArray[float64] | NoneType = None,
         energy_group: int | NDArray[int64] | NoneType = None,
@@ -103,6 +112,8 @@ class Source(ObjectNonSingleton):
         self.mono_direction = False
         self.white_direction = False
         self.direction = np.array([0.0, 0.0, 0.0])
+        self.polar = np.array([-1.0, 1.0])
+        self.azimuthal = np.array([0.0, 2.0 * PI])
 
         # Energy
         self.mono_energetic = True
@@ -145,12 +156,21 @@ class Source(ObjectNonSingleton):
             pass
         elif direction is not None:
             self.isotropic_direction = False
-            self.mono_direction = True
             self.direction = np.array(direction)
+            if polar is not None or azimuthal is not None:
+                self.mono_direction = False
+                if polar is not None:
+                    self.polar = np.array(polar)
+                if azimuthal is not None:
+                    self.azimuthal = np.array(azimuthal)
+            else:
+                self.mono_direction = True
         elif white_direction is not None:
             self.isotropic_direction = False
             self.white_direction = True
             self.direction = np.array(white_direction)
+        # Normalize direction
+        self.direction /= np.linalg.norm(self.direction)
 
         # Energy
         if energy_group is not None:

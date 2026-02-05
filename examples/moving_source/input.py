@@ -32,7 +32,8 @@ src = mcdc.Source(
     x=[-4.0, -3.0],
     y=[-0.5, 0.5],
     z=[-0.5, 0.5],
-    isotropic=True,
+    direction=[1.0, 1.0, 0.0],
+    polar=[-1.0, -0.9],
     energy_group=0,
     time=[0.0, 10.0],
 )
