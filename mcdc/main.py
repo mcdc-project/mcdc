@@ -316,19 +316,3 @@ def preparation():
     setup_gpu(mcdc)
 
     return mcdc_arr, data
-
-
-# ======================================================================================
-# Visualize geometry
-# ======================================================================================
-
-
-def visualize(*args, **kwargs):
-    """
-    2D visualization of the created model. Implemented in visualize.py to avoid import
-    conflicts.
-
-    """
-    from mcdc.visualize import visualize as _visualize_func
-
-    return _visualize_func(*args, **kwargs)
