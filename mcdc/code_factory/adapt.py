@@ -647,21 +647,3 @@ def make_gpu_loop(
     (step_async,) = harm.RuntimeSpec.async_dispatch(step)
 
     pass
-
-
-# =========================================================================
-# Compilation and Main Adapter
-# =========================================================================
-
-
-def compiler(func, target):
-    if target == "cpu":
-        return jit(func, nopython=True, nogil=True)  # , parallel=True)
-    elif target == "cpus":
-        return jit(func, nopython=True, nogil=True, parallel=True)
-    elif target == "gpu_device":
-        return cuda.jit(func, device=True)
-    elif target == "gpu":
-        return cuda.jit(func)
-    else:
-        unknown_target(target)

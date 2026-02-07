@@ -3,17 +3,14 @@
 # ======================================================================================
 
 
-from mcdc import mcdc_get
-from mcdc.print_ import print_error, print_structure
-
-
 def run():
     import mcdc.print_ as print_module
     from mpi4py import MPI
 
-    # Timer: total
+    # TIMER: total
     time_total_start = MPI.Wtime()
 
+    # Get settings and MPI master status
     from mcdc.object_.simulation import simulation
 
     settings = simulation.settings
@@ -31,43 +28,53 @@ def run():
     if config.args.progress_bar is not None:
         settings.use_progress_bar = config.args.progress_bar
 
+    # GPU mode?
+    settings.target_gpu = True if config.target == "gpu" else False
+
     # ==================================================================================
     # Preparation
     # ==================================================================================
 
-    # Timer: preparation
+    # TIMER: preparation
     time_prep_start = MPI.Wtime()
 
-    mcdc_arr, data = preparation()
-    mcdc = mcdc_arr[0]
+    # Generate the program state:
+    #   - `mcdc`: the simulation structure, storing fixed side data and meta data
+    #   - `data`: a long 1D array storing arbitrarily-sized data of the simulation
+    # NOTE: The simulation structure needs to be generated in a container, which is a
+    #       a one-sized array that stores the structure. The container is needed to
+    #       ensure proper mutability and tracking of the structure when running in
+    #       different kinds of machines supported.
+    mcdc_container, data = preparation()
+    mcdc = mcdc_container[0]
 
     # Print headers
     if master:
         print_module.print_banner()
         print_module.print_configuration()
-        print(" Now running TNT...")
+        print(" Now running the particle transport...")
         if settings.eigenvalue_mode:
             print_module.print_eigenvalue_header(mcdc)
 
-    # Timer: preparation
+    # TIMER: preparation
     time_prep_end = MPI.Wtime()
 
     # ==================================================================================
     # Running the simulation
     # ==================================================================================
 
-    # Timer: simulation
+    # TIMER: simulation
     time_simulation_start = MPI.Wtime()
 
     # Run simulation
     import mcdc.transport.simulation as simulation_module
 
     if settings.eigenvalue_mode:
-        simulation_module.eigenvalue_simulation(mcdc_arr, data)
+        simulation_module.eigenvalue_simulation(mcdc_container, data)
     else:
-        simulation_module.fixed_source_simulation(mcdc_arr, data)
+        simulation_module.fixed_source_simulation(mcdc_container, data)
 
-    # Timer: simulation
+    # TIMER: simulation
     time_simulation_end = MPI.Wtime()
 
     # ==================================================================================
@@ -76,19 +83,19 @@ def run():
 
     import mcdc.output as output_module
 
-    # Timer: output
+    # TIMER: output
     time_output_start = MPI.Wtime()
 
     # Generate hdf5 output file
     output_module.generate_output(mcdc, data)
 
-    # Timer: output
+    # TIMER: output
     time_output_end = MPI.Wtime()
 
     # Final barrier
     MPI.COMM_WORLD.Barrier()
 
-    # Timer: total
+    # TIMER: total
     time_total_end = MPI.Wtime()
 
     # Manage timers
@@ -104,10 +111,11 @@ def run():
     # Finalizing
     # ==================================================================================
 
-    # GPU teardowns
-    from mcdc.transport.simulation import teardown_gpu
+    # GPU teardowns if needed
+    if settings.target_gpu:
+        from mcdc.code_factory.gpu.program_builder import teardown_gpu
 
-    teardown_gpu(mcdc)
+        teardown_gpu(mcdc)
 
 
 # ======================================================================================
@@ -117,15 +125,15 @@ def run():
 
 def preparation():
     import math
-    import numpy as np
 
     from mpi4py import MPI
 
     from mcdc.object_.simulation import simulation
     from mcdc.object_.material import MaterialMG
+    from mcdc.print_ import print_error
 
     # ==================================================================================
-    # Simulation settings
+    # Adjust simulation settings as needed
     # ==================================================================================
 
     # Get settings
@@ -150,7 +158,7 @@ def preparation():
             tally._use_census_based_tally(N_bin)
 
     # ==================================================================================
-    # Simulation parameters
+    # Adjust simulation parameters as needed
     # ==================================================================================
 
     # Normalize source probability
@@ -210,8 +218,8 @@ def preparation():
         from mcdc.code_factory.numba_objects_generator import make_literals
 
         make_literals(simulation)
-    mcdc_arr, data = generate_numba_objects(simulation)
-    mcdc = mcdc_arr[0]
+    mcdc_container, data = generate_numba_objects(simulation)
+    mcdc = mcdc_container[0]
 
     # Reload mcdc getters and setters
     import importlib
@@ -222,49 +230,35 @@ def preparation():
     importlib.reload(mcdc_set)
 
     # ==================================================================================
-    # Platform Targeting, Adapters, Toggles, etc
+    # Adapt functions as needed
     # ==================================================================================
 
-    # Adapt kernels
-    import numba as nb
-    import mcdc.code_factory.adapt as adapt
+    # Pick physics model
+    import mcdc.transport.physics as physics
+
+    if settings.multigroup_mode:
+        physics.neutron.particle_speed = physics.neutron.multigroup.particle_speed
+        physics.neutron.macro_xs = physics.neutron.multigroup.macro_xs
+        physics.neutron.neutron_production_xs = (
+            physics.neutron.multigroup.neutron_production_xs
+        )
+        physics.neutron.collision = physics.neutron.multigroup.collision
+
+    # Pick Python-version RNG if needed
     import mcdc.config as config
-    import mcdc.transport.mpi as mpi
+    import mcdc.transport.rng as rng
+
+    if config.mode == "python":
+        rng.wrapping_add = rng.wrapping_add_python
+        rng.wrapping_mul = rng.wrapping_mul_python
 
     # TODO: Find out why the following is needed to avoid circular import
     import mcdc.transport.particle_bank as particle_bank_module
 
-    settings.target_gpu = True if config.target == "gpu" else False
-
-    if config.target == "gpu":
-        import mcdc.numba_types as type_
-
-        if MPI.COMM_WORLD.Get_rank() != 0:
-            adapt.harm.config.should_compile(adapt.harm.config.ShouldCompile.NEVER)
-        elif config.caching == False:
-            adapt.harm.config.should_compile(adapt.harm.config.ShouldCompile.ALWAYS)
-        if not adapt.HAS_HARMONIZE:
-            print_error(
-                "No module named 'harmonize' - GPU functionality not available. "
-            )
-        adapt.gpu_forward_declare(
-            config.args,
-            data.shape,
-            type_.simulation,
-            type_.particle,
-            type_.particle_data,
-        )
-
-    adapt.eval_toggle()
-    adapt.target_for(config.target)
-    if config.target == "gpu":
-        build_gpu_progs(input_deck, config.args)
-    adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
-
     # ==================================================================================
-    # Source file
-    #   TODO: Use parallel h5py
+    # Source particles from file
     # ==================================================================================
+    # TODO: Use parallel h5py, may need to compile for speed
 
     import h5py
 
@@ -290,33 +284,30 @@ def preparation():
         MPI.COMM_WORLD.Barrier()
 
     # ==================================================================================
-    # Adapt functions
+    # Platform targeting, adapters, and toggles for portability
     # ==================================================================================
 
-    # Pick physics model
-    import mcdc.transport.physics as physics
+    import mcdc.code_factory.adapt as adapt
 
-    if settings.multigroup_mode:
-        physics.neutron.particle_speed = physics.neutron.multigroup.particle_speed
-        physics.neutron.macro_xs = physics.neutron.multigroup.macro_xs
-        physics.neutron.neutron_production_xs = (
-            physics.neutron.multigroup.neutron_production_xs
-        )
-        physics.neutron.collision = physics.neutron.multigroup.collision
+    adapt.eval_toggle()
+    adapt.target_for(config.target)
+    if settings.target_gpu:
+        build_gpu_progs(input_deck, config.args)
+    adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
 
-    # Pick Python-version RNG if needed
-    import mcdc.transport.rng as rng
-
-    if config.mode == "python":
-        rng.wrapping_add = rng.wrapping_add_python
-        rng.wrapping_mul = rng.wrapping_mul_python
-
-    # ==================================================================================
-    # Finalize data: wrapping into a tuple
-    # ==================================================================================
-
+    """
     from mcdc.transport.simulation import setup_gpu
 
     setup_gpu(mcdc)
+    """
+    # Build GPU program if desired
+    if settings.target_gpu:
+        from mcdc.code_factory.gpu.program_builder import build_gpu_program
 
-    return mcdc_arr, data
+        build_gpu_program(data)
+
+    # ==================================================================================
+    # Finalize
+    # ==================================================================================
+
+    return mcdc_container, data
