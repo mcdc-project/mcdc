@@ -245,7 +245,7 @@ def sample_multi_table(E, rng_state, multi_table, data, scale=False):
             val_max = val0_max + f * (val1_max - val0_max)
 
         # Sample which table to choose
-        if rng.lcg(rng_state) > f:
+        if rng.lcg(rng_state) < f:
             idx += 1
 
     # Get the table range
@@ -383,7 +383,7 @@ def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
     E_max = E0_max + f * (E1_max - E0_max)
 
     # Sample which table to choose
-    if xi1 > f:
+    if xi1 < f:
         idx += 1
 
     # Get the table range
@@ -489,7 +489,7 @@ def sample_tabulated_energy_angle(E, rng_state, table, data):
     E_max = E0_max + f * (E1_max - E0_max)
 
     # Sample which table to choose
-    if xi1 > f:
+    if xi1 < f:
         idx += 1
 
     # Get the table range
