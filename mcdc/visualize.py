@@ -1,98 +1,8 @@
 from numba import njit
 import numpy as np
 from mcdc.main import preparation
-from mcdc.transport.geometry.interface import locate_particle
 
 _visualize_cache = None
-
-
-@njit(cache=True)
-def _compute_material_row(
-    first_coord,
-    second_midpoint,
-    first_key_idx,
-    second_key_idx,
-    reference_key_idx,
-    reference_val,
-    time_val,
-    particle_arr,
-    mcdc,
-    data,
-):
-    """
-    Compute material IDs for a single row of pixels using numba.
-
-    Parameters
-    ----------
-    first_coord : float
-        First axis coordinate
-    second_midpoint : np.ndarray
-        Midpoints along the second axis
-    first_key_idx : int
-        Index for first axis (0=x, 1=y, 2=z)
-    second_key_idx : int
-        Index for second axis (0=x, 1=y, 2=z)
-    reference_key_idx : int
-        Index for reference axis (0=x, 1=y, 2=z)
-    reference_val : float
-        Value for the reference (slice) coordinate
-    time_val : float
-        Time value for the visualization
-    particle_arr : np.ndarray
-        Particle array of size (1,) used for particle lookup.
-    mcdc : structured array
-        MCDC simulation data
-    data : structured array
-        Additional simulation data
-    """
-    n_second = len(second_midpoint)
-    row_materials = np.empty(n_second, dtype=np.int32)
-
-    particle = particle_arr[0]
-
-    # Set time and energy
-    particle["t"] = time_val
-    particle["g"] = 0
-    particle["E"] = 1e6
-    particle["ux"] = 0.0
-    particle["uy"] = 0.0
-    particle["uz"] = 1.0
-
-    # Set reference coordinate
-    if reference_key_idx == 0:
-        particle["x"] = reference_val
-    elif reference_key_idx == 1:
-        particle["y"] = reference_val
-    else:
-        particle["z"] = reference_val
-
-    # Set first axis coordinate
-    if first_key_idx == 0:
-        particle["x"] = first_coord
-    elif first_key_idx == 1:
-        particle["y"] = first_coord
-    else:
-        particle["z"] = first_coord
-
-    for j in range(n_second):
-        # Set second axis coordinate
-        if second_key_idx == 0:
-            particle["x"] = second_midpoint[j]
-        elif second_key_idx == 1:
-            particle["y"] = second_midpoint[j]
-        else:
-            particle["z"] = second_midpoint[j]
-
-        # Reset IDs for fresh lookup
-        particle["cell_ID"] = -1
-        particle["material_ID"] = -1
-
-        if locate_particle(particle_arr, mcdc, data):
-            row_materials[j] = particle["material_ID"]
-        else:
-            row_materials[j] = -1
-
-    return row_materials
 
 
 def visualize(
@@ -137,6 +47,100 @@ def visualize(
         _visualize_cache = preparation()
     mcdc_container, data = _visualize_cache
     mcdc = mcdc_container[0]
+
+    # ==================================================================================
+    # Numba-compiled functions
+    # ==================================================================================
+
+    from mcdc.transport.geometry.interface import locate_particle
+
+    @njit(cache=True)
+    def _compute_material_row(
+        first_coord,
+        second_midpoint,
+        first_key_idx,
+        second_key_idx,
+        reference_key_idx,
+        reference_val,
+        time_val,
+        particle_arr,
+        mcdc,
+        data,
+    ):
+        """
+        Compute material IDs for a single row of pixels using numba.
+
+        Parameters
+        ----------
+        first_coord : float
+            First axis coordinate
+        second_midpoint : np.ndarray
+            Midpoints along the second axis
+        first_key_idx : int
+            Index for first axis (0=x, 1=y, 2=z)
+        second_key_idx : int
+            Index for second axis (0=x, 1=y, 2=z)
+        reference_key_idx : int
+            Index for reference axis (0=x, 1=y, 2=z)
+        reference_val : float
+            Value for the reference (slice) coordinate
+        time_val : float
+            Time value for the visualization
+        particle_arr : np.ndarray
+            Particle array of size (1,) used for particle lookup.
+        mcdc : structured array
+            MCDC simulation data
+        data : structured array
+            Additional simulation data
+        """
+        n_second = len(second_midpoint)
+        row_materials = np.empty(n_second, dtype=np.int32)
+
+        particle = particle_arr[0]
+
+        # Set time and energy
+        particle["t"] = time_val
+        particle["g"] = 0
+        particle["E"] = 1e6
+        particle["ux"] = 0.0
+        particle["uy"] = 0.0
+        particle["uz"] = 1.0
+
+        # Set reference coordinate
+        if reference_key_idx == 0:
+            particle["x"] = reference_val
+        elif reference_key_idx == 1:
+            particle["y"] = reference_val
+        else:
+            particle["z"] = reference_val
+
+        # Set first axis coordinate
+        if first_key_idx == 0:
+            particle["x"] = first_coord
+        elif first_key_idx == 1:
+            particle["y"] = first_coord
+        else:
+            particle["z"] = first_coord
+
+        for j in range(n_second):
+            # Set second axis coordinate
+            if second_key_idx == 0:
+                particle["x"] = second_midpoint[j]
+            elif second_key_idx == 1:
+                particle["y"] = second_midpoint[j]
+            else:
+                particle["z"] = second_midpoint[j]
+
+            # Reset IDs for fresh lookup
+            particle["cell_ID"] = -1
+            particle["material_ID"] = -1
+
+            if locate_particle(particle_arr, mcdc, data):
+                row_materials[j] = particle["material_ID"]
+            else:
+                row_materials[j] = -1
+
+        return row_materials
 
     import mcdc.numba_types as type_
 
