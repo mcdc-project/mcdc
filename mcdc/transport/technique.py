@@ -79,4 +79,4 @@ def population_control(mcdc):
             )
             # Set weight
             P_rec["w"] = w_survive
-            particle_bank_module.add_source(P_rec_arr, mcdc)
+            particle_bank_module.bank_source_particle(P_rec_arr, mcdc)

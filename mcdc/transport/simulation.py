@@ -26,6 +26,7 @@ from mcdc.print_ import (
     print_progress_eigenvalue,
 )
 from mcdc.transport.source import source_particle
+from mcdc.transport.util import atomic_add
 
 caching = config.caching
 
@@ -105,9 +106,9 @@ def fixed_source_simulation(mcdc_arr, data):
             if use_census_based_tally:
                 tally_module.filter.set_census_based_time_grid(mcdc, data)
 
-            # Check and accordingly promote future particles to censused particles
+            # Accordingly promote future particles to censused particles
             if particle_bank_module.get_bank_size(mcdc["bank_future"]) > 0:
-                particle_bank_module.check_future_bank(mcdc, data)
+                particle_bank_module.promote_future_particles(mcdc, data)
 
             # Loop over source particles
             seed_source = rng.split_seed(uint64(seed_census), rng.SEED_SPLIT_SOURCE)
@@ -267,13 +268,13 @@ def generate_source_particle(work_start, idx_work, seed, prog, data):
 
     # Put into the right bank
     if not hit_census:
-        particle_bank_module.add_active(particle_container, prog)
+        particle_bank_module.bank_active_particle(particle_container, prog)
     elif not hit_next_census:
         # Particle will participate after the current census
-        particle_bank_module.add_census(particle_container, prog)
+        particle_bank_module.bank_census_particle(particle_container, prog)
     else:
         # Particle will participate in the future
-        particle_bank_module.add_future(particle_container, prog)
+        particle_bank_module.bank_future_particle(particle_container, prog)
 
 
 @njit
@@ -285,7 +286,7 @@ def exhaust_active_bank(prog, data):
     # Loop until active bank is exhausted
     while particle_bank_module.get_bank_size(mcdc["bank_active"]) > 0:
         # Get particle from active bank
-        particle_bank_module.get_particle(particle_container, mcdc["bank_active"], mcdc)
+        particle_bank_module.pop_particle(particle_container, mcdc["bank_active"])
 
         prep_particle(particle_container, prog)
 
@@ -339,7 +340,8 @@ def gpu_sources_spec():
     def make_work(prog: nb.uintp) -> nb.boolean:
         mcdc = adapt.mcdc_global(prog)
 
-        idx_work = adapt.global_add(mcdc["mpi_work_iter"], 0, 1)
+        atomic_add(mcdc["mpi_work_iter"], 0, 1)
+        idx_work = mcdc["mpi_work_iter"][0]
 
         if idx_work >= mcdc["mpi_work_size"]:
             return False
@@ -497,7 +499,7 @@ def step_particle(particle_container, prog, data):
 
     # Census time crossing
     if particle["event"] & EVENT_TIME_CENSUS:
-        particle_bank_module.add_census(particle_container, prog)
+        particle_bank_module.bank_census_particle(particle_container, prog)
         particle["alive"] = False
 
     # Time boundary crossing
@@ -635,7 +637,8 @@ def gpu_sources_spec():
     def make_work(prog: nb.uintp) -> nb.boolean:
         mcdc = adapt.mcdc_global(prog)
 
-        idx_work = adapt.global_add(mcdc["mpi_work_iter"], 0, 1)
+        atomic_add(mcdc["mpi_work_iter"], 0, 1)
+        idx_work = mcdc["mpi_work_iter"][0]
 
         if idx_work >= mcdc["mpi_work_size"]:
             return False
