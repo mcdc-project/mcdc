@@ -5,14 +5,14 @@ from numba import njit
 
 ####
 
-import mcdc.code_factory.adapt as adapt
+import mcdc.code_factory.gpu.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
 import mcdc.transport.literals as literals
 import mcdc.transport.mesh as mesh
 import mcdc.transport.physics as physics
 import mcdc.transport.tally as tally_module
 
-from mcdc.code_factory.adapt import for_cpu, for_gpu
+from mcdc.code_factory.gpu.adapt import for_cpu, for_gpu
 from mcdc.constant import *
 from mcdc.transport.geometry.surface import get_distance, check_sense, reflect
 

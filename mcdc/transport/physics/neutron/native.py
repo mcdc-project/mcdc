@@ -5,7 +5,7 @@ from numba import njit
 
 ####
 
-import mcdc.code_factory.adapt as adapt
+import mcdc.code_factory.gpu.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
 import mcdc.numba_types as type_
 from mcdc.print_ import print_structure

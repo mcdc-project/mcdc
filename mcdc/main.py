@@ -287,7 +287,7 @@ def preparation():
     # Platform targeting, adapters, and toggles for portability
     # ==================================================================================
 
-    import mcdc.code_factory.adapt as adapt
+    import mcdc.code_factory.gpu.adapt as adapt
 
     adapt.eval_toggle()
     adapt.target_for(config.target)

@@ -5,7 +5,6 @@ from numba import njit
 
 ####
 
-import mcdc.code_factory.adapt as adapt
 import mcdc.numba_types as type_
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module

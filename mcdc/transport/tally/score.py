@@ -2,11 +2,11 @@ from numba import njit
 
 ####
 
+import mcdc.code_factory.gpu.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
 import mcdc.transport.mesh as mesh_module
 import mcdc.transport.physics as physics
 
-from mcdc.code_factory import adapt
 from mcdc.constant import (
     AXIS_T,
     AXIS_X,

@@ -10,7 +10,7 @@ from numba import (
 
 ####
 
-import mcdc.code_factory.adapt as adapt
+import mcdc.code_factory.gpu.adapt as adapt
 import mcdc.numba_types as type_
 import mcdc.transport.mpi as mpi
 import mcdc.transport.particle as particle_module

@@ -10,7 +10,7 @@ from mpi4py import MPI
 ####
 
 import mcdc
-import mcdc.code_factory.adapt as adapt
+import mcdc.code_factory.gpu.adapt as adapt
 import mcdc.config as config
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
