@@ -58,8 +58,6 @@ def evaluate(particle_container, surface):
     )
 
 
-# Due to the sqrt in the derivative functions, if the particle is not in the x-y space where the torus has z values, it will result in complex numbers
-# Specificaly the term: math.sqrt(r**2 - (R - inv_root)**2), where inverse root = math.sqrt((A-x)**2 + (B-y)**2)
 @njit
 def reflect(particle_container, surface):
     particle = particle_container[0]
@@ -78,37 +76,15 @@ def reflect(particle_container, surface):
     B = surface["B"]
     C = surface["C"]
 
-    #Spliting up the derivative math for readability into numerators and denominators
-    inv_root = math.sqrt((A-x)**2 + (B-y)**2)
+    # Shifting the origin point of the particle into the torus space, and treating the torus as centered on (0,0,0)
+    x -= A
+    y -= B
+    z -= C
 
-    x_num = (x-A) * (inv_root - R)
-    x_den = inv_root * (math.sqrt(r**2 - (R - inv_root)**2))
-    y_num = (y-B) * (inv_root - R)
-    y_den = (math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - inv_root)**2))
-
-    # Surface derivatives, the if statement prevents a divide by 0 error
-    # The derivative with respect to x and y are the same except for the first term (x-A) or (y-B)
-    if x_den == 0 and x_num == 0:
-        dx = 0
-    elif x_den == 0:
-        dx = -(INF)
-    else:
-        dx = -(x_num / x_den)
-
-    if y_den == 0 and y_num == 0:
-        dy = 0
-    elif y_den == 0:
-        dy = -(INF)
-    else:
-        dy = -(y_num / y_den)
-
-    dz = -1
-
-    # If the particle is below the centerline of the torus, it will be interacting with the bottom surface
-    if z <= C:
-        # The only difference between the derivatives of both halves of the torus is the multiplication of a negative 1
-        dx *= -1
-        dy *= -1
+    # Taking the partial derivitives of the expanded form of the implicit torus equation
+    dx = 4 * x * (-(r**2) -(R**2) +(x**2) +(y**2) +(z**2))
+    dy = 4 * y * (-(r**2) -(R**2) +(x**2) +(y**2) +(z**2))
+    dz = 4 * z * (-(r**2) +(R**2) +(x**2) +(y**2) +(z**2))
 
     # Surface Normal
     norm = math.sqrt(dx**2 + dy**2 + dz**2)
@@ -117,7 +93,7 @@ def reflect(particle_container, surface):
     nz = dz / norm
 
     # Reflect
-    c = 2.0 * (nx * ux + ny * uy + nz * uz)
+    c = 2.0 * (nx * ux + ny * uy + nz * uz) # Magnitutde component of the projection of the particle onto the surface normal
     particle["ux"] -= c * nx
     particle["uy"] -= c * ny
     particle["uz"] -= c * nz
@@ -129,8 +105,7 @@ def reflect(particle_container, surface):
     print("Normals: ", nx, ny, nz)
     print(particle["ux"], particle["uy"], particle["uz"])
 
-# Due to the sqrt in the derivative functions, if the particle is not in the x-y space where the torus has z values, it will result in complex numbers
-# Specificaly the term: math.sqrt(r**2 - (R - inv_root)**2), where inverse root = math.sqrt((A-x)**2 + (B-y)**2)
+
 @njit
 def get_normal_component(particle_container, surface):
     particle = particle_container[0]
@@ -149,37 +124,15 @@ def get_normal_component(particle_container, surface):
     B = surface["B"]
     C = surface["C"]
 
-    #Spliting up the derivative math for readability into numerators and denominators (inv is short for inverse)
-    inv_root = math.sqrt((A-x)**2 + (B-y)**2)
+    # Shifting the origin point of the particle into the torus space, and treating the torus as centered on (0,0,0)
+    x -= A
+    y -= B
+    z -= C
 
-    x_num = (x-A) * (inv_root - R)
-    x_den = inv_root * (math.sqrt(r**2 - (R - inv_root)**2))
-    y_num = (y-B) * (inv_root - R)
-    y_den = (math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - inv_root)**2))
-
-    # Surface derivatives, the if statement prevents a divide by 0 error
-    # The derivative with respect to x and y are the same except for the first term (x-A) or (y-B)
-    if x_den == 0 and x_num == 0:
-        dx = 0
-    elif x_den == 0:
-        dx = -(INF)
-    else:
-        dx = -(x_num / x_den)
-
-    if y_den == 0 and y_num == 0:
-        dy = 0
-    elif y_den == 0:
-        dy = -(INF)
-    else:
-        dy = -(y_num / y_den)
-
-    dz = -1
-
-    # If the particle is below the centerline of the torus, it will be interacting with the bottom surface
-    if z <= C:
-        # The only difference between the derivatives of both halves of the torus is the multiplication of a negative 1
-        dx *= -1
-        dy *= -1
+    # Taking the partial derivitives of the expanded form of the implicit torus equation
+    dx = 4 * x * (-(r**2) -(R**2) +(x**2) +(y**2) +(z**2))
+    dy = 4 * y * (-(r**2) -(R**2) +(x**2) +(y**2) +(z**2))
+    dz = 4 * z * (-(r**2) +(R**2) +(x**2) +(y**2) +(z**2))
 
     # Surface Normal
     norm = math.sqrt(dx**2 + dy**2 + dz**2)
@@ -188,6 +141,7 @@ def get_normal_component(particle_container, surface):
     nz = dz / norm
 
     return nx * ux + ny * uy + nz * uz
+
 
 @njit
 def get_distance(particle_container, surface):
