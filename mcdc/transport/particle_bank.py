@@ -267,15 +267,18 @@ def bank_rebalance(mcdc):
     left = mcdc["mpi_rank"] - 1
     right = mcdc["mpi_rank"] + 1
 
-    # Need more or less?
-    more_left = idx_start < work_start
-    less_left = idx_start > work_start
-    more_right = idx_end > work_end
-    less_right = idx_end < work_end
+    # Flags if need to receive from or sent to the neighbors
+    send_to_left = idx_start < work_start
+    receive_from_left = idx_start > work_start
+    send_to_right = idx_end > work_end
+    receive_from_right = idx_end < work_end
 
-    # Offside?
-    offside_left = idx_end <= work_start and work_start != work_end
-    offside_right = idx_start >= work_end and work_start != work_end
+    # Flags if need to receive first
+    receive_first = False
+    if receive_from_left:
+        receive_first = idx_start >= work_end
+    if receive_from_right:
+        receive_first = idx_end <= work_start
 
     # MPI nearest-neighbor send/receive
     buff = np.zeros(
@@ -287,37 +290,33 @@ def bank_rebalance(mcdc):
         size = get_bank_size(mcdc["bank_source"])
         bank = np.array(mcdc["bank_source"]["particles"][:size])
 
-        # If offside, need to receive first
-        if offside_left:
-            # Receive from right
-            bank = np.append(bank, MPI.COMM_WORLD.recv(source=right))
-            less_right = False
-        if offside_right:
-            # Receive from left
-            bank = np.insert(bank, 0, MPI.COMM_WORLD.recv(source=left))
-            less_left = False
+        if receive_first:
+            if receive_from_left:
+                bank = np.insert(bank, 0, MPI.COMM_WORLD.recv(source=left))
+                receive_from_left = False
+            if receive_from_right:
+                bank = np.append(bank, MPI.COMM_WORLD.recv(source=right))
+                receive_from_right = False
 
-        # Send
-        if more_left:
+        if send_to_left:
             n = work_start - idx_start
-            request_left = MPI.COMM_WORLD.isend(bank[:n], dest=left)
+            send_to_left_status = MPI.COMM_WORLD.isend(bank[:n], dest=left)
             bank = bank[n:]
-        if more_right:
+        if send_to_right:
             n = idx_end - work_end
-            request_right = MPI.COMM_WORLD.isend(bank[-n:], dest=right)
+            send_to_right_status = MPI.COMM_WORLD.isend(bank[-n:], dest=right)
             bank = bank[:-n]
 
-        # Receive
-        if less_left:
+        if receive_from_left:
             bank = np.insert(bank, 0, MPI.COMM_WORLD.recv(source=left))
-        if less_right:
+        if receive_from_right:
             bank = np.append(bank, MPI.COMM_WORLD.recv(source=right))
 
         # Wait until sent massage is received
-        if more_left:
-            request_left.Wait()
-        if more_right:
-            request_right.Wait()
+        if send_to_left:
+            send_to_left_status.Wait()
+        if send_to_right:
+            send_to_right_status.Wait()
 
         # Set output buffer
         size = bank.shape[0]
