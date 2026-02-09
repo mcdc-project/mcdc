@@ -110,9 +110,9 @@ def run():
 
     # GPU teardowns if needed
     if config.target == "gpu":
-        from mcdc.code_factory.gpu.program_builder import teardown_gpu
+        from mcdc.code_factory.gpu.program_builder import teardown_gpu_program
 
-        teardown_gpu(mcdc)
+        teardown_gpu_program(mcdc)
 
 
 # ======================================================================================
@@ -288,8 +288,7 @@ def preparation():
     if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import build_gpu_program
 
-        build_gpu_progs(input_deck, config.args)
-        build_gpu_program(data)
+        build_gpu_program(simulation, config, data)
 
     # ==================================================================================
     # Finalize
