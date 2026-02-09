@@ -110,6 +110,42 @@ def sample_isotropic_direction(rng_state):
 
 
 @njit
+def sample_direction(polar_cosine, azimuthal, polar_coordinate, rng_state):
+    # Sample polar cosine and azimuthal angle
+    mu = sample_uniform(polar_cosine[0], polar_cosine[1], rng_state)
+    azi = sample_uniform(azimuthal[0], azimuthal[1], rng_state)
+
+    # Apply polar coordinate
+    wx = polar_coordinate[0]
+    wy = polar_coordinate[1]
+    wz = polar_coordinate[2]
+    if abs(wz) >= 0.999:
+        inv = 1.0 / math.sqrt(wx * wx + wy * wy)
+
+        ux = -wy * inv
+        uy = wx * inv
+        uz = 0.0
+
+        vx = -wz * wx * inv
+        vy = -wz * wy * inv
+        vz = math.sqrt(wx * wx + wy * wy)
+    else:
+        # Axis nearly parallel to z
+        ux, uy, uz = 1.0, 0.0, 0.0
+        vx, vy, vz = 0.0, 1.0, 0.0
+
+    # Rotate into lab frame
+    s = math.sqrt(max(0.0, 1.0 - mu * mu))
+    cphi = math.cos(azi)
+    sphi = math.sin(azi)
+    dx = s * cphi * ux + s * sphi * vx + mu * wx
+    dy = s * cphi * uy + s * sphi * vy + mu * wy
+    dz = s * cphi * uz + s * sphi * vz + mu * wz
+
+    return dx, dy, dz
+
+
+@njit
 def sample_tabulated(table, rng_state, data):
     xi = rng.lcg(rng_state)
     idx = find_bin(xi, mcdc_get.tabulated_distribution.cdf_all(table, data))
@@ -209,7 +245,7 @@ def sample_multi_table(E, rng_state, multi_table, data, scale=False):
             val_max = val0_max + f * (val1_max - val0_max)
 
         # Sample which table to choose
-        if rng.lcg(rng_state) > f:
+        if rng.lcg(rng_state) < f:
             idx += 1
 
     # Get the table range
@@ -347,7 +383,7 @@ def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
     E_max = E0_max + f * (E1_max - E0_max)
 
     # Sample which table to choose
-    if xi1 > f:
+    if xi1 < f:
         idx += 1
 
     # Get the table range
@@ -453,7 +489,7 @@ def sample_tabulated_energy_angle(E, rng_state, table, data):
     E_max = E0_max + f * (E1_max - E0_max)
 
     # Sample which table to choose
-    if xi1 > f:
+    if xi1 < f:
         idx += 1
 
     # Get the table range

@@ -12,6 +12,7 @@ from mcdc.transport.distribution import (
     sample_pmf,
     sample_white_direction,
     sample_isotropic_direction,
+    sample_direction,
 )
 from mcdc.transport.util import find_bin
 
@@ -52,6 +53,10 @@ def source_particle(P_rec_arr, seed, mcdc, data):
         ux = source["direction"][0]
         uy = source["direction"][1]
         uz = source["direction"][2]
+    else:
+        ux, uy, uz = sample_direction(
+            source["polar_cosine"], source["azimuthal"], source["direction"], P_rec_arr
+        )
 
     # Energy
     if mcdc["settings"]["multigroup_mode"]:
