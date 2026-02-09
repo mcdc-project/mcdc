@@ -284,21 +284,11 @@ def preparation():
     # Platform targeting, adapters, and toggles for portability
     # ==================================================================================
 
-    import mcdc.code_factory.gpu.adapt as adapt
-
-    if config.target == "gpu":
-        build_gpu_progs(input_deck, config.args)
-    # adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
-
-    """
-    from mcdc.transport.simulation import setup_gpu
-
-    setup_gpu(mcdc)
-    """
     # Build GPU program if desired
     if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import build_gpu_program
 
+        build_gpu_progs(input_deck, config.args)
         build_gpu_program(data)
 
     # ==================================================================================
