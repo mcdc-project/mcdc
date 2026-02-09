@@ -31,6 +31,7 @@ from mcdc.constant import (
     SURFACE_CYLINDER_Y,
     SURFACE_CYLINDER_Z,
     SURFACE_SPHERE,
+    SURFACE_TORUS_X,
 )
 from mcdc.transport.util import find_bin
 
@@ -89,8 +90,10 @@ def evaluate(particle_container, surface, data):
             result = cylinder_z.evaluate(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             result = sphere.evaluate(particle_container, surface)
-        else:
+        elif surface["type"] == SURFACE_QUADRIC:
             result = quadric.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_X:
+            result = torus_x.evaluate(particle_container, surface)
 
     if surface["moving"]:
         # Restore particle position
@@ -139,8 +142,10 @@ def get_normal_component(particle_container, speed, surface, data):
             result = cylinder_z.get_normal_component(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             result = sphere.get_normal_component(particle_container, surface)
-        else:
+        elif surface["type"] == SURFACE_QUADRIC:
             result = quadric.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_X:
+            result = torus_x.get_normal_component(particle_container, surface)
 
     if surface["moving"]:
         # Restore particle parameters
@@ -178,8 +183,10 @@ def reflect(particle_container, surface):
             return cylinder_z.reflect(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             return sphere.reflect(particle_container, surface)
-        else:
+        elif surface["type"] == SURFACE_QUADRIC:
             return quadric.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_X:
+            return torus_x.reflect(particle_container, surface)
 
 
 @njit
@@ -222,8 +229,10 @@ def _get_distance_static(particle_container, surface):
             return cylinder_z.get_distance(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             return sphere.get_distance(particle_container, surface)
-        else:
+        elif surface["type"] == SURFACE_QUADRIC:
             return quadric.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_X:
+            return torus_x.get_distance(particle_container, surface)
 
 
 @njit
