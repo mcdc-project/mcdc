@@ -289,7 +289,6 @@ def preparation():
 
     import mcdc.code_factory.gpu.adapt as adapt
 
-    adapt.eval_toggle()
     adapt.target_for(config.target)
     if settings.target_gpu:
         build_gpu_progs(input_deck, config.args)
