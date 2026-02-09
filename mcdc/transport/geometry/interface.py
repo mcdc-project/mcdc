@@ -436,8 +436,6 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
 @njit
 def surface_crossing(P_arr, mcdc, data):
     P = P_arr[0]
-    # TODO: Make sure if below is needed
-    # mcdc = adapt.mcdc_global(prog)
 
     # Apply BC
     surface = mcdc["surfaces"][P["surface_ID"]]

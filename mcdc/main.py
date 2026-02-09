@@ -28,9 +28,6 @@ def run():
     if config.args.progress_bar is not None:
         settings.use_progress_bar = config.args.progress_bar
 
-    # GPU mode?
-    settings.target_gpu = True if config.target == "gpu" else False
-
     # ==================================================================================
     # Preparation
     # ==================================================================================
@@ -112,7 +109,7 @@ def run():
     # ==================================================================================
 
     # GPU teardowns if needed
-    if settings.target_gpu:
+    if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import teardown_gpu
 
         teardown_gpu(mcdc)
@@ -289,10 +286,9 @@ def preparation():
 
     import mcdc.code_factory.gpu.adapt as adapt
 
-    adapt.target_for(config.target)
-    if settings.target_gpu:
+    if config.target == "gpu":
         build_gpu_progs(input_deck, config.args)
-    adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
+    # adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
 
     """
     from mcdc.transport.simulation import setup_gpu
@@ -300,7 +296,7 @@ def preparation():
     setup_gpu(mcdc)
     """
     # Build GPU program if desired
-    if settings.target_gpu:
+    if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import build_gpu_program
 
         build_gpu_program(data)

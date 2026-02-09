@@ -374,10 +374,6 @@ def for_gpu(on_target=[]):
     return for_("gpu", on_target=on_target)
 
 
-def target_for(target):
-    pass
-
-
 def jit_on_target():
     def jit_on_target_inner(func):
         late_jit_roster.add(func)
