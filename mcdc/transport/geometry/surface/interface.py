@@ -17,6 +17,7 @@ import mcdc.transport.geometry.surface.cylinder_y as cylinder_y
 import mcdc.transport.geometry.surface.cylinder_z as cylinder_z
 import mcdc.transport.geometry.surface.sphere as sphere
 import mcdc.transport.geometry.surface.quadric as quadric
+import mcdc.transport.geometry.surface.torus_x as torus_x
 
 from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
