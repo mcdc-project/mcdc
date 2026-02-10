@@ -4,7 +4,6 @@ from numba import njit, objmode, uint64
 
 ####
 
-import mcdc.config as config
 import mcdc.mcdc_get as mcdc_get
 import mcdc.numba_types as type_
 import mcdc.output as output_module
@@ -24,10 +23,9 @@ from mcdc.print_ import (
     print_progress_eigenvalue,
 )
 from mcdc.transport.source import source_particle
-from mcdc.transport.util import atomic_add
 
 # ======================================================================================
-# Fixed-source simulation
+# Main simulations
 # ======================================================================================
 
 
@@ -71,7 +69,7 @@ def fixed_source_simulation(mcdc_arr, data):
 
             # Loop over source particles
             seed_source = rng.split_seed(uint64(seed_census), rng.SEED_SPLIT_SOURCE)
-            loop_source(uint64(seed_source), mcdc, data)
+            source_loop(uint64(seed_source), mcdc, data)
 
             # Manage particle banks: population control and work rebalance
             particle_bank_module.manage_particle_banks(mcdc)
@@ -112,11 +110,6 @@ def fixed_source_simulation(mcdc_arr, data):
         tally_module.closeout.finalize(mcdc, data)
 
 
-# =========================================================================
-# Eigenvalue simulation
-# =========================================================================
-
-
 def eigenvalue_simulation(mcdc_arr, data):
     # Ensure `mcdc` exist for the lifetime of the program
     # by intentionally leaking their memory
@@ -138,7 +131,7 @@ def eigenvalue_simulation(mcdc_arr, data):
         seed_cycle = rng.split_seed(uint64(idx_cycle), settings["rng_seed"])
 
         # Loop over source particles
-        loop_source(uint64(seed_cycle), mcdc, data)
+        source_loop(uint64(seed_cycle), mcdc, data)
 
         # Tally "history" closeout
         tally_module.closeout.eigenvalue_cycle(mcdc, data)
@@ -166,6 +159,25 @@ def eigenvalue_simulation(mcdc_arr, data):
 # =============================================================================
 # Source loop
 # =============================================================================
+
+
+@njit
+def source_loop(seed, mcdc, data):
+    # Progress bar indicator
+    N_prog = 0
+
+    # Loop over particle sources
+    work_start = mcdc["mpi_work_start"]
+    work_size = mcdc["mpi_work_size"]
+
+    for idx_work in range(work_size):
+        mcdc["idx_work"] = work_start + idx_work
+        generate_source_particle(work_start, idx_work, seed, mcdc, data)
+
+        # Run the source particle and its secondaries
+        exhaust_active_bank(mcdc, data)
+
+        source_closeout(mcdc, idx_work, N_prog, data)
 
 
 @njit
@@ -229,7 +241,7 @@ def exhaust_active_bank(mcdc, data):
         prep_particle(particle_container, mcdc)
 
         # Particle loop
-        loop_particle(particle_container, mcdc, data)
+        particle_loop(particle_container, mcdc, data)
 
 
 @njit
@@ -252,32 +264,13 @@ def source_closeout(mcdc, idx_work, N_prog, data):
             print_progress(percent, mcdc)
 
 
-@njit
-def loop_source(seed, mcdc, data):
-    # Progress bar indicator
-    N_prog = 0
-
-    # Loop over particle sources
-    work_start = mcdc["mpi_work_start"]
-    work_size = mcdc["mpi_work_size"]
-
-    for idx_work in range(work_size):
-        mcdc["idx_work"] = work_start + idx_work
-        generate_source_particle(work_start, idx_work, seed, mcdc, data)
-
-        # Run the source particle and its secondaries
-        exhaust_active_bank(mcdc, data)
-
-        source_closeout(mcdc, idx_work, N_prog, data)
-
-
 # ======================================================================================
 # Particle loop
 # ======================================================================================
 
 
 @njit
-def loop_particle(particle_container, mcdc, data):
+def particle_loop(particle_container, mcdc, data):
     particle = particle_container[0]
 
     while particle["alive"]:

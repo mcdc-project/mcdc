@@ -127,7 +127,6 @@ def preparation():
 
     from mcdc.object_.simulation import simulation
     from mcdc.object_.material import MaterialMG
-    from mcdc.print_ import print_error
 
     # ==================================================================================
     # Adjust simulation settings as needed
