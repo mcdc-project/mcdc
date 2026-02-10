@@ -120,7 +120,6 @@ def report_empty_bank(bank):
 def promote_future_particles(mcdc, data):
     # Get the banks
     future_bank = mcdc["bank_future"]
-    census_bank = mcdc["bank_census"]
 
     # Get the next census time
     idx = mcdc["idx_census"] + 1
@@ -135,7 +134,7 @@ def promote_future_particles(mcdc, data):
     for i in range(initial_size):
         # Get the next future particle index
         #   NOTE: future bank size decreases as particles are promoted to census bank
-        idx = i + (get_bank_size(future_bank) - initial_size)
+        idx = i - (initial_size - get_bank_size(future_bank))
         particle_module.copy(
             particle_container, future_bank["particles"][idx : idx + 1]
         )

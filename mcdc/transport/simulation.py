@@ -210,25 +210,6 @@ def eigenvalue_simulation(mcdc_arr, data):
 
 
 @njit
-def loop_source(seed, mcdc, data):
-    # Progress bar indicator
-    N_prog = 0
-
-    # Loop over particle sources
-    work_start = mcdc["mpi_work_start"]
-    work_size = mcdc["mpi_work_size"]
-
-    for idx_work in range(work_size):
-        mcdc["idx_work"] = work_start + idx_work
-        generate_source_particle(work_start, idx_work, seed, mcdc, data)
-
-        # Run the source particle and its secondaries
-        exhaust_active_bank(mcdc, data)
-
-        source_closeout(mcdc, idx_work, N_prog, data)
-
-
-@njit
 def generate_source_particle(work_start, idx_work, seed, mcdc, data):
     """Get a source particle and put into one of the banks"""
     settings = mcdc["settings"]
