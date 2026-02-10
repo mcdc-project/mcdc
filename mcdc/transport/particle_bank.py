@@ -216,12 +216,11 @@ def bank_rebalance(mcdc):
     # Scan the bank
     idx_start, N_local, N = bank_scanning(mcdc["bank_source"], mcdc)
     idx_end = idx_start + N_local
+    mpi.distribute_work(N, mcdc)
 
     # Abort if source bank is empty
     if N == 0:
         return
-
-    mpi.distribute_work(N, mcdc)
 
     # Rebalance not needed if there is only one rank
     if mcdc["mpi_size"] <= 1:
