@@ -147,15 +147,15 @@ def preparation():
         [settings.time_boundary] + [tally.time[-1] for tally in simulation.tallies]
     )
 
+    # ==================================================================================
+    # Adjust simulation parameters as needed
+    # ==================================================================================
+
     # Reset time grid size of all tallies if census-based tally is desired
     if settings.use_census_based_tally:
         N_bin = settings.census_tally_frequency
         for tally in simulation.tallies:
             tally._use_census_based_tally(N_bin)
-
-    # ==================================================================================
-    # Adjust simulation parameters as needed
-    # ==================================================================================
 
     # Normalize source probability
     norm = 0.0
@@ -287,7 +287,7 @@ def preparation():
     if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import build_gpu_program
 
-        build_gpu_program(simulation, config, data)
+        build_gpu_program(mcdc_container, data)
 
     # ==================================================================================
     # Finalize

@@ -1,6 +1,252 @@
-def build_gpu_program(simulation, config, data):
-    pass
+import harmonize
+import numba as nb
+import numba.extending as nbxt
+import numpy as np
+
+from mpi4py import MPI
+
+####
+
+import mcdc.config as config
+import mcdc.numba_types as type_
+
+# ======================================================================================
+# Build GPU program
+# ======================================================================================
+
+# For teardown
+src_free_program = lambda pointer: None
+free_state = lambda pointer: None
+
+
+def build_gpu_program(mcdc_container, data):
+    global src_free_program, free_state
+
+    # Compilation check
+    if MPI.COMM_WORLD.Get_rank() == 0:
+        if config.caching == False:
+            harmonize.config.should_compile(harmonize.config.ShouldCompile.ALWAYS)
+    else:
+        harmonize.config.should_compile(harmonize.config.ShouldCompile.NEVER)
+
+    # ==================================================================================
+    # Forward declaration
+    # ==================================================================================
+
+    # ROCm and CUDA paths
+    if config.args.gpu_cuda_path != None:
+        harmonize.config.set_cuda_path(config.args.gpu_cuda_path)
+    if config.args.gpu_rocm_path != None:
+        harmonize.config.set_rocm_path(config.args.gpu_rocm_path)
+
+    # Main types: none, simulation structure, and simulation data
+    none_type = nb.from_dtype(np.dtype([]))
+    simulation_type = nb.types.Array(nb.from_dtype(type_.simulation), (1,), "C")
+    data_type = nb.types.Array(nb.float64, 1, "C")
+
+    # Set access functions
+    state_spec = (
+        {
+            "global": simulation_type,
+            "data": data_type,
+        },
+        none_type,
+        none_type,
+    )
+    access_fns = harmonize.RuntimeSpec.access_fns(state_spec)
+    simulation_gpu = access_fns["device"]["global"]["indirect"]
+    data_gpu = access_fns["device"]["data"]["direct"]
+    group_gpu = access_fns["group"]
+    thread_gpu = access_fns["thread"]
+    particle_gpu = nb.from_dtype(type_.particle)
+    particle_record_gpu = nb.from_dtype(type_.particle_data)
+
+    # Functions, and their signatures
+    def step(prog: nb.uintp, P: particle_gpu):
+        pass
+
+    def find_cell(prog: nb.uintp, P: particle_gpu):
+        pass
+
+    # Asynchronous versions
+    step_async, find_cell_async = harmonize.RuntimeSpec.async_dispatch(step, find_cell)
+
+    # Program interfaces
+    interface = harmonize.RuntimeSpec.program_interface()
+    halt_early = interface["halt_early"]
+
+    # ==================================================================================
+    # TODO: "gpu_sources_spec"
+    # ==================================================================================
+
+    # ==============
+    # Base functions
+    # ==============
+
+    def make_work(prog: nb.uintp) -> nb.boolean:
+        mcdc = adapt.mcdc_global(prog)
+
+        idx_work = adapt.global_add(mcdc["mpi_work_iter"], 0, 1)
+
+        if idx_work >= mcdc["mpi_work_size"]:
+            return False
+
+        generate_source_particle(
+            mcdc["mpi_work_start"], nb.uint64(idx_work), mcdc["source_seed"], prog
+        )
+        return True
+
+    def initialize(prog: nb.uintp):
+        pass
+
+    def finalize(prog: nb.uintp):
+        pass
+
+    # ================
+    # Async. functions
+    # ================
+
+    shape = eval(f"{adapt.tally_shape_literal}")
+
+    def step(prog: nb.uintp, P_input: adapt.particle_gpu):
+        mcdc = adapt.mcdc_global(prog)
+        data_ptr = adapt.mcdc_data(prog)
+        data = adapt.harm.array_from_ptr(data_ptr, shape, nb.float64)
+        P_arr = adapt.local_array(1, type_.particle)
+        P_arr[0] = P_input
+        P = P_arr[0]
+        if P["fresh"]:
+            prep_particle(P_arr, prog)
+        P["fresh"] = False
+        step_particle(P_arr, data, prog)
+        if P["alive"]:
+            adapt.step_async(prog, P)
+
+    # Bind them all
+    base_fns = (initialize, finalize, make_work)
+    async_fns = [step]
+    src_spec = harmonize.RuntimeSpec("mcdc_source", state_spec, base_fns, async_fns)
+    harmonize.RuntimeSpec.bind_specs()
+
+    # ==================================================================================
+    #
+    # ==================================================================================
+
+    rank = MPI.COMM_WORLD.Get_rank()
+
+    MPI.COMM_WORLD.Barrier()
+
+    harmonize.RuntimeSpec.load_specs()
+
+    if config.args.gpu_strategy == "async":
+        config.args.gpu_arena_size = config.args.gpu_arena_size // 32
+        src_fns = src_spec.async_functions()
+    else:
+        src_fns = src_spec.event_functions()
+
+    arena_size = config.args.gpu_arena_size
+    block_count = config.args.gpu_block_count
+
+    alloc_state = src_fns["alloc_state"]
+    free_state = src_fns["free_state"]
+
+    src_alloc_program = src_fns["alloc_program"]
+    src_free_program = src_fns["free_program"]
+    src_load_global = src_fns["load_state_device_global"]
+    src_store_global = src_fns["store_state_device_global"]
+    src_store_pointer_global = src_fns["store_pointer_state_device_global"]
+    src_load_data = src_fns["load_state_device_data"]
+    src_store_data = src_fns["store_state_device_data"]
+    src_store_pointer_data = src_fns["store_pointer_state_device_data"]
+    src_init_program = src_fns["init_program"]
+    src_exec_program = src_fns["exec_program"]
+    src_complete = src_fns["complete"]
+    src_clear_flags = src_fns["clear_flags"]
+    src_set_device = src_fns["set_device"]
+
+    # ==================================================================================
+    #
+    # ==================================================================================
+
+    """
+    global loop_source
+    loop_source = gpu_loop_source
+    #
+    # Overwrite function
+    for impl in target_rosters["cpu"].values():
+        overwrite_func(impl, impl)
+    """
+
+    # ==================================================================================
+    # Setup
+    # ==================================================================================
+
+    device_id = rank % config.args.gpu_share_stride
+
+    mcdc = mcdc_container[0]
+    src_set_device(device_id)
+    mcdc["gpu_meta"]["state_pointer"] = cast_voidptr_to_uintp(alloc_state())
+    if config.gpu_state_storage == "separate":
+        src_store_pointer_global(
+            mcdc["gpu_meta"]["state_pointer"], mcdc["gpu_meta"]["global_pointer"]
+        )
+        src_store_pointer_data(
+            mcdc["gpu_meta"]["state_pointer"], mcdc["gpu_meta"]["tally_pointer"]
+        )
+    else:
+        src_store_pointer_global(mcdc["gpu_meta"]["state_pointer"], mcdc_container)
+        src_store_pointer_data(mcdc["gpu_meta"]["state_pointer"], data)
+
+    mcdc["gpu_meta"]["source_program_pointer"] = cast_voidptr_to_uintp(
+        src_alloc_program(mcdc["gpu_meta"]["state_pointer"], arena_size)
+    )
+    src_init_program(mcdc["gpu_meta"]["source_program_pointer"], block_count)
+    return
 
 
 def teardown_gpu_program(mcdc):
-    pass
+    src_free_program(cast_uintp_to_voidptr(mcdc["gpu_meta"]["source_program_pointer"]))
+    free_state(cast_uintp_to_voidptr(mcdc["gpu_meta"]["state_pointer"]))
+
+
+# ======================================================================================
+# Type casters
+# ======================================================================================
+
+
+@nbxt.intrinsic
+def cast_uintp_to_voidptr(typingctx, src):
+    # check for accepted types
+    if isinstance(src, nb.types.Integer):
+        # create the expected type signature
+        result_type = nb.types.voidptr
+        sig = result_type(nb.types.uintp)
+
+        # defines the custom code generation
+        def codegen(context, builder, signature, args):
+            # llvm IRBuilder code here
+            [src] = args
+            rtype = signature.return_type
+            llrtype = context.get_value_type(rtype)
+            return builder.inttoptr(src, llrtype)
+
+        return sig, codegen
+
+
+@nbxt.intrinsic
+def cast_voidptr_to_uintp(typingctx, src):
+    # check for accepted types
+    if isinstance(src, nb.types.RawPointer):
+        # create the expected type signature
+        result_type = nb.types.uintp
+        sig = result_type(nb.types.voidptr)
+
+        # defines the custom code generation
+        def codegen(context, builder, signature, args):
+            # llvm IRBuilder code here
+            [src] = args
+            rtype = signature.return_type
+            llrtype = context.get_value_type(rtype)
+            return builder.ptrtoint(src, llrtype)
+
+        return sig, codegen

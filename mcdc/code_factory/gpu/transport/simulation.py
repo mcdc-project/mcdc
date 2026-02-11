@@ -81,7 +81,7 @@ def gpu_sources_spec():
 
 BLOCK_COUNT = config.args.gpu_block_count
 
-ASYNC_EXECUTION = config.args.gpu_strat == "async"
+ASYNC_EXECUTION = config.args.gpu_strategy == "async"
 
 
 @njit(cache=caching)
@@ -156,7 +156,7 @@ def gpu_loop_source(seed, data, mcdc):
 
 def build_gpu_progs(input_deck, args):
 
-    STRAT = args.gpu_strat
+    STRAT = args.gpu_strategy
 
     src_spec = gpu_sources_spec()
 
