@@ -111,7 +111,7 @@ class Source(ObjectNonSingleton):
         self.isotropic_direction = True
         self.mono_direction = False
         self.white_direction = False
-        self.direction = np.array([0.0, 0.0, 0.0])
+        self.direction = np.array([0.0, 0.0, 1.0])
         self.polar_cosine = np.array([-1.0, 1.0])
         self.azimuthal = np.array([0.0, 2.0 * PI])
 
