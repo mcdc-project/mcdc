@@ -33,7 +33,6 @@ MOCK_MODULES = [
     "mpi4py",
     "mpi4py.util.dtlib",
     "colorama",
-    "cvxpy",
     "sympy",
     "matplotlib.pyplot",
 ]

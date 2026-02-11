@@ -5,10 +5,8 @@ from numba import njit
 
 ####
 
-import mcdc.code_factory.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
 import mcdc.numba_types as type_
-from mcdc.print_ import print_structure
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
@@ -215,9 +213,7 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
 
 
 @njit
-def collision(particle_container, prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
+def collision(particle_container, mcdc, data):
     particle = particle_container[0]
     material = mcdc["native_materials"][particle["material_ID"]]
 
@@ -283,7 +279,7 @@ def collision(particle_container, prog, data):
             reaction_base = mcdc["reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, nuclide, data)
             if xi < total:
-                elastic_scattering(reaction, particle_container, nuclide, prog, data)
+                elastic_scattering(reaction, particle_container, nuclide, mcdc, data)
                 return
 
     # Capture
@@ -309,7 +305,7 @@ def collision(particle_container, prog, data):
             xs = reaction_micro_xs(E, reaction_base, nuclide, data)
             total += xs
             if xi < total:
-                inelastic_scattering(reaction, particle_container, nuclide, prog, data)
+                inelastic_scattering(reaction, particle_container, nuclide, mcdc, data)
                 return
 
     # Fission (arive here only if nuclide is fissionable)
@@ -323,7 +319,7 @@ def collision(particle_container, prog, data):
             reaction_base = mcdc["reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, nuclide, data)
             if xi < total:
-                fission(reaction, particle_container, nuclide, prog, data)
+                fission(reaction, particle_container, nuclide, mcdc, data)
                 return
 
 
@@ -333,9 +329,7 @@ def collision(particle_container, prog, data):
 
 
 @njit
-def elastic_scattering(reaction, particle_container, nuclide, prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
+def elastic_scattering(reaction, particle_container, nuclide, mcdc, data):
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
@@ -469,9 +463,7 @@ def sample_nucleus_velocity(A, particle_container):
 
 
 @njit
-def inelastic_scattering(reaction, particle_container, nuclide, prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
+def inelastic_scattering(reaction, particle_container, nuclide, mcdc, data):
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
@@ -594,7 +586,7 @@ def inelastic_scattering(reaction, particle_container, nuclide, prog, data):
             particle["uz"] = particle_new["uz"]
             particle["E"] = particle_new["E"]
         else:
-            particle_bank_module.add_active(particle_container_new, prog)
+            particle_bank_module.bank_active_particle(particle_container_new, mcdc)
 
 
 # ======================================================================================
@@ -603,8 +595,7 @@ def inelastic_scattering(reaction, particle_container, nuclide, prog, data):
 
 
 @njit
-def fission(reaction, particle_container, nuclide, prog, data):
-    mcdc = adapt.mcdc_global(prog)
+def fission(reaction, particle_container, nuclide, mcdc, data):
     settings = mcdc["settings"]
 
     # Particle properties
@@ -733,7 +724,7 @@ def fission(reaction, particle_container, nuclide, prog, data):
 
         # Eigenvalue mode: bank right away
         if settings["eigenvalue_mode"]:
-            particle_bank_module.add_census(particle_container_new, prog)
+            particle_bank_module.bank_census_particle(particle_container_new, mcdc)
             continue
         # Below is only relevant for fixed-source problem
 
@@ -768,17 +759,17 @@ def fission(reaction, particle_container, nuclide, prog, data):
                 particle["E"] = particle_new["E"]
                 particle["w"] = particle_new["w"]
             else:
-                particle_bank_module.add_active(particle_container_new, prog)
+                particle_bank_module.bank_active_particle(particle_container_new, mcdc)
 
         # Hit future census --> add to future bank
         elif hit_future_census:
             # Particle will participate in the future
-            particle_bank_module.add_future(particle_container_new, prog)
+            particle_bank_module.bank_future_particle(particle_container_new, mcdc)
 
         # Hit current census --> add to census bank
         else:
             # Particle will participate after the current census is completed
-            particle_bank_module.add_census(particle_container_new, prog)
+            particle_bank_module.bank_census_particle(particle_container_new, mcdc)
 
 
 @njit

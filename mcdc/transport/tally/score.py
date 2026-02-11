@@ -6,7 +6,6 @@ import mcdc.mcdc_get as mcdc_get
 import mcdc.transport.mesh as mesh_module
 import mcdc.transport.physics as physics
 
-from mcdc.code_factory import adapt
 from mcdc.constant import (
     AXIS_T,
     AXIS_X,
@@ -15,8 +14,6 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
     COINCIDENCE_TOLERANCE_TIME,
     INF,
-    MESH_STRUCTURED,
-    MESH_UNIFORM,
     MULTIPLIER_ENERGY,
     REACTION_NEUTRON_CAPTURE,
     REACTION_NEUTRON_FISSION,
@@ -30,7 +27,7 @@ from mcdc.constant import (
 )
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import get_filter_indices
-from mcdc.print_ import print_structure
+from mcdc.transport.util import atomic_add
 
 
 @njit
@@ -67,7 +64,7 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
             surface = mcdc["surfaces"][particle["surface_ID"]]
             mu = get_normal_component(particle_container, speed, surface, data)
             score = flux * mu
-        adapt.global_add(data, idx_base + i_score, score * multiplier)
+        atomic_add(data, idx_base + i_score, score * multiplier)
 
 
 @njit
@@ -412,7 +409,7 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
     )
 
     # Fission production (needed even during inactive cycle)
-    adapt.global_add(mcdc["eigenvalue_tally_nuSigmaF"], 0, flux * nuSigmaF)
+    atomic_add(mcdc["eigenvalue_tally_nuSigmaF"], 0, flux * nuSigmaF)
 
     # Done, if inactive
     if not mcdc["cycle_active"]:
@@ -424,7 +421,7 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
 
     v = physics.particle_speed(particle_container, mcdc, data)
     n_density = flux / v
-    adapt.global_add(mcdc["eigenvalue_tally_n"], 0, n_density)
+    atomic_add(mcdc["eigenvalue_tally_n"], 0, n_density)
 
     # Maximum neutron density
     if mcdc["n_max"] < n_density:
@@ -456,7 +453,7 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
 
     SigmaF = physics.macro_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
     C_density = flux * total * SigmaF / mcdc["k_eff"]
-    adapt.global_add(mcdc["eigenvalue_tally_C"], 0, C_density)
+    atomic_add(mcdc["eigenvalue_tally_C"], 0, C_density)
 
     # Maximum precursor density
     if mcdc["C_max"] < C_density:

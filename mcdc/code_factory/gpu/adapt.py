@@ -266,8 +266,6 @@ def builtin_local_array(context, builder, sig, args):
 # Decorators
 # =============================================================================
 
-toggle_rosters = {}
-
 target_rosters = {}
 
 late_jit_roster = set()
@@ -311,36 +309,6 @@ def overwrite_func(func, revised_func):
     new_fn_name = revised_func.__name__
     module = __import__(mod_name, fromlist=[fn_name])
     setattr(module, fn_name, revised_func)
-
-
-def toggle(flag):
-    def toggle_inner(func):
-        global toggle_rosters
-        if flag not in toggle_rosters:
-            toggle_rosters[flag] = [False, []]
-        toggle_rosters[flag][1].append(func)
-        return func
-
-    return toggle_inner
-
-
-def set_toggle(flag, val):
-    toggle_rosters[flag][0] = val
-
-
-def eval_toggle():
-    global toggle_rosters
-    for _, pair in toggle_rosters.items():
-        val = pair[0]
-        roster = pair[1]
-        for func in roster:
-            if val:
-                overwrite_func(func, numba.njit(func))
-            else:
-                global do_nothing_id
-                name = func.__name__
-                arg_count = len(inspect.signature(func).parameters)
-                overwrite_func(func, numba.njit(generate_do_nothing(arg_count)))
 
 
 blankout_roster = {}
@@ -404,10 +372,6 @@ def for_cpu(on_target=[]):
 
 def for_gpu(on_target=[]):
     return for_("gpu", on_target=on_target)
-
-
-def target_for(target):
-    pass
 
 
 def jit_on_target():
@@ -647,21 +611,3 @@ def make_gpu_loop(
     (step_async,) = harm.RuntimeSpec.async_dispatch(step)
 
     pass
-
-
-# =========================================================================
-# Compilation and Main Adapter
-# =========================================================================
-
-
-def compiler(func, target):
-    if target == "cpu":
-        return jit(func, nopython=True, nogil=True)  # , parallel=True)
-    elif target == "cpus":
-        return jit(func, nopython=True, nogil=True, parallel=True)
-    elif target == "gpu_device":
-        return cuda.jit(func, device=True)
-    elif target == "gpu":
-        return cuda.jit(func)
-    else:
-        unknown_target(target)
