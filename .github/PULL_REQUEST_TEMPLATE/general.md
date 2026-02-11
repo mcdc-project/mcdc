@@ -24,7 +24,7 @@ about: General pull request template
 -->
 
 - [ ] I have read the [contributing guide](https://mcdc.readthedocs.io/en/latest/contribution/index.html).
-- [ ] My code follows the code style of this project.
+- [ ] My code follows the [code style](https://mcdc.readthedocs.io/en/latest/contribution/index.html#code-styling) of this project.
 - [ ] I have updated the documentation accordingly. <!-- Delete if not applicable -->
 - [ ] I have added tests to cover my changes. <!-- Delete if not applicable -->
 - [ ] All new and existing tests pass <!-- Delete if not applicable -->
