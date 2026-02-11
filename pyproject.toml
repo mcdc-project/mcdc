@@ -68,7 +68,6 @@ dependencies = [
   "h5py",
   "colorama",
   "sympy",
-  "cvxpy",
 ]
 
 [project.optional-dependencies]
