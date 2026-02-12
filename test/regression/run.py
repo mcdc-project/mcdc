@@ -10,6 +10,7 @@ parser.add_argument("--mpiexec", type=int, default=0)
 parser.add_argument("--srun", type=int, default=0)
 parser.add_argument("--name", type=str, default="ALL")
 parser.add_argument("--skip", type=str, default="NONE")
+parser.add_argument("--include_native_physics", default=False, action="store_true")
 args, unargs = parser.parse_known_args()
 
 # Parse
@@ -19,12 +20,15 @@ mpiexec = args.mpiexec
 srun = args.srun
 name = args.name
 skip = args.skip
+include_native_physics = args.include_native_physics
+
+non_test_files = ["__pycache__", "MCDC-regression_test_data", "tmp"]
 
 # Get test names
 if name == "ALL":
     names = []
     for item in os.listdir():
-        if os.path.isdir(item):
+        if os.path.isdir(item) and item not in non_test_files:
             names.append(item)
 else:
     names = [item for item in os.listdir() if fnmatch.fnmatch(item, name)]
@@ -37,9 +41,13 @@ if skip != "NONE":
         print(Fore.YELLOW + "Note: Skipping %s" % name + Style.RESET_ALL)
         names.remove(name)
 
-# Skip cache if any
-if "__pycache__" in names:
-    names.remove("__pycache__")
+# Remove native physics if not incuded
+native_physics_tests = ["pincell", "pincell-k_eigenvalue"]
+if not include_native_physics:
+    for name in native_physics_tests:
+        print(Fore.YELLOW + "Note: Skipping %s" % name + Style.RESET_ALL)
+        if name in names:
+            names.remove(name)
 
 # Skip domain decomp tests unless there are 4 MPI processes
 temp = names.copy()
@@ -174,7 +182,14 @@ for i, name in enumerate(names):
                         all_pass = False
                         error_msgs[-1].append(
                             "Differences in %s"
-                            % (name + "/" + result + "\n" + "{}".format(a - b))
+                            % (
+                                name
+                                + "/"
+                                + result
+                                + "\n"
+                                + "{}\n".format(a - b)
+                                + "Max difference: {}".format(np.max(np.abs(a - b)))
+                            )
                         )
                         print(Fore.RED + "  {}: Failed".format(name) + Style.RESET_ALL)
 

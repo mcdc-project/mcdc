@@ -19,7 +19,7 @@ with np.load("SHEM-361.npz") as data:
     G = data["G"]
 
 # Set material
-m = mcdc.material(
+m = mcdc.MaterialMG(
     capture=SigmaC,
     scatter=SigmaS,
     fission=SigmaF,
@@ -30,32 +30,35 @@ m = mcdc.material(
 )
 
 # Set surfaces
-s1 = mcdc.surface("plane-x", x=-1e10, bc="reflective")
-s2 = mcdc.surface("plane-x", x=1e10, bc="reflective")
+s1 = mcdc.Surface.PlaneX(x=-1e10, boundary_condition="reflective")
+s2 = mcdc.Surface.PlaneX(x=1e10, boundary_condition="reflective")
 
 # Set cells
-c = mcdc.cell(+s1 & -s2, m)
+c = mcdc.Cell(region=+s1 & -s2, fill=m)
 
 # =============================================================================
 # Set initial source
 # =============================================================================
 
-source = mcdc.source(energy=np.ones(G))  # Arbitrary
-
-# =============================================================================
-# Set problem and tally, and then run mcdc
-# =============================================================================
-
-# Tally
-mcdc.tally.mesh_tally(
-    scores=["flux"],
-    g="all",
+mcdc.Source(
+    position=(0.0, 0.0, 0.0), isotropic=True, energy_group=np.array([[360], [1.0]])
 )
 
-# Setting
-mcdc.setting(N_particle=1e2, source_bank_buff=2.0)
-mcdc.eigenmode(N_inactive=1, N_active=2)
-mcdc.population_control()
+# =============================================================================
+# Set tallies, settings, techniques, and run MC/DC
+# =============================================================================
+
+# Tallies
+mcdc.TallyGlobal(scores=["flux"], energy="all_groups")
+
+# Settings
+mcdc.settings.N_particle = 70
+mcdc.settings.source_bank_buffer_ratio = 2.0
+mcdc.settings.census_bank_buffer_ratio = 3.0
+mcdc.settings.set_eigenmode(N_inactive=1, N_active=2)
+
+# Techniques
+mcdc.simulation.population_control()
 
 # Run
 mcdc.run()

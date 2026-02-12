@@ -46,6 +46,3 @@ pip install -e .
 
 # Install pre-commit hook
 pre-commit install
-
-# Installing visualization dependencies (required via pip for osx-arm64)
-pip install ngsolve distinctipy

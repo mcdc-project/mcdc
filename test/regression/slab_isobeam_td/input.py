@@ -2,42 +2,48 @@ import numpy as np
 
 import mcdc
 
-
-# =============================================================================
+# ======================================================================================
 # Set model
-# =============================================================================
+# ======================================================================================
 # Finite homogeneous pure-absorbing slab
 
 # Set materials
-m = mcdc.material(capture=np.array([1.0]))
+m = mcdc.MaterialMG(capture=np.array([1.0]))
 
 # Set surfaces
-s1 = mcdc.surface("plane-x", x=0.0, bc="vacuum")
-s2 = mcdc.surface("plane-x", x=5.0, bc="vacuum")
+s1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition="vacuum")
+s2 = mcdc.Surface.PlaneX(x=5.0, boundary_condition="vacuum")
 
 # Set cells
-mcdc.cell(+s1 & -s2, m)
+mcdc.Cell(region=+s1 & -s2, fill=m)
 
-# =============================================================================
+# ======================================================================================
 # Set source
-# =============================================================================
+# ======================================================================================
 # Isotropic beam from left-end
 
-mcdc.source(point=[1e-10, 0.0, 0.0], time=[0.0, 5.0], white_direction=[1.0, 0.0, 0.0])
-
-# =============================================================================
-# Set tally, setting, and run mcdc
-# =============================================================================
-
-# Tally
-mcdc.tally.mesh_tally(
-    scores=["flux"],
-    x=np.linspace(0.0, 5.0, 51),
-    t=np.linspace(0.0, 5.0, 51),
+mcdc.Source(
+    position=(0.0, 0.0, 0.0),
+    white_direction=(1.0, 0.0, 0.0),
+    energy_group=0,
+    time=[0.0, 5.0],
 )
 
-# Setting
-mcdc.setting(N_particle=100, N_batch=2)
+# ======================================================================================
+# Set tallies, settings, and run MC/DC
+# ======================================================================================
+
+# Tallies
+mesh = mcdc.MeshUniform(x=(0.0, 0.1, 50))
+mcdc.TallyMesh(
+    mesh=mesh,
+    scores=["flux"],
+    time=np.linspace(0.0, 5.0, 51),
+)
+
+# Settings
+mcdc.settings.N_particle = 100
+mcdc.settings.N_batch = 2
 
 # Run
 mcdc.run()
