@@ -66,6 +66,7 @@ class Source(ObjectNonSingleton):
     Source
         The source object.
     """
+
     # Annotations for Numba mode
     label: str = "source"
     #

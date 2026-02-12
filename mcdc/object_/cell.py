@@ -125,6 +125,7 @@ class Cell(ObjectNonSingleton):
     mcdc.Surface : Creates surfaces that can be used to define cell regions.
     mcdc.Universe : Groups cells into a universe.
     """
+
     # Annotations for Numba mode
     label: str = "cell"
     non_numba: list[str] = ["region", "fill", "region_RPN"]

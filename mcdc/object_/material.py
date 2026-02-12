@@ -216,6 +216,7 @@ class MaterialMG(MaterialBase):
     --------
     mcdc.Material : Creates a continuous-energy material.
     """
+
     # Annotations for Numba mode
     label: str = "multigroup_material"
     #

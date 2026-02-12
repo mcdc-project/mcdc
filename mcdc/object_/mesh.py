@@ -160,6 +160,7 @@ class MeshStructured(MeshBase):
     mcdc.MeshUniform : Creates a uniform mesh.
     mcdc.TallyMesh : Creates a tally on a mesh.
     """
+
     # Annotations for Numba mode
     label: str = "structured_mesh"
     #
