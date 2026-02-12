@@ -19,7 +19,7 @@ src_free_program = lambda pointer: None
 free_state = lambda pointer: None
 
 
-def build_gpu_program(mcdc_container, data):
+def build_gpu_program(simulation, size):
     global src_free_program, free_state
 
     # Compilation check
@@ -207,6 +207,31 @@ def build_gpu_program(mcdc_container, data):
 def teardown_gpu_program(mcdc):
     src_free_program(cast_uintp_to_voidptr(mcdc["gpu_meta"]["source_program_pointer"]))
     free_state(cast_uintp_to_voidptr(mcdc["gpu_meta"]["state_pointer"]))
+
+
+# ======================================================================================
+# Simulation structure and data creators
+# ======================================================================================
+
+
+def create_data_array(size, dtype):
+    if config.gpu_state_storage == "managed":
+        data_tally_ptr = harmonize.alloc_managed_bytes(size)
+    else:
+        data_tally_ptr = harmonize.alloc_device_bytes(size)
+    data_tally_uint = cast_voidptr_to_uintp(data_tally_ptr)
+    data_tally = nb.carray(data_tally_ptr, (size,), dtype)
+    return data_tally, data_tally_uint
+
+
+def create_mcdc_container(dtype):
+    if config.gpu_state_storage == "managed":
+        mcdc_ptr = harmonize.alloc_managed_bytes(dtype.itemsize)
+    else:
+        mcdc_ptr = harmonize.alloc_device_bytes(dtype.itemsize)
+    mcdc_uint = cast_voidptr_to_uintp(mcdc_ptr)
+    mcdc_container = nb.carray(mcdc_ptr, (1,), dtype)
+    return mcdc_container, mcdc_uint
 
 
 # ======================================================================================
