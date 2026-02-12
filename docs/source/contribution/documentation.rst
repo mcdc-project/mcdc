@@ -76,18 +76,18 @@ Within MC/DC's source code, we document functions and classes using docstrings.
 For ``autodoc`` and ``autosummary`` to work, the docstrings within MC/DC's source code must be written in correct rst.
 
 The ``autodoc`` extension includes a set of directives to document different chunks of code (e.g., modules, functions, classes). 
-For example, below is the entire rst file that generates the :doc:`../pythonapi/generated/mcdc.material` page:
+For example, below is the entire rst file that generates the :doc:`../pythonapi/generated/mcdc.MaterialMG` page:
 
 .. code-block::
    
-   mcdc.material
-   =============
+   mcdc.MaterialMG
+   ===============
    
    .. currentmodule:: mcdc
    
-   .. autofunction:: material
+   .. autoclass:: MaterialMG
 
-(That in-line reference was created using :code:`:doc:\`../pythonapi/generated/mcdc.material\``, by the way).
+(That in-line reference was created using :code:`:doc:\`../pythonapi/generated/mcdc.MaterialMG\``, by the way).
 
 A rst file with an ``autodoc`` directive is required for each module or function that we would like to document.
 Rather than create all of these rst files by hand, we use the ``autosummary`` extension to do it for us.
@@ -98,13 +98,13 @@ For example, let's look at the first ``autosummary`` directive in ``source/pytho
 
    .. autosummary::
       
-      mcdc.material
-      mcdc.nuclide
+      mcdc.Material
+      mcdc.MaterialMG
 
 This directive:
-  #. Generates two files in ``pythonapi/generated/``: ``mcdc.material.rst`` and ``mcdc.nuclide.rst``.
-  #. Populates each file with the proper autofunction directive.
-  #. Creates a table on :doc:`../pythonapi/index` with entries mcdc.material and mcdc.nuclide that link to the respective generated pages. 
+  #. Generates two files in ``pythonapi/generated/``: ``mcdc.Material.rst`` and ``mcdc.MaterialMG.rst``.
+  #. Populates each file with the proper autoclass directive.
+  #. Creates a table on :doc:`../pythonapi/index` with entries mcdc.Material and mcdc.MaterialMG that link to the respective generated pages. 
 
 
 Building the documentation

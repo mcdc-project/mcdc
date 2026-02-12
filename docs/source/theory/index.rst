@@ -11,9 +11,9 @@ For a more basic primer of Monte Carlo neutron transport and methods we suggest 
 
 .. only:: html
 
-   --------
-   Contents
-   --------
+   ------
+   Topics
+   ------
 
 .. toctree::
     :maxdepth: 1

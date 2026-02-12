@@ -1,0 +1,6 @@
+/* Hide the "class" keyword prefix on autoclass signatures
+   so they render like function calls (e.g. mcdc.Universe(...) instead of
+   class mcdc.Universe(...)). */
+dt.sig.sig-object.py > em.property {
+    display: none;
+}

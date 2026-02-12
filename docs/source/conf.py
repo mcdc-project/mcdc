@@ -68,6 +68,13 @@ extensions = [
     "sphinx.ext.autosectionlabel",
 ]
 autosummary_generate = True
+autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 2
+
+# Show __init__ signature on the class line (like a function call)
+autodoc_class_signature = "mixed"
+# Hide type annotations in signatures — show clean parameter names only
+autodoc_typehints = "none"
 
 
 github_username = "CEMeNT-PSAAP"
@@ -90,6 +97,7 @@ exclude_patterns = []
 #
 html_theme = "furo"
 html_logo = "images/home/mcdc.svg"
+html_css_files = ["custom.css"]
 
 # html_permalinks = ['https://cement-psaap.github.io/', 'https://github.com/CEMeNT-PSAAP/MCDC']
 

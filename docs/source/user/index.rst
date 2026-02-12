@@ -10,9 +10,9 @@ These instructions all assume you have an operable and working version of MC/DC 
 
 .. only:: html
 
-   --------
-   Contents
-   --------
+   ------
+   Guides
+   ------
 
 .. toctree::
     :maxdepth: 1
