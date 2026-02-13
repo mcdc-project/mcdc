@@ -53,7 +53,6 @@ autodoc_typehints = "none"
 # This mocks these modules ONLY during autodoc import, so mcdc's own
 # classes, functions, and docstrings are read properly.
 autodoc_mock_imports = [
-    "mpi4py",
     "numba",
     "h5py",
     "colorama",
