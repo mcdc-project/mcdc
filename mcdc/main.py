@@ -283,11 +283,11 @@ def preparation():
     # Platform targeting, adapters, and toggles for portability
     # ==================================================================================
 
-    # Build GPU program if desired
+    # Set up GPU if needed
     if config.target == "gpu":
-        from mcdc.code_factory.gpu.program_builder import build_gpu_program
+        from mcdc.code_factory.gpu.program_builder import setup_gpu
 
-        build_gpu_program(mcdc_container, data)
+        setup_gpu(mcdc_container, data)
 
     # ==================================================================================
     # Finalize
