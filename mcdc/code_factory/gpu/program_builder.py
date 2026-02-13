@@ -14,12 +14,38 @@ import mcdc.numba_types as type_
 # Build GPU program
 # ======================================================================================
 
-# For teardown
+# Main types
+none_type = None
+simulation_type = None
+data_type = None
+
+# Access functions
+state_spec = None
+simulation_gpu = None
+data_gpu = None
+group_gpu = None
+thread_gpu = None
+particle_gpu = None
+particle_record_gpu = None
+
+# Asynchronous transport kernels
+step_async = None
+find_cell_async = None
+
+# Memory allocations
+alloc_managed_bytes = None
+alloc_device_bytes = None
+
+# For teardown functions
 src_free_program = lambda pointer: None
 free_state = lambda pointer: None
 
 
 def build_gpu_program(simulation, size):
+    global none_type, simulation_type, data_type
+    global state_spec, simulation_gpu, data_gpu, group_gpu, thread_gpu, particle_gpu, particle_record_gpu
+    global step_async, find_cell_async
+    global alloc_managed_bytes, alloc_device_bytes
     global src_free_program, free_state
 
     # Compilation check
@@ -62,10 +88,10 @@ def build_gpu_program(simulation, size):
     particle_record_gpu = nb.from_dtype(type_.particle_data)
 
     # Functions, and their signatures
-    def step(prog: nb.uintp, P: particle_gpu):
+    def step(program: nb.uintp, particle: particle_gpu):
         pass
 
-    def find_cell(prog: nb.uintp, P: particle_gpu):
+    def find_cell(program: nb.uintp, particle: particle_gpu):
         pass
 
     # Asynchronous versions
@@ -74,6 +100,12 @@ def build_gpu_program(simulation, size):
     # Program interfaces
     interface = harmonize.RuntimeSpec.program_interface()
     halt_early = interface["halt_early"]
+
+    # Byte allocators
+    alloc_managed_bytes = harmonize.alloc_managed_bytes
+    alloc_device_bytes = harmomize.alloc_device_bytes
+
+    return
 
     # ==================================================================================
     # TODO: "gpu_sources_spec"
