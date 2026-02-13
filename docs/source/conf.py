@@ -12,38 +12,12 @@
 
 import os
 import sys
-from unittest.mock import MagicMock
 
 # Make sure the project root (containing the `mcdc/` package) is importable
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-
-# Try to import mcdc from the source tree / installed package
-try:
-    import mcdc  # noqa: F401
-except ImportError:
-    # As a last-resort for CI: mock mcdc so autosummary doesn't crash
-    # (better to have slightly-empty API docs than a failing build)
-    sys.modules["mcdc"] = MagicMock()
-
-# On Read the Docs / CI, mock heavy optional dependencies
-MOCK_MODULES = [
-    "mpi4py",
-    "mpi4py.util.dtlib",
-    "colorama",
-    "sympy",
-    "matplotlib.pyplot",
-]
-sys.modules.update((mod_name, MagicMock()) for mod_name in MOCK_MODULES)
-
-# If you still need MPI.COMM_WORLD in docs build:
-from mpi4py import MPI
-
-MPI.COMM_WORLD.Get_size.return_value = 1
-MPI.COMM_WORLD.Get_rank.return_value = 0
-
 
 # -- Project information -----------------------------------------------------
 
@@ -53,7 +27,6 @@ author = "Center for Exascale Monte Carlo Neutron Transport (CEMeNT)"
 
 # The full version, including alpha/beta/rc tags
 release = " "
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -76,6 +49,17 @@ autodoc_class_signature = "mixed"
 # Hide type annotations in signatures — show clean parameter names only
 autodoc_typehints = "none"
 
+# Let Sphinx handle mocking — no manual sys.modules manipulation needed.
+# This mocks these modules ONLY during autodoc import, so mcdc's own
+# classes, functions, and docstrings are read properly.
+autodoc_mock_imports = [
+    "mpi4py",
+    "numba",
+    "h5py",
+    "colorama",
+    "sympy",
+    "matplotlib",
+]
 
 github_username = "CEMeNT-PSAAP"
 github_repository = "MCDC"
@@ -88,7 +72,6 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
-
 
 # -- Options for HTML output -------------------------------------------------
 
