@@ -103,7 +103,7 @@ def build_gpu_program(simulation, size):
 
     # Byte allocators
     alloc_managed_bytes = harmonize.alloc_managed_bytes
-    alloc_device_bytes = harmomize.alloc_device_bytes
+    alloc_device_bytes = harmonize.alloc_device_bytes
 
     return
 
