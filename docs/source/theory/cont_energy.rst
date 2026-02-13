@@ -56,3 +56,133 @@ Relativistic particle speed is computed as:
    CE libraries are provided to CEMeNT members via an internal repository.
    Due to export controls, this data cannot be distributed publicly.
    See the :ref:`install` for configuration instructions.
+
+
+Generating a Data Library from ACE Files
+-----------------------------------------
+
+MC/DC ships with a conversion tool in ``tools/data_library_generator/`` that reads
+standard ACE-format nuclear data files and writes them into MC/DC's per-nuclide
+HDF5 format.  This is the primary path for creating CE libraries.
+
+**Prerequisites:**
+
+.. code-block:: sh
+
+   pip install ACEtk h5py numpy tqdm
+
+You also need a set of ACE files (e.g., from `NJOY <http://www.njoy21.io/>`_ or
+an ENDF/B distribution).
+
+**Environment variables:**
+
+.. list-table::
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Variable
+     - Description
+   * - ``MCDC_ACELIB``
+     - Path to the directory containing your ACE files.
+   * - ``MCDC_LIB``
+     - Path to the output directory where MC/DC HDF5 files will be written.
+
+**Running the generator:**
+
+.. code-block:: sh
+
+   export MCDC_ACELIB=/path/to/ace/files
+   export MCDC_LIB=/path/to/mcdc/library
+
+   cd tools/data_library_generator
+   python generate.py
+
+By default the tool only converts nuclides that do not already have a corresponding
+HDF5 file in ``$MCDC_LIB``.  Use ``--rewrite`` to regenerate all files, or
+``--verbose`` for detailed per-nuclide output:
+
+.. code-block:: sh
+
+   python generate.py --rewrite --verbose
+
+The generator processes each ACE file as follows:
+
+#. Reads the ACE header to determine nuclide identity (Z, A, isomeric state)
+   and temperature.
+#. Extracts the principal cross-section block (energy grid, elastic, capture,
+   fission, inelastic channels) and writes them as HDF5 datasets grouped by
+   reaction type (elastic scattering, capture, inelastic scattering, fission).
+#. Extracts angular distributions (tabulated cosine PDFs) and energy
+   distributions (level scattering, evaporation, Maxwellian, Kalbach-Mann,
+   N-body phase space, tabulated outgoing energy) for each reaction channel.
+#. For fissionable nuclides, extracts prompt/delayed :math:`\nu(E)` multiplicities,
+   delayed neutron precursor fractions, decay constants, and energy spectra.
+
+The resulting HDF5 file (e.g., ``U235-293.6K.h5``) is ready for use with
+``mcdc.Material()``.
+
+
+Using CE Materials in an Input Deck
+------------------------------------
+
+Once the library is generated, set the ``MCDC_LIB`` environment variable and
+define materials with ``mcdc.Material()``:
+
+.. code-block:: python3
+
+   import mcdc
+
+   # Define nuclides with atom densities (atoms/barn-cm)
+   fuel = mcdc.Material(
+       nuclides=["U235", "U238", "O16"],
+       density=[5.58e-4, 2.24e-2, 4.583e-2],
+       temperature=293.6,
+   )
+
+MC/DC will automatically look up the matching HDF5 file in ``$MCDC_LIB``
+(e.g., ``U235-293.6K.h5``) and load the pointwise cross sections.
+
+See the :ref:`example_pincell` for a complete continuous-energy input deck.
+
+
+Note on External Data Sources
+------------------------------
+
+MC/DC's internal HDF5 format is independent of the original data source.
+While the shipped tool converts from **ACE format**, users with data in other
+formats (e.g., OpenMC HDF5 nuclear data) can write their own converter
+following the same HDF5 schema used by ``generate.py``.
+
+The key HDF5 structure expected by MC/DC is:
+
+.. code-block:: text
+
+   <Nuclide>-<Temperature>K.h5
+   ├── nuclide_name              (string)
+   ├── temperature               (float, K)
+   ├── atomic_weight_ratio       (float)
+   ├── fissionable               (bool)
+   └── neutron_reactions/
+       ├── xs_energy_grid         (1-D array, MeV)
+       ├── elastic_scattering/
+       │   └── MT-002/
+       │       ├── xs             (1-D array, barns)
+       │       ├── cosine/        (angular distribution)
+       │       └── energy/        (energy distribution)
+       ├── capture/
+       │   └── MT-102/ ...
+       ├── inelastic_scattering/
+       │   └── MT-051/ ...
+       └── fission/
+           └── MT-018/
+               ├── xs
+               ├── cosine/
+               ├── energy/
+               ├── nu_total/
+               ├── nu_prompt/
+               ├── nu_delayed/
+               └── delayed_neutron/ ...
+
+A converter from OpenMC's ``IncidentNeutron`` HDF5 format to this schema is
+a planned future addition.  Contributions are welcome — see
+`Issue #333 <https://github.com/CEMeNT-PSAAP/MCDC/issues/333>`_.
