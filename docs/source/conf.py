@@ -9,21 +9,12 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 import os
 import sys
-import traceback
 
 # Make sure the project root (containing the `mcdc/` package) is importable
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-
-# Debug: see why mcdc fails to import
-try:
-    import mcdc
-    print(f"SUCCESS: mcdc imported from {mcdc.__file__}")
-except Exception as e:
-    print(f"FAILED to import mcdc: {e}")
-    traceback.print_exc()
 
 # -- Project information -----------------------------------------------------
 project = "MC/DC"
