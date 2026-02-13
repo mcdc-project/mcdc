@@ -4,10 +4,15 @@
 Theory Guide
 ============
 
-We provided a brief theory guide into some of the novel functions and features in MC/DC.
-Both for algorithms and simulation/compilation schemes.
+We provided a brief theory guide into the methods, algorithms, and compilation
+schemes in MC/DC.
 
-For a more basic primer of Monte Carlo neutron transport and methods we suggest exploring the `OpenMC theory guide <https://docs.openmc.org/en/latest/methods/index.html>`_ .
+New to Monte Carlo transport?  Start with :ref:`mc_basics` for the
+fundamentals and :ref:`geometry` for how MC/DC represents problem domains.
+Then explore the advanced topics below.
+
+For an additional external resource, see the
+`OpenMC theory guide <https://docs.openmc.org/en/latest/methods/index.html>`_.
 
 .. only:: html
 
@@ -18,6 +23,10 @@ For a more basic primer of Monte Carlo neutron transport and methods we suggest 
 .. toctree::
     :maxdepth: 1
 
+    mc_basics
+    geometry
+    k_eigenvalue
+    variance_reduction
     gpu
     ana
     iqmc
