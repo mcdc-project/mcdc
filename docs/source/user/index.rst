@@ -20,5 +20,8 @@ These instructions all assume you have an operable and working version of MC/DC 
     first_mcdc
     cpu
     gpu
+    batch_scripts
+    faq
+    troubleshooting
 
 
