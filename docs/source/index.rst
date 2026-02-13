@@ -1,25 +1,119 @@
-.. MC/DC documentation master file, created by
-   sphinx-quickstart on Fri Oct 27 14:14:47 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. MC/DC documentation master file
+   (homepage / index)
+   Draft updated to reflect CARRE (PSAAP-IV) stewardship and CEMeNT (PSAAP-III) origins.
 
 
 =================================
 MC/DC: Monte Carlo Dynamic Code
 =================================
 
-MC/DC is a performant, scalable, and machine-portable Python-based 
-Monte Carlo neutron transport software in active development.
-It supports fully transient (aka dynamic) Monte Carlo transport and implements
-novel methods and algorithms for neutron transport. MC/DC is purpose built to be
-a rapid methods development platform for for modern HPCs and is targeting CPUs and GPUs.
+MC/DC is a performant, scalable, and machine-portable Python-based Monte Carlo neutron
+transport software in active development. It supports fully transient (aka dynamic) Monte Carlo
+transport and is purpose-built as a rapid methods development platform for modern HPC systems
+(targeting both CPUs and GPUs).
 
-MC/DC has support for continuous energy and multi-group transport.
-It can solve more traditional k-eigenvalue problems (used to determine neutron population growth rates in reactors) as well as fully dynamic simulations.
-It has a novel continuous geometry movement function that models transient elements (e.g., control rods or pulsed neutron experiments) more accurately than the step functions used by other codes.
-It also supports some simple domain decomposition, with more complex algorithms currently being implemented.
+MC/DC has support for continuous energy and multi-group transport. It can solve k-eigenvalue
+problems (e.g., neutron population growth rates in reactors) as well as fully time-dependent
+simulations. MC/DC includes a continuous geometry movement capability to model transient
+elements (e.g., control rods or pulsed experiments) beyond stepwise approximations.
 
-MC/DC is machine portable and is validated to run on:
+Project Stewardship (PSAAP-IV)
+==============================
+
+Primary stewardship and ongoing development of MC/DC is carried out within CARRE
+(Center for Advancing the Radiation Resilience of Electronics), a PSAAP-IV Predictive Simulation
+Center led by Oregon State University.
+
+.. image:: images/home/carre.png
+   :width: 650
+   :alt: CARRE logo
+   :align: center
+   :target: https://carre-psaapiv.org/
+
+MC/DC is developed openly, with contributions from the collaborating institutions listed below and
+the broader community. The codebase is open-source (BSD-3-Clause) and welcomes external
+contributions via GitHub.
+
+.. note::
+
+   CARRE partner institution logos below are placeholders by filename.
+   Add the corresponding images into ``docs/source/images/home/`` (or your site’s images folder).
+
+Supported by / in coordination with
+----------------------------------
+
+.. image:: images/home/psaapiv.png
+   :width: 200
+   :alt: PSAAP-IV logo
+   :target: https://psaap.llnl.gov/
+.. image:: images/home/DOE_logo.png
+   :width: 275
+   :alt: U.S. Department of Energy logo
+   :target: https://www.energy.gov/
+.. image:: images/home/NNSA_Logo.png
+   :width: 275
+   :alt: NNSA logo
+   :target: https://www.energy.gov/nnsa/national-nuclear-security-administration
+
+Collaborating Institutions
+-------------------------
+
+.. image:: images/home/osu-logo.png
+   :width: 360
+   :alt: Oregon State University logo
+   :target: https://oregonstate.edu/
+.. image:: images/home/vanderbilt-logo.png
+   :width: 240
+   :alt: Vanderbilt University logo
+   :target: https://www.vanderbilt.edu/
+.. image:: images/home/ncsu-logo.png
+   :width: 180
+   :alt: North Carolina State University logo
+   :target: https://www.ncsu.edu/
+.. image:: images/home/ucsd-logo.png
+   :width: 240
+   :alt: UC San Diego logo
+   :target: https://ucsd.edu/
+.. image:: images/home/nd-logo.png
+   :width: 140
+   :alt: University of Notre Dame logo
+   :target: https://www.nd.edu/
+.. image:: images/home/SU.png
+   :width: 140
+   :alt: Seattle University logo
+   :target: https://www.seattleu.edu/
+.. image:: images/home/berkeley-logo.png
+   :width: 200
+   :alt: UC Berkeley logo
+   :target: https://www.berkeley.edu/
+
+Origins (PSAAP-III)
+===================
+
+MC/DC was initiated and matured during PSAAP-III as the primary software deliverable of CEMeNT
+(Center for Exascale Monte Carlo Neutron Transport), an Oregon State University–led Focused
+Investigatory Center with partner institutions including Notre Dame, North Carolina State University,
+and Seattle University.
+
+CEMeNT’s PSAAP-III work established MC/DC as a modern platform for transient Monte Carlo
+methods research and software engineering, with an explicit goal that MC/DC continue beyond
+the original PSAAP-III center timeline.
+
+.. image:: images/home/cement-logo-1.png
+   :width: 650
+   :alt: CEMeNT logo
+   :align: center
+   :target: https://cement-psaap.github.io/
+
+.. image:: images/home/psaapiii.png
+   :width: 200
+   :alt: PSAAP-III logo
+   :target: https://psaap.llnl.gov/
+
+Platform & Performance Notes
+============================
+
+MC/DC is validated to run on:
 
 * linux-64 (x86)
 * win-64 (x86 windows)
@@ -29,50 +123,15 @@ MC/DC is machine portable and is validated to run on:
 * linux-nvidia-cuda
 * linux-amd-rocm
 
-MC/DC has been run on some of the largest super computers in the world including the Dane, `Lassen (#72) <https://www.top500.org/system/179567>`_, and `Tuolumne (#10) <https://www.top500.org/system/180308/>`_  machines from LLNL and been scaled upto 1000 nodes.
-Primary development is done by the `Center for Exascale Monte Carlo Neutron Transport <https://cement-psaap.github.io/>`_ (CEMeNT)
+MC/DC has been run on large-scale HPC systems (including LLNL systems) and has been scaled
+to large node counts for production-relevant research workflows.
 
+Publications
+============
 
-.. image:: images/home/cement-logo-1.png
-   :width: 650
-   :alt: cement logo
-   :align: center
-   :target: https://cement-psaap.github.io/
-
-with support from the following institutions
-
-.. image:: images/home/psaapiii.png
-   :width: 200
-   :alt: PSAAP-III logo
-   :target: https://psaap.llnl.gov/
-.. image:: images/home/DOE_logo.png
-   :width: 275
-   :alt: DOE logo
-   :target: https://www.energy.gov/
-.. image:: images/home/NNSA_Logo.png
-   :width: 275
-   :alt: NNSA logo
-   :target: https://www.energy.gov/nnsa/national-nuclear-security-administration
-
-.. image:: images/home/osu-logo.png
-   :width: 400
-   :alt: Oregon State University logo
-   :target: https://oregonstate.edu/
-.. image:: images/home/nd-logo.png
-   :width: 125
-   :target: https://www.nd.edu/
-   :alt: Noter Dame logo
-.. image:: images/home/SU.png
-   :width: 125
-   :alt: Seattle university logo
-   :target: https://www.seattleu.edu/
-.. image:: images/home/ncsu-logo.png
-   :width: 125
-   :alt: North Carolina state university logo
-   :target: https://www.ncsu.edu/
-
-Work on within MC/DC has resulted in a number of journal publications and conference publications/presentations.
-A full list of publications can be found on the `CEMeNT website <https://cement-psaap.github.io/publications/>`_ .
+Work within MC/DC has resulted in journal and conference publications. For the peer-reviewed
+software paper, please cite the Journal of Open Source Software article below. A broader list of
+associated publications is available via the project’s publications page(s).
 
 .. only:: html
 
@@ -95,10 +154,10 @@ A full list of publications can be found on the `CEMeNT website <https://cement-
     :caption: Links
     :pypi: mcdc
     :github:
-    
+
+    CARRE <https://carre-psaapiv.org/>
     CEMeNT <https://cement-psaap.github.io>
     license <https://github.com/CEMeNT-PSAAP/MCDC/blob/main/LICENSE>
-
 
 Indices and tables
 ==================
@@ -107,27 +166,26 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-
 To build the docs
 =================
 
-#. Install dependencies (we recommend: ``conda install sphinx`` and ``pip install furo sphinx_toolbox``). Note that these dependencies are not installed as part of base MC/DC.
-#. From the `MCDC/docs/` directory, run ``make html`` to compile.
+#. Install dependencies (we recommend: ``conda install sphinx`` and ``pip install furo sphinx_toolbox``).
+   Note that these dependencies are not installed as part of base MC/DC.
+#. From the ``MCDC/docs/`` directory, run ``make html`` to compile.
 #. Launch ``build/html/index.html`` with your browser of choice.
 
 To Cite MC/DC
 =============
 
-If you use MC/DC and would like to provide proper attribution
-please cite our article in the Journal of Open Source software
+If you use MC/DC and would like to provide proper attribution please cite our article in the Journal of Open Source Software:
 
 .. code-block:: bibtex
-        
+
     @article{morgan2024mcdc,
         title = {Monte {Carlo} / {Dynamic} {Code} ({MC}/{DC}): {An} accelerated
                  {Python} package for fully transient neutron transport and
                  rapid methods development},
-        author = {Morgan, Joanna Piper and Variansyah, Ilham and Pasmann, Samuel L. and 
+        author = {Morgan, Joanna Piper and Variansyah, Ilham and Pasmann, Samuel L. and
                   Clements, Kayla B. and Cuneo, Braxton and Mote, Alexander and
                   Goodman, Charles and Shaw, Caleb and Northrop, Jordan and Pankaj, Rohan and
                   Lame, Ethan and Whewell, Benjamin and McClarren, Ryan G. and Palmer, Todd S.
@@ -142,8 +200,6 @@ please cite our article in the Journal of Open Source software
         doi = {10.21105/joss.06415},
     }
 
-If you are developing or working with specific numerical methods please take greater care
-to cite the specific publications where that work is presented.
-A selected list can be found on our :ref:`pubs` page.
-Also check out an even longer list of associated publications on our
-`center's publications page <https://cement-psaap.github.io/publications/>`_ .
+If you are developing or working with specific numerical methods please take greater care to cite
+the specific publications where that work is presented. A selected list can be found on our
+:ref:`pubs` page.
