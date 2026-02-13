@@ -88,8 +88,62 @@ Reference Solution
 No analytical reference.  The solution is validated qualitatively by
 confirming that the flux maximum tracks the prescribed source trajectory.
 
-Input
-=====
+Step-by-Step Walkthrough
+========================
+
+**1. Materials (lines 1–15)**
+
+.. literalinclude:: ../../../examples/moving_source/input.py
+   :language: python
+   :lines: 1-15
+   :linenos:
+   :lineno-match:
+
+A single air-like material with ``speed`` defined for time-dependent
+transport.
+
+**2. Geometry (lines 17–27)**
+
+.. literalinclude:: ../../../examples/moving_source/input.py
+   :language: python
+   :lines: 17-27
+   :linenos:
+   :lineno-match:
+
+A simple box with vacuum boundaries.  One cell fills the entire domain.
+
+**3. Moving Source (lines 33–49)**
+
+.. literalinclude:: ../../../examples/moving_source/input.py
+   :language: python
+   :lines: 33-49
+   :linenos:
+   :lineno-match:
+
+The source is created with spatial and angular extent, then ``src.move()``
+assigns a piecewise-linear trajectory: three velocity segments with their
+durations.  The source physically translates through the domain over time.
+
+**4. Tallies, Settings, and Run (lines 55–65)**
+
+.. literalinclude:: ../../../examples/moving_source/input.py
+   :language: python
+   :lines: 55-65
+   :linenos:
+   :lineno-match:
+
+A structured :math:`201 \times 201` mesh tally with 46 time bins captures
+the evolving 2-D flux.  The companion ``process-output.py`` script
+generates an animated GIF.
+
+**What to try:**
+
+- Change the velocity vectors to create a circular or zigzag path.
+- Add more time-resolution bins for smoother animation.
+- Compare with ``moving_pellet`` where the geometry moves instead of the source.
+
+Full Input
+==========
 
 Click here to view the input file: `examples/moving_source/input.py <https://github.com/CEMeNT-PSAAP/MCDC/blob/dev/examples/moving_source/input.py>`_.
 

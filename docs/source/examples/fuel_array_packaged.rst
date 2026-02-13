@@ -93,8 +93,79 @@ Reference Solution
 No analytical reference.  The geometry can be verified using MC/DC's
 built-in ``mcdc.visualize()`` function to render the CSG model.
 
-Input
-=====
+Step-by-Step Walkthrough
+========================
+
+**1. Materials (lines 1–27)**
+
+.. literalinclude:: ../../../examples/fuel_array_packaged/input.py
+   :language: python
+   :lines: 1-27
+   :linenos:
+   :lineno-match:
+
+Three mono-energetic materials: fissile fuel, a scattering cladding, and
+water moderator.
+
+**2. Assembly Geometry — Shooting-Star CSG (lines 29–54)**
+
+.. literalinclude:: ../../../examples/fuel_array_packaged/input.py
+   :language: python
+   :lines: 29-54
+   :linenos:
+   :lineno-match:
+
+The fuel region is the **union** of a z-cylinder and an x-cylinder (the
+"shooting star").  The cladding fills the sphere minus the fuel.
+Water fills outside the sphere.  These three cells form a reusable
+**universe**.
+
+**3. Packaging with Universe, Translation, and Rotation (lines 56–80)**
+
+.. literalinclude:: ../../../examples/fuel_array_packaged/input.py
+   :language: python
+   :lines: 56-80
+   :linenos:
+   :lineno-match:
+
+The assembly universe is placed twice using ``mcdc.Cell(..., fill=assembly)``:
+
+- **Left** — translated to :math:`(-5, 0, 0)`.
+- **Right** — translated to :math:`(+5, 0, 0)` and rotated 10° about :math:`y`.
+
+``set_root_universe()`` tells MC/DC these are the top-level cells.
+
+**4. Source, Tallies, Settings, and Run (lines 82–105)**
+
+.. literalinclude:: ../../../examples/fuel_array_packaged/input.py
+   :language: python
+   :lines: 82-105
+   :linenos:
+   :lineno-match:
+
+A point-like source near the centre, a structured mesh tally for the
+:math:`(x,z)`-plane fission rate, and 1 000 particles in 2 batches.
+The ``active_bank_buffer`` accommodates fission-born particles.
+
+**5. Optional Visualization (lines 107–end)**
+
+.. literalinclude:: ../../../examples/fuel_array_packaged/input.py
+   :language: python
+   :lines: 107-
+   :linenos:
+   :lineno-match:
+
+Set ``visualize = True`` to render the CSG geometry with
+``mcdc.visualize()`` instead of running the transport.
+
+**What to try:**
+
+- Change the rotation angle and observe the effect on the fission map.
+- Add a third assembly copy with a different translation.
+- Use ``mcdc.Lattice`` instead of manual universe placement.
+
+Full Input
+==========
 
 Click here to view the input file: `examples/fuel_array_packaged/input.py <https://github.com/CEMeNT-PSAAP/MCDC/blob/dev/examples/fuel_array_packaged/input.py>`_.
 

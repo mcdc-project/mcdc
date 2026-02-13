@@ -12,8 +12,34 @@ time-limited source.  Uses the packaged MGXS library in
 ``examples/c5g7`` and demonstrates moving surfaces and time-resolved
 tallies.
 
-Input
-=====
+Step-by-Step Walkthrough
+========================
+
+This example extends the C5G7 k-eigenvalue setup with time-dependent
+features:
+
+- **Moving surfaces** simulate control-rod insertion/withdrawal.
+- **Time-resolved tallies** capture the transient fission rate.
+- **Time census** checkpoints the particle population at specified
+  intervals for population control.
+
+The geometry and material setup is identical to the k-eigenvalue case.
+The transient-specific additions are:
+
+#. Surface velocities assigned via ``surface.move(...)``.
+#. A ``time`` grid added to the mesh tally.
+#. ``set_time_census(...)`` for time-step population control.
+
+Refer to the embedded code below for the full implementation.
+
+**What to try:**
+
+- Change the rod insertion speed to see prompt vs. delayed transient response.
+- Add more time census points for finer population control.
+- Compare power history with published C5G7-TD benchmarks.
+
+Full Input
+==========
 
 Click here to view the input file: `examples/c5g7/transient/input.py <https://github.com/CEMeNT-PSAAP/MCDC/blob/dev/examples/c5g7/transient/input.py>`_.
 

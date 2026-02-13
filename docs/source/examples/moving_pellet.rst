@@ -104,8 +104,76 @@ No analytical reference.  The solution is validated by verifying that
 the fission rate follows the pellet trajectory and that particle
 conservation is maintained.
 
-Input
-=====
+Step-by-Step Walkthrough
+========================
+
+**1. Materials (lines 1–22)**
+
+.. literalinclude:: ../../../examples/moving_pellet/input.py
+   :language: python
+   :lines: 1-22
+   :linenos:
+   :lineno-match:
+
+A fissile fuel pellet (:math:`\Sigma_f = 0.25`, :math:`\nu = 1.5`) and
+an air-like background.  Both include ``speed`` for time-dependent
+transport.
+
+**2. Surfaces and Moving Geometry (lines 24–30)**
+
+.. literalinclude:: ../../../examples/moving_pellet/input.py
+   :language: python
+   :lines: 24-30
+   :linenos:
+   :lineno-match:
+
+A z-cylinder and two z-planes define the pellet.  The key feature:
+``surface.move(velocities, durations)`` makes these surfaces **time-dependent**.
+The cylinder moves laterally while the endcaps move axially, simulating
+a pellet traversing the domain.
+
+**3. Container and Cells (lines 32–50)**
+
+.. literalinclude:: ../../../examples/moving_pellet/input.py
+   :language: python
+   :lines: 32-50
+   :linenos:
+   :lineno-match:
+
+The fuel pellet region is defined by the intersection of the cylinder
+and the two planes.  The air fills the complement inside the bounding box.
+
+**4. Source (lines 56–63)**
+
+.. literalinclude:: ../../../examples/moving_pellet/input.py
+   :language: python
+   :lines: 56-63
+   :linenos:
+   :lineno-match:
+
+A small box source near the pellet’s initial position, active over the
+full simulation time :math:`t \in [0, 9]` s.
+
+**5. Tallies, Settings, and Run (lines 69–83)**
+
+.. literalinclude:: ../../../examples/moving_pellet/input.py
+   :language: python
+   :lines: 69-83
+   :linenos:
+   :lineno-match:
+
+A structured mesh tally in the :math:`(x,z)`-plane with 46 time bins
+captures the fission rate as the pellet moves.
+
+**What to try:**
+
+- Change the pellet velocities to create different trajectories.
+- Set ``visualize = True`` to watch the geometry evolve with
+  ``mcdc.visualize(..., time=...)``.
+- Compare with ``moving_source`` to see source motion vs. geometry motion.
+
+Full Input
+==========
 
 Click here to view the input file: `examples/moving_pellet/input.py <https://github.com/CEMeNT-PSAAP/MCDC/blob/dev/examples/moving_pellet/input.py>`_.
 

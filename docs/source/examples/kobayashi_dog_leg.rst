@@ -89,8 +89,83 @@ References
    *Progress in Nuclear Energy*, **39**:2, 119–144 (2001).
    `[link] <https://www.sciencedirect.com/science/article/abs/pii/S0149197001000075>`__
 
-Input
-=====
+Step-by-Step Walkthrough
+========================
+
+This section walks through the input file block by block.
+
+**1. Import and Materials (lines 1–13)**
+
+.. literalinclude:: ../../../examples/kobayashi/input.py
+   :language: python
+   :lines: 1-13
+   :linenos:
+   :lineno-match:
+
+Two mono-energetic multi-group materials are created:
+``m`` for the shield (:math:`\Sigma_c = \Sigma_s = 0.05`) and
+``m_void`` for the dog-leg channel (:math:`10^{-4}` total).
+
+**2. Surfaces (lines 15–30)**
+
+.. literalinclude:: ../../../examples/kobayashi/input.py
+   :language: python
+   :lines: 15-30
+   :linenos:
+   :lineno-match:
+
+Fifteen planar surfaces define the 3-D bounding box and the internal
+partitions.  Reflective conditions on ``sx1``, ``sy1``, ``sz1`` exploit
+the quarter-symmetry; vacuum on the outer faces allows leakage.
+
+**3. Cells — CSG Region Definitions (lines 32–44)**
+
+.. literalinclude:: ../../../examples/kobayashi/input.py
+   :language: python
+   :lines: 32-44
+   :linenos:
+   :lineno-match:
+
+Three cells cover the domain:
+
+- The **source cell** (a small corner cube) filled with shield material.
+- The **void channel** — four rectangular segments combined with the
+  ``|`` (union) operator to form the L-shaped duct.
+- The **shield** — the full box minus the void channel, using the
+  ``~`` (complement) operator.
+
+**4. Source (lines 50–57)**
+
+.. literalinclude:: ../../../examples/kobayashi/input.py
+   :language: python
+   :lines: 50-57
+   :linenos:
+   :lineno-match:
+
+An isotropic, uniformly distributed source fills the
+:math:`10 \times 10 \times 10` cm corner cube.
+
+**5. Tallies, Settings, Techniques, and Run (lines 63–74)**
+
+.. literalinclude:: ../../../examples/kobayashi/input.py
+   :language: python
+   :lines: 63-74
+   :linenos:
+   :lineno-match:
+
+- A uniform :math:`60 \times 100 \times 60` mesh tally records scalar flux.
+- 1 000 source particles in 2 batches (increase for production).
+- Implicit capture prevents particles from being absorbed prematurely.
+- ``mcdc.run()`` launches the simulation.
+
+**What to try:**
+
+- Increase ``N_particle`` to :math:`10^5` or more for smoother flux maps.
+- Change void-channel cross sections to see how attenuation changes.
+- Add a time grid to the tally for a transient variant (see the TD example).
+
+Full Input
+==========
 
 Click here to view the input file: `examples/kobayashi/input.py <https://github.com/CEMeNT-PSAAP/MCDC/blob/dev/examples/kobayashi/input.py>`_.
 

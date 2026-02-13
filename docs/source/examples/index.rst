@@ -14,7 +14,9 @@ the results.
 The problems below mirror the concrete example folders present in the
 `examples/` directory of this repository.  Each page embeds the
 corresponding ``input.py`` so that the documented setup exactly matches
-the code shipped in-tree.
+the code shipped in-tree.  A **Step-by-Step Walkthrough** section breaks
+the input into annotated blocks, and a **What to try** box suggests
+parameter changes for further exploration.
 
 .. toctree::
    :maxdepth: 1

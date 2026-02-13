@@ -80,8 +80,77 @@ References
 The SHEM-361 energy group structure is documented in the
 `OpenMC documentation <https://docs.openmc.org/en/latest/pythonapi/mgxs.html>`__.
 
-Input
-=====
+Step-by-Step Walkthrough
+========================
+
+**1. Import and Continuous-Energy Materials (lines 1–25)**
+
+.. literalinclude:: ../../../examples/pincell/input.py
+   :language: python
+   :lines: 1-25
+   :linenos:
+   :lineno-match:
+
+Unlike multi-group examples, ``mcdc.Material()`` is used instead of
+``mcdc.MaterialMG()``.  Nuclides are identified by name (``"U235"``,
+``"O16"``, etc.) and atom densities are given in atoms/barn-cm.
+MC/DC automatically loads pointwise cross-section HDF5 files from
+the ``$MCDC_LIB`` directory.
+
+**2. Surfaces — Cylindrical Pin Cell (lines 27–34)**
+
+.. literalinclude:: ../../../examples/pincell/input.py
+   :language: python
+   :lines: 27-34
+   :linenos:
+   :lineno-match:
+
+A z-aligned cylinder defines the fuel pin.  Four planar surfaces form
+the square pitch cell.  All boundary conditions are reflective to
+represent an infinite 2-D lattice.
+
+**3. Cells (lines 36–38)**
+
+.. literalinclude:: ../../../examples/pincell/input.py
+   :language: python
+   :lines: 36-38
+   :linenos:
+   :lineno-match:
+
+Two cells: fuel inside the cylinder, moderator outside.
+
+**4. Source (lines 44–49)**
+
+.. literalinclude:: ../../../examples/pincell/input.py
+   :language: python
+   :lines: 44-49
+   :linenos:
+   :lineno-match:
+
+An isotropic source uniformly distributed across the cell at 1 MeV.
+Note: ``energy=1e6`` is in eV for CE mode.
+
+**5. Tallies, Settings, and Run (lines 55–63)**
+
+.. literalinclude:: ../../../examples/pincell/input.py
+   :language: python
+   :lines: 55-63
+   :linenos:
+   :lineno-match:
+
+- A global tally bins the flux by energy using the SHEM-361 grid.
+- ``set_eigenmode()`` configures a k-eigenvalue calculation:
+  10 inactive + 50 active cycles.
+- 100 particles per cycle (increase for production runs).
+
+**What to try:**
+
+- Increase ``N_particle`` to :math:`10^4` for better :math:`k_{\text{eff}}` statistics.
+- Change fuel enrichment (U-235 density) and compare :math:`k_{\text{eff}}`.
+- Add a ``TallyMesh`` with spatial bins to plot the pin flux profile.
+
+Full Input
+==========
 
 Click here to view the input file: `examples/pincell/input.py <https://github.com/CEMeNT-PSAAP/MCDC/blob/dev/examples/pincell/input.py>`_.
 
