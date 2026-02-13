@@ -8,11 +8,6 @@ MC/DC uses **Constructive Solid Geometry** (CSG) to define the spatial
 domain.  Complex geometries are built by combining simple surfaces with
 Boolean region operators.
 
-.. contents:: On this page
-   :local:
-   :depth: 2
-
-
 Surfaces
 --------
 

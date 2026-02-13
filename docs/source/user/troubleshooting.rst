@@ -9,11 +9,6 @@ If your issue is not listed here, please check our
 `GitHub issues <https://github.com/CEMeNT-PSAAP/MCDC/issues>`_
 or open a new one.
 
-.. contents:: On this page
-   :local:
-   :depth: 2
-
-
 Numba Version Compatibility
 ----------------------------
 

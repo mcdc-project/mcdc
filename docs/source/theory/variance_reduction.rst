@@ -13,10 +13,6 @@ introducing bias.
 All techniques below are activated through the ``mcdc.simulation``
 interface.
 
-.. contents:: On this page
-   :local:
-   :depth: 2
-
 Implicit Capture
 -----------------
 
