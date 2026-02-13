@@ -36,6 +36,7 @@ extensions = [
     "sphinx.ext.autosectionlabel",
 ]
 autosummary_generate = True
+autosectionlabel_prefix_document = True
 
 github_username = "CEMeNT-PSAAP"
 github_repository = "MCDC"

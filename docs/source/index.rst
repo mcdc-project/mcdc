@@ -35,7 +35,7 @@ the broader community. The codebase is open-source (BSD-3-Clause) and welcomes e
 contributions via GitHub.
 
 Supported by / in coordination with
-----------------------------------
+------------------------------------
 
 .. image:: images/home/psaapiv.png
    :width: 200
@@ -51,7 +51,7 @@ Supported by / in coordination with
    :target: https://www.energy.gov/nnsa/national-nuclear-security-administration
 
 Collaborating Institutions
--------------------------
+--------------------------
 
 .. image:: images/home/osu-logo.png
    :width: 360
