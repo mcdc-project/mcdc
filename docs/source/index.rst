@@ -85,6 +85,7 @@ A full list of publications can be found on the `CEMeNT website <https://cement-
 
     install
     user/index
+    examples/index
     contribution/index
     theory/index
     pythonapi/index
