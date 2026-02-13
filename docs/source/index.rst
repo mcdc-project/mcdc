@@ -34,11 +34,6 @@ MC/DC is developed openly, with contributions from the collaborating institution
 the broader community. The codebase is open-source (BSD-3-Clause) and welcomes external
 contributions via GitHub.
 
-.. note::
-
-   CARRE partner institution logos below are placeholders by filename.
-   Add the corresponding images into ``docs/source/images/home/`` (or your site’s images folder).
-
 Supported by / in coordination with
 ----------------------------------
 
