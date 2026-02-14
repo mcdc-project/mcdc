@@ -94,5 +94,8 @@ You can find specifics on how to run these tests locally [here](https://github.c
 ## Cite
 
 To provide proper attribution to MC/DC, consider the following:
-- MC/DC Origins: I. Variansyah, et al. (2023). Development of MC/DC: a performant, scalable, and portable Python-based Monte Carlo neutron transport code. Proc. ANS M&C 2025, Niagara Falls, Canada. https://doi.org/10.48550/arXiv.2305.07636.
-- JOSS article: J. Morgan, et al. (2024). Monte Carlo / Dynamic Code (MC/DC): An accelerated Python package for fully transient neutron transport and rapid methods development. Journal of Open Source Software, 9(96), 6415. https://doi.org/10.21105/joss.06415.
+
+- MC/DC Origins
+  I. Variansyah, et al. (2023). Development of MC/DC: a performant, scalable, and portable Python-based Monte Carlo neutron transport code. Proc. ANS M&C 2025, Niagara Falls, Canada. https://doi.org/10.48550/arXiv.2305.07636.
+- MC/DC JOSS article
+  J. Morgan, et al. (2024). Monte Carlo / Dynamic Code (MC/DC): An accelerated Python package for fully transient neutron transport and rapid methods development. Journal of Open Source Software, 9(96), 6415. https://doi.org/10.21105/joss.06415.
