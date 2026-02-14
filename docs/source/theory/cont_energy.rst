@@ -51,12 +51,6 @@ Relativistic particle speed is computed as:
 
    v = c \, \frac{\sqrt{E(E + 2m_n c^2)}}{E + m_n c^2}
 
-.. note::
-
-   CE libraries are provided to CEMeNT members via an internal repository.
-   Due to export controls, this data cannot be distributed publicly.
-   See the :ref:`install` for configuration instructions.
-
 
 Generating a Data Library from ACE Files
 -----------------------------------------
