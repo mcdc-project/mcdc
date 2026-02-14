@@ -188,10 +188,17 @@ Use the operator syntax:
 See `#348 <https://github.com/CEMeNT-PSAAP/MCDC/issues/348>`_.
 
 
-Getting More Help
-------------------
+Bugs and Issues
+---------------
 
-If you are still stuck:
+Our documentation is in the early stages of development, so thank you for bearing with us 
+while we bring it up to snuff. If you find a novel bug or anything else you feel we should 
+be aware of, feel free to `open an issue <https://github.com/CEMeNT-PSAAP/MCDC/issues>`_.
+
+Getting More Help
+^^^^^^^^^^^^^^^^^
+
+If you are still stuck after reviewing this troubleshooting guide:
 
 #. Search the `GitHub issues <https://github.com/CEMeNT-PSAAP/MCDC/issues>`_ for similar problems.
 #. Run in debug mode for more informative error messages:
