@@ -7,13 +7,13 @@
 [![ReadTheDocs](https://github.com/CEMeNT-PSAAP/MCDC/actions/workflows/docs_test.yml/badge.svg)](https://mcdc.readthedocs.org/en/latest/ )
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-
-
 MC/DC is a performant, scalable, and machine-portable Python-based Monte Carlo 
-neutron transport software currently developed in the Center for Exascale Monte 
-Carlo Neutron Transport ([CEMeNT](https://cement-psaap.github.io/)).
+neutron transport software, initiated by the Center for Exascale Monte Carlo 
+Neutron Transport ([CEMeNT](https://cement-psaap.github.io/)), and currently 
+in active development in the Center for Advancing the Radiation Resilience of 
+Electronics ([CARRE](https://carre-psaapiv.org)).
 
-Our documentation on installation, contribution, and a brief user guide is on [Read the Docs](https://mcdc.readthedocs.io/en/latest/).
+[Read the Docs](https://mcdc.readthedocs.io/en/latest/) for documentation on installation, contribution, and user guide.
 
 ## Installation
 
@@ -93,24 +93,6 @@ You can find specifics on how to run these tests locally [here](https://github.c
 
 ## Cite
 
-To provide proper attribution to MC/DC, please cite
-```
-    @article{morgan2024mcdc,
-        title = {Monte {Carlo} / {Dynamic} {Code} ({MC}/{DC}): {An} accelerated {Python} package for fully transient neutron transport and rapid methods development},
-        author = {Morgan, Joanna Piper and Variansyah, Ilham and Pasmann, Samuel L. and Clements, Kayla B. and Cuneo, Braxton and Mote, Alexander and Goodman, Charles and Shaw, Caleb and Northrop, Jordan and Pankaj, Rohan and Lame, Ethan and Whewell, Benjamin and McClarren, Ryan G. and Palmer, Todd S. and Chen, Lizhong and Anistratov, Dmitriy Y. and Kelley, C. T. and Palmer, Camille J. and Niemeyer, Kyle E.},
-        journal = {Journal of Open Source Software},
-        volume = {9},
-        number = {96},
-        year = {2024},
-        pages = {6415},
-        url = {https://joss.theoj.org/papers/10.21105/joss.06415},
-        doi = {10.21105/joss.06415},
-    }
-```
-which should render something like this
-
-Morgan et al. (2024). Monte Carlo / Dynamic Code (MC/DC): An accelerated Python package for fully transient neutron transport and rapid methods development. Journal of Open Source Software, 9(96), 6415. https://doi.org/10.21105/joss.06415.
-
-## License
-
-MC/DC is licensed under a BSD-3 clause license. We believe in open source software. 
+To provide proper attribution to MC/DC, consider the following:
+- MC/DC Origins: I. Variansyah, et al. (2023). Development of MC/DC: a performant, scalable, and portable Python-based Monte Carlo neutron transport code. Proc. ANS M&C 2025, Niagara Falls, Canada. https://doi.org/10.48550/arXiv.2305.07636.
+- JOSS article: J. Morgan, et al. (2024). Monte Carlo / Dynamic Code (MC/DC): An accelerated Python package for fully transient neutron transport and rapid methods development. Journal of Open Source Software, 9(96), 6415. https://doi.org/10.21105/joss.06415.
