@@ -4,7 +4,7 @@
 
 [![Build](https://github.com/CEMeNT-PSAAP/MCDC/actions/workflows/regression_test.yml/badge.svg)](https://github.com/CEMeNT-PSAAP/MCDC/actions/workflows/regression_test.yml)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.06415/status.svg)](https://doi.org/10.21105/joss.06415)
-[![ReadTheDocs](https://github.com/CEMeNT-PSAAP/MCDC/actions/workflows/docs_test.yml/badge.svg)](https://mcdc.readthedocs.org/en/latest/ )
+[![ReadTheDocs](https://github.com/CEMeNT-PSAAP/MCDC/actions/workflows/docs_test.yml/badge.svg)](https://mcdc.readthedocs.org/en/dev/ )
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 MC/DC is a performant, scalable, and machine-portable Python-based Monte Carlo 
@@ -15,11 +15,11 @@ Electronics ([CARRE](https://carre-psaapiv.org)).
 
 ## Documentation
 
-All detailed instructions and guides are hosted on [Read the Docs](https://mcdc.readthedocs.io/en/latest/). These include:
-- [Installation](https://mcdc.readthedocs.io/en/latest/install.html),
-- [User Guide](https://mcdc.readthedocs.io/en/latest/user/index.html),
-- [API Reference](https://mcdc.readthedocs.io/en/latest/pythonapi/index.html), and
-- [Contribution Guide](https://mcdc.readthedocs.io/en/latest/contribution/index.html).
+All detailed instructions and guides are hosted on [Read the Docs](https://mcdc.readthedocs.io/en/dev/). These include:
+- [Installation](https://mcdc.readthedocs.io/en/dev/install.html),
+- [User Guide](https://mcdc.readthedocs.io/en/dev/user/index.html),
+- [API Reference](https://mcdc.readthedocs.io/en/dev/pythonapi/index.html), and
+- [Contribution Guide](https://mcdc.readthedocs.io/en/dev/contribution/index.html).
 
 ## Citing
 
