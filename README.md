@@ -15,6 +15,10 @@ Electronics ([CARRE](https://carre-psaapiv.org)).
 
 [Read the Docs](https://mcdc.readthedocs.io/en/latest/) for documentation on installation, contribution, and user guide.
 
+To provide proper attribution to MC/DC, consider the following:
+- **[MC/DC Origins]** I. Variansyah, et al. (2023). Development of MC/DC: a performant, scalable, and portable Python-based Monte Carlo neutron transport code. Proc. ANS M&C 2025, Niagara Falls, Canada. https://doi.org/10.48550/arXiv.2305.07636.
+- **[MC/DC JOSS article]** J. Morgan, et al. (2024). Monte Carlo / Dynamic Code (MC/DC): An accelerated Python package for fully transient neutron transport and rapid methods development. Journal of Open Source Software, 9(96), 6415. https://doi.org/10.21105/joss.06415.
+
 ## Installation
 
 We recommend using [Python virtual environments (venv)](https://docs.python.org/3/library/venv.html) or some other environment manager (e.g. conda) to manage the MC/DC installation.
@@ -90,9 +94,3 @@ If you find a novel bug or anything else you feel we should be aware of, feel fr
 MC/DC uses continuous integration (CI) to run its unit and regression test suite. 
 MC/DC also includes verification and performance tests, which are built and run nightly on internal systems.
 You can find specifics on how to run these tests locally [here](https://github.com/CEMeNT-PSAAP/MCDC/tree/main/test/regression).
-
-## Cite
-
-To provide proper attribution to MC/DC, consider the following:
-- **[MC/DC Origins]** I. Variansyah, et al. (2023). Development of MC/DC: a performant, scalable, and portable Python-based Monte Carlo neutron transport code. Proc. ANS M&C 2025, Niagara Falls, Canada. https://doi.org/10.48550/arXiv.2305.07636.
-- **[MC/DC JOSS article]** J. Morgan, et al. (2024). Monte Carlo / Dynamic Code (MC/DC): An accelerated Python package for fully transient neutron transport and rapid methods development. Journal of Open Source Software, 9(96), 6415. https://doi.org/10.21105/joss.06415.
