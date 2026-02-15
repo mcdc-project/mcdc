@@ -181,11 +181,13 @@ To add a new page to the documentation,
 #. Add ``<FILE_NAME>`` (without file extension to the ``.. toctree::`` section of ``index.rst``)
 #. Write your contributions using ``.rst`` format (see this `cheat sheet <https://github.com/ralsina/rst-cheatsheet/blob/master/rst-cheatsheet.rst>`_)
 
-To build changes you've made locally before committing,
+To build the docs changes you have made locally before committing,
 
-#. Install dependencies (we recommend: ``conda install sphinx`` and ``pip install furo``). Note that these dependencies are not installed as a part of base MC/DC
-#. Run ``make html`` to compile
-#. Then launch ``build/html/index.html`` with your browser of choice
+#. Install dependencies (we recommend: ``conda install sphinx`` and ``pip install furo sphinx_toolbox``).
+   Note that these dependencies are not installed as part of base MC/DC.
+#. From the ``MCDC/docs/`` directory, run ``make html`` to compile.
+#. Launch ``build/html/index.html`` with your browser of choice.
+
 
 -------------
 Pull Requests
