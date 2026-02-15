@@ -14,25 +14,36 @@ Then explore the advanced topics below.
 For an additional external resource, see the
 `OpenMC theory guide <https://docs.openmc.org/en/latest/methods/index.html>`_.
 
-.. only:: html
-
-   ------
-   Topics
-   ------
+Fundamentals
+------------
 
 .. toctree::
-    :maxdepth: 1
+   :maxdepth: 1
 
-    mc_basics
-    geometry
-    k_eigenvalue
-    variance_reduction
-    gpu
-    ana
-    iqmc
-    ww
-    uq
-    compressed_sensing
-    cont_energy
-    domain_decomp
-    cont_movement
+   mc_basics
+   geometry
+   k_eigenvalue
+
+Advanced Methods
+----------------
+
+.. toctree::
+   :maxdepth: 1
+
+   variance_reduction
+   ana
+   iqmc
+   ww
+   uq
+   compressed_sensing
+
+Implementation
+--------------
+
+.. toctree::
+   :maxdepth: 1
+
+   gpu
+   cont_energy
+   domain_decomp
+   cont_movement

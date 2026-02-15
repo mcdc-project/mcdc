@@ -8,20 +8,31 @@ We include a simple "first simulation guide" as well as more in-depth descriptio
 
 These instructions all assume you have an operable and working version of MC/DC installed in an appropriate environment for your system.
 
-.. only:: html
-
-   ------
-   Guides
-   ------
+Getting Started
+---------------
 
 .. toctree::
-    :maxdepth: 1
+   :maxdepth: 1
 
-    first_mcdc
-    cpu
-    gpu
-    batch_scripts
-    faq
-    troubleshooting
+   first_mcdc
+
+Execution Modes
+---------------
+
+.. toctree::
+   :maxdepth: 1
+
+   cpu
+   gpu
+   batch_scripts
+
+Help & Support
+--------------
+
+.. toctree::
+   :maxdepth: 1
+
+   faq
+   troubleshooting
 
 

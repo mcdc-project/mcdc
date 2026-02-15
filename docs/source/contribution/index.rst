@@ -20,8 +20,11 @@ To get started making alterations in a cloned repo
 
 Push some particles around!!!!
 
-.. toctree:: 
-   :hidden:
+Development Guidelines
+----------------------
+
+.. toctree::
+   :maxdepth: 1
    
    documentation.rst
    ci.rst

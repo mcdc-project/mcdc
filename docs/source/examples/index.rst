@@ -18,15 +18,32 @@ the code shipped in-tree.  A **Step-by-Step Walkthrough** section breaks
 the input into annotated blocks, and a **What to try** box suggests
 parameter changes for further exploration.
 
+Basic Examples
+--------------
+
 .. toctree::
    :maxdepth: 1
 
    kobayashi_dog_leg
    kobayashi_td
    pincell
+
+Advanced Examples
+-----------------
+
+.. toctree::
+   :maxdepth: 1
+
    moving_source
    moving_pellet
    fuel_array_packaged
    sphere_in_cube
+
+Reactor Benchmarks
+------------------
+
+.. toctree::
+   :maxdepth: 1
+
    c5g7_k_eigenvalue
    c5g7_transient
