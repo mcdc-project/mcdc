@@ -4,150 +4,80 @@
 Publications
 =============
 
-This page contains various formal publications describing the features and algorithms of MC/DC.
-If you are writing a research paper please provide proper attribution to those whose work you are using in MC/DC.
-Generally, the citation on the home page is a good place to start.
+Overview
+--------
 
-General MC/DC Papers
----------------------
+- Morgan, Joanna Piper, et al. "Monte Carlo/Dynamic Code (MC/DC): An accelerated Python package for fully transient neutron transport and rapid methods development." Journal of Open Source Software 9.96 (2024): 6415. https://joss.theoj.org/papers/10.21105/joss.06415
 
-I. Variansyah, J. P. Morgan, J. Northrop K. E. Niemeyer, and 
-R. G. McClarren. “Development of MC/DC: a performant, scalable, 
-and portable Python-based Monte Carlo neutron transport code.” 
-In International Conference on Mathematics and Computational
-Methods Applied to Nuclear Science and Engineering. Niagara Falls, 
-Ontario, Canada (2023). Preprint DOI 10.48550/arXiv.2305.13555.
+- Variansyah, Ilham, et al. "Development of MC/DC: a performant, scalable, and portable Python-based Monte Carlo neutron transport code." In International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering. Niagara Falls, Ontario, Canada (2023). Preprint: https://arxiv.org/abs/2305.07636
 
-I. Variansyah and R. G. McClarren. “High-fidelity treatment for object
-movement in time-dependent Monte Carlo transport simulations.”
-In International Conference on Mathematics and Computational
-Methods Applied to Nuclear Science and Engineering. Niagara Falls,
-Ontario, Canada (2023). Preprint DOI 10.48550/arXiv.2305.07641.
+Benchmarking, Verification, and Validation
+------------------------------------------
 
+- Variansyah, I. Four-Phase C5G7 Transient Benchmark for Neutron Transport. Zenodo, 23 June 2025, https://doi.org/10.5281/zenodo.15719118
 
-Population Control Publications
---------------------------------
+- Variansyah, I. Time-Dependent Kobayashi Dog-Leg Benchmark for Neutron Transport. Zenodo, 23 Mar. 2025, https://doi.org/10.5281/zenodo.15069882
 
-I. Variansyah and R. G. McClarren. “An effective initial particle 
-sampling technique for Monte Carlo reactor transient simulations.” 
-In International Conference on Mathematics and Computational Methods 
-Applied to Nuclear Science and Engineering. Niagara Falls, Ontario, 
-Canada (2023). Preprint DOI 10.48550/arXiv.2305.07646.
+- Northrop, J., et al. Inter-code Comparison of Time Independent Pulsed Sphere Benchmark Results. Zenodo, 2022, https://doi.org/10.5281/zenodo.7250603.
 
-I. Variansyah and R. G. McClarren. “An effective initial particle sampling
-technique for Monte Carlo reactor transient simulations.” In International
-Conference on Physics of Reactors. Pittsburgh, Pennsylvania, USA (2022).
+Software Engineering
+--------------------
 
-I. Variansyah and R. G. McClarren. “Performance of Population Control
-Techniques in Monte Carlo Reactor Criticality Simulation.” In International
-Conference on Physics of Reactors. Pittsburgh, Pennsylvania, USA (2022).
+- Morgan, Joanna Piper, et al. "Performant and Portable Monte Carlo Neutron Transport via Numba." Computing in Science & Engineering (2025). https://ieeexplore.ieee.org/abstract/document/10926859/
 
-Software Engineering in MC/DC Publications
--------------------------------------------
+- Cuneo, Braxton, and Mike Bailey. "Divergence reduction in Monte Carlo neutron transport with on-GPU asynchronous scheduling." ACM Transactions on Modeling and Computer Simulation 34.1 (2024): 1-25. https://dl.acm.org/doi/abs/10.1145/3626957
 
-J. P. Morgan, I. Variansyah, B. Cuneo, T. S. Palmer and K. E. Niemeyer. 2024. UNDER REVIEW. Performance Portable Monte Carlo Neutron Transport in MCDC via Numba. Preprint DOI 10.48550/arXiv.2306.07847.
+- Morgan, J. P., et al. “Explorations of Python-Based Automatic Hardware Code Generation for Neutron Transport Applications”. Transactions of The American Nuclear Society, 1, vol. 126, Zenodo, 2022, https://doi.org/10.5281/zenodo.6646813.
 
-B. Cuneo and I. Variansyah. “An Alternative to Stride-Based RNG for Monte Carlo Transport.” In Transactions of The American Nuclear Society, volume 130 (1), pp. 423–426 (2024). DOI 10.13182/T130-44927
+Variance/Runtime Reduction Technique
+------------------------------------
 
-J. P. Morgan, I. Variansyah, S. Pasmann, K. B. Clements, B. Cuneo, A. Mote, 
-C. Goodman, C. Shaw, J. Northrop, R. Pankaj, E. Lame, B. Whewell, 
-R. McClarren, T. S. Palmer, L. Chen, D. Anistratov, C. T. Kelley, 
-C. Palmer, and K. E. Niemeyer. Monte Carlo / Dynamic Code (MC/DC): 
-An accelerated Python package for fully transient neutron transport 
-and rapid methods development. Accepted Journal of Open Source Software. 
-9(96), 6415. DOI 10.21105/joss.06415.
+- Variansyah, Ilham, Ryan G. McClarren, and Todd S. Palmer. "Implicit Collision Multiplicity Adjustment for Efficient Monte Carlo Transport Simulation of Reactivity Excursion." In International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering. Denver, Colorado, USA (2025). Preprint: https://arxiv.org/abs/2501.06391
 
-B. Cuneo and Mike Bailey. 2023. Divergence Reduction in Monte Carlo 
-Neutron Transport with On-GPU Asynchronous Scheduling. ACM Trans. 
-Model. Comput. Simul. (October 2023). DOI 10.1145/3626957.
+- Northrop, Jordan, et al. "Interplay of Variance Reduction and Population Control in Monte Carlo Neutron Transport." Nuclear Science and Engineering (2025): 1-12. https://www.tandfonline.com/doi/abs/10.1080/00295639.2025.2567750
 
-J. P. Morgan, T. S. Palmer, and K. E. Niemeyer. “Automatic Hardware Code Generation
-for Neutron Transport Applications.” In Transactions of the American Nuclear Society,
-volume 126, p. 318–320. American Nuclear Society, Anaheim, CA (2022)
-Preprint DOI: 10.5281/zenodo.6646813 DOI: 10.13182/T126-38137.
+- Morgan, Joanna Piper, et al. "Hybrid Delta Tracking Schemes Using a Track-Length Estimator." arXiv preprint arXiv:2510.00152 (2025). https://doi.org/10.48550/arXiv.2510.00152
 
-UQ Publications
----------------
+- Variansyah, Ilham, and Ryan G. McClarren. "Analysis of population control techniques for time-dependent and eigenvalue Monte Carlo neutron transport calculations." Nuclear Science and Engineering 196.11 (2022): 1280-1305. https://www.tandfonline.com/doi/abs/10.1080/00295639.2022.2091906
 
-K. B. Clements, G. Geraci, A. J. Olson, and T. S. Palmer. 
-A variance deconvolution estimator for efficient uncertainty 
-quantification in Monte Carlo radiation transport applications. 
-Accepted Journal of Quantitative Spectroscopy and Radiative Transfer. 
-(2024). DOI 10.1016/j.jqsrt.2024.108958.
+- Variansyah, Ilham, and Ryan G. McClarren. "Performance of Population Control Techniques in Monte Carlo Reactor Criticality Simulations." Proc. PHYSOR. 2022. Preprint https://www.researchgate.net/profile/Ilham-Variansyah/publication/360852360_Performance_of_Population_Control_Techniques_in_Monte_Carlo_Reactor_Criticality_Simulations/links/628eb74c8d19206823dae963/Performance-of-Population-Control-Techniques-in-Monte-Carlo-Reactor-Criticality-Simulation.pdf
 
-K. B. Clements, G. Geraci, A. J. Olson, and T. S. Palmer. 
-“Global Sensitivity Analysis in Monte Carlo Radiation Transport.” 
-In International Conference on Mathematics and Computational Methods
-Applied to Nuclear Science and Engineering. Niagara Falls, Ontario, Canada (2023)
+Hybrid Monte Carlo Transport
+----------------------------
 
-K. B. Clements, G. Geraci, and A. J. Olson, A Variance Deconvolution Approach
-to Sampling Uncertainty Quantification for Monte Carlo Radiation Transport
-Solvers, in Computer Science Research Institute Summer Proceedings 2021,
-J.D. Smith and E. Galvan, eds., Technical Report SAND2022-0653R,
-Sandia National Laboratories, 2021, pp. 293–307. DOI: 10.2172/1855061.
+- Pasmann, Samuel, et al. "Mitigating Spatial Error in the Iterative Quasi–Monte Carlo (iQMC) Method for Neutron Transport Simulations with Linear Discontinuous Source Tilting and Effective Scattering and Fission Rate Tallies." Nuclear Science and Engineering 199.sup1 (2025): S381-S396. https://www.tandfonline.com/doi/abs/10.1080/00295639.2024.2332007
 
-Hybrid Monte Carlo Publications
--------------------------------
+- Novellino, Vincent N., and Dmitriy Y. Anistratov. Analysis of Hybrid MC/Deterministic Methods for Transport Problems Based on Low-Order Equations Discretized by Finite Volume Scheme. Transaction of American Nuclear Society, v. 130, 2024. Preprint: https://doi.org/10.48550/arXiv.2403.05673
 
-B. Whewell, R. G. McClarren, C. D. Hauck & M. Shin “Multigroup Neutron Transport 
-Using a Collision-Based Hybrid Method”, Nuclear Science and Engineering, 
-197:7, 1386-1405, (2023) DOI: 10.1080/00295639.2022.2154119.
+- Whewell, Ben, et al. "Multigroup neutron transport using a collision-based hybrid method." Nuclear science and engineering 197.7 (2023): 1386-1405. https://www.tandfonline.com/doi/abs/10.1080/00295639.2022.2154119
 
-E. Smith, I. Variansyah, and R. G. McClarren. 
-“Variable Dynamic Mode Decomposition for Estimating Time Eigenvalues
-in Nuclear Systems.” Nuclear Science and Engineering (2022). 
-DOI 10.1080/00295639.2022.2142025, Preprint.
+- Pasmann, Sam, et al. "A quasi–Monte Carlo method with Krylov linear solvers for multigroup neutron transport simulations." Nuclear Science and Engineering 197.6 (2023): 1159-1173. https://www.tandfonline.com/doi/abs/10.1080/00295639.2022.2143704
 
-V. Novellino and D. Anistratov, Analysis of Hybrid MC/Deterministic Methods
-for Transport Problems Based on Low-Order Equations Discretized by
-Finite Volume Scheme. Transaction of American Nuclear Society, 
-v. 130, 2024 Preprint DOI: 10.48550/arXiv:2403.05673
+- Pasmann, Sam, et al. "A quasi–Monte Carlo method with Krylov linear solvers for multigroup neutron transport simulations." Nuclear Science and Engineering 197.6 (2023): 1159-1173. https://www.tandfonline.com/doi/abs/10.1080/00295639.2022.2143704
 
-E. Smith, I. Variansyah, and R. G. McClarren. “Compressed Dynamic Mode Decomposition
-for Time-Eigenvalue Calculations.” In International Conference on Mathematics
-and Computational Methods Applied to Nuclear Science and Engineering.
-Niagara Falls, Ontario, Canada (2023). Preprint DOI 10.48550/arXiv.2208.10942.
+- Pasmann, Samuel, et al. “iQMC: Iterative Quasi-Monte Carlo with Krylov Linear Solvers for k-Eigenvalue Neutron Transport Simulations.” In International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering. Niagara Falls, Ontario, Canada (2023). Preprint: https://arxiv.org/abs/2306.11600
 
-iQMC Publications
------------------
+- Pasmann, Samuel, Ilham Variansyah, and R. G. McClarren. "Convergent transport source iteration calculations with Quasi-Monte Carlo." Transactions of the American Nuclear Society 124 (2021): 192-195.
 
-S. Pasmann, I. Variansyah, C. T. Kelley, and R. G. McClarren. (2024). 
-Mitigating Spatial Error in the iterative-Quasi-Monte Carlo (iQMC) Method 
-for Neutron Transport Simulations with Linear Discontinuous Source Tilting 
-and Effective Scattering and Fission Rate Tallies. Accepted Nuclear Science 
-and Engineering. Preprint DOI 10.48550/arXiv.2401.04029
+Uncertainty Quantification and Sensitivity Analysis
+---------------------------------------------------
 
-S. Pasmann, I. Variansyah, C. T. Kelley, and R. G. McClarren. 
-“A Quasi-Monte Carlo Method with Krylov Linear Solvers for Multigroup 
-Neutron Transport Simulations.” Nuclear Science and Engineering (
-Jan 2023). DOI 10.1080/00295639.2022.2143704.
+- Variansyah, Ilham, Ryan G. McClarren, and Todd S. Palmer. "Derivative Source Method for Monte Carlo Transport Calculation of Sensitivities to Material Densities and Dimensions." In International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering. Denver, Colorado, USA (2025). Preprint: https://arxiv.org/abs/2501.06397
 
-S. Pasmann, I. Variansyah, C. T. Kelley, and R. G. McClarren.
-“iQMC: Iterative Quasi-Monte Carlo with Krylov Linear Solvers
-for k-Eigenvalue Neutron Transport Simulations.” In International
-Conference on Mathematics and Computational Methods Applied to
-Nuclear Science and Engineering. Niagara Falls, Ontario, Canada
-(2023). Preprint DOI: 0.48550/arXiv.2306.11600.
+- Clements, Kayla B., et al. "A variance deconvolution estimator for efficient uncertainty quantification in Monte Carlo radiation transport applications." Journal of Quantitative Spectroscopy and Radiative Transfer 319 (2024): 108958. https://www.sciencedirect.com/science/article/pii/S0022407324000657
 
-S. Pasmann, I. Variansyah, and R. G. McClarren.
-“Convergent Transport Source Iteration Calculations
-with Quasi-Monte Carlo.” In Transactions of the American Nuclear Society,
-volume 124, pp. 192–195. American Nuclear Society (2021).
+- Clements, Kayla, et al. "Global Sensitivity Analysis in Monte Carlo Radiation Transport." In International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering. Niagara Falls, Ontario, Canada (2023). Preprint: https://arxiv.org/abs/2403.06106
 
-Validation and Verification Publications
-----------------------------------------
+- Clements, Kayla C., G. Geraci, and Aaron J. Olson. "A variance deconvolution approach to sampling uncertainty quantification for Monte Carlo radiation transport solvers." Computer Science Research Institute Summer Proceedings 2021 (2021): 293-307. https://www.osti.gov/biblio/1855061
 
-C. J. Palmer, J. Northrop, T. S. Palmer, A. J. Reynolds.
-Validation of Time-dependent Shift using the Pulsed Sphere
-Benchmarks. Frontiers in Nuclear Engineering,
-Sec. Fission and Reactor Design. Vol 2. (2023). DOI: 10.3389/fnuen.2023.1294583.
+Miscellany
+----------
 
-J. Northrop, C. Palmer, and A. J. Reynolds. “Inter-code Comparison of Time Independent
-Pulsed Sphere Benchmark Results.” In Transactions of the American Nuclear Society,
-volume 126. p. 334-337 American Nuclear Society, Anaheim, CA (2022).
-Preprint DOI: 10.5281/zenodo.7250603 DOI 10.13182/T126-38312.
+- Lame, Ethan, et al. "Compressed Sensing Methods for Memory Reduction in Monte Carlo Simulations." arXiv preprint arXiv:2602.07771 (2026). https://doi.org/10.48550/arXiv.2602.07771
 
-A. J. Reynolds, & T. S. Palmer. Verification and Scaling of Time-Dependent
-Shift Using the AZURV1 Benchmark. In Transactions of the
-American Nuclear Society, volume 126. p. 310-313. Anaheim,
-California, United States (2020) Preprint DOI 10.5281/zenodo.7222601 DOI 10.13182/T126-38060.
+- Cuneo, Braxton S., and Ilham Variansyah. “An Alternative to Stride-Based RNG for Monte Carlo Transport.” In Transactions of The American Nuclear Society, volume 130 (1), pp. 423–426 (2024). Preprint: https://arxiv.org/abs/2403.06362
+
+- Variansyah, Ilham, and Ryan G. McClarren. “High-fidelity treatment for object movement in time-dependent Monte Carlo transport simulations.” In International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering. Niagara Falls, Ontario, Canada (2023). Preprint: https://doi.org/10.48550/arXiv.2305.07641
+
+- Variansyah, Ilham, and Ryan G. McClarren. “An effective initial particle sampling technique for Monte Carlo reactor transient simulations.” In International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering. Niagara Falls, Ontario, Canada (2023). Preprint: https://doi.org/10.48550/arXiv.2305.07646
+
