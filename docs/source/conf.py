@@ -18,8 +18,7 @@ if PROJECT_ROOT not in sys.path:
 
 # -- Project information -----------------------------------------------------
 project = "MC/DC"
-copyright = "2025, Center for Exascale Monte Carlo Neutron Transport (CEMeNT)"
-author = "Center for Exascale Monte Carlo Neutron Transport (CEMeNT)"
+copyright = "2023-2026, Center for Exascale Monte Carlo Neutron Transport (CEMeNT), Center for Advancing the Radiation Resilience of Electronics (CARRE), and MC/DC contributors"
 
 # The full version, including alpha/beta/rc tags
 release = " "
