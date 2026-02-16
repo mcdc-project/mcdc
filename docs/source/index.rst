@@ -10,11 +10,10 @@ platform capable of leveraging modern high-performance computing systems, suppor
 both CPUs and GPUs.
 
 MC/DC supports continuous-energy and multi-group neutron transport calculations. It is 
-capable of running fixed-source and criticality (k-eigenvalue) transport simulations 
-on models built from constructive solid geometry. For continuous-energy transport, 
-MC/DC translates `ACE <https://nucleardata.lanl.gov/ace/>`_ libraries into its native 
-data format. Simulation results are collected through filtered tally estimators and 
-stored in `HDF5 <https://www.hdfgroup.org/solutions/hdf5/>`_ format. Photon, electron, 
+capable of running fixed-source and eigenvalue transport simulations on models built 
+from constructive solid geometry. For continuous-energy neutron transport, 
+MC/DC translates `ACE <https://nucleardata.lanl.gov/ace/>`_ nuclear data libraries into 
+its native `HDF5 <https://www.hdfgroup.org/solutions/hdf5/>`_ format. Photon, electron, 
 and charged-particle transport are currently under development, with the goal of making 
 MC/DC a multi-radiation/particle transport software package.
 
