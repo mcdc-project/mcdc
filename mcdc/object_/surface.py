@@ -18,6 +18,7 @@ from mcdc.constant import (
     SURFACE_PLANE_X,
     SURFACE_PLANE_Y,
     SURFACE_PLANE_Z,
+    SURFACE_CYLINDER,
     SURFACE_QUADRIC,
     SURFACE_SPHERE,
 )
@@ -219,6 +220,9 @@ class Surface(ObjectNonSingleton):
             r = (x**2 + y**2 + z**2 - self.J) ** 0.5
             text += f"  - Center (x, y, z): ({x}, {y}, {z}) cm\n"
             text += f"  - Radius: {r} cm\n"
+        elif self.type == SURFACE_CYLINDER:
+            text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
+            text += f"             {self.G}, {self.H}, {self.I}, {self.J}\n"
         elif self.type == SURFACE_QUADRIC:
             text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
             text += f"             {self.D}, {self.E}, {self.F},\n"
@@ -492,6 +496,50 @@ class Surface(ObjectNonSingleton):
         return surface
 
     @classmethod
+    def Cylinder(
+        cls,
+        name: str = "",
+        A: float = 0.0,
+        B: float = 0.0,
+        C: float = 0.0,
+        G: float = 0.0,
+        H: float = 0.0,
+        I: float = 0.0,
+        J: float = 0.0,
+        boundary_condition: str = "none",
+    ):
+        """
+        Create a general infinite cylinder (diagonal quadric without cross terms):
+            A x^2 + B y^2 + C z^2 + G x + H y + I z + J = 0
+
+        Parameters
+        ----------
+        name : str, optional
+        A, B, C, G, H, I, J : float
+            Cylinder coefficients.
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            General cylinder surface.
+        """
+        type_ = SURFACE_CYLINDER
+        surface = cls(type_, name, boundary_condition)
+
+        surface.linear = False
+
+        # Coefficients
+        surface.A = A
+        surface.B = B
+        surface.C = C
+        surface.G = G
+        surface.H = H
+        surface.I = I
+        surface.J = J
+        return surface
+
+    @classmethod
     def Sphere(
         cls,
         name: str = "",
@@ -667,6 +715,8 @@ def decode_type(type_):
         return "Infinite cylinder-Z surface"
     elif type_ == SURFACE_SPHERE:
         return "Sphere surface"
+    elif type_ == SURFACE_CYLINDER:
+        return "General cylinder surface"
     elif type_ == SURFACE_QUADRIC:
         return "Quadric surface"
 
