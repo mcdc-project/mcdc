@@ -131,17 +131,8 @@ def get_distance(particle_container, surface):
             return INF
 
     # Quadratic equation constants
-    a = (
-        A * ux * ux
-        + B * uy * uy
-        + C * uz * uz
-    )
-    b = (
-        2 * (A * x * ux + B * y * uy + C * z * uz)
-        + G * ux
-        + H * uy
-        + I * uz
-    )
+    a = A * ux * ux + B * uy * uy + C * uz * uz
+    b = 2 * (A * x * ux + B * y * uy + C * z * uz) + G * ux + H * uy + I * uz
     c = f
 
     determinant = b * b - 4.0 * a * c
