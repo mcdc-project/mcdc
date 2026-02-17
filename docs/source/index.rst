@@ -39,6 +39,14 @@ by the Center for Advancing the Radiation Resilience of Electronics
 (`BSD 3-Clause <https://github.com/CEMeNT-PSAAP/MCDC/blob/main/LICENSE>`_) and 
 welcomes external contributions via `GitHub <https://github.com/CEMeNT-PSAAP/MCDC>`_.
 
+.. admonition:: Recommended citation
+   :class: tip
+
+   Morgan, Joanna Piper, et al. "Monte Carlo/Dynamic Code (MC/DC): An accelerated 
+   Python package for fully transient neutron transport and rapid methods development." 
+   Journal of Open Source Software 9.96 (2024): 6415. 
+   https://joss.theoj.org/papers/10.21105/joss.06415
+
 ------------------------------
 Contents
 ------------------------------
@@ -64,7 +72,6 @@ Contents
    :caption: References
 
    publications
-   citation
 
 .. sidebar-links::
    :caption: External Links
