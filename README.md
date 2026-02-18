@@ -32,6 +32,42 @@ The `pip mpi4py` distribution commonly has errors when building due to incompati
 * **Linux users:** we recommend `openmpi` is installed via a root package manager if possible (e.g. `sudo apt install openmpi`) or a conda distribution (e.g. `conda install openmpi`)
 * **HPC users and developers on any system:** On HPC systems that do not supply a suitable venv, `mpi4py` may need to be built using the system's existing `mpi` installation. Installing MC/DC using the [install script](https://mcdc.readthedocs.io/en/latest/install.html) we've included will handle that for you by installing dependencies using conda rather than pip. It also takes care of the [Numba patch](https://github.com/CEMeNT-PSAAP/MCDC/blob/main/patch_numba.sh) and can configure the [continuous energy data library](https://github.com/CEMeNT-PSAAP/MCDC/blob/main/config_cont_energy.sh), if you have access.
 
+## Container-Based Installation (Docker / Singularity)
+
+For users who prefer a containerized environment or are running on HPC systems
+where direct installation is difficult, pre-built container definitions are available.
+
+### Docker (local development)
+
+```bash
+# Build the image
+docker build -t mcdc .
+
+# Run an input file
+docker run --rm -v $(pwd):/work -w /work mcdc python input.py
+```
+
+### Singularity/Apptainer (HPC systems)
+
+```bash
+# CPU image (LLNL Dane, general HPC)
+singularity build mcdc-cpu.sif containers/mcdc-cpu.def
+singularity exec mcdc-cpu.sif python input.py
+
+# NVIDIA GPU image (OSU COE DGX)
+singularity build mcdc-cuda.sif containers/mcdc-cuda.def
+singularity exec --nv mcdc-cuda.sif python input.py
+
+# AMD GPU image (LLNL Tioga, Tuolumne)
+singularity build mcdc-rocm.sif containers/mcdc-rocm.def
+singularity exec --rocm mcdc-rocm.sif python input.py
+
+# With MPI (SLURM)
+srun -n 32 singularity exec mcdc-cpu.sif python input.py
+```
+
+For system-specific instructions and target machine details, see [`containers/README.md`](containers/README.md).
+
 ### Numba Config
 
 Running MC/DC performantly in [Numba mode](#numba-mode) requires a patch to a single Numba file. If you installed MC/DC with the [install script](https://mcdc.readthedocs.io/en/latest/install.html), this patch has already been taken care of. If you installed via pip, we have a patch script will make the necessary changes for you:
