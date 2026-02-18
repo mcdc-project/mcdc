@@ -1,0 +1,22 @@
+services:
+
+  # Development environment
+  # Usage: docker compose run dev bash
+  dev:
+    build: .
+    image: mcdc:dev
+    volumes:
+      # Mount local source code into container
+      # Any changes you make locally are immediately reflected inside
+      - .:/opt/mcdc
+    working_dir: /opt/mcdc
+
+  # Run test suite
+  # Usage: docker compose run test
+  test:
+    build: .
+    image: mcdc:dev
+    volumes:
+      - .:/opt/mcdc
+    working_dir: /opt/mcdc/test/unit
+    command: python run.py
