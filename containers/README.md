@@ -1,59 +1,48 @@
 # MC/DC Container Images
 
-This directory contains Singularity/Apptainer container definition files
-for running MC/DC on HPC systems (LLNL, OSU) where Docker is not available.
+This directory contains guidance for building and running MC/DC
+using container technologies on HPC systems (LLNL, OSU).
 
-## Files
+## Container Tools by System
 
-- `mcdc-cpu.def`  — CPU-only execution
-- `mcdc-cuda.def` — NVIDIA GPU execution (requires CUDA)
-- `mcdc-rocm.def` — AMD GPU execution (requires ROCm)
-
-## Target Systems
-
-| Machine          | Institution | GPU                | Image      |
-|------------------|-------------|--------------------|------------|
-| Dane             | LLNL        | CPU only           | mcdc-cpu   |
-| Tioga            | LLNL        | AMD MI-250X        | mcdc-rocm  |
-| Tuolumne         | LLNL        | AMD MI300A APU     | mcdc-rocm  |
-| COE DGX-2        | OSU         | NVIDIA V100        | mcdc-cuda  |
-| COE DGX H100/H200| OSU         | NVIDIA H100/H200   | mcdc-cuda  |
+| System           | Institution | Tool   |
+|------------------|-------------|--------|
+| Local development| —           | Docker |
+| Tuolumne         | LLNL        | Podman |
+| Dane             | LLNL        | Podman |
+| COE DGX H100/H200| OSU         | Docker |
+| COE DGX-2        | OSU         | Docker |
 
 ## Building
 
-### CPU image
+### Local (Docker)
 ```bash
-singularity build mcdc-cpu.sif mcdc-cpu.def
+docker build -t mcdc:dev .
 ```
 
-### NVIDIA GPU image (OSU COE DGX)
+### LLNL systems (Podman)
 ```bash
-singularity build mcdc-cuda.sif mcdc-cuda.def
+# First time only - configure podman
+enable-podman
+
+# Build image
+podman build -t mcdc:dev .
 ```
 
-### AMD GPU image (LLNL Tioga, Tuolumne)
+## Running
+
+### Local (Docker)
 ```bash
-singularity build mcdc-rocm.sif mcdc-rocm.def
+docker run --rm -it mcdc:dev bash
+docker run --rm mcdc:dev python input.py
 ```
 
-## Running on HPC
-
-### CPU (LLNL Dane)
+### LLNL systems (Podman)
 ```bash
-singularity exec mcdc-cpu.sif python input.py
+podman run --rm -it mcdc:dev bash
+podman run --rm mcdc:dev python input.py
 ```
 
-### NVIDIA GPU (OSU COE DGX)
+### MPI + SLURM (LLNL)
 ```bash
-singularity exec --nv mcdc-cuda.sif python input.py
-```
-
-### AMD GPU (LLNL Tioga, Tuolumne)
-```bash
-singularity exec --rocm mcdc-rocm.sif python input.py
-```
-
-### MPI + Singularity (SLURM)
-```bash
-srun -n 32 singularity exec mcdc-cpu.sif python input.py
-```
+srun -n 32 podman run --rm mcdc:dev python input.py
