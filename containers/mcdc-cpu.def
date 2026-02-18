@@ -1,7 +1,5 @@
-# Bootstrap from our own Docker image
-# This ensures CPU Singularity image is identical to Docker image
 Bootstrap: docker
-From: mcdc:dev
+From: python:3.11-slim
 
 %labels
     org.opencontainers.image.source https://github.com/CEMeNT-PSAAP/MCDC
@@ -9,14 +7,21 @@ From: mcdc:dev
     org.opencontainers.image.licenses BSD-3-Clause
 
 %environment
-    # Make MC/DC available in PATH inside the container
     export PYTHONPATH=/opt/mcdc:$PYTHONPATH
 
+%files
+    # Copy entire repo into container at build time
+    . /opt/mcdc
+
+%post
+    apt-get update && apt-get install -y \
+        gcc g++ libopenmpi-dev openmpi-bin git \
+        && rm -rf /var/lib/apt/lists/*
+    pip install --no-cache-dir mpi4py
+    cd /opt/mcdc && pip install --no-cache-dir -e ".[dev]"
+
 %runscript
-    # Default behavior when container is executed directly
-    # Example: singularity run mcdc-cpu.sif input.py
     exec python "$@"
 
 %test
-    # Runs during 'singularity test mcdc-cpu.sif'
     python -c "import mcdc; print('MC/DC CPU OK')"
