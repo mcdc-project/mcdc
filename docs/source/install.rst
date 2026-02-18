@@ -61,9 +61,9 @@ do not need to develop in MC/DC, you can install from PyPI:
 
     pip install mcdc
 
--------------------
+----------------------
 Installing from Source
--------------------
+----------------------
 If you would like to execute a version of MC/DC from a specific branch or 
 *do* plan to develop in MC/DC, you'll need to install from source: 
 
