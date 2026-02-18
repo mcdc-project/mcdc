@@ -30,3 +30,25 @@ jobs:
             -v ${{ github.workspace }}:/opt/mcdc \
             -w /opt/mcdc/test/unit \
             mcdc:dev python run.py
+
+  singularity-build:
+    name: Build Singularity images
+    runs-on: ubuntu-latest
+    needs: docker-build-test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Apptainer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apptainer
+
+      - name: Build CPU image
+        run: |
+          apptainer build containers/mcdc-cpu.sif containers/mcdc-cpu.def
+
+      - name: Test CPU image
+        run: |
+          apptainer exec containers/mcdc-cpu.sif python -c "import mcdc; print('MC/DC CPU OK')"
