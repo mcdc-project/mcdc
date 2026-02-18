@@ -13,6 +13,10 @@ LABEL org.opencontainers.image.licenses="BSD-3-Clause"
 # openmpi-bin      : OpenMPI runtime binaries (mpirun, mpiexec, etc.)
 # git              : Required for editable installs and version detection
 # The final line removes apt cache to keep image size small
+
+# Disable apt sandbox privilege drop for rootless container compatibility
+RUN echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/no-sandbox
+
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
@@ -43,6 +47,11 @@ COPY . .
 # .[dev]    : installs optional dev dependencies (pytest, black, pre-commit)
 #             defined in pyproject.toml under [project.optional-dependencies]
 RUN pip install --no-cache-dir -e ".[dev]"
+
+# Create non-root user for MPI compatibility
+RUN useradd -m mcdc_user
+USER mcdc_user
+WORKDIR /opt/mcdc
 
 # Default command when container starts
 # Can be overridden: docker run mcdc:dev python input.py
