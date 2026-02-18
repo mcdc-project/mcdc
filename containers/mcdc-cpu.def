@@ -1,0 +1,22 @@
+# Bootstrap from our own Docker image
+# This ensures CPU Singularity image is identical to Docker image
+Bootstrap: docker
+From: mcdc:dev
+
+%labels
+    org.opencontainers.image.source https://github.com/CEMeNT-PSAAP/MCDC
+    org.opencontainers.image.description "MC/DC: Monte Carlo Dynamic Code (CPU)"
+    org.opencontainers.image.licenses BSD-3-Clause
+
+%environment
+    # Make MC/DC available in PATH inside the container
+    export PYTHONPATH=/opt/mcdc:$PYTHONPATH
+
+%runscript
+    # Default behavior when container is executed directly
+    # Example: singularity run mcdc-cpu.sif input.py
+    exec python "$@"
+
+%test
+    # Runs during 'singularity test mcdc-cpu.sif'
+    python -c "import mcdc; print('MC/DC CPU OK')"

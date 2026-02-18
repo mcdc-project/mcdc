@@ -1,0 +1,47 @@
+# Bootstrap from NVIDIA CUDA image for GPU support
+# Requires: --nv flag when running (singularity exec --nv mcdc-gpu.sif ...)
+Bootstrap: docker
+From: nvidia/cuda:12.2-devel-ubuntu22.04
+
+%labels
+    org.opencontainers.image.source https://github.com/CEMeNT-PSAAP/MCDC
+    org.opencontainers.image.description "MC/DC: Monte Carlo Dynamic Code (GPU)"
+    org.opencontainers.image.licenses BSD-3-Clause
+
+%environment
+    export PYTHONPATH=/opt/mcdc:$PYTHONPATH
+    # Tell Numba to use CUDA
+    export NUMBA_ENABLE_CUDASIM=0
+
+%post
+    # Install system dependencies
+    apt-get update && apt-get install -y \
+        python3.11 \
+        python3-pip \
+        python3.11-dev \
+        libopenmpi-dev \
+        openmpi-bin \
+        git \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Symlink python3.11 to python
+    ln -s /usr/bin/python3.11 /usr/bin/python
+
+    # Install mpi4py against system MPI
+    pip3 install --no-cache-dir mpi4py
+
+    # Install MC/DC with GPU dependencies
+    cd /opt
+    git clone --branch dev \
+        https://github.com/CEMeNT-PSAAP/MCDC.git mcdc
+    cd mcdc
+    pip3 install --no-cache-dir -e ".[dev]"
+
+    # Install Numba CUDA support
+    pip3 install --no-cache-dir numba[cuda]
+
+%runscript
+    exec python "$@"
+
+%test
+    python -c "import mcdc; print('MC/DC GPU OK')"

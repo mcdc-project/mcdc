@@ -1,0 +1,48 @@
+# Bootstrap from AMD ROCm image for AMD GPU support
+# Requires: --rocm flag when running (singularity exec --rocm mcdc-amd.sif ...)
+# Target: LLNL Corona (AMD MI100/MI250)
+Bootstrap: docker
+From: rocm/dev-ubuntu-22.04:6.0-complete
+
+%labels
+    org.opencontainers.image.source https://github.com/CEMeNT-PSAAP/MCDC
+    org.opencontainers.image.description "MC/DC: Monte Carlo Dynamic Code (AMD GPU)"
+    org.opencontainers.image.licenses BSD-3-Clause
+
+%environment
+    export PYTHONPATH=/opt/mcdc:$PYTHONPATH
+    # Tell Numba to use ROCm/HIP backend
+    export NUMBA_ENABLE_CUDASIM=0
+    export HSA_OVERRIDE_GFX_VERSION=10.3.0
+
+%post
+    # Install system dependencies
+    apt-get update && apt-get install -y \
+        python3.11 \
+        python3-pip \
+        python3.11-dev \
+        libopenmpi-dev \
+        openmpi-bin \
+        git \
+        && rm -rf /var/lib/apt/lists/*
+
+    ln -s /usr/bin/python3.11 /usr/bin/python
+
+    # Install mpi4py against system MPI
+    pip3 install --no-cache-dir mpi4py
+
+    # Install MC/DC
+    cd /opt
+    git clone --branch dev \
+        https://github.com/CEMeNT-PSAAP/MCDC.git mcdc
+    cd mcdc
+    pip3 install --no-cache-dir -e ".[dev]"
+
+    # Install ROCm-compatible NumPy/Numba
+    pip3 install --no-cache-dir numba
+
+%runscript
+    exec python "$@"
+
+%test
+    python -c "import mcdc; print('MC/DC AMD GPU OK')"
