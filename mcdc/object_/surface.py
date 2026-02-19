@@ -14,13 +14,13 @@ from mcdc.constant import (
     SURFACE_CYLINDER_X,
     SURFACE_CYLINDER_Y,
     SURFACE_CYLINDER_Z,
-    SURFACE_PLANE,
+    SURFACE_CYLINDER,
     SURFACE_PLANE_X,
     SURFACE_PLANE_Y,
     SURFACE_PLANE_Z,
-    SURFACE_CYLINDER,
-    SURFACE_QUADRIC,
+    SURFACE_PLANE,
     SURFACE_SPHERE,
+    SURFACE_QUADRIC,
 )
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.cell import Region
@@ -213,6 +213,9 @@ class Surface(ObjectNonSingleton):
             r = (x**2 + y**2 - self.J) ** 0.5
             text += f"  - Center (x, y): ({x}, {y}) cm\n"
             text += f"  - Radius: {r} cm\n"
+        elif self.type == SURFACE_CYLINDER:
+            text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
+            text += f"             {self.G}, {self.H}, {self.I}, {self.J}\n"
         elif self.type == SURFACE_SPHERE:
             x = -0.5 * self.G
             y = -0.5 * self.H
@@ -220,9 +223,6 @@ class Surface(ObjectNonSingleton):
             r = (x**2 + y**2 + z**2 - self.J) ** 0.5
             text += f"  - Center (x, y, z): ({x}, {y}, {z}) cm\n"
             text += f"  - Radius: {r} cm\n"
-        elif self.type == SURFACE_CYLINDER:
-            text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
-            text += f"             {self.G}, {self.H}, {self.I}, {self.J}\n"
         elif self.type == SURFACE_QUADRIC:
             text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
             text += f"             {self.D}, {self.E}, {self.F},\n"
@@ -713,10 +713,10 @@ def decode_type(type_):
         return "Infinite cylinder-Y surface"
     elif type_ == SURFACE_CYLINDER_Z:
         return "Infinite cylinder-Z surface"
-    elif type_ == SURFACE_SPHERE:
-        return "Sphere surface"
     elif type_ == SURFACE_CYLINDER:
         return "General cylinder surface"
+    elif type_ == SURFACE_SPHERE:
+        return "Sphere surface"
     elif type_ == SURFACE_QUADRIC:
         return "Quadric surface"
 
