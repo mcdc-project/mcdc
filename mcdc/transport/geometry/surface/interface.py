@@ -16,7 +16,6 @@ import mcdc.transport.geometry.surface.cylinder_x as cylinder_x
 import mcdc.transport.geometry.surface.cylinder_y as cylinder_y
 import mcdc.transport.geometry.surface.cylinder_z as cylinder_z
 import mcdc.transport.geometry.surface.sphere as sphere
-import mcdc.transport.geometry.surface.cylinder as cylinder
 import mcdc.transport.geometry.surface.quadric as quadric
 
 from mcdc.constant import (
@@ -32,6 +31,10 @@ from mcdc.constant import (
     SURFACE_CYLINDER_Z,
     SURFACE_CYLINDER,
     SURFACE_SPHERE,
+    SURFACE_QUADRIC,
+    SURFACE_CONE_X,
+    SURFACE_CONE_Y,
+    SURFACE_CONE_Z,
 )
 from mcdc.transport.util import find_bin
 
@@ -89,7 +92,14 @@ def evaluate(particle_container, surface, data):
         elif surface["type"] == SURFACE_CYLINDER_Z:
             result = cylinder_z.evaluate(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER:
-            result = cylinder.evaluate(particle_container, surface)
+            result = quadric.evaluate(particle_container, surface)
+        elif (
+            surface["type"] == SURFACE_QUADRIC
+            or surface["type"] == SURFACE_CONE_X
+            or surface["type"] == SURFACE_CONE_Y
+            or surface["type"] == SURFACE_CONE_Z
+        ):
+            result = quadric.evaluate(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             result = sphere.evaluate(particle_container, surface)
         else:
@@ -141,7 +151,14 @@ def get_normal_component(particle_container, speed, surface, data):
         elif surface["type"] == SURFACE_CYLINDER_Z:
             result = cylinder_z.get_normal_component(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER:
-            result = cylinder.get_normal_component(particle_container, surface)
+            result = quadric.get_normal_component(particle_container, surface)
+        elif (
+            surface["type"] == SURFACE_QUADRIC
+            or surface["type"] == SURFACE_CONE_X
+            or surface["type"] == SURFACE_CONE_Y
+            or surface["type"] == SURFACE_CONE_Z
+        ):
+            result = quadric.get_normal_component(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             result = sphere.get_normal_component(particle_container, surface)
         else:
@@ -182,7 +199,14 @@ def reflect(particle_container, surface):
         elif surface["type"] == SURFACE_CYLINDER_Z:
             return cylinder_z.reflect(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER:
-            return cylinder.reflect(particle_container, surface)
+            return quadric.reflect(particle_container, surface)
+        elif (
+            surface["type"] == SURFACE_QUADRIC
+            or surface["type"] == SURFACE_CONE_X
+            or surface["type"] == SURFACE_CONE_Y
+            or surface["type"] == SURFACE_CONE_Z
+        ):
+            return quadric.reflect(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             return sphere.reflect(particle_container, surface)
         else:
@@ -228,7 +252,14 @@ def _get_distance_static(particle_container, surface):
         elif surface["type"] == SURFACE_CYLINDER_Z:
             return cylinder_z.get_distance(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER:
-            return cylinder.get_distance(particle_container, surface)
+            return quadric.get_distance(particle_container, surface)
+        elif (
+            surface["type"] == SURFACE_QUADRIC
+            or surface["type"] == SURFACE_CONE_X
+            or surface["type"] == SURFACE_CONE_Y
+            or surface["type"] == SURFACE_CONE_Z
+        ):
+            return quadric.get_distance(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             return sphere.get_distance(particle_container, surface)
         else:
