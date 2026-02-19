@@ -1,35 +1,82 @@
-name: Docker Build and Test
+name: Docker Build, Test, and Publish
 
 on:
   push:
+    # Triggers build and test on direct pushes to these branches
     branches: [dev, main]
   pull_request:
+    # Triggers build and test when PR is opened/updated
+    # 'closed' is required to trigger the publish steps upon merge
+    types: [opened, synchronize, reopened, closed]
     branches: [dev, main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: cement-psaap/mcdc
 
 jobs:
   docker-build-test:
-    name: Build and test Docker image
+    name: Build, test, and publish Docker image
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # NEW STEP: Dynamically figure out the target branch name
+      - name: Determine branch name
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # If it's a PR, get the branch the PR is targeting (e.g., main or dev)
+            echo "BRANCH_NAME=${{ github.base_ref }}" >> $GITHUB_ENV
+          else
+            # If it's a direct push, get the branch name that was pushed to
+            echo "BRANCH_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
+        # Uses the dynamic BRANCH_NAME variable
         run: |
-          docker build -f containers/Dockerfile -t mcdc:dev .
+          docker build -f containers/Dockerfile -t mcdc:${{ env.BRANCH_NAME }} .
 
       - name: Verify MC/DC imports correctly
         run: |
-          docker run --rm mcdc:dev python -c "import mcdc; print('MC/DC import OK')"
+          docker run --rm mcdc:${{ env.BRANCH_NAME }} python -c "import mcdc; print('MC/DC import OK')"
 
       - name: Run unit tests inside container
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/opt/mcdc \
             -w /opt/mcdc/test/unit \
-            mcdc:dev python run.py
-            
+            mcdc:${{ env.BRANCH_NAME }} python run.py
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to registry
+        if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+        run: |
+          DATE=$(date +%Y-%m-%d)
+
+          # Tag with the dynamic branch name
+          docker tag mcdc:${{ env.BRANCH_NAME }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}
+          # Tag with the dynamic branch name + date (archive)
+          docker tag mcdc:${{ env.BRANCH_NAME }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${DATE}
+
+          # Push both tags to the registry
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${DATE}
+
+          echo "Pushed: ${{ env.BRANCH_NAME }} and ${{ env.BRANCH_NAME }}-${DATE}"
