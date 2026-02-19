@@ -21,7 +21,6 @@ from mcdc.constant import (
     SURFACE_PLANE,
     SURFACE_SPHERE,
     SURFACE_QUADRIC,
-    SURFACE_SPHERE,
     SURFACE_CONE_X,
     SURFACE_CONE_Y,
     SURFACE_CONE_Z,
@@ -217,9 +216,6 @@ class Surface(ObjectNonSingleton):
             r = (x**2 + y**2 - self.J) ** 0.5
             text += f"  - Center (x, y): ({x}, {y}) cm\n"
             text += f"  - Radius: {r} cm\n"
-        elif self.type == SURFACE_CYLINDER:
-            text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
-            text += f"             {self.G}, {self.H}, {self.I}, {self.J}\n"
         elif self.type == SURFACE_SPHERE:
             x = -0.5 * self.G
             y = -0.5 * self.H
@@ -624,7 +620,7 @@ class Surface(ObjectNonSingleton):
         surface.I = -2.0 * z
         surface.J = x**2 + y**2 + z**2 - r**2
         return surface
-    
+
     @classmethod
     def ConeX(
         cls,
