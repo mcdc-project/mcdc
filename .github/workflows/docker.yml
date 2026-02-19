@@ -20,7 +20,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t mcdc:dev .
+          docker build -f containers/Dockerfile -t mcdc:dev .
 
       - name: Verify MC/DC imports correctly
         run: |
