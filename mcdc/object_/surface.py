@@ -21,6 +21,10 @@ from mcdc.constant import (
     SURFACE_PLANE,
     SURFACE_SPHERE,
     SURFACE_QUADRIC,
+    SURFACE_SPHERE,
+    SURFACE_CONE_X,
+    SURFACE_CONE_Y,
+    SURFACE_CONE_Z,
 )
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.cell import Region
@@ -223,6 +227,31 @@ class Surface(ObjectNonSingleton):
             r = (x**2 + y**2 + z**2 - self.J) ** 0.5
             text += f"  - Center (x, y, z): ({x}, {y}, {z}) cm\n"
             text += f"  - Radius: {r} cm\n"
+        elif self.type == SURFACE_CYLINDER:
+            text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
+            text += f"             {self.D}, {self.E}, {self.F},\n"
+            text += f"             {self.G}, {self.H}, {self.I}, {self.J}\n"
+        elif self.type == SURFACE_CONE_X:
+            t_sq = -self.A
+            y0 = -0.5 * self.H
+            z0 = -0.5 * self.I
+            x0 = 0.0 if t_sq == 0.0 else 0.5 * self.G / t_sq
+            text += f"  - Apex (x, y, z): ({x0}, {y0}, {z0}) cm\n"
+            text += f"  - tan^2(theta): {t_sq}\n"
+        elif self.type == SURFACE_CONE_Y:
+            t_sq = -self.B
+            x0 = -0.5 * self.G
+            z0 = -0.5 * self.I
+            y0 = 0.0 if t_sq == 0.0 else 0.5 * self.H / t_sq
+            text += f"  - Apex (x, y, z): ({x0}, {y0}, {z0}) cm\n"
+            text += f"  - tan^2(theta): {t_sq}\n"
+        elif self.type == SURFACE_CONE_Z:
+            t_sq = -self.C
+            x0 = -0.5 * self.G
+            y0 = -0.5 * self.H
+            z0 = 0.0 if t_sq == 0.0 else 0.5 * self.I / t_sq
+            text += f"  - Apex (x, y, z): ({x0}, {y0}, {z0}) cm\n"
+            text += f"  - tan^2(theta): {t_sq}\n"
         elif self.type == SURFACE_QUADRIC:
             text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
             text += f"             {self.D}, {self.E}, {self.F},\n"
@@ -513,24 +542,23 @@ class Surface(ObjectNonSingleton):
     def Cylinder(
         cls,
         name: str = "",
-        A: float = 0.0,
-        B: float = 0.0,
-        C: float = 0.0,
-        G: float = 0.0,
-        H: float = 0.0,
-        I: float = 0.0,
-        J: float = 0.0,
+        radius: float = 0.0,
+        axis: Iterable[float] = [0.0, 0.0, 1.0],
+        point: Iterable[float] = [0.0, 0.0, 0.0],
         boundary_condition: str = "none",
     ):
         """
-        Create a general infinite cylinder (diagonal quadric without cross terms):
-            A x^2 + B y^2 + C z^2 + G x + H y + I z + J = 0
+        Create a general infinite cylinder with an arbitrary axis.
 
         Parameters
         ----------
         name : str, optional
-        A, B, C, G, H, I, J : float
-            Cylinder coefficients.
+        radius : float
+            Cylinder radius (cm).
+        axis : (3,) array_like of float
+            Direction vector of the cylinder axis (normalized automatically).
+        point : (3,) array_like of float
+            A point on the cylinder axis (cm).
         boundary_condition : {"none","vacuum","reflective"}, optional
 
         Returns
@@ -540,17 +568,31 @@ class Surface(ObjectNonSingleton):
         """
         type_ = SURFACE_CYLINDER
         surface = cls(type_, name, boundary_condition)
-
         surface.linear = False
 
+        # Axis and point
+        ax, ay, az = axis
+        norm = (ax**2 + ay**2 + az**2) ** 0.5
+        dx, dy, dz = ax / norm, ay / norm, az / norm
+        px, py, pz = point
+        r = radius
+
         # Coefficients
-        surface.A = A
-        surface.B = B
-        surface.C = C
-        surface.G = G
-        surface.H = H
-        surface.I = I
-        surface.J = J
+        surface.A = 1.0 - dx**2
+        surface.B = 1.0 - dy**2
+        surface.C = 1.0 - dz**2
+        surface.D = -2.0 * dx * dy
+        surface.E = -2.0 * dx * dz
+        surface.F = -2.0 * dy * dz
+        Qpx = (1.0 - dx**2) * px - dx * dy * py - dx * dz * pz
+        Qpy = -dx * dy * px + (1.0 - dy**2) * py - dy * dz * pz
+        Qpz = -dx * dz * px - dy * dz * py + (1.0 - dz**2) * pz
+        surface.G = -2.0 * Qpx
+        surface.H = -2.0 * Qpy
+        surface.I = -2.0 * Qpz
+        pdotd = px * dx + py * dy + pz * dz
+        surface.J = px**2 + py**2 + pz**2 - pdotd**2 - r**2
+
         return surface
 
     @classmethod
@@ -597,6 +639,136 @@ class Surface(ObjectNonSingleton):
         surface.H = -2.0 * y
         surface.I = -2.0 * z
         surface.J = x**2 + y**2 + z**2 - r**2
+        return surface
+    
+    @classmethod
+    def ConeX(
+        cls,
+        name: str = "",
+        apex: Iterable[float] = [0.0, 0.0, 0.0],
+        t_sq: float = 1.0,
+        boundary_condition: str = "none",
+    ):
+        """
+        Create an infinite cone with axis along the x-axis.
+
+        Equation: (y - y0)^2 + (z - z0)^2 - t_sq * (x - x0)^2 = 0
+
+        Parameters
+        ----------
+        name : str, optional
+        apex : (3,) array_like of float
+            Cone apex (x0, y0, z0) in cm.
+        t_sq : float
+            Squared tangent of the half-angle: t_sq = tan^2(theta).
+            For a 45-degree half-angle use t_sq = 1.0.
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Cone-X surface.
+        """
+        type_ = SURFACE_CONE_X
+        surface = cls(type_, name, boundary_condition)
+        surface.linear = False
+
+        x0, y0, z0 = apex
+
+        surface.A = -t_sq
+        surface.B = 1.0
+        surface.C = 1.0
+        surface.G = 2.0 * t_sq * x0
+        surface.H = -2.0 * y0
+        surface.I = -2.0 * z0
+        surface.J = y0**2 + z0**2 - t_sq * x0**2
+
+        return surface
+
+    @classmethod
+    def ConeY(
+        cls,
+        name: str = "",
+        apex: Iterable[float] = [0.0, 0.0, 0.0],
+        t_sq: float = 1.0,
+        boundary_condition: str = "none",
+    ):
+        """
+        Create an infinite cone with axis along the y-axis.
+
+        Equation: (x - x0)^2 + (z - z0)^2 - t_sq * (y - y0)^2 = 0
+
+        Parameters
+        ----------
+        name : str, optional
+        apex : (3,) array_like of float
+            Cone apex (x0, y0, z0) in cm.
+        t_sq : float
+            Squared tangent of the half-angle: t_sq = tan^2(theta).
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Cone-Y surface.
+        """
+        type_ = SURFACE_CONE_Y
+        surface = cls(type_, name, boundary_condition)
+        surface.linear = False
+
+        x0, y0, z0 = apex
+
+        surface.A = 1.0
+        surface.B = -t_sq
+        surface.C = 1.0
+        surface.G = -2.0 * x0
+        surface.H = 2.0 * t_sq * y0
+        surface.I = -2.0 * z0
+        surface.J = x0**2 + z0**2 - t_sq * y0**2
+
+        return surface
+
+    @classmethod
+    def ConeZ(
+        cls,
+        name: str = "",
+        apex: Iterable[float] = [0.0, 0.0, 0.0],
+        t_sq: float = 1.0,
+        boundary_condition: str = "none",
+    ):
+        """
+        Create an infinite cone with axis along the z-axis.
+
+        Equation: (x - x0)^2 + (y - y0)^2 - t_sq * (z - z0)^2 = 0
+
+        Parameters
+        ----------
+        name : str, optional
+        apex : (3,) array_like of float
+            Cone apex (x0, y0, z0) in cm.
+        t_sq : float
+            Squared tangent of the half-angle: t_sq = tan^2(theta).
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Cone surface.
+        """
+        type_ = SURFACE_CONE_Z
+        surface = cls(type_, name, boundary_condition)
+        surface.linear = False
+
+        x0, y0, z0 = apex
+
+        surface.A = 1.0
+        surface.B = 1.0
+        surface.C = -t_sq
+        surface.G = -2.0 * x0
+        surface.H = -2.0 * y0
+        surface.I = 2.0 * t_sq * z0
+        surface.J = x0**2 + y0**2 - t_sq * z0**2
+
         return surface
 
     @classmethod
@@ -733,6 +905,12 @@ def decode_type(type_):
         return "Infinite cylinder-Z surface"
     elif type_ == SURFACE_CYLINDER:
         return "General cylinder surface"
+    elif type_ == SURFACE_CONE_X:
+        return "Infinite cone-X surface"
+    elif type_ == SURFACE_CONE_Y:
+        return "Infinite cone-Y surface"
+    elif type_ == SURFACE_CONE_Z:
+        return "Infinite cone-Z surface"
     elif type_ == SURFACE_SPHERE:
         return "Sphere surface"
     elif type_ == SURFACE_QUADRIC:
