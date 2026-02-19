@@ -60,3 +60,8 @@ docs/source/pythonapi/generated/
 # Regression tests
 dummy_nuclide.h5
 source_particles.h5
+
+# Container artifacts
+*.sif
+*_sandbox
+*.tar

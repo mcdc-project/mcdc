@@ -26,10 +26,18 @@ __harmonize_cache__
 .spyproject
 *.swp
 .vscode/
+**/.idea
+
+# Virtual environments
+.venv
+venv
+env
 
 # Output files
 *output.h5
 output*.h5
+*.h5
+*.hdf5
 *.png
 *.mp4
 *.gif
@@ -37,10 +45,13 @@ output*.h5
 # Cluster job files
 *.out
 *.pbs
+*.log
 
 # Test cache
 .pytest_cache
 pytestdebug.log
+.coverage
+htmlcov
 
 # Profiler
 *.prof
@@ -48,6 +59,13 @@ pytestdebug.log
 # Documentation builds
 docs/build
 docs/source/pythonapi/generated/
+docs
+
+# Container artifacts
+*.sif
+*_sandbox
+*.tar
+containers/
 
 # Misc
 tmp
@@ -57,7 +75,88 @@ tmp_*
 *.core
 .DS_Store
 **/.DS_Store
+# Git
+.git
+.github
+
+# Build artifacts
+build
+.eggs
+mcdc.egg-info
+dist/
+
+# Material / cross-section data
+mcdc_xs
+MCDC-Xsec
+
+# Python cache
+__pycache__
+*.pyc
+*.nbc
+*.nbi
+
+# GPU cache
+__ptxcache__
+__harmonize_cache__
+
+# Editor files
+.spyproject
+*.swp
+.vscode/
 **/.idea
+
+# Virtual environments
+.venv
+venv
+env
+
+# Output files
+*output.h5
+output*.h5
+*.h5
+*.hdf5
+*.png
+*.mp4
+*.gif
+
+# Cluster job files
+*.out
+*.pbs
+*.log
+
+# Test cache
+.pytest_cache
+pytestdebug.log
+.coverage
+htmlcov
+
+# Profiler
+*.prof
+
+# Documentation builds
+docs/build
+docs/source/pythonapi/generated/
+docs
+
+# Container artifacts
+*.sif
+*_sandbox
+*.tar
+containers/
+
+# Misc
+tmp
+tmp.py
+tmp_*
+*_tmp.py
+*.core
+.DS_Store
+**/.DS_Store
+*.csv
+
+# Regression test data
+dummy_nuclide.h5
+source_particles.h5
 *.csv
 
 # Regression test data
