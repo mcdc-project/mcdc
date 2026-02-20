@@ -2,8 +2,11 @@ name: Docker Build, Test, and Publish
 
 on:
   push:
+    # Triggers build and test on direct pushes to these branches
     branches: [dev, main]
   pull_request:
+    # Triggers build and test when PR is opened/updated
+    # 'closed' is required to trigger the publish steps upon merge
     types: [opened, synchronize, reopened, closed]
     branches: [dev, main]
 
@@ -13,23 +16,8 @@ env:
 
 jobs:
   docker-build-test:
-    name: Build and test (${{ matrix.variant }})
+    name: Build, test, and publish Docker image
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - variant: cpu
-            dockerfile: containers/Dockerfile
-            suffix: ""
-            run_tests: true
-          - variant: cuda
-            dockerfile: containers/Dockerfile.cuda
-            suffix: "-cuda"
-            run_tests: false
-          - variant: rocm
-            dockerfile: containers/Dockerfile.rocm
-            suffix: "-rocm"
-            run_tests: false
 
     permissions:
       contents: read
@@ -39,11 +27,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # NEW STEP: Dynamically figure out the target branch name
       - name: Determine branch name
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # If it's a PR, get the branch the PR is targeting (e.g., main or dev)
             echo "BRANCH_NAME=${{ github.base_ref }}" >> $GITHUB_ENV
           else
+            # If it's a direct push, get the branch name that was pushed to
             echo "BRANCH_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
           fi
 
@@ -51,22 +42,20 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
+        # Uses the dynamic BRANCH_NAME variable
         run: |
-          docker build -f ${{ matrix.dockerfile }} \
-            -t mcdc:${{ env.BRANCH_NAME }}${{ matrix.suffix }} .
+          docker build -f containers/Dockerfile -t mcdc:${{ env.BRANCH_NAME }} .
 
       - name: Verify MC/DC imports correctly
         run: |
-          docker run --rm mcdc:${{ env.BRANCH_NAME }}${{ matrix.suffix }} \
-            python -c "import mcdc; print('MC/DC import OK')"
+          docker run --rm mcdc:${{ env.BRANCH_NAME }} python -c "import mcdc; print('MC/DC import OK')"
 
       - name: Run unit tests inside container
-        if: matrix.run_tests
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/opt/mcdc \
             -w /opt/mcdc/test/unit \
-            mcdc:${{ env.BRANCH_NAME }}${{ matrix.suffix }} python run.py
+            mcdc:${{ env.BRANCH_NAME }} python run.py
 
       - name: Login to GitHub Container Registry
         if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
@@ -80,15 +69,14 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
         run: |
           DATE=$(date +%Y-%m-%d)
-          TAG="${{ env.BRANCH_NAME }}${{ matrix.suffix }}"
 
-          # Tag with branch name (e.g., dev, dev-cuda, dev-rocm)
-          docker tag mcdc:${TAG} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}
-          # Tag with branch + date (archive)
-          docker tag mcdc:${TAG} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}-${DATE}
+          # Tag with the dynamic branch name
+          docker tag mcdc:${{ env.BRANCH_NAME }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}
+          # Tag with the dynamic branch name + date (archive)
+          docker tag mcdc:${{ env.BRANCH_NAME }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${DATE}
 
-          # Push both
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}-${DATE}
+          # Push both tags to the registry
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${DATE}
 
-          echo "Pushed: ${TAG} and ${TAG}-${DATE}"
+          echo "Pushed: ${{ env.BRANCH_NAME }} and ${{ env.BRANCH_NAME }}-${DATE}"
