@@ -20,7 +20,7 @@ A conda environment is necessary to install MC/DC on LLNL's Lassen machine.
 Creating a venv environment
 ---------------------------
 
-Python `virtual environments <https://docs.python.org/3.11/library/venv.html>`_ are the easy and 
+Python `virtual environments <https://docs.python.org/3/library/venv.html>`_ are the easy and 
 recommended way to get MC/DC operating on personal machines as well as HPCs;
 all you need is a working Python version with venv installed.
 Particularly on HPCs, using a Python virtual environment is convenient because
@@ -61,13 +61,15 @@ do not need to develop in MC/DC, you can install from PyPI:
 
     pip install mcdc
 
+----------------------
+Installing from Source
+----------------------
 If you would like to execute a version of MC/DC from a specific branch or 
 *do* plan to develop in MC/DC, you'll need to install from source: 
 
 #. Clone the MC/DC repo: ``git clone https://github.com/CEMeNT-PSAAP/MCDC.git`` 
 #. Go to your new MC/DC directory: ``cd MCDC``
 #. Install the package from your MC/DC files: ``pip install -e .``
-#. Run the included script that makes a necessary numba patch: ``bash patch_numba.sh``
 
 This should install all needed dependencies without a hitch. 
 The `-e` flag installs MC/DC as an editable package, meaning that any changes
@@ -187,7 +189,7 @@ especially when on supported super computers (LLNL's `Tioga <https://hpc.llnl.go
 Nvidia GPUs
 ^^^^^^^^^^^
 
-To compile and execute MC/DC on Nvidia GPUs first ensure you have the `Harmonize prerecs <https://github.com/CEMeNT-PSAAP/harmonize/blob/main/install.sh>`_ (CUDA=11.8, Numba>=0.58.0) and a working MC/DC version >=0.10.0. Then,
+To compile and execute MC/DC on Nvidia GPUs first ensure you have the `Harmonize prerecs <https://github.com/CEMeNT-PSAAP/harmonize/blob/main/install.sh>`_ (CUDA=11.8, Numba>=0.60.0) and a working MC/DC version >=0.10.0. Then,
 
 #. Clone the harmonize repo: ``git clone https://github.com/CEMeNT-PSAAP/harmonize.git``
 #. Install into the proper Python env: ``pip install -e .``
@@ -201,10 +203,10 @@ The prerequisites for AMD operability are slightly more complex and
 require a patch to Numba to allow for AMD target triple LLVM-IR.
 It is recommended that this is done within a Python venv virtual environment.
 
-To compile and execute MC/DC on AMD GPUs first ensure you have the `Harmonize prerecs <https://github.com/CEMeNT-PSAAP/harmonize/blob/main/install.sh>`_ (ROCm=6.0.0, Numba>=0.58.0) and a working MC/DC version >=0.11.0. Then,
+To compile and execute MC/DC on AMD GPUs first ensure you have the `Harmonize prerecs <https://github.com/CEMeNT-PSAAP/harmonize/blob/main/install.sh>`_ (ROCm=6.0.0, Numba>=0.60.0) and a working MC/DC version >=0.11.0. Then,
 
 #. Patch Numba to enable HIP (`instructions here <https://github.com/ROCm/numba-hip>`_)
-#. Clone harmonize and `switch to the AMD <https://github.com/CEMeNT-PSAAP/harmonize/tree/amd_event_interop_revamp>`_ branch with ``git switch amd_event_interop_revamp`
+#. Clone harmonize and `switch to the AMD <https://github.com/CEMeNT-PSAAP/harmonize/tree/amd_event_interop_revamp>`_ branch with ``git switch amd_event_interop_revamp``
 #. Install Harmonize with ``pip install -e .`` or using `Harmonize's install script <https://github.com/CEMeNT-PSAAP/harmonize/tree/main>`_
 
 Operability should now be enabled.
