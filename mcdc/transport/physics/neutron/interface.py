@@ -35,5 +35,5 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
 
 
 @njit
-def collision(particle_container, prog, data):
-    native.collision(particle_container, prog, data)
+def collision(particle_container, mcdc, data):
+    native.collision(particle_container, mcdc, data)

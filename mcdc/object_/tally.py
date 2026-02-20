@@ -245,6 +245,34 @@ def decode_score_type(type_, lower_case=False):
 
 
 class TallyGlobal(TallyBase):
+    """
+    Define a global (volume-integrated) tally.
+
+    Parameters
+    ----------
+    name : str, optional
+        User label.
+    scores : list of str, optional
+        Scores to tally (e.g. ``"flux"``, ``"fission"``, ``"collision"``).
+    multipliers : list of str, optional
+        Tally multipliers (e.g. ``"energy"``).
+    mu : array_like of float, optional
+        Polar cosine bin edges.
+    azi : array_like of float, optional
+        Azimuthal angle bin edges.
+    polar_reference : array_like of float, optional
+        Reference direction for polar angle binning.
+    energy : array_like of float or str, optional
+        Energy bin edges (eV).
+    time : array_like of float, optional
+        Time bin edges (s).
+
+    Returns
+    -------
+    TallyGlobal
+        The global tally object.
+    """
+
     # Annotations for Numba mode
     label: str = "global_tally"
 
@@ -277,6 +305,40 @@ class TallyGlobal(TallyBase):
 
 
 class TallyCell(TallyBase):
+    """
+    Define a cell tally.
+
+    Parameters
+    ----------
+    cell : Cell
+        The cell to tally over.
+    name : str, optional
+        User label.
+    scores : list of str, optional
+        Scores to tally.
+    multipliers : list of str, optional
+        Tally multipliers.
+    mu : array_like of float, optional
+        Polar cosine bin edges.
+    azi : array_like of float, optional
+        Azimuthal angle bin edges.
+    polar_reference : array_like of float, optional
+        Reference direction for polar angle binning.
+    energy : array_like of float or str, optional
+        Energy bin edges (eV).
+    time : array_like of float, optional
+        Time bin edges (s).
+
+    Returns
+    -------
+    TallyCell
+        The cell tally object.
+
+    See Also
+    --------
+    mcdc.Cell : Creates a cell to tally over.
+    """
+
     # Annotations for Numba mode
     label: str = "cell_tally"
     #
@@ -317,6 +379,40 @@ class TallyCell(TallyBase):
 
 
 class TallySurface(TallyBase):
+    """
+    Define a surface tally.
+
+    Parameters
+    ----------
+    surface : Surface
+        The surface to tally across.
+    name : str, optional
+        User label.
+    scores : list of str, optional
+        Scores to tally.
+    multipliers : list of str, optional
+        Tally multipliers.
+    mu : array_like of float, optional
+        Polar cosine bin edges.
+    azi : array_like of float, optional
+        Azimuthal angle bin edges.
+    polar_reference : array_like of float, optional
+        Reference direction for polar angle binning.
+    energy : array_like of float or str, optional
+        Energy bin edges (eV).
+    time : array_like of float, optional
+        Time bin edges (s).
+
+    Returns
+    -------
+    TallySurface
+        The surface tally object.
+
+    See Also
+    --------
+    mcdc.Surface : Creates a surface to tally across.
+    """
+
     # Annotations for Numba mode
     label: str = "surface_tally"
     #
@@ -357,6 +453,41 @@ class TallySurface(TallyBase):
 
 
 class TallyMesh(TallyBase):
+    """
+    Define a mesh tally.
+
+    Parameters
+    ----------
+    mesh : MeshUniform or MeshStructured
+        The spatial mesh to tally on.
+    name : str, optional
+        User label.
+    scores : list of str, optional
+        Scores to tally.
+    multipliers : list of str, optional
+        Tally multipliers.
+    mu : array_like of float, optional
+        Polar cosine bin edges.
+    azi : array_like of float, optional
+        Azimuthal angle bin edges.
+    polar_reference : array_like of float, optional
+        Reference direction for polar angle binning.
+    energy : array_like of float or str, optional
+        Energy bin edges (eV).
+    time : array_like of float, optional
+        Time bin edges (s).
+
+    Returns
+    -------
+    TallyMesh
+        The mesh tally object.
+
+    See Also
+    --------
+    mcdc.MeshUniform : Creates a uniform mesh.
+    mcdc.MeshStructured : Creates a structured mesh.
+    """
+
     # Annotations for Numba mode
     label: str = "mesh_tally"
     #

@@ -27,6 +27,46 @@ def decode_particle_type(type_):
 
 
 class Source(ObjectNonSingleton):
+    """
+    Define a particle source.
+
+    Parameters
+    ----------
+    name : str, optional
+        User label.
+    position : array_like of float, optional
+        Point-source position ``[x, y, z]`` in cm.
+    x : array_like of float, optional
+        Source extent along x: ``[x_min, x_max]`` in cm.
+    y : array_like of float, optional
+        Source extent along y: ``[y_min, y_max]`` in cm.
+    z : array_like of float, optional
+        Source extent along z: ``[z_min, z_max]`` in cm.
+    direction : array_like of float, optional
+        Mono-directional source direction ``[ux, uy, uz]``.
+    white_direction : array_like of float, optional
+        White (cosine-weighted) boundary source normal direction.
+    isotropic : bool, optional
+        If True, source emits isotropically.
+    polar_cosine : array_like of float, optional
+        Polar cosine bounds ``[mu_min, mu_max]``.
+    azimuthal : array_like of float, optional
+        Azimuthal angle bounds ``[azi_min, azi_max]``.
+    energy : float or ndarray, optional
+        Source energy in eV (mono-energetic) or a tabulated PDF.
+    energy_group : int or ndarray, optional
+        Energy group index (mono-group) or a PMF array.
+    time : float or array_like of float, optional
+        Emission time (s) or time range ``[t_min, t_max]``.
+    probability : float, optional
+        Relative source probability weight.
+
+    Returns
+    -------
+    Source
+        The source object.
+    """
+
     # Annotations for Numba mode
     label: str = "source"
     #
@@ -111,7 +151,7 @@ class Source(ObjectNonSingleton):
         self.isotropic_direction = True
         self.mono_direction = False
         self.white_direction = False
-        self.direction = np.array([0.0, 0.0, 0.0])
+        self.direction = np.array([0.0, 0.0, 1.0])
         self.polar_cosine = np.array([-1.0, 1.0])
         self.azimuthal = np.array([0.0, 2.0 * PI])
 

@@ -1,0 +1,22 @@
+/* Hide the "class" keyword prefix on autoclass signatures
+   so they render like function calls (e.g. mcdc.Universe(...) instead of
+   class mcdc.Universe(...)). */
+dt.sig.sig-object.py > em.property {
+    display: none;
+}
+
+/* Container styling */
+.admonition.tip {
+    border-left: 5px solid #ffde57; /* Python Yellow border */
+}
+
+/* Adding the Green Circle to the title */
+.admonition.tip > .admonition-title::before {
+    background-color: #ffde57;
+}
+
+/* Optional: Change title background to a light Python Yellow */
+.admonition.tip > .admonition-title {
+    background-color: #3776ab;
+    color: #ffffff;
+}
