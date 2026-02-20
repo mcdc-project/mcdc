@@ -48,7 +48,7 @@ AMD ROCm GPU support requires a patched Numba build.
 Follow the `numba-hip instructions <https://github.com/ROCm/numba-hip>`_
 to apply the HIP target triple patch.
 This is required before installing Harmonize for AMD targets.
-See also :ref:`install:AMD GPUs`.
+See also :ref:`install-amd-gpus`.
 
 
 Building mpi4py from Source
@@ -105,10 +105,10 @@ Incorrect or missing modules are the most common source of build failures.
      - **Module loads**
      - **Notes**
    * - Quartz (LLNL)
-     - ``module load python/3.12``
+     - ``module load python/3.11``
      - Default ``intel-classic`` + ``mvapich2`` are sufficient
    * - Dane (LLNL)
-     - ``module load python/3.12``
+     - ``module load python/3.11``
      - x86_64, similar to Quartz
    * - Lassen (LLNL)
      - ``module load gcc/8 cuda/11.8``
@@ -122,6 +122,37 @@ Incorrect or missing modules are the most common source of build failures.
 
 After loading modules, activate your Python environment (venv or conda)
 before running ``pip install`` or ``bash install.sh``.
+
+Container Errors
+----------------
+
+``lsetxattr`` error
+~~~~~~~~~~~~~~~~~~~
+Cause: Podman storage on network filesystem.
+
+``setgroups 65534 failed``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Cause: Rootless Podman user mapping.
+
+``permission denied``
+~~~~~~~~~~~~~~~~~~~~~
+Fix:
+
+.. code-block:: bash
+
+    podman run --rm -it --user root mcdc:dev
+
+``Out of memory`` (Apptainer)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Use sandbox mode.
+
+``HYDU_create_process`` error
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Use:
+
+.. code-block:: bash
+
+    mpirun -launcher fork -n 4 python input.py
 
 
 Common Runtime Errors
@@ -146,7 +177,7 @@ Set the ``MCDC_LIB`` environment variable to point to your data library director
 
    export MCDC_LIB=/path/to/mcdc_xsec_library
 
-See :ref:`install:Configuring Continuous Energy Library`.
+See :ref:`install-data-library`.
 
 **Numba compilation takes very long (> 2 minutes)**
 
@@ -196,7 +227,7 @@ while we bring it up to snuff. If you find a novel bug or anything else you feel
 be aware of, feel free to `open an issue <https://github.com/CEMeNT-PSAAP/MCDC/issues>`_.
 
 Getting More Help
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 If you are still stuck after reviewing this troubleshooting guide:
 

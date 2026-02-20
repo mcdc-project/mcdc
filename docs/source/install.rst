@@ -109,12 +109,12 @@ or `Anaconda <https://www.anaconda.com/>`_. HPC instructions:
 
 
 Then create and activate a new conda environment called *mcdc-env* in
-which to install MC/DC. This creates an environment with python3.12 
-installed:
+which to install MC/DC. MC/DC supports Python ``>3.10``;
+we recommend Python 3.11:
 
 .. code-block:: sh
 
-    conda create -n mcdc-env python=3.12
+    conda create -n mcdc-env python=3.11
     conda activate mcdc-env
 
 Then, MC/DC can be installed from source by first cloning the MC/DC repository:
@@ -149,28 +149,83 @@ On local machines, mpi4py will be installed using conda,
 
 To confirm that everything is properly installed, execute ``pytest`` from the MCDC directory. 
 
--------------------------------------
-Configuring Continuous Energy Library
--------------------------------------
+.. _installing-via-containers:
 
-MC/DC has continuous energy transport capabilities.
-We provide the library and easy install to members of CEMeNT and other close developers.
-Due to export controls we cannot build a library and transport functionality in a single source.
-If you are a member of CEMeNT you should have access to `this internal repo <https://github.com/CEMeNT-PSAAP/MCDC-Xsec>`_.
-You an then either set a flag in the install script like,
+--------------------------
+Installing via Containers
+--------------------------
+
+For container-based installation and execution, see :doc:`user/container`.
+
+.. toctree::
+   :maxdepth: 1
+
+   user/container
+
+.. _install-data-library:
+
+-----------------------------------------
+Generating a Data Library from ACE Files
+-----------------------------------------
+
+MC/DC ships with a conversion tool in ``tools/data_library_generator/`` that reads
+standard ACE-format nuclear data files and writes them into MC/DC's per-nuclide
+HDF5 format.  This is the primary path for creating CE libraries.
+
+**Prerequisites:**
 
 .. code-block:: sh
 
-    bash install.sh --config_cont_lib
+   pip install ACEtk h5py numpy tqdm
 
-or run the script after instillation as a stand alone operation with
+You also need a set of ACE files (e.g., from `NJOY <http://www.njoy21.io/>`_ or
+an ENDF/B distribution).
+
+**Environment variables:**
+
+.. list-table::
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Variable
+     - Description
+   * - ``MCDC_ACELIB``
+     - Path to the directory containing your ACE files.
+   * - ``MCDC_LIB``
+     - Path to the output directory where MC/DC HDF5 files will be written.
+
+**Running the generator:**
 
 .. code-block:: sh
 
-    bash config_cont_energy.sh
+   export MCDC_ACELIB=/path/to/ace/files
+   export MCDC_LIB=/path/to/mcdc/library
 
-Both these operations will clone the internal directory to your MCDC directory, untar the compressed folder, then set an environment variable in your bash script.
-NOTE: this does assume you are using bash shell.
+   cd tools/data_library_generator
+   python generate.py
+
+By default the tool only converts nuclides that do not already have a corresponding
+HDF5 file in ``$MCDC_LIB``.  Use ``--rewrite`` to regenerate all files, or
+``--verbose`` for detailed per-nuclide output:
+
+.. code-block:: sh
+
+   python generate.py --rewrite --verbose
+
+The generator processes each ACE file as follows:
+
+#. Reads the ACE header to determine nuclide identity (Z, A, isomeric state)
+   and temperature.
+#. Extracts the principal cross-section block (energy grid, elastic, capture,
+   fission, inelastic channels) and writes them as HDF5 datasets grouped by
+   reaction type (elastic scattering, capture, inelastic scattering, fission).
+#. Extracts angular distributions (tabulated cosine PDFs) and energy
+   distributions (level scattering, evaporation, Maxwellian, Kalbach-Mann,
+   N-body phase space, tabulated outgoing energy) for each reaction channel.
+#. For fissionable nuclides, extracts prompt/delayed :math:`\nu(E)` multiplicities,
+   delayed neutron precursor fractions, decay constants, and energy spectra.
+
+The resulting HDF5 file (e.g., ``U235-293.6K.h5``) is ready for use with ``mcdc.Material()``.
 
 
 ---------------------------------
@@ -186,8 +241,7 @@ For more information on Harmonize and how we compile MC/DC with it, see this `TO
 If you encounter problems with configuration, please file `Github issues promptly <https://github.com/CEMeNT-PSAAP/MCDC/issues>`_ ,
 especially when on supported super computers (LLNL's `Tioga <https://hpc.llnl.gov/hardware/compute-platforms/tioga>`_, `El Capitan <https://hpc.llnl.gov/documentation/user-guides/using-el-capitan-systems>`_, and `Lassen <https://hpc.llnl.gov/hardware/compute-platforms/lassen>`_).
 
-Nvidia GPUs
-^^^^^^^^^^^
+.. rubric:: Nvidia GPUs
 
 To compile and execute MC/DC on Nvidia GPUs first ensure you have the `Harmonize prerecs <https://github.com/CEMeNT-PSAAP/harmonize/blob/main/install.sh>`_ (CUDA=11.8, Numba>=0.60.0) and a working MC/DC version >=0.10.0. Then,
 
@@ -196,8 +250,9 @@ To compile and execute MC/DC on Nvidia GPUs first ensure you have the `Harmonize
 
 Operability should now be enabled. 
 
-AMD GPUs
-^^^^^^^^
+.. _install-amd-gpus:
+
+.. rubric:: AMD GPUs
 
 The prerequisites for AMD operability are slightly more complex and
 require a patch to Numba to allow for AMD target triple LLVM-IR.
