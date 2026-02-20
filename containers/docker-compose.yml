@@ -1,0 +1,41 @@
+services:
+
+  # Development environment
+  # Usage: docker compose -f containers/docker-compose.yml run --rm dev bash
+  dev:
+    build:
+      context: ..
+      dockerfile: containers/Dockerfile
+    image: mcdc:dev
+    volumes:
+      # Mount local source code into container
+      # Any changes you make locally are immediately reflected inside
+      - ..:/opt/mcdc
+    working_dir: /opt/mcdc
+    stdin_open: true
+    tty: true
+
+  # Run test suite
+  # Usage: docker compose -f containers/docker-compose.yml run --rm test
+  test:
+    build:
+      context: ..
+      dockerfile: containers/Dockerfile
+    image: mcdc:dev
+    volumes:
+      - ..:/opt/mcdc
+    working_dir: /opt/mcdc/test/unit
+    command: python run.py
+
+  # Run with MPI
+  # Usage: docker compose -f containers/docker-compose.yml run --rm mpi mpirun -n 4 python input.py
+  mpi:
+    build:
+      context: ..
+      dockerfile: containers/Dockerfile
+    image: mcdc:dev
+    volumes:
+      - ..:/opt/mcdc
+    working_dir: /opt/mcdc
+    stdin_open: true
+    tty: true
