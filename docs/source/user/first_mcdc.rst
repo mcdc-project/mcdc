@@ -371,6 +371,27 @@ This is much better converged around the analytic solution.
 As with everything else, the best way to see what you can do is sniff around the examples.
 We have examples with animated solutions, subplots, moving regions and more!
 
+Additional Simulation Results
+-----------------------------
+
+- Neutron flux distribution on a shielded dog-leg vacuum channel after a neutron pulse is completed
+
+.. image:: ../images/user/kobayashi-white.png
+   :width: 266
+   :alt: Neutron flux distribution on a shielded dog-leg vacuum channel after a neutron pulse is completed
+
+- Bottom-view of a micro reactor fission rate distribution when a control rod-driven runaway prompt supercritical occurs
+
+.. image:: ../images/user/c5g7.png
+   :width: 266
+   :alt: Bottom-view of a micro reactor fission rate distribution when a control rod-driven runaway prompt supercritical occurs
+
+- Fission and flux bursts of a neutron excursion driven by a drop of highly-enriched uranium.
+
+.. image:: ../images/user/dragon.gif
+   :width: 266
+   :alt: Fission and flux bursts of a neutron excursion driven by a drop of highly-enriched uranium
+
 -------------------------------------
 MC/DC's built in model ``visualizer``
 -------------------------------------
