@@ -30,6 +30,9 @@ output*.h5
 *.mp4
 *.gif
 
+# Ignore all png files except those in the docs/source/images directory
+!docs/source/images/**/*.png
+
 # Cluster job
 *.out
 *.pbs

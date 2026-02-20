@@ -42,18 +42,18 @@ class Surface(ObjectNonSingleton):
 
     Parameters
     ----------
-    type_ : int
+    type\_ : int
         One of ``SURFACE_*`` constants (e.g., ``SURFACE_PLANE_X``).
     name : str
         Optional label for reporting.
-    boundary_condition : {"none","vacuum","reflective"}
-        Boundary behavior at the surface.
+    boundary_condition : str
+        Boundary behavior at the surface (``"none"``, ``"vacuum"``, or ``"reflective"``).
 
     Attributes
     ----------
     ID : int
         Index in the global registry (assigned on construction).
-    type : int
+    type\_ : int
         Surface type code (``SURFACE_*``).
     name : str
         User label.
@@ -241,9 +241,11 @@ class Surface(ObjectNonSingleton):
         Parameters
         ----------
         name : str, optional
+            User label.
         x : float, default 0.0
             Plane location (cm).
-        boundary_condition : {"none","vacuum","reflective"}, optional
+        boundary_condition : str, optional
+            Boundary type (``"none"``, ``"vacuum"``, or ``"reflective"``).
 
         Returns
         -------
@@ -268,9 +270,11 @@ class Surface(ObjectNonSingleton):
         Parameters
         ----------
         name : str, optional
+            User label.
         y : float, default 0.0
             Plane location (cm).
-        boundary_condition : {"none","vacuum","reflective"}, optional
+        boundary_condition : str, optional
+            Boundary type (``"none"``, ``"vacuum"``, or ``"reflective"``).
 
         Returns
         -------
@@ -295,9 +299,11 @@ class Surface(ObjectNonSingleton):
         Parameters
         ----------
         name : str, optional
+            User label.
         z : float, default 0.0
             Plane location (cm).
-        boundary_condition : {"none","vacuum","reflective"}, optional
+        boundary_condition : str, optional
+            Boundary type (``"none"``, ``"vacuum"``, or ``"reflective"``).
 
         Returns
         -------
@@ -332,9 +338,11 @@ class Surface(ObjectNonSingleton):
         Parameters
         ----------
         name : str, optional
+            User label.
         A, B, C, D : float
             Plane coefficients.
-        boundary_condition : {"none","vacuum","reflective"}, optional
+        boundary_condition : str, optional
+            Boundary type (``"none"``, ``"vacuum"``, or ``"reflective"``).
 
         Returns
         -------
@@ -379,11 +387,13 @@ class Surface(ObjectNonSingleton):
         Parameters
         ----------
         name : str, optional
+            User label.
         center : (2,) array_like of float, default (0, 0)
             Cylinder center in (y, z) (cm).
         radius : float, default 1.0
             Cylinder radius (cm).
-        boundary_condition : {"none","vacuum","reflective"}, optional
+        boundary_condition : str, optional
+            Boundary type (``"none"``, ``"vacuum"``, or ``"reflective"``).
 
         Returns
         -------
@@ -421,11 +431,13 @@ class Surface(ObjectNonSingleton):
         Parameters
         ----------
         name : str, optional
+            User label.
         center : (2,) array_like of float
             Cylinder center in (x, z) (cm).
         radius : float
             Cylinder radius (cm).
-        boundary_condition : {"none","vacuum","reflective"}, optional
+        boundary_condition : str, optional
+            Boundary type (``"none"``, ``"vacuum"``, or ``"reflective"``).
 
         Returns
         -------
@@ -463,11 +475,13 @@ class Surface(ObjectNonSingleton):
         Parameters
         ----------
         name : str, optional
+            User label.
         center : (2,) array_like of float
             Cylinder center in (x, y) (cm).
         radius : float
             Cylinder radius (cm).
-        boundary_condition : {"none","vacuum","reflective"}, optional
+        boundary_condition : str, optional
+            Boundary type (``"none"``, ``"vacuum"``, or ``"reflective"``).
 
         Returns
         -------
@@ -505,11 +519,13 @@ class Surface(ObjectNonSingleton):
         Parameters
         ----------
         name : str, optional
+            User label.
         center : (3,) array_like of float
             Sphere center (x, y, z) in cm.
         radius : float
             Radius (cm).
-        boundary_condition : {"none","vacuum","reflective"}, optional
+        boundary_condition : str, optional
+            Boundary type (``"none"``, ``"vacuum"``, or ``"reflective"``).
 
         Returns
         -------
@@ -558,9 +574,11 @@ class Surface(ObjectNonSingleton):
         Parameters
         ----------
         name : str, optional
+            User label.
         A,B,C,D,E,F,G,H,I,J : float
             Quadric coefficients.
-        boundary_condition : {"none","vacuum","reflective"}, optional
+        boundary_condition : str, optional
+            Boundary type (``"none"``, ``"vacuum"``, or ``"reflective"``).
 
         Returns
         -------

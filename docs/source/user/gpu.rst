@@ -27,7 +27,7 @@ MC/DC Harmonize Runtime Options
 At runtime the user can interface with the Harmonize scheduler that MC/DC uses as its GPU runtime.
 Configurable options include:
 
-#. Specifying scheduling modes with ``--gpu_strat=`` either ``event`` (default) or ``async`` (only enabled for Nvidia GPUs) 
+#. Specifying scheduling modes with ``--gpu_strategy=`` either ``event`` (default) or ``async`` (only enabled for Nvidia GPUs) 
 #. Declaring the GPU arena size (size of memory allocated on the GPU measured in particles) ``--gpu_arena_size= [int_value]`` 
 #. Clearing the previous cache (and forcing recompilation) ``--clear_cache``
 #. Requesting Harmonize to cache its results: ``--caching``
@@ -62,13 +62,13 @@ For example on an interactive node using SLURM it would look something like
 Or when using `flux <https://flux-framework.org/>`_ scheduler (the scheduler LLNL scheduler uses on `Tioga and El Capitan <https://hpc.llnl.gov/documentation/user-guides/using-el-capitan-systems>`_) (assuming an interactive node ``salloc -n1``):
 .. code-block:: sh
 
-    flux run -N 2 -n 8 -g 1 --queue=mi300a python3 input.py --mode=numba --target=gpu --gpu_arena_size=100000000 --gpu_strat=event
+    flux run -N 2 -n 8 -g 1 --queue=mi300a python3 input.py --mode=numba --target=gpu --gpu_arena_size=100000000 --gpu_strategy=event
 
 which launches event scheduled MC/DC on GPUs with a GPU arena 1e9 2 nodes with 8 GPUs total (4/node) on the MI300A partition.
 An example of `LSF <https://www.ibm.com/docs/en/spectrum-lsf/10.1.0>`_ scheduling (the scheduler LLNL uses on `Lassen <https://hpc.llnl.gov/documentation/tutorials/using-lc-s-sierra-systems>`_) assuming an interactive node (``lalloc 1``)
 .. code-block:: sh
 
-    jsrun -n 4 -r 4 -a 1 -g 1 python input.py --mode=numba --target=gpu --gpu_strat=async
+    jsrun -n 4 -r 4 -a 1 -g 1 python input.py --mode=numba --target=gpu --gpu_strategy=async
 
 which launches async scheduled MC/DC on Nvidia GPUs with a GPU arena of 1e9 on 1 node with 4 GPUs total (4/node).
 
