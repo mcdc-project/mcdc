@@ -136,9 +136,9 @@ def build_gpu_program(simulation, size):
     # Async. functions
     # ================
 
-    shape = eval(f"{adapt.tally_shape_literal}")
+    shape = (size,)
 
-    def step(prog: nb.uintp, P_input: adapt.particle_gpu):
+    def step(prog: nb.uintp, P_input: particle_gpu):
         mcdc = adapt.mcdc_global(prog)
         data_ptr = adapt.mcdc_data(prog)
         data = adapt.harm.array_from_ptr(data_ptr, shape, nb.float64)
