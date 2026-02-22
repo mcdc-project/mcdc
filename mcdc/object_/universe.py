@@ -24,6 +24,28 @@ from mcdc.util import flatten
 
 
 class Universe(ObjectNonSingleton):
+    """
+    Define a list of cells as a universe.
+
+    Parameters
+    ----------
+    name : str, optional
+        User label.
+    cells : list of Cell
+        List of cells that comprise the universe.
+    root : bool, optional
+        Flag to set as the root universe (ID = 0).
+
+    Returns
+    -------
+    Universe
+        The universe object.
+
+    See Also
+    --------
+    mcdc.Cell : Creates a cell that can be used to define a universe.
+    """
+
     # Annotations for Numba mode
     label: str = "universe"
     #
@@ -64,6 +86,32 @@ class Universe(ObjectNonSingleton):
 
 
 class Lattice(ObjectNonSingleton):
+    """
+    Define a regular lattice of universes.
+
+    Parameters
+    ----------
+    name : str, optional
+        User label.
+    x : tuple of (float, float, int), optional
+        Lattice specification along x: ``(x0, dx, Nx)``.
+    y : tuple of (float, float, int), optional
+        Lattice specification along y: ``(y0, dy, Ny)``.
+    z : tuple of (float, float, int), optional
+        Lattice specification along z: ``(z0, dz, Nz)``.
+    universes : list of Universe
+        Array of universes filling each lattice cell.
+
+    Returns
+    -------
+    Lattice
+        The lattice object.
+
+    See Also
+    --------
+    mcdc.Universe : Creates a universe to place in a lattice.
+    """
+
     # Annotations for Numba mode
     label: str = "lattice"
     #

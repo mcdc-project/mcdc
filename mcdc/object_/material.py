@@ -59,6 +59,33 @@ def decode_type(type_):
 
 
 class Material(MaterialBase):
+    """
+    Define a continuous-energy material from a nuclide composition.
+
+    Parameters
+    ----------
+    name : str, optional
+        User label.
+    nuclide_composition : dict
+        Dictionary mapping nuclide names (str) to atom densities (float).
+    temperature : float, optional
+        Temperature in Kelvin (default 293.6 K).
+
+    Returns
+    -------
+    Material
+        The material object.
+
+    Notes
+    -----
+    Requires the ``MCDC_LIB`` environment variable to point to the nuclear
+    data library directory.
+
+    See Also
+    --------
+    mcdc.MaterialMG : Creates a multigroup material.
+    """
+
     # Annotations for Numba mode
     label: str = "native_material"
     non_numba: list[str] = ["nuclide_composition"]
@@ -149,6 +176,47 @@ TEMPERATURES = [0.1, 233.15, 273.15, 293.6, 600.0, 900.0, 1200.0, 2500.0]
 
 
 class MaterialMG(MaterialBase):
+    """
+    Define a multigroup material.
+
+    Cross-section arrays are provided as NumPy arrays of length ``G`` (number
+    of energy groups). Scatter and fission matrices are ``(G, G)``.
+
+    Parameters
+    ----------
+    name : str, optional
+        User label.
+    capture : ndarray, optional
+        Capture cross section for each group.
+    scatter : ndarray, optional
+        Scattering matrix ``(G, G)``.
+    fission : ndarray, optional
+        Fission cross section for each group.
+    nu_s : ndarray, optional
+        Average scattering multiplicity.
+    nu_p : ndarray, optional
+        Average prompt fission neutron yield.
+    nu_d : ndarray, optional
+        Average delayed fission neutron yield.
+    chi_p : ndarray, optional
+        Prompt fission spectrum.
+    chi_d : ndarray, optional
+        Delayed fission spectrum.
+    speed : ndarray, optional
+        Neutron speeds for each group (cm/s).
+    decay_rate : ndarray, optional
+        Delayed neutron precursor decay rates (1/s).
+
+    Returns
+    -------
+    MaterialMG
+        The multigroup material object.
+
+    See Also
+    --------
+    mcdc.Material : Creates a continuous-energy material.
+    """
+
     # Annotations for Numba mode
     label: str = "multigroup_material"
     #

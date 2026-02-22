@@ -4,6 +4,16 @@
 
 
 def run():
+    """
+    Execute the MC/DC simulation.
+
+    Runs the transport simulation defined by the current problem
+    (materials, geometry, sources, tallies, and settings).
+    Results are written to an HDF5 output file.
+
+    Command-line arguments (``--N_particle``, ``--output``, etc.) override
+    the corresponding settings when provided.
+    """
     import mcdc.print_ as print_module
     from mpi4py import MPI
 

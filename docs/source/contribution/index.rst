@@ -20,11 +20,15 @@ To get started making alterations in a cloned repo
 
 Push some particles around!!!!
 
-.. toctree:: 
-   :hidden:
+Development Guidelines
+----------------------
+
+.. toctree::
+   :maxdepth: 1
    
    documentation.rst
    ci.rst
+   container-dev.rst
 
 Check out the :doc:`documentation` guide for info on how to contribute to these docs.
 We understand that documenting code is often a lower priority than the code itself, but it goes a long way towards usability and maintainability.
@@ -74,7 +78,7 @@ Which will toggle the following debug and compiler options in Numba:
 * ``NUMBA_ENABLE_PROFILING=1`` enables profiler use
 * ``NUMBA_DUMP_CFG=1`` prints out a control flow diagram
 
-If extra debug options or alteration to these options are required they can be toggled and passed under the ``mode==numba_debug`` option tree near the top of ``mcdc/main.py``.
+If extra debug options or alteration to these options are required they can be toggled and passed under the ``mode==numba_debug`` option tree in ``mcdc/config.py``.
 
 -------
 Caching
@@ -89,18 +93,11 @@ Numba has a few documented errors around caching.
 The most critical of which is that functions in other files that are called by cached functions will not force a recompile, even if there are changes in those sub-functions.
 In this case caching should be disabled.
 
-In MC/DC the outer most loop functions (in ``mcdc/loop.py``) are called to be cached.
-This is done with a option on the jit flag above the individual function declarations like
+In MC/DC the simulation functions (in ``mcdc/transport/simulation.py``) can be configured to use caching.
+Caching behavior is controlled via the ``--caching`` and ``--clear_cache`` command-line flags.
 
-.. code-block:: python3
-
-    nb.njit(cache=True)
-    def loop_fixed_source(mcdc):
-        # Loop over
-        ...
-
-To disable caching toggle these jit flags from ``True`` to ``False``.
-Alteratively a developer could delete the ``__pycache__`` directory or other cache directory which is system dependent (`see more about clearing the numba cache <https://numba.readthedocs.io/en/stable/developer/caching.html>`_)
+To disable caching, omit the ``--caching`` flag (the default).
+Alternatively a developer could delete the ``__pycache__`` directory or other cache directory which is system dependent (`see more about clearing the numba cache <https://numba.readthedocs.io/en/stable/developer/caching.html>`_)
 
 
 At some point MC/DC will enable `Numba's Ahead of Time compilation abilities <https://numba.readthedocs.io/en/stable/user/pycc.html>`_. But the core development team is holding off until scheduled `upgrades to AOT functionality in Numba are implemented <https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-numba-pycc>`_.
@@ -111,11 +108,17 @@ Adding a New Input
 ------------------
 
 To add a new keyword argument such that a user can interface with it in an input deck 
-there are a few different places a dev will need to make alterations
+there are a few different places a dev will need to make alterations.
+The input objects are defined as dataclasses in the ``mcdc/object_/`` directory:
 
-#. ``card.py`` (where the input cards are actually defined)
-#. ``type.py`` (where the type information of the inputs are strictly added)
-#. ``input_.py`` (where user inputs are merged with the specifications in ``card.py`` and ``type.py``)
+#. ``mcdc/object_/settings.py`` — simulation settings and k-eigenvalue parameters
+#. ``mcdc/object_/material.py`` — material definitions (``Material``, ``MaterialMG``)
+#. ``mcdc/object_/surface.py`` — surface geometry (``Surface`` class methods)
+#. ``mcdc/object_/cell.py`` — cell definitions (``Cell``)
+#. ``mcdc/object_/source.py`` — source specifications (``Source``)
+#. ``mcdc/object_/tally.py`` — tally objects (``TallyGlobal``, ``TallyCell``, ``TallySurface``, ``TallyMesh``)
+#. ``mcdc/object_/technique.py`` — variance reduction techniques
+#. ``mcdc/config.py`` — command-line argument definitions
 
 -------
 Testing
@@ -136,7 +139,7 @@ Our github based CI runs for,
 
 while we do not have continuous integration we have validated MC/DC on other systems.
 
-To run the regression tests locally, navigate to ``\MCDC\tests\regression`` and run,
+To run the regression tests locally, navigate to ``MCDC/test/regression`` and run,
 
 .. code-block:: sh
 
@@ -182,11 +185,13 @@ To add a new page to the documentation,
 #. Add ``<FILE_NAME>`` (without file extension to the ``.. toctree::`` section of ``index.rst``)
 #. Write your contributions using ``.rst`` format (see this `cheat sheet <https://github.com/ralsina/rst-cheatsheet/blob/master/rst-cheatsheet.rst>`_)
 
-To build changes you've made locally before committing,
+To build the docs changes you have made locally before committing,
 
-#. Install dependencies (we recommend: ``conda install sphinx`` and ``pip install furo``). Note that these dependencies are not installed as a part of base MC/DC
-#. Run ``make html`` to compile
-#. Then launch ``build/html/index.html`` with your browser of choice
+#. Install dependencies (we recommend: ``conda install sphinx`` and ``pip install furo sphinx_toolbox``).
+   Note that these dependencies are not installed as part of base MC/DC.
+#. From the ``MCDC/docs/`` directory, run ``make html`` to compile.
+#. Launch ``build/html/index.html`` with your browser of choice.
+
 
 -------------
 Pull Requests
