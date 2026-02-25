@@ -192,7 +192,7 @@ class Source(ObjectNonSingleton):
                 self.z = np.array(z)
 
         # Direction
-        if isotropic is not None:
+        if isotropic is not None and isotropic:
             pass
         elif direction is not None:
             self.isotropic_direction = False

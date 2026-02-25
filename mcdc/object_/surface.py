@@ -42,7 +42,7 @@ class Surface(ObjectNonSingleton):
 
     Parameters
     ----------
-    type\_ : int
+    type\\_ : int
         One of ``SURFACE_*`` constants (e.g., ``SURFACE_PLANE_X``).
     name : str
         Optional label for reporting.
@@ -53,7 +53,7 @@ class Surface(ObjectNonSingleton):
     ----------
     ID : int
         Index in the global registry (assigned on construction).
-    type\_ : int
+    type\\_ : int
         Surface type code (``SURFACE_*``).
     name : str
         User label.
