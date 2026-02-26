@@ -29,9 +29,9 @@ from mcdc.transport.distribution import sample_isotropic_direction
 
 
 @njit
-def particle_speed(particle_container, mcdc, data):
+def particle_speed(particle_container, simulation, data):
     particle = particle_container[0]
-    material = mcdc["multigroup_materials"][particle["material_ID"]]
+    material = simulation["multigroup_materials"][particle["material_ID"]]
     return mcdc_get.multigroup_material.mgxs_speed(particle["g"], material, data)
 
 
@@ -41,9 +41,9 @@ def particle_speed(particle_container, mcdc, data):
 
 
 @njit
-def macro_xs(reaction_type, particle_container, mcdc, data):
+def macro_xs(reaction_type, particle_container, simulation, data):
     particle = particle_container[0]
-    material = mcdc["multigroup_materials"][particle["material_ID"]]
+    material = simulation["multigroup_materials"][particle["material_ID"]]
     g = particle["g"]
 
     if reaction_type == REACTION_TOTAL:
@@ -58,9 +58,9 @@ def macro_xs(reaction_type, particle_container, mcdc, data):
 
 
 @njit
-def neutron_production_xs(reaction_type, particle_container, mcdc, data):
+def neutron_production_xs(reaction_type, particle_container, simulation, data):
     particle = particle_container[0]
-    material = mcdc["multigroup_materials"][particle["material_ID"]]
+    material = simulation["multigroup_materials"][particle["material_ID"]]
 
     g = particle["g"]
     if reaction_type == REACTION_TOTAL:
@@ -68,11 +68,11 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
         total += neutron_production_xs(
             REACTION_NEUTRON_ELASTIC_SCATTERING,
             particle_container,
-            mcdc,
+            simulation,
             data,
         )
         total += neutron_production_xs(
-            REACTION_NEUTRON_FISSION, particle_container, mcdc, data
+            REACTION_NEUTRON_FISSION, particle_container, simulation, data
         )
         return total
     elif reaction_type == REACTION_NEUTRON_CAPTURE:
@@ -101,19 +101,19 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
 
 
 @njit
-def collision(particle_container, mcdc, data):
+def collision(particle_container, simulation, data):
     particle = particle_container[0]
 
     # Get the reaction cross-sections
-    SigmaT = macro_xs(REACTION_TOTAL, particle_container, mcdc, data)
+    SigmaT = macro_xs(REACTION_TOTAL, particle_container, simulation, data)
     SigmaS = macro_xs(
-        REACTION_NEUTRON_ELASTIC_SCATTERING, particle_container, mcdc, data
+        REACTION_NEUTRON_ELASTIC_SCATTERING, particle_container, simulation, data
     )
-    SigmaC = macro_xs(REACTION_NEUTRON_CAPTURE, particle_container, mcdc, data)
-    SigmaF = macro_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
+    SigmaC = macro_xs(REACTION_NEUTRON_CAPTURE, particle_container, simulation, data)
+    SigmaF = macro_xs(REACTION_NEUTRON_FISSION, particle_container, simulation, data)
 
     # Implicit capture
-    if mcdc["implicit_capture"]["active"]:
+    if simulation["implicit_capture"]["active"]:
         particle["w"] *= (SigmaT - SigmaC) / SigmaT
         SigmaT -= SigmaC
 
@@ -121,11 +121,11 @@ def collision(particle_container, mcdc, data):
     xi = rng.lcg(particle_container) * SigmaT
     total = SigmaS
     if total > xi:
-        scattering(particle_container, mcdc, data)
+        scattering(particle_container, simulation, data)
     else:
         total += SigmaF
         if total > xi:
-            fission(particle_container, mcdc, data)
+            fission(particle_container, simulation, data)
         else:
             particle["alive"] = False
 
@@ -136,7 +136,7 @@ def collision(particle_container, mcdc, data):
 
 
 @njit
-def scattering(particle_container, mcdc, data):
+def scattering(particle_container, simulation, data):
     # Particle attributes
     particle = particle_container[0]
     g = particle["g"]
@@ -145,7 +145,7 @@ def scattering(particle_container, mcdc, data):
     uz = particle["uz"]
 
     # Material attributes
-    material = mcdc["multigroup_materials"][particle["material_ID"]]
+    material = simulation["multigroup_materials"][particle["material_ID"]]
     G = material["G"]
 
     # Kill the current particle
@@ -154,8 +154,8 @@ def scattering(particle_container, mcdc, data):
     # Adjust production and product weights if weighted emission
     weight_production = 1.0
     weight_product = particle["w"]
-    if mcdc["weighted_emission"]["active"]:
-        weight_target = mcdc["weighted_emission"]["weight_target"]
+    if simulation["weighted_emission"]["active"]:
+        weight_target = simulation["weighted_emission"]["weight_target"]
         weight_production = particle["w"] / weight_target
         weight_product = weight_target
 
@@ -207,19 +207,21 @@ def scattering(particle_container, mcdc, data):
             particle["E"] = particle_new["E"]
             particle["w"] = particle_new["w"]
         else:
-            particle_bank_module.bank_active_particle(particle_container_new, mcdc)
+            particle_bank_module.bank_active_particle(
+                particle_container_new, simulation
+            )
 
 
 @njit
-def fission(particle_container, mcdc, data):
-    settings = mcdc["settings"]
+def fission(particle_container, simulation, data):
+    settings = simulation["settings"]
 
     # Particle properties
     particle = particle_container[0]
     g = particle["g"]
 
     # Material properties
-    material = mcdc["multigroup_materials"][particle["material_ID"]]
+    material = simulation["multigroup_materials"][particle["material_ID"]]
     G = material["G"]
     J = material["J"]
 
@@ -229,8 +231,8 @@ def fission(particle_container, mcdc, data):
     # Adjust production and product weights if weighted emission
     weight_production = 1.0
     weight_product = particle["w"]
-    if mcdc["weighted_emission"]["active"]:
-        weight_target = mcdc["weighted_emission"]["weight_target"]
+    if simulation["weighted_emission"]["active"]:
+        weight_target = simulation["weighted_emission"]["weight_target"]
         weight_production = particle["w"] / weight_target
         weight_product = weight_target
 
@@ -242,7 +244,9 @@ def fission(particle_container, mcdc, data):
 
     # Get number of secondaries
     N = int(
-        math.floor(weight_production * nu / mcdc["k_eff"] + rng.lcg(particle_container))
+        math.floor(
+            weight_production * nu / simulation["k_eff"] + rng.lcg(particle_container)
+        )
     )
 
     # Set up secondary partice container
@@ -300,7 +304,9 @@ def fission(particle_container, mcdc, data):
 
         # Eigenvalue mode: bank right away
         if settings["eigenvalue_mode"]:
-            particle_bank_module.bank_census_particle(particle_container_new, mcdc)
+            particle_bank_module.bank_census_particle(
+                particle_container_new, simulation
+            )
             continue
         # Below is only relevant for fixed-source problem
 
@@ -311,7 +317,7 @@ def fission(particle_container, mcdc, data):
         # Check if it hits current or next census times
         hit_current_census = False
         hit_future_census = False
-        idx_census = mcdc["idx_census"]
+        idx_census = simulation["idx_census"]
         if settings["N_census"] > 1:
             if particle_new["t"] > mcdc_get.settings.census_time(
                 idx_census, settings, data
@@ -335,14 +341,20 @@ def fission(particle_container, mcdc, data):
                 particle["E"] = particle_new["E"]
                 particle["w"] = particle_new["w"]
             else:
-                particle_bank_module.bank_active_particle(particle_container_new, mcdc)
+                particle_bank_module.bank_active_particle(
+                    particle_container_new, simulation
+                )
 
         # Hit future census --> add to future bank
         elif hit_future_census:
             # Particle will participate in the future
-            particle_bank_module.bank_future_particle(particle_container_new, mcdc)
+            particle_bank_module.bank_future_particle(
+                particle_container_new, simulation
+            )
 
         # Hit current census --> add to census bank
         else:
             # Particle will participate after the current census is completed
-            particle_bank_module.bank_census_particle(particle_container_new, mcdc)
+            particle_bank_module.bank_census_particle(
+                particle_container_new, simulation
+            )

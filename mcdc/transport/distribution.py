@@ -27,29 +27,29 @@ from mcdc.transport.util import find_bin, linear_interpolation
 
 
 @njit
-def sample_distribution(E, distribution, rng_state, mcdc, data, scale=False):
+def sample_distribution(E, distribution, rng_state, simulation, data, scale=False):
     distribution_type = distribution["child_type"]
     ID = distribution["child_ID"]
 
     if distribution_type == DISTRIBUTION_TABULATED:
-        table = mcdc["tabulated_distributions"][ID]
+        table = simulation["tabulated_distributions"][ID]
         return sample_tabulated(table, rng_state, data)
 
     elif distribution_type == DISTRIBUTION_MULTITABLE:
-        multi_table = mcdc["multi_table_distributions"][ID]
+        multi_table = simulation["multi_table_distributions"][ID]
         return sample_multi_table(E, rng_state, multi_table, data, scale)
 
     elif distribution_type == DISTRIBUTION_LEVEL_SCATTERING:
-        level_scattering = mcdc["level_scattering_distributions"][ID]
+        level_scattering = simulation["level_scattering_distributions"][ID]
         return sample_level_scattering(E, level_scattering)
 
     elif distribution_type == DISTRIBUTION_EVAPORATION:
-        evaporation = mcdc["evaporation_distributions"][ID]
-        return sample_evaporation(E, rng_state, evaporation, mcdc, data)
+        evaporation = simulation["evaporation_distributions"][ID]
+        return sample_evaporation(E, rng_state, evaporation, simulation, data)
 
     elif distribution_type == DISTRIBUTION_MAXWELLIAN:
-        maxwellian = mcdc["maxwellian_distributions"][ID]
-        return sample_maxwellian(E, rng_state, maxwellian, mcdc, data)
+        maxwellian = simulation["maxwellian_distributions"][ID]
+        return sample_maxwellian(E, rng_state, maxwellian, simulation, data)
 
     # TODO: Should not get here
     else:
@@ -57,20 +57,22 @@ def sample_distribution(E, distribution, rng_state, mcdc, data, scale=False):
 
 
 @njit
-def sample_correlated_distribution(E, distribution, rng_state, mcdc, data, scale=False):
+def sample_correlated_distribution(
+    E, distribution, rng_state, simulation, data, scale=False
+):
     distribution_type = distribution["child_type"]
     ID = distribution["child_ID"]
 
     if distribution_type == DISTRIBUTION_KALBACH_MANN:
-        kalbach_mann = mcdc["kalbach_mann_distributions"][ID]
+        kalbach_mann = simulation["kalbach_mann_distributions"][ID]
         return sample_kalbach_mann(E, rng_state, kalbach_mann, data)
 
     elif distribution_type == DISTRIBUTION_TABULATED_ENERGY_ANGLE:
-        table = mcdc["tabulated_energy_angle_distributions"][ID]
+        table = simulation["tabulated_energy_angle_distributions"][ID]
         return sample_tabulated_energy_angle(E, rng_state, table, data)
 
     elif distribution_type == DISTRIBUTION_N_BODY:
-        nbody = mcdc["nbody_distributions"][ID]
+        nbody = simulation["nbody_distributions"][ID]
         E_out = sample_tabulated(nbody, rng_state, data)
         mu = sample_isotropic_cosine(rng_state)
         return E_out, mu
@@ -289,9 +291,9 @@ def sample_multi_table(E, rng_state, multi_table, data, scale=False):
 
 
 @njit
-def sample_maxwellian(E, rng_state, maxwellian, mcdc, data):
+def sample_maxwellian(E, rng_state, maxwellian, simulation, data):
     # Get nuclear temperature
-    table = mcdc["table_data"][maxwellian["nuclear_temperature_ID"]]
+    table = simulation["table_data"][maxwellian["nuclear_temperature_ID"]]
     nuclear_temperature = evaluate_table(E, table, data)
     restriction_energy = maxwellian["restriction_energy"]
 
@@ -319,9 +321,9 @@ def sample_level_scattering(E, level_scattering):
 
 
 @njit
-def sample_evaporation(E, rng_state, evaporation, mcdc, data):
+def sample_evaporation(E, rng_state, evaporation, simulation, data):
     # Get nuclear temperature
-    table = mcdc["table_data"][evaporation["nuclear_temperature_ID"]]
+    table = simulation["table_data"][evaporation["nuclear_temperature_ID"]]
     nuclear_temperature = evaluate_table(E, table, data)
     restriction_energy = evaporation["restriction_energy"]
 

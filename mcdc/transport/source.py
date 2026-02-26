@@ -18,7 +18,7 @@ from mcdc.transport.util import find_bin
 
 
 @njit
-def source_particle(P_rec_arr, seed, mcdc, data):
+def source_particle(P_rec_arr, seed, simulation, data):
     P_rec = P_rec_arr[0]
     P_rec["rng_seed"] = seed
 
@@ -26,7 +26,7 @@ def source_particle(P_rec_arr, seed, mcdc, data):
     # TODO: use cdf and binary search instead
     xi = rng.lcg(P_rec_arr)
     tot = 0.0
-    for source in mcdc["sources"]:
+    for source in simulation["sources"]:
         tot += source["probability"]
         if tot >= xi:
             break
@@ -59,13 +59,13 @@ def source_particle(P_rec_arr, seed, mcdc, data):
         )
 
     # Energy
-    if mcdc["settings"]["multigroup_mode"]:
+    if simulation["settings"]["multigroup_mode"]:
         E = 0.0
         if source["mono_energetic"]:
             g = source["energy_group"]
         else:
             ID = source["energy_group_pmf_ID"]
-            pmf = mcdc["pmf_distributions"][ID]
+            pmf = simulation["pmf_distributions"][ID]
             g = sample_pmf(pmf, P_rec_arr, data)
     else:
         g = 0
@@ -73,7 +73,7 @@ def source_particle(P_rec_arr, seed, mcdc, data):
             E = source["energy"]
         else:
             ID = source["energy_pdf_ID"]
-            table = mcdc["tabulated_distributions"][ID]
+            table = simulation["tabulated_distributions"][ID]
             E = sample_tabulated(table, P_rec_arr, data)
 
     # Time

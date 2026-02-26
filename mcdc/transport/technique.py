@@ -16,10 +16,10 @@ import mcdc.transport.rng as rng
 
 
 @njit
-def weight_roulette(particle_container, mcdc):
+def weight_roulette(particle_container, simulation):
     particle = particle_container[0]
-    if particle["w"] < mcdc["weight_roulette"]["weight_threshold"]:
-        w_target = mcdc["weight_roulette"]["weight_target"]
+    if particle["w"] < simulation["weight_roulette"]["weight_threshold"]:
+        w_target = simulation["weight_roulette"]["weight_target"]
         survival_probability = particle["w"] / w_target
         if rng.lcg(particle_container) < survival_probability:
             particle["w"] = w_target
@@ -33,15 +33,15 @@ def weight_roulette(particle_container, mcdc):
 
 
 @njit
-def population_control(mcdc):
+def population_control(simulation):
     """Uniform Splitting-Roulette technique"""
 
-    bank_census = mcdc["bank_census"]
-    M = mcdc["settings"]["N_particle"]
-    bank_source = mcdc["bank_source"]
+    bank_census = simulation["bank_census"]
+    M = simulation["settings"]["N_particle"]
+    bank_source = simulation["bank_source"]
 
     # Scan the bank
-    idx_start, N_local, N = particle_bank_module.bank_scanning(bank_census, mcdc)
+    idx_start, N_local, N = particle_bank_module.bank_scanning(bank_census, simulation)
     idx_end = idx_start + N_local
 
     # Abort if census bank is empty
@@ -79,4 +79,4 @@ def population_control(mcdc):
             )
             # Set weight
             P_rec["w"] = w_survive
-            particle_bank_module.bank_source_particle(P_rec_arr, mcdc)
+            particle_bank_module.bank_source_particle(P_rec_arr, simulation)

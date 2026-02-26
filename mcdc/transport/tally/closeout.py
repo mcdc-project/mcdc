@@ -26,19 +26,19 @@ from mcdc.print_ import print_structure
 
 
 @njit
-def reduce(mcdc, data):
-    for tally in mcdc["tallies"]:
-        _reduce(tally, mcdc, data)
+def reduce(simulation, data):
+    for tally in simulation["tallies"]:
+        _reduce(tally, simulation, data)
 
 
 @njit
-def _reduce(tally, mcdc, data):
+def _reduce(tally, simulation, data):
     N = tally["bin_length"]
     start = tally["bin_offset"]
     end = start + N
 
     # Normalize
-    N_particle = mcdc["settings"]["N_particle"]
+    N_particle = simulation["settings"]["N_particle"]
     for i in range(N):
         data[start + i] /= N_particle
 
@@ -55,8 +55,8 @@ def _reduce(tally, mcdc, data):
 
 
 @njit
-def accumulate(mcdc, data):
-    for tally in mcdc["tallies"]:
+def accumulate(simulation, data):
+    for tally in simulation["tallies"]:
         _accumulate(tally, data)
 
 
@@ -91,15 +91,15 @@ def _accumulate(tally, data):
 
 
 @njit
-def finalize(mcdc, data):
-    for tally in mcdc["tallies"]:
-        _finalize(tally, mcdc, data)
+def finalize(simulation, data):
+    for tally in simulation["tallies"]:
+        _finalize(tally, simulation, data)
 
 
 @njit
-def _finalize(tally, mcdc, data):
-    N_history = mcdc["settings"]["N_particle"]
-    N_batch = mcdc["settings"]["N_batch"]
+def _finalize(tally, simulation, data):
+    N_history = simulation["settings"]["N_particle"]
+    N_batch = simulation["settings"]["N_batch"]
     N_bin = tally["bin_length"]
     sum_start = tally["bin_sum_offset"]
     sum_sq_start = tally["bin_sum_square_offset"]
@@ -109,8 +109,8 @@ def _finalize(tally, mcdc, data):
     if N_batch > 1:
         N_history = N_batch
 
-    elif mcdc["settings"]["eigenvalue_mode"]:
-        N_history = mcdc["settings"]["N_active"]
+    elif simulation["settings"]["eigenvalue_mode"]:
+        N_history = simulation["settings"]["N_active"]
 
     else:
         # MPI Reduce
@@ -147,8 +147,8 @@ def _finalize(tally, mcdc, data):
 
 
 @njit
-def reset_sum_bins(mcdc, data):
-    for tally in mcdc["tallies"]:
+def reset_sum_bins(simulation, data):
+    for tally in simulation["tallies"]:
         _reset_sum_bins(tally, data)
 
 
@@ -169,9 +169,9 @@ def _reset_sum_bins(tally, data):
 
 
 @njit
-def eigenvalue_cycle(mcdc, data):
-    idx_cycle = mcdc["idx_cycle"]
-    N_particle = mcdc["settings"]["N_particle"]
+def eigenvalue_cycle(simulation, data):
+    idx_cycle = simulation["idx_cycle"]
+    N_particle = simulation["settings"]["N_particle"]
 
     # MPI Allreduce
     buff_nuSigmaF = np.zeros(1, np.float64)
@@ -181,64 +181,68 @@ def eigenvalue_cycle(mcdc, data):
     buff_Cmax = np.zeros(1, np.float64)
     with objmode():
         MPI.COMM_WORLD.Allreduce(
-            np.array(mcdc["eigenvalue_tally_nuSigmaF"]), buff_nuSigmaF, MPI.SUM
+            np.array(simulation["eigenvalue_tally_nuSigmaF"]), buff_nuSigmaF, MPI.SUM
         )
-        if mcdc["cycle_active"]:
+        if simulation["cycle_active"]:
             MPI.COMM_WORLD.Allreduce(
-                np.array(mcdc["eigenvalue_tally_n"]), buff_n, MPI.SUM
+                np.array(simulation["eigenvalue_tally_n"]), buff_n, MPI.SUM
             )
-            MPI.COMM_WORLD.Allreduce(np.array([mcdc["n_max"]]), buff_nmax, MPI.MAX)
             MPI.COMM_WORLD.Allreduce(
-                np.array(mcdc["eigenvalue_tally_C"]), buff_C, MPI.SUM
+                np.array([simulation["n_max"]]), buff_nmax, MPI.MAX
             )
-            MPI.COMM_WORLD.Allreduce(np.array([mcdc["C_max"]]), buff_Cmax, MPI.MAX)
+            MPI.COMM_WORLD.Allreduce(
+                np.array(simulation["eigenvalue_tally_C"]), buff_C, MPI.SUM
+            )
+            MPI.COMM_WORLD.Allreduce(
+                np.array([simulation["C_max"]]), buff_Cmax, MPI.MAX
+            )
 
     # Update and store k_eff
-    mcdc["k_eff"] = buff_nuSigmaF[0] / N_particle
-    mcdc_set.simulation.k_cycle(idx_cycle, mcdc, data, value=mcdc["k_eff"])
+    simulation["k_eff"] = buff_nuSigmaF[0] / N_particle
+    mcdc_set.simulation.k_cycle(idx_cycle, simulation, data, value=simulation["k_eff"])
 
     # Normalize other eigenvalue/global tallies
     tally_n = buff_n[0] / N_particle
     tally_C = buff_C[0] / N_particle
 
     # Maximum densities
-    mcdc["n_max"] = buff_nmax[0]
-    mcdc["C_max"] = buff_Cmax[0]
+    simulation["n_max"] = buff_nmax[0]
+    simulation["C_max"] = buff_Cmax[0]
 
     # Accumulate running average
-    if mcdc["cycle_active"]:
-        mcdc["k_avg"] += mcdc["k_eff"]
-        mcdc["k_sdv"] += mcdc["k_eff"] * mcdc["k_eff"]
-        mcdc["n_avg"] += tally_n
-        mcdc["n_sdv"] += tally_n * tally_n
-        mcdc["C_avg"] += tally_C
-        mcdc["C_sdv"] += tally_C * tally_C
+    if simulation["cycle_active"]:
+        simulation["k_avg"] += simulation["k_eff"]
+        simulation["k_sdv"] += simulation["k_eff"] * simulation["k_eff"]
+        simulation["n_avg"] += tally_n
+        simulation["n_sdv"] += tally_n * tally_n
+        simulation["C_avg"] += tally_C
+        simulation["C_sdv"] += tally_C * tally_C
 
-        N = 1 + mcdc["idx_cycle"] - mcdc["settings"]["N_inactive"]
-        mcdc["k_avg_running"] = mcdc["k_avg"] / N
+        N = 1 + simulation["idx_cycle"] - simulation["settings"]["N_inactive"]
+        simulation["k_avg_running"] = simulation["k_avg"] / N
         if N == 1:
-            mcdc["k_sdv_running"] = 0.0
+            simulation["k_sdv_running"] = 0.0
         else:
-            mcdc["k_sdv_running"] = math.sqrt(
-                (mcdc["k_sdv"] / N - mcdc["k_avg_running"] ** 2) / (N - 1)
+            simulation["k_sdv_running"] = math.sqrt(
+                (simulation["k_sdv"] / N - simulation["k_avg_running"] ** 2) / (N - 1)
             )
 
     # Reset accumulators
-    mcdc["eigenvalue_tally_nuSigmaF"][0] = 0.0
-    mcdc["eigenvalue_tally_n"][0] = 0.0
-    mcdc["eigenvalue_tally_C"][0] = 0.0
+    simulation["eigenvalue_tally_nuSigmaF"][0] = 0.0
+    simulation["eigenvalue_tally_n"][0] = 0.0
+    simulation["eigenvalue_tally_C"][0] = 0.0
 
     # =====================================================================
     # Gyration radius
     # =====================================================================
 
-    if mcdc["settings"]["use_gyration_radius"]:
+    if simulation["settings"]["use_gyration_radius"]:
         # Center of mass
-        N_local = particle_bank_module.get_bank_size(mcdc["bank_census"])
+        N_local = particle_bank_module.get_bank_size(simulation["bank_census"])
         total_local = np.zeros(4, np.float64)  # [x,y,z,W]
         total = np.zeros(4, np.float64)
         for i in range(N_local):
-            P = mcdc["bank_census"]["particles"][i]
+            P = simulation["bank_census"]["particles"][i]
             total_local[0] += P["x"] * P["w"]
             total_local[1] += P["y"] * P["w"]
             total_local[2] += P["z"] * P["w"]
@@ -255,10 +259,10 @@ def eigenvalue_cycle(mcdc, data):
         # Distance RMS
         rms_local = np.zeros(1, np.float64)
         rms = np.zeros(1, np.float64)
-        gr_type = mcdc["settings"]["gyration_radius_type"]
+        gr_type = simulation["settings"]["gyration_radius_type"]
         if gr_type == GYRATION_RADIUS_ALL:
             for i in range(N_local):
-                P = mcdc["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particles"][i]
                 rms_local[0] += (
                     (P["x"] - com_x) ** 2
                     + (P["y"] - com_y) ** 2
@@ -266,27 +270,27 @@ def eigenvalue_cycle(mcdc, data):
                 ) * P["w"]
         elif gr_type == GYRATION_RADIUS_INFINITE_X:
             for i in range(N_local):
-                P = mcdc["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particles"][i]
                 rms_local[0] += ((P["y"] - com_y) ** 2 + (P["z"] - com_z) ** 2) * P["w"]
         elif gr_type == GYRATION_RADIUS_INFINITE_Y:
             for i in range(N_local):
-                P = mcdc["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particles"][i]
                 rms_local[0] += ((P["x"] - com_x) ** 2 + (P["z"] - com_z) ** 2) * P["w"]
         elif gr_type == GYRATION_RADIUS_INFINITE_Z:
             for i in range(N_local):
-                P = mcdc["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particles"][i]
                 rms_local[0] += ((P["x"] - com_x) ** 2 + (P["y"] - com_y) ** 2) * P["w"]
         elif gr_type == GYRATION_RADIUS_ONLY_X:
             for i in range(N_local):
-                P = mcdc["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particles"][i]
                 rms_local[0] += ((P["x"] - com_x) ** 2) * P["w"]
         elif gr_type == GYRATION_RADIUS_ONLY_Y:
             for i in range(N_local):
-                P = mcdc["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particles"][i]
                 rms_local[0] += ((P["y"] - com_y) ** 2) * P["w"]
         elif gr_type == GYRATION_RADIUS_ONLY_Z:
             for i in range(N_local):
-                P = mcdc["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particles"][i]
                 rms_local[0] += ((P["z"] - com_z) ** 2) * P["w"]
 
         # MPI Allreduce
@@ -295,17 +299,21 @@ def eigenvalue_cycle(mcdc, data):
         rms = math.sqrt(rms[0] / W)
 
         # Gyration radius
-        mcdc_set.simulation.gyration_radius(idx_cycle, mcdc, data, value=rms)
+        mcdc_set.simulation.gyration_radius(idx_cycle, simulation, data, value=rms)
 
 
 @njit
-def eigenvalue_simulation(mcdc):
-    N = mcdc["settings"]["N_active"]
-    mcdc["n_avg"] /= N
-    mcdc["C_avg"] /= N
+def eigenvalue_simulation(simulation):
+    N = simulation["settings"]["N_active"]
+    simulation["n_avg"] /= N
+    simulation["C_avg"] /= N
     if N > 1:
-        mcdc["n_sdv"] = math.sqrt((mcdc["n_sdv"] / N - mcdc["n_avg"] ** 2) / (N - 1))
-        mcdc["C_sdv"] = math.sqrt((mcdc["C_sdv"] / N - mcdc["C_avg"] ** 2) / (N - 1))
+        simulation["n_sdv"] = math.sqrt(
+            (simulation["n_sdv"] / N - simulation["n_avg"] ** 2) / (N - 1)
+        )
+        simulation["C_sdv"] = math.sqrt(
+            (simulation["C_sdv"] / N - simulation["C_avg"] ** 2) / (N - 1)
+        )
     else:
-        mcdc["n_sdv"] = 0.0
-        mcdc["C_sdv"] = 0.0
+        simulation["n_sdv"] = 0.0
+        simulation["C_sdv"] = 0.0

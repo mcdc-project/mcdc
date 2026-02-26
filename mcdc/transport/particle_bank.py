@@ -58,23 +58,23 @@ def _bank_particle(particle_container, bank):
 
 
 @njit
-def bank_active_particle(particle_container, mcdc):
-    _bank_particle(particle_container, mcdc["bank_active"])
+def bank_active_particle(particle_container, simulation):
+    _bank_particle(particle_container, simulation["bank_active"])
 
 
 @njit
-def bank_source_particle(particle_container, mcdc):
-    _bank_particle(particle_container, mcdc["bank_source"])
+def bank_source_particle(particle_container, simulation):
+    _bank_particle(particle_container, simulation["bank_source"])
 
 
 @njit
-def bank_census_particle(particle_container, mcdc):
-    _bank_particle(particle_container, mcdc["bank_census"])
+def bank_census_particle(particle_container, simulation):
+    _bank_particle(particle_container, simulation["bank_census"])
 
 
 @njit
-def bank_future_particle(particle_container, mcdc):
-    _bank_particle(particle_container, mcdc["bank_future"])
+def bank_future_particle(particle_container, simulation):
+    _bank_particle(particle_container, simulation["bank_future"])
 
 
 @njit
@@ -117,13 +117,13 @@ def report_empty_bank(bank):
 
 
 @njit
-def promote_future_particles(mcdc, data):
+def promote_future_particles(simulation, data):
     # Get the banks
-    future_bank = mcdc["bank_future"]
+    future_bank = simulation["bank_future"]
 
     # Get the next census time
-    idx = mcdc["idx_census"] + 1
-    next_census_time = mcdc_get.settings.census_time(idx, mcdc["settings"], data)
+    idx = simulation["idx_census"] + 1
+    next_census_time = mcdc_get.settings.census_time(idx, simulation["settings"], data)
 
     # Particle container
     particle_container = np.zeros(1, type_.particle_data)
@@ -141,7 +141,7 @@ def promote_future_particles(mcdc, data):
 
         # Promote the future particle to census bank
         if particle["t"] < next_census_time:
-            bank_census_particle(particle_container, mcdc)
+            bank_census_particle(particle_container, simulation)
             add_bank_size(future_bank, -1)
 
             # Consolidate the emptied space in the future bank
@@ -158,9 +158,9 @@ def promote_future_particles(mcdc, data):
 
 
 @njit
-def manage_particle_banks(mcdc):
-    master = mcdc["mpi_master"]
-    serial = mcdc["mpi_size"] == 1
+def manage_particle_banks(simulation):
+    master = simulation["mpi_master"]
+    serial = simulation["mpi_size"] == 1
 
     # TIMER: bank management
     if master:
@@ -168,19 +168,21 @@ def manage_particle_banks(mcdc):
             time_start = MPI.Wtime()
 
     # Reset source bank
-    set_bank_size(mcdc["bank_source"], 0)
+    set_bank_size(simulation["bank_source"], 0)
 
     # Normalize weight
-    if mcdc["settings"]["eigenvalue_mode"]:
-        normalize_weight(mcdc["bank_census"], mcdc["settings"]["N_particle"])
+    if simulation["settings"]["eigenvalue_mode"]:
+        normalize_weight(
+            simulation["bank_census"], simulation["settings"]["N_particle"]
+        )
 
     # Population control
-    if mcdc["population_control"]["active"]:
-        technique.population_control(mcdc)
+    if simulation["population_control"]["active"]:
+        technique.population_control(simulation)
     else:
         # Swap census and source bank
-        source_bank = mcdc["bank_source"]
-        census_bank = mcdc["bank_census"]
+        source_bank = simulation["bank_source"]
+        census_bank = simulation["bank_census"]
 
         size = get_bank_size(census_bank)
         if size >= source_bank["particles"].shape[0]:
@@ -192,18 +194,18 @@ def manage_particle_banks(mcdc):
 
     # Redistribute work and rebalance bank size across MPI ranks
     if serial:
-        mpi.distribute_work(get_bank_size(mcdc["bank_source"]), mcdc)
+        mpi.distribute_work(get_bank_size(simulation["bank_source"]), simulation)
     else:
-        bank_rebalance(mcdc)
+        bank_rebalance(simulation)
 
     # Reset census bank
-    set_bank_size(mcdc["bank_census"], 0)
+    set_bank_size(simulation["bank_census"], 0)
 
     # TIMER: bank management
     if master:
         with objmode(time_end="float64"):
             time_end = MPI.Wtime()
-        mcdc["runtime_bank_management"] += time_end - time_start
+        simulation["runtime_bank_management"] += time_end - time_start
 
 
 # ======================================================================================
@@ -212,25 +214,25 @@ def manage_particle_banks(mcdc):
 
 
 @njit
-def bank_rebalance(mcdc):
+def bank_rebalance(simulation):
     # Scan the bank
-    idx_start, N_local, N = bank_scanning(mcdc["bank_source"], mcdc)
+    idx_start, N_local, N = bank_scanning(simulation["bank_source"], simulation)
     idx_end = idx_start + N_local
-    mpi.distribute_work(N, mcdc)
+    mpi.distribute_work(N, simulation)
 
     # Abort if source bank is empty
     if N == 0:
         return
 
     # Rebalance not needed if there is only one rank
-    if mcdc["mpi_size"] <= 1:
+    if simulation["mpi_size"] <= 1:
         return
 
     # Some constants
-    work_start = mcdc["mpi_work_start"]
-    work_end = work_start + mcdc["mpi_work_size"]
-    left = mcdc["mpi_rank"] - 1
-    right = mcdc["mpi_rank"] + 1
+    work_start = simulation["mpi_work_start"]
+    work_end = work_start + simulation["mpi_work_size"]
+    left = simulation["mpi_rank"] - 1
+    right = simulation["mpi_rank"] + 1
 
     # Flags if need to receive from or sent to the neighbors
     send_to_left = idx_start < work_start
@@ -247,13 +249,13 @@ def bank_rebalance(mcdc):
 
     # MPI nearest-neighbor send/receive
     buff = np.zeros(
-        mcdc["bank_source"]["particles"].shape[0], dtype=type_.particle_data
+        simulation["bank_source"]["particles"].shape[0], dtype=type_.particle_data
     )
 
     with objmode(size="int64"):
         # Create MPI-supported numpy object
-        size = get_bank_size(mcdc["bank_source"])
-        bank = np.array(mcdc["bank_source"]["particles"][:size])
+        size = get_bank_size(simulation["bank_source"])
+        bank = np.array(simulation["bank_source"]["particles"][:size])
 
         if receive_first:
             if receive_from_left:
@@ -289,9 +291,9 @@ def bank_rebalance(mcdc):
             buff[i] = bank[i]
 
     # Set source bank from buffer
-    set_bank_size(mcdc["bank_source"], size)
+    set_bank_size(simulation["bank_source"], size)
     for i in range(size):
-        mcdc["bank_source"]["particles"][i] = buff[i]
+        simulation["bank_source"]["particles"][i] = buff[i]
 
 
 # ======================================================================================
@@ -300,7 +302,7 @@ def bank_rebalance(mcdc):
 
 
 @njit
-def bank_scanning(bank, mcdc):
+def bank_scanning(bank, simulation):
     N_local = get_bank_size(bank)
 
     # Starting index
@@ -312,14 +314,14 @@ def bank_scanning(bank, mcdc):
     # Global size
     buff[0] += N_local
     with objmode():
-        MPI.COMM_WORLD.Bcast(buff, mcdc["mpi_size"] - 1)
+        MPI.COMM_WORLD.Bcast(buff, simulation["mpi_size"] - 1)
     N_global = buff[0]
 
     return idx_start, N_local, N_global
 
 
 @njit
-def bank_scanning_weight(bank, mcdc):
+def bank_scanning_weight(bank, simulation):
     # Local weight CDF
     N_local = get_bank_size(bank)
     w_cdf = np.zeros(N_local + 1)
@@ -337,7 +339,7 @@ def bank_scanning_weight(bank, mcdc):
     # Global weight
     buff[0] = w_cdf[-1]
     with objmode():
-        MPI.COMM_WORLD.Bcast(buff, mcdc["mpi_size"] - 1)
+        MPI.COMM_WORLD.Bcast(buff, simulation["mpi_size"] - 1)
     W_global = buff[0]
 
     return w_start, w_cdf, W_global

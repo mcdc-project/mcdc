@@ -21,9 +21,9 @@ def run():
     time_total_start = MPI.Wtime()
 
     # Get settings and MPI master status
-    from mcdc.object_.simulation import simulation
+    from mcdc.object_.simulation import simulation as simulationPy
 
-    settings = simulation.settings
+    settings = simulationPy.settings
     master = MPI.COMM_WORLD.Get_rank() == 0
 
     # Override settings with command-line arguments
@@ -46,14 +46,15 @@ def run():
     time_prep_start = MPI.Wtime()
 
     # Generate the program state:
-    #   - `mcdc`: the simulation structure, storing fixed side data and meta data
+    #   - `simulation`: the simulation, storing fixed side data and meta data that
+    #                   describes arbitrarily-sized data
     #   - `data`: a long 1D array storing arbitrarily-sized data of the simulation
-    # NOTE: The simulation structure needs to be generated in a container, which is a
+    # NOTE: The simulation structure to be generated in a container, which is a
     #       a one-sized array that stores the structure. The container is needed to
     #       ensure proper mutability and tracking of the structure when running in
-    #       different kinds of machines supported.
-    mcdc_container, data = preparation()
-    mcdc = mcdc_container[0]
+    #       different kinds of machines supported by the Numba compilation framework.
+    simulation_container, data = preparation()
+    simulation = simulation_container[0]
 
     # Print headers
     if master:
@@ -61,7 +62,7 @@ def run():
         print_module.print_configuration()
         print(" Now running the particle transport...")
         if settings.eigenvalue_mode:
-            print_module.print_eigenvalue_header(mcdc)
+            print_module.print_eigenvalue_header(simulation)
 
     # TIMER: preparation
     time_prep_end = MPI.Wtime()
@@ -77,9 +78,9 @@ def run():
     import mcdc.transport.simulation as simulation_module
 
     if settings.eigenvalue_mode:
-        simulation_module.eigenvalue_simulation(mcdc_container, data)
+        simulation_module.eigenvalue_simulation(simulation_container, data)
     else:
-        simulation_module.fixed_source_simulation(mcdc_container, data)
+        simulation_module.fixed_source_simulation(simulation_container, data)
 
     # TIMER: simulation
     time_simulation_end = MPI.Wtime()
@@ -94,7 +95,7 @@ def run():
     time_output_start = MPI.Wtime()
 
     # Generate hdf5 output file
-    output_module.generate_output(mcdc, data)
+    output_module.generate_output(simulation, data)
 
     # TIMER: output
     time_output_end = MPI.Wtime()
@@ -106,13 +107,13 @@ def run():
     time_total_end = MPI.Wtime()
 
     # Manage timers
-    mcdc["runtime_total"] = time_total_end - time_total_start
-    mcdc["runtime_preparation"] = time_prep_end - time_prep_start
-    mcdc["runtime_simulation"] = time_simulation_end - time_simulation_start
-    mcdc["runtime_output"] = time_output_end - time_output_start
-    output_module.create_runtime_datasets(mcdc)
+    simulation["runtime_total"] = time_total_end - time_total_start
+    simulation["runtime_preparation"] = time_prep_end - time_prep_start
+    simulation["runtime_simulation"] = time_simulation_end - time_simulation_start
+    simulation["runtime_output"] = time_output_end - time_output_start
+    output_module.create_runtime_datasets(simulation)
     if master:
-        print_module.print_runtime(mcdc)
+        print_module.print_runtime(simulation)
 
     # ==================================================================================
     # Finalizing
@@ -122,7 +123,7 @@ def run():
     if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import teardown_gpu_program
 
-        teardown_gpu_program(mcdc)
+        teardown_gpu_program(simulation)
 
 
 # ======================================================================================
@@ -135,7 +136,7 @@ def preparation():
 
     from mpi4py import MPI
 
-    from mcdc.object_.simulation import simulation
+    from mcdc.object_.simulation import simulation as simulationPy
     from mcdc.object_.material import MaterialMG
 
     # ==================================================================================
@@ -143,18 +144,18 @@ def preparation():
     # ==================================================================================
 
     # Get settings
-    settings = simulation.settings
+    settings = simulationPy.settings
 
     # Set physics mode
-    if len(simulation.materials) == 0:
+    if len(simulationPy.materials) == 0:
         # Default physics in dummy mode
         settings.multigroup_mode = True
     else:
-        settings.multigroup_mode = isinstance(simulation.materials[0], MaterialMG)
+        settings.multigroup_mode = isinstance(simulationPy.materials[0], MaterialMG)
 
     # Set appropriate time boundary
     settings.time_boundary = min(
-        [settings.time_boundary] + [tally.time[-1] for tally in simulation.tallies]
+        [settings.time_boundary] + [tally.time[-1] for tally in simulationPy.tallies]
     )
 
     # ==================================================================================
@@ -164,29 +165,29 @@ def preparation():
     # Reset time grid size of all tallies if census-based tally is desired
     if settings.use_census_based_tally:
         N_bin = settings.census_tally_frequency
-        for tally in simulation.tallies:
+        for tally in simulationPy.tallies:
             tally._use_census_based_tally(N_bin)
 
     # Normalize source probability
     norm = 0.0
-    for source in simulation.sources:
+    for source in simulationPy.sources:
         norm += source.probability
-    for source in simulation.sources:
+    for source in simulationPy.sources:
         source.probability /= norm
 
     # Create root universe if not defined
-    if len(simulation.universes[0].cells) == 0:
-        simulation.universes[0].cells = simulation.cells
+    if len(simulationPy.universes[0].cells) == 0:
+        simulationPy.universes[0].cells = simulationPy.cells
 
     # Initial guess
-    simulation.k_eff = settings.k_init
+    simulationPy.k_eff = settings.k_init
 
     # Activate tally scoring for fixed-source
     if not settings.eigenvalue_mode:
-        simulation.cycle_active = True
+        simulationPy.cycle_active = True
     # All active eigenvalue cycle?
     elif settings.N_inactive == 0:
-        simulation.cycle_active = True
+        simulationPy.cycle_active = True
 
     # ==================================================================================
     # Set particle bank sizes
@@ -209,10 +210,10 @@ def preparation():
     size_future = int((settings.future_bank_buffer_ratio) * N_work)
 
     # Set bank size
-    simulation.bank_active.size[0] = size_active
-    simulation.bank_census.size[0] = size_census
-    simulation.bank_source.size[0] = size_source
-    simulation.bank_future.size[0] = size_future
+    simulationPy.bank_active.size[0] = size_active
+    simulationPy.bank_census.size[0] = size_census
+    simulationPy.bank_source.size[0] = size_source
+    simulationPy.bank_future.size[0] = size_future
 
     # ==================================================================================
     # Generate Numba-supported "Objects"
@@ -223,9 +224,9 @@ def preparation():
     if MPI.COMM_WORLD.Get_rank() == 0:
         from mcdc.code_factory.numba_objects_generator import make_literals
 
-        make_literals(simulation)
-    mcdc_container, data = generate_numba_objects(simulation)
-    mcdc = mcdc_container[0]
+        make_literals(simulationPy)
+    simulation_container, data = generate_numba_objects(simulationPy)
+    simulation = simulation_container[0]
 
     # Reload mcdc getters and setters
     import importlib
@@ -269,24 +270,24 @@ def preparation():
     import h5py
 
     # All ranks, take turn
-    for i in range(mcdc["mpi_size"]):
-        if mcdc["mpi_rank"] == i:
+    for i in range(simulation["mpi_size"]):
+        if simulation["mpi_rank"] == i:
             if settings.use_source_file:
                 with h5py.File(settings.source_file_name, "r") as f:
                     # Get source particle size
                     N_particle = f["particles_size"][()]
 
                     # Redistribute work
-                    mpi.distribute_work(N_particle, mcdc)
-                    N_local = mcdc["mpi_work_size"]
-                    start = mcdc["mpi_work_start"]
+                    mpi.distribute_work(N_particle, simulation)
+                    N_local = simulation["mpi_work_size"]
+                    start = simulation["mpi_work_start"]
                     end = start + N_local
 
                     # Add particles to source bank
-                    mcdc["bank_source"]["particles"][:N_local] = f["particles"][
+                    simulation["bank_source"]["particles"][:N_local] = f["particles"][
                         start:end
                     ]
-                    mcdc["bank_source"]["size"] = N_local
+                    simulation["bank_source"]["size"] = N_local
         MPI.COMM_WORLD.Barrier()
 
     # ==================================================================================
@@ -303,4 +304,4 @@ def preparation():
     # Finalize
     # ==================================================================================
 
-    return mcdc_container, data
+    return simulation_container, data
