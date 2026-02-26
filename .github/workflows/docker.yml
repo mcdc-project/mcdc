@@ -15,9 +15,9 @@ name: Docker Build, Test, and Publish
 
 on:
   push:
-    branches: [dev, main]
+    branches: [dev, main, feature/build-infrastructure]
   pull_request:
-    branches: [dev, main]
+    branches: [dev, main, feature/build-infrastructure]
 
 env:
   REGISTRY: ghcr.io
