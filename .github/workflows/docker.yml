@@ -184,13 +184,15 @@ jobs:
         run: docker load -i /tmp/mcdc-image.tar
 
       - name: Login to GitHub Container Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag and push image
+      - name: Push to registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
         run: |
           BRANCH=${{ github.ref_name }}
           DATE=$(date +%Y-%m-%d)
@@ -202,6 +204,4 @@ jobs:
           docker push ${FULL_IMAGE}:${BRANCH}
           docker push ${FULL_IMAGE}:${BRANCH}-${DATE}
 
-          echo "### Published Docker Images" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${FULL_IMAGE}:${BRANCH}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${FULL_IMAGE}:${BRANCH}-${DATE}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Pushed: ${{ env.BRANCH_NAME }} and ${{ env.BRANCH_NAME }}-${DATE}"
