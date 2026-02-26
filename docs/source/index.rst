@@ -57,6 +57,7 @@ Contents
 
    install
    user/index
+   pythonapi/index
    examples/index
 
 .. toctree::
@@ -65,7 +66,6 @@ Contents
 
    contribution/index
    theory/index
-   pythonapi/index
 
 .. toctree::
    :maxdepth: 1

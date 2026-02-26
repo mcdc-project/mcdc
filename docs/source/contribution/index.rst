@@ -28,6 +28,7 @@ Development Guidelines
    
    documentation.rst
    ci.rst
+   container-dev.rst
 
 Check out the :doc:`documentation` guide for info on how to contribute to these docs.
 We understand that documenting code is often a lower priority than the code itself, but it goes a long way towards usability and maintainability.

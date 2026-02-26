@@ -9,8 +9,8 @@ General
 
 **What Python versions does MC/DC support?**
 
-MC/DC is tested with Python 3.10, 3.11, and 3.12.
-We recommend Python 3.12 for the best performance and compatibility with Numba.
+MC/DC supports Python ``>3.10``.
+We recommend Python 3.11 for the best performance and compatibility with Numba.
 
 **What platforms are supported?**
 
@@ -52,7 +52,7 @@ Due to export controls they cannot be publicly distributed.
 If you need cross-section data, we recommend using
 `OpenMC <https://docs.openmc.org>`_ or `NJOY <http://www.njoy21.io/>`_ to generate it,
 then converting to MC/DC format with the tool in ``tools/data_library_generator/``.
-See :ref:`install:Configuring Continuous Energy Library` for setup instructions.
+See :ref:`install-data-library` for setup instructions.
 
 Installation
 ------------

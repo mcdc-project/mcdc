@@ -34,5 +34,3 @@ Help & Support
 
    faq
    troubleshooting
-
-

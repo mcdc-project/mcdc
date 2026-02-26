@@ -34,7 +34,7 @@ as well as many university and national lab clusters.
    #SBATCH --time=01:00:00
    #SBATCH --partition=pbatch
 
-   module load python/3.12
+   module load python/3.11
    source /path/to/your/venv/bin/activate
 
    srun python input.py --mode=numba --caching
@@ -51,7 +51,7 @@ as well as many university and national lab clusters.
    #SBATCH --time=00:30:00
    #SBATCH --partition=gpu
 
-   module load python/3.12 cuda/11.8
+   module load python/3.11 cuda/11.8
    source /path/to/your/venv/bin/activate
 
    srun python input.py --mode=numba --target=gpu --gpu_strategy=event
@@ -69,7 +69,7 @@ El Capitan systems (AMD MI250X / MI300A GPUs).
 
    #!/bin/bash
 
-   module load cray-mpich python/3.12
+   module load cray-mpich python/3.11
    source /path/to/your/venv/bin/activate
 
    flux run -N 2 -n 72 python input.py --mode=numba --caching
@@ -80,7 +80,7 @@ El Capitan systems (AMD MI250X / MI300A GPUs).
 
    #!/bin/bash
 
-   module load cray-mpich rocm/6.0.0 python/3.12
+   module load cray-mpich rocm/6.0.0 python/3.11
    source /path/to/your/venv/bin/activate
 
    flux run -N 2 -n 8 -g 1 --queue=mi300a \
