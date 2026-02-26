@@ -1,13 +1,22 @@
+# =============================================================================
+# Docker Build, Test, and Publish
+# =============================================================================
+# Builds the CPU Docker image, runs the full test suite inside it,
+# and publishes to GHCR on pushes to main/dev (i.e., after PR merge).
+#
+# Publish trigger logic:
+#   - PRs        → build + test only (no publish)
+#   - Push to dev/main → build + test + publish
+#   When a PR is merged, GitHub fires a 'push' event on the target branch,
+#   which naturally triggers the publish path.
+# =============================================================================
+
 name: Docker Build, Test, and Publish
 
 on:
   push:
-    # Triggers build and test on direct pushes to these branches
     branches: [dev, main]
   pull_request:
-    # Triggers build and test when PR is opened/updated
-    # 'closed' is required to trigger the publish steps upon merge
-    types: [opened, synchronize, reopened, closed]
     branches: [dev, main]
 
 env:
@@ -15,68 +24,184 @@ env:
   IMAGE_NAME: cement-psaap/mcdc
 
 jobs:
-  docker-build-test:
-    name: Build, test, and publish Docker image
-    runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-      packages: write
+  # ---------------------------------------------------------------------------
+  # Stage 1: Build the image
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine image tag
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "IMAGE_TAG=${{ github.base_ref }}" >> $GITHUB_ENV
+          else
+            echo "IMAGE_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
+      - name: Build Docker image
+        run: |
+          docker build -f containers/Dockerfile -t mcdc:${{ env.IMAGE_TAG }} .
+
+      - name: Save image as artifact
+        run: |
+          docker save mcdc:${{ env.IMAGE_TAG }} -o /tmp/mcdc-image.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcdc-image
+          path: /tmp/mcdc-image.tar
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # Stage 2: Test suite (runs in parallel after build)
+  # ---------------------------------------------------------------------------
+  unit-test:
+    name: Unit tests (Docker)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine image tag
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "IMAGE_TAG=${{ github.base_ref }}" >> $GITHUB_ENV
+          else
+            echo "IMAGE_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mcdc-image
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load -i /tmp/mcdc-image.tar
+
+      - name: Verify MC/DC import
+        run: |
+          docker run --rm mcdc:${{ env.IMAGE_TAG }} python -c "import mcdc; print('MC/DC import OK')"
+
+      - name: Run unit tests
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/opt/mcdc \
+            -w /opt/mcdc/test/unit \
+            mcdc:${{ env.IMAGE_TAG }} python run.py
+
+  regression-test:
+    name: Regression – ${{ matrix.mode }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - Python-Serial
+          - Python-MPI
+          - Numba-Serial
+          - Numba-MPI
+        include:
+          - mode: Python-Serial
+            run_cmd: "python run.py --include_native_physics"
+            timeout: 10
+          - mode: Python-MPI
+            run_cmd: |
+              python run.py --include_native_physics --mpiexec=4
+              python run.py --include_native_physics --mpiexec=16 --name=slab_reed_dd_3d
+            timeout: 20
+          - mode: Numba-Serial
+            run_cmd: "python run.py --include_native_physics --mode numba"
+            timeout: 120
+          - mode: Numba-MPI
+            run_cmd: |
+              python run.py --include_native_physics --mode numba --mpiexec=4
+              python run.py --include_native_physics --mode numba --mpiexec=16 --name=slab_reed_dd_3d
+            timeout: 120
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # NEW STEP: Dynamically figure out the target branch name
-      - name: Determine branch name
+      - name: Determine image tag
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            # If it's a PR, get the branch the PR is targeting (e.g., main or dev)
-            echo "BRANCH_NAME=${{ github.base_ref }}" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ github.base_ref }}" >> $GITHUB_ENV
           else
-            # If it's a direct push, get the branch name that was pushed to
-            echo "BRANCH_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
           fi
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mcdc-image
+          path: /tmp
 
-      - name: Build Docker image
-        # Uses the dynamic BRANCH_NAME variable
+      - name: Load Docker image
+        run: docker load -i /tmp/mcdc-image.tar
+
+      - name: Fetch regression test data
+        working-directory: test/regression
         run: |
-          docker build -f containers/Dockerfile -t mcdc:${{ env.BRANCH_NAME }} .
+          git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
 
-      - name: Verify MC/DC imports correctly
-        run: |
-          docker run --rm mcdc:${{ env.BRANCH_NAME }} python -c "import mcdc; print('MC/DC import OK')"
-
-      - name: Run unit tests inside container
+      - name: Run regression tests (${{ matrix.mode }})
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/opt/mcdc \
-            -w /opt/mcdc/test/unit \
-            mcdc:${{ env.BRANCH_NAME }} python run.py
+            -w /opt/mcdc/test/regression \
+            mcdc:${{ env.IMAGE_TAG }} bash -c '${{ matrix.run_cmd }}'
+
+  # ---------------------------------------------------------------------------
+  # Stage 3: Publish (only on push to dev/main, after all tests pass)
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish to GHCR
+    needs: [unit-test, regression-test]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mcdc-image
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load -i /tmp/mcdc-image.tar
 
       - name: Login to GitHub Container Registry
-        if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push to registry
-        if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+      - name: Tag and push image
         run: |
+          BRANCH=${{ github.ref_name }}
           DATE=$(date +%Y-%m-%d)
+          FULL_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-          # Tag with the dynamic branch name
-          docker tag mcdc:${{ env.BRANCH_NAME }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}
-          # Tag with the dynamic branch name + date (archive)
-          docker tag mcdc:${{ env.BRANCH_NAME }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${DATE}
+          docker tag mcdc:${BRANCH} ${FULL_IMAGE}:${BRANCH}
+          docker tag mcdc:${BRANCH} ${FULL_IMAGE}:${BRANCH}-${DATE}
 
-          # Push both tags to the registry
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${DATE}
+          docker push ${FULL_IMAGE}:${BRANCH}
+          docker push ${FULL_IMAGE}:${BRANCH}-${DATE}
 
-          echo "Pushed: ${{ env.BRANCH_NAME }} and ${{ env.BRANCH_NAME }}-${DATE}"
+          echo "### Published Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${FULL_IMAGE}:${BRANCH}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${FULL_IMAGE}:${BRANCH}-${DATE}\`" >> $GITHUB_STEP_SUMMARY
