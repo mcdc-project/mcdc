@@ -155,6 +155,17 @@ def get_distance(particle_container, surface):
     B = surface["B"]
     C = surface["C"]
 
+    # Coincident?
+    f = evaluate(particle_container, surface)
+    coincident = abs(f) < COINCIDENCE_TOLERANCE
+    if coincident:
+        # Moving away or tangent?
+        if (
+            get_normal_component(particle_container, surface)
+            >= 0.0 - COINCIDENCE_TOLERANCE
+        ):
+            return INF
+    
     # Shifting the origin point of the particle into the torus space, and treating the torus as centered on (0,0,0)
     x -= A
     y -= B
