@@ -20,7 +20,7 @@ from mcdc.constant import (
     SURFACE_PLANE_Z,
     SURFACE_QUADRIC,
     SURFACE_SPHERE,
-    SURFACE_TORUS_X,
+    SURFACE_TORUS_Z,
 )
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.cell import Region
@@ -149,11 +149,14 @@ class Surface(ObjectNonSingleton):
         self.H = 0.0
         self.I = 0.0
         self.J = 0.0
+
+        # Torus surface parameters
         self.R = 0.0
         self.r = 0.0
 
         # Helpers
         self.linear = True
+        
         # Surface normal direction (if linear)
         self.nx = 0.0
         self.ny = 0.0
@@ -609,7 +612,7 @@ class Surface(ObjectNonSingleton):
         return surface
 
     @classmethod
-    def TorusX(
+    def TorusZ(
         cls,
         name: str = "",
         A: float = 0.0,
@@ -735,8 +738,8 @@ def decode_type(type_):
         return "Sphere surface"
     elif type_ == SURFACE_QUADRIC:
         return "Quadric surface"
-    elif type_ == SURFACE_TORUS_X:
-        return "Torus-x surface"
+    elif type_ == SURFACE_TORUS_Z:
+        return "Torus-Z surface"
 
 
 def decode_BC_type(type_):
