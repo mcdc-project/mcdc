@@ -6,7 +6,7 @@ f(x, y, z) = ( sqrt[(x - A)^2 + (y - B)^2] - R )^2 + (z - C)^2 - r^2
 Where R is the radius of the shape as a whole, and r is the radius of the circle that is revolved to create the donut
 
 Removing the square roots leaves you with the following equation:
-f (x, y, z) = ( x^2 + y^2 + z^2 + R^2 - a^2 )^2 - 4R^2 * (x^2 + y^2)
+f (x, y, z) = ( x^2 + y^2 + z^2 + R^2 - r^2 )^2 - 4R^2 * (x^2 + y^2)
 """
 
 import math
@@ -97,13 +97,6 @@ def reflect(particle_container, surface):
     particle["ux"] -= c * nx
     particle["uy"] -= c * ny
     particle["uz"] -= c * nz
-
-    print("Directions: ", ux, uy, uz)
-    print("Derivitive Magnitude: ", norm)
-    print("Derivitives: ", dx, dy, dz)
-    print("C: ", c)
-    print("Normals: ", nx, ny, nz)
-    print(particle["ux"], particle["uy"], particle["uz"])
 
 
 @njit
