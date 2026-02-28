@@ -22,7 +22,6 @@ from mcdc.object_.data import DataTable
 from mcdc.object_.util import cdf_from_pdf, multi_cdf_from_pdf, cmf_from_pmf
 from mcdc.print_ import print_1d_array
 
-
 # ======================================================================================
 # Distribution base class
 # ======================================================================================

@@ -10,7 +10,6 @@ from mcdc.constant import INF, MESH_STRUCTURED, MESH_UNIFORM
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.print_ import print_1d_array
 
-
 # ======================================================================================
 # Mesh base class
 # ======================================================================================
@@ -59,6 +58,33 @@ def decode_type(type_):
 
 
 class MeshUniform(MeshBase):
+    """
+    Define a uniform rectilinear mesh.
+
+    Each axis is specified as ``(origin, width, N_bins)``.
+
+    Parameters
+    ----------
+    name : str, optional
+        User label.
+    x : tuple of (float, float, int), optional
+        ``(x0, dx, Nx)`` — origin, bin width, and number of bins along x.
+    y : tuple of (float, float, int), optional
+        ``(y0, dy, Ny)`` — origin, bin width, and number of bins along y.
+    z : tuple of (float, float, int), optional
+        ``(z0, dz, Nz)`` — origin, bin width, and number of bins along z.
+
+    Returns
+    -------
+    MeshUniform
+        The uniform mesh object.
+
+    See Also
+    --------
+    mcdc.MeshStructured : Creates a mesh with arbitrary bin edges.
+    mcdc.TallyMesh : Creates a tally on a mesh.
+    """
+
     # Annotations for Numba mode
     label: str = "uniform_mesh"
     #
@@ -110,6 +136,31 @@ class MeshUniform(MeshBase):
 
 
 class MeshStructured(MeshBase):
+    """
+    Define a structured rectilinear mesh with arbitrary bin edges.
+
+    Parameters
+    ----------
+    name : str, optional
+        User label.
+    x : array_like of float, optional
+        Bin edges along x (cm).
+    y : array_like of float, optional
+        Bin edges along y (cm).
+    z : array_like of float, optional
+        Bin edges along z (cm).
+
+    Returns
+    -------
+    MeshStructured
+        The structured mesh object.
+
+    See Also
+    --------
+    mcdc.MeshUniform : Creates a uniform mesh.
+    mcdc.TallyMesh : Creates a tally on a mesh.
+    """
+
     # Annotations for Numba mode
     label: str = "structured_mesh"
     #

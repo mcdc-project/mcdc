@@ -2,6 +2,8 @@ from numba import njit
 
 ####
 
+from mcdc.constant import COINCIDENCE_TOLERANCE, COINCIDENCE_TOLERANCE_TIME
+import mcdc.mcdc_get as mcdc_get
 import mcdc.transport.rng as rng
 
 from mcdc.transport.distribution import (
@@ -10,7 +12,9 @@ from mcdc.transport.distribution import (
     sample_pmf,
     sample_white_direction,
     sample_isotropic_direction,
+    sample_direction,
 )
+from mcdc.transport.util import find_bin
 
 
 @njit
@@ -49,6 +53,10 @@ def source_particle(P_rec_arr, seed, mcdc, data):
         ux = source["direction"][0]
         uy = source["direction"][1]
         uz = source["direction"][2]
+    else:
+        ux, uy, uz = sample_direction(
+            source["polar_cosine"], source["azimuthal"], source["direction"], P_rec_arr
+        )
 
     # Energy
     if mcdc["settings"]["multigroup_mode"]:
@@ -73,6 +81,27 @@ def source_particle(P_rec_arr, seed, mcdc, data):
         t = source["time"]
     else:
         t = sample_uniform(source["time_range"][0], source["time_range"][1], P_rec_arr)
+
+    # Motion translation
+    if source["moving"]:
+        # Get moving interval index wrt the given time
+        time_grid = mcdc_get.source.move_time_grid_all(source, data)
+        idx = find_bin(t, time_grid, epsilon=COINCIDENCE_TOLERANCE_TIME, go_lower=False)
+
+        # Coinciding cases
+        if abs(time_grid[idx + 1] - t) < COINCIDENCE_TOLERANCE:
+            idx += 1
+
+        # Surface move translations, velocities, and time grid
+        trans_0 = mcdc_get.surface.move_translations_vector(idx, source, data)
+        time_0 = mcdc_get.surface.move_time_grid(idx, source, data)
+        V = mcdc_get.surface.move_velocities_vector(idx, source, data)
+
+        # Translate the particle
+        t_local = t - time_0
+        x += trans_0[0] + V[0] * t_local
+        y += trans_0[1] + V[1] * t_local
+        z += trans_0[2] + V[2] * t_local
 
     # Make and return particle
     P_rec["x"] = x

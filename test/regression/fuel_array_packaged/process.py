@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import h5py, sys
 import numpy as np
 
-
 # Load result
 with h5py.File(sys.argv[1], "r") as f:
     x = f["tallies/mesh_tally_0/grid/x"][:]

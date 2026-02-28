@@ -3,7 +3,6 @@ import numpy as np
 
 from numba import uint64, njit
 
-
 # ======================================================================================
 # Random number generator
 #   LCG with hash seed-split

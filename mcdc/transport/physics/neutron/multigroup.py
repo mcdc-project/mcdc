@@ -5,7 +5,6 @@ from numba import njit
 
 ####
 
-import mcdc.code_factory.adapt as adapt
 import mcdc.mcdc_get as mcdc_get
 import mcdc.numba_types as type_
 import mcdc.transport.particle as particle_module
@@ -23,7 +22,6 @@ from mcdc.constant import (
 )
 from mcdc.transport.physics.util import scatter_direction
 from mcdc.transport.distribution import sample_isotropic_direction
-
 
 # ======================================================================================
 # Particle attributes
@@ -103,9 +101,8 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
 
 
 @njit
-def collision(particle_container, prog, data):
+def collision(particle_container, mcdc, data):
     particle = particle_container[0]
-    mcdc = adapt.mcdc_global(prog)
 
     # Get the reaction cross-sections
     SigmaT = macro_xs(REACTION_TOTAL, particle_container, mcdc, data)
@@ -124,11 +121,11 @@ def collision(particle_container, prog, data):
     xi = rng.lcg(particle_container) * SigmaT
     total = SigmaS
     if total > xi:
-        scattering(particle_container, prog, data)
+        scattering(particle_container, mcdc, data)
     else:
         total += SigmaF
         if total > xi:
-            fission(particle_container, prog, data)
+            fission(particle_container, mcdc, data)
         else:
             particle["alive"] = False
 
@@ -139,9 +136,7 @@ def collision(particle_container, prog, data):
 
 
 @njit
-def scattering(particle_container, prog, data):
-    mcdc = adapt.mcdc_global(prog)
-
+def scattering(particle_container, mcdc, data):
     # Particle attributes
     particle = particle_container[0]
     g = particle["g"]
@@ -212,12 +207,11 @@ def scattering(particle_container, prog, data):
             particle["E"] = particle_new["E"]
             particle["w"] = particle_new["w"]
         else:
-            particle_bank_module.add_active(particle_container_new, prog)
+            particle_bank_module.bank_active_particle(particle_container_new, mcdc)
 
 
 @njit
-def fission(particle_container, prog, data):
-    mcdc = adapt.mcdc_global(prog)
+def fission(particle_container, mcdc, data):
     settings = mcdc["settings"]
 
     # Particle properties
@@ -306,7 +300,7 @@ def fission(particle_container, prog, data):
 
         # Eigenvalue mode: bank right away
         if settings["eigenvalue_mode"]:
-            particle_bank_module.add_census(particle_container_new, prog)
+            particle_bank_module.bank_census_particle(particle_container_new, mcdc)
             continue
         # Below is only relevant for fixed-source problem
 
@@ -341,14 +335,14 @@ def fission(particle_container, prog, data):
                 particle["E"] = particle_new["E"]
                 particle["w"] = particle_new["w"]
             else:
-                particle_bank_module.add_active(particle_container_new, prog)
+                particle_bank_module.bank_active_particle(particle_container_new, mcdc)
 
         # Hit future census --> add to future bank
         elif hit_future_census:
             # Particle will participate in the future
-            particle_bank_module.add_future(particle_container_new, prog)
+            particle_bank_module.bank_future_particle(particle_container_new, mcdc)
 
         # Hit current census --> add to census bank
         else:
             # Particle will participate after the current census is completed
-            particle_bank_module.add_census(particle_container_new, prog)
+            particle_bank_module.bank_census_particle(particle_container_new, mcdc)

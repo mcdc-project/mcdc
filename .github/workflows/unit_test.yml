@@ -8,7 +8,6 @@ jobs:
   unit-test:
     name: (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    timeout-minutes: 10
 
     strategy:
       fail-fast: false
@@ -42,8 +41,10 @@ jobs:
 
       - name: Install MC/DC
         run: |
-          pip install -e .[dev]
+          pip install -e ".[dev]"
           pip list
 
-      - name: Run unit tests
-        run: pytest
+      - name: Run unit tests 
+        working-directory: test/unit
+        run: |
+          python run.py

@@ -51,7 +51,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--gpu_strat",
+    "--gpu_strategy",
     type=str,
     help="Strategy used in GPU execution (event or async).",
     choices=["async", "event"],

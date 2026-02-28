@@ -39,7 +39,6 @@ from mcdc.object_.distribution import (
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
 
-
 # ======================================================================================
 # Reaction base class
 # ======================================================================================

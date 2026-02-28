@@ -30,6 +30,10 @@ output*.h5
 *.mp4
 *.gif
 
+# Ignore all png and giffiles except those in the docs/source/images directory
+!docs/source/images/**/*.png
+!docs/source/images/**/*.gif
+
 # Cluster job
 *.out
 *.pbs
@@ -60,3 +64,8 @@ docs/source/pythonapi/generated/
 # Regression tests
 dummy_nuclide.h5
 source_particles.h5
+
+# Container artifacts
+*.sif
+*_sandbox
+*.tar

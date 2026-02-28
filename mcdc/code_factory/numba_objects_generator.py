@@ -10,7 +10,6 @@ from mpi4py import MPI
 ####
 
 import mcdc
-import mcdc.code_factory.adapt as adapt
 import mcdc.config as config
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
@@ -645,6 +644,7 @@ def set_object(
 
 def create_data_array(size, dtype):
     if config.target == "gpu":
+        import mcdc.code_factory.gpu.adapt as adapt
         import harmonize, numba
 
         if config.gpu_state_storage == "managed":
@@ -661,6 +661,7 @@ def create_data_array(size, dtype):
 
 def create_mcdc_array(dtype):
     if config.target == "gpu":
+        import mcdc.code_factory.gpu.adapt as adapt
         import harmonize, numba
 
         if config.gpu_state_storage == "managed":
@@ -716,10 +717,8 @@ def align(field_list):
     pad_id = 0
     for field in field_list:
         if len(field) > 3:
-            print_error(
-                "Unexpected struct field specification. Specifications \
-                        usually only consist of 3 or fewer members"
-            )
+            print_error("Unexpected struct field specification. Specifications \
+                        usually only consist of 3 or fewer members")
         multiplier = 1
         if len(field) == 3:
             field = (field[0], field[1], fixup_dims(field[2]))
@@ -1159,9 +1158,14 @@ def make_size_rpn(cells):
 
 def make_literals(simulation):
     # Sizes
-    rpn_evaluation_buffer_size = int(
-        max([np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in simulation.cells])
-    )
+    if len(simulation.cells) == 0:
+        rpn_evaluation_buffer_size = 1
+    else:
+        rpn_evaluation_buffer_size = int(
+            max(
+                [np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in simulation.cells]
+            )
+        )
 
     path = f"{Path(mcdc.__file__).parent}"
     with open(f"{path}/transport/literals.py", "w") as f:

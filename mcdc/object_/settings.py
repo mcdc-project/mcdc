@@ -60,9 +60,6 @@ class Settings(ObjectSingleton):
     source_bank_buffer_ratio: float = 2.0
     future_bank_buffer_ratio: float = 1.5
 
-    # Portability
-    target_gpu: bool = False
-
     def __post_init__(self):
         super().__init__()
 
