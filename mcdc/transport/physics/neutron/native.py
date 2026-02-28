@@ -342,7 +342,9 @@ def collision(particle_container, mcdc, data):
             reaction_base = mcdc["reactions"][reaction_base_ID]
             total += reaction_micro_xs(E_in, reaction_base, nuclide, data)
             if xi < total:
-                E_out_weighted = fission(reaction, particle_container, nuclide, mcdc, data)
+                E_out_weighted = fission(
+                    reaction, particle_container, nuclide, mcdc, data
+                )
                 dep = E_in * w_transport - E_out_weighted
                 if dep > 0.0:
                     edep_weighted += dep
@@ -517,7 +519,6 @@ def inelastic_scattering(reaction, particle_container, nuclide, mcdc, data):
     particle_container_new = np.zeros(1, type_.particle_data)
     particle_new = particle_container_new[0]
     E_out_weighted = 0.0
-
 
     # Create the secondaries
     for n in range(N):
