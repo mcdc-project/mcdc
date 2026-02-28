@@ -30,6 +30,7 @@ from mcdc.constant import (
     SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
+    SCORE_EDEP,
     TALLY_GLOBAL,
     TALLY_CELL,
     TALLY_MESH,
@@ -105,6 +106,8 @@ class TallyBase(ObjectPolymorphic):
                 self.scores.append(SCORE_FISSION)
             elif score == "net-current":
                 self.scores.append(SCORE_NET_CURRENT)
+            elif score == "edep":
+                self.scores.append(SCORE_EDEP)
             else:
                 print_error(f"Unknown tally score: {score}")
 
@@ -115,6 +118,13 @@ class TallyBase(ObjectPolymorphic):
                 self.multipliers.append(MULTIPLIER_ENERGY)
             else:
                 print_error(f"Unknown tally multiplier: {multiplier}")
+
+        # Restrict energy deposition score to mesh tally only
+        if SCORE_EDEP in self.scores and type_ != TALLY_MESH:
+            print_error("Score 'edep' is only supported for TallyMesh.")
+
+        if SCORE_EDEP in self.scores and MULTIPLIER_ENERGY in self.multipliers:
+            print_error("Score 'edep' cannot be combined with multiplier 'energy'.")
 
         # Phase-space filters
         self.mu = np.array([-1.0, 1.0])
@@ -237,6 +247,8 @@ def decode_score_type(type_, lower_case=False):
         return "Fission" if not lower_case else "fission"
     elif type_ == SCORE_NET_CURRENT:
         return "Net current" if not lower_case else "net-current"
+    elif type_ == SCORE_EDEP:
+        return "Energy deposition" if not lower_case else "edep"
 
 
 # ======================================================================================

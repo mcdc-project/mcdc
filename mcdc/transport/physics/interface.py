@@ -69,4 +69,4 @@ def collision_distance(particle_container, mcdc, data):
 def collision(particle_container, mcdc, data):
     particle = particle_container[0]
     if particle["particle_type"] == PARTICLE_NEUTRON:
-        neutron.collision(particle_container, mcdc, data)
+        return neutron.collision(particle_container, mcdc, data)

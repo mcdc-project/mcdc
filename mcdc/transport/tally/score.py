@@ -24,6 +24,7 @@ from mcdc.constant import (
     SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
+    SCORE_EDEP,
 )
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import get_filter_indices
@@ -391,6 +392,74 @@ def mesh_tally(particle_container, distance, tally, mcdc, data):
             if i_time == tally_base["time_length"] - 1:
                 break
             idx_base += tally_base["stride_time"]
+
+
+@njit
+def mesh_tally_edep(particle_container, edep_weighted, tally, mcdc, data):
+    particle = particle_container[0]
+    tally_base = mcdc["tallies"][tally["parent_ID"]]
+
+    # Get filter indices
+    MG_mode = mcdc["settings"]["multigroup_mode"]
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(
+        particle_container, tally_base, data, MG_mode
+    )
+
+    # No score if outside non-changing phase-space bins
+    if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
+        return
+
+    # Get the mesh
+    mesh = mcdc["meshes"][tally["mesh_ID"]]
+
+    # Particle properties
+    x = particle["x"]
+    y = particle["y"]
+    z = particle["z"]
+
+    # Get mesh bin indices
+    i_x, i_y, i_z = mesh_module.get_indices(particle_container, mesh, mcdc, data)
+
+    # No score if particle is outside the mesh bins
+    x_min = mesh_module.get_x(0, mesh, mcdc, data)
+    x_max = mesh_module.get_x(mesh["Nx"], mesh, mcdc, data)
+    if x < x_min + COINCIDENCE_TOLERANCE or x > x_max - COINCIDENCE_TOLERANCE:
+        return
+
+    y_min = mesh_module.get_y(0, mesh, mcdc, data)
+    y_max = mesh_module.get_y(mesh["Ny"], mesh, mcdc, data)
+    if y < y_min + COINCIDENCE_TOLERANCE or y > y_max - COINCIDENCE_TOLERANCE:
+        return
+
+    z_min = mesh_module.get_z(0, mesh, mcdc, data)
+    z_max = mesh_module.get_z(mesh["Nz"], mesh, mcdc, data)
+    if z < z_min + COINCIDENCE_TOLERANCE or z > z_max - COINCIDENCE_TOLERANCE:
+        return
+
+    # Find the edep score index
+    i_edep = -1
+    for i_score in range(tally_base["scores_length"]):
+        score_type = mcdc_get.tally.scores(i_score, tally_base, data)
+        if score_type == SCORE_EDEP:
+            i_edep = i_score
+            break
+    if i_edep < 0:
+        return
+
+    # Tally base index
+    idx_base = (
+        tally_base["bin_offset"]
+        + i_mu * tally_base["stride_mu"]
+        + i_azi * tally_base["stride_azi"]
+        + i_energy * tally_base["stride_energy"]
+        + i_time * tally_base["stride_time"]
+        + i_x * tally["stride_x"]
+        + i_y * tally["stride_y"]
+        + i_z * tally["stride_z"]
+    )
+
+    # Score energy deposition
+    atomic_add(data, idx_base + i_edep, edep_weighted)
 
 
 # =============================================================================

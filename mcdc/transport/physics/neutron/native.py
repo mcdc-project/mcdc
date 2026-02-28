@@ -218,7 +218,8 @@ def collision(particle_container, mcdc, data):
     material = mcdc["native_materials"][particle["material_ID"]]
 
     # Particle properties
-    E = particle["E"]
+    E_in = particle["E"]
+    w_in = particle["w"]
 
     # ==================================================================================
     # Sample colliding nuclide
@@ -239,10 +240,10 @@ def collision(particle_container, mcdc, data):
         nuclide = mcdc["nuclides"][nuclide_ID]
 
         nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
-        sigmaT = total_micro_xs(REACTION_TOTAL, E, nuclide, data)
+        sigmaT = total_micro_xs(REACTION_TOTAL, E_in, nuclide, data)
 
         if mcdc["implicit_capture"]["active"]:
-            sigmaC = total_micro_xs(REACTION_NEUTRON_CAPTURE, E, nuclide, data)
+            sigmaC = total_micro_xs(REACTION_NEUTRON_CAPTURE, E_in, nuclide, data)
             particle["w"] *= (sigmaT - sigmaC) / sigmaT
             sigmaT -= sigmaC
 
@@ -252,17 +253,23 @@ def collision(particle_container, mcdc, data):
         if total > xi:
             break
 
+    # Transported weight after implicit-capture adjustment
+    w_transport = particle["w"]
+
+    # Energy deposited by implicit capture portion
+    edep_weighted = (w_in - w_transport) * E_in
+
     # ==================================================================================
     # Sample and perform reaction
     # ==================================================================================
 
     sigma_elastic = total_micro_xs(
-        REACTION_NEUTRON_ELASTIC_SCATTERING, E, nuclide, data
+        REACTION_NEUTRON_ELASTIC_SCATTERING, E_in, nuclide, data
     )
     sigma_inelastic = total_micro_xs(
-        REACTION_NEUTRON_INELASTIC_SCATTERING, E, nuclide, data
+        REACTION_NEUTRON_INELASTIC_SCATTERING, E_in, nuclide, data
     )
-    sigma_fission = total_micro_xs(REACTION_NEUTRON_FISSION, E, nuclide, data)
+    sigma_fission = total_micro_xs(REACTION_NEUTRON_FISSION, E_in, nuclide, data)
 
     xi = rng.lcg(particle_container) * sigmaT
 
@@ -277,24 +284,33 @@ def collision(particle_container, mcdc, data):
             reaction = mcdc["neutron_elastic_scattering_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["reactions"][reaction_base_ID]
-            total += reaction_micro_xs(E, reaction_base, nuclide, data)
+            total += reaction_micro_xs(E_in, reaction_base, nuclide, data)
             if xi < total:
-                elastic_scattering(reaction, particle_container, nuclide, mcdc, data)
-                return
+                E_out_weighted = elastic_scattering(
+                    reaction, particle_container, nuclide, mcdc, data
+                )
+                dep = E_in * w_transport - E_out_weighted
+                if dep > 0.0:
+                    edep_weighted += dep
+                if edep_weighted < 0.0:
+                    edep_weighted = 0.0
+                return edep_weighted
 
     # Capture
     if not mcdc["implicit_capture"]["active"]:
-        sigma_capture = total_micro_xs(REACTION_NEUTRON_CAPTURE, E, nuclide, data)
+        sigma_capture = total_micro_xs(REACTION_NEUTRON_CAPTURE, E_in, nuclide, data)
         total += sigma_capture
         if xi < total:
             particle["alive"] = False
-            return
+            edep_weighted += E_in * w_transport
+            if edep_weighted < 0.0:
+                edep_weighted = 0.0
+            return edep_weighted
 
     # Inelastic scattering
     total += sigma_inelastic
     if xi < total:
         total -= sigma_inelastic
-
         for i in range(nuclide["N_inelastic_scattering_reaction"]):
             reaction_ID = int(
                 mcdc_get.nuclide.inelastic_scattering_reaction_IDs(i, nuclide, data)
@@ -302,11 +318,18 @@ def collision(particle_container, mcdc, data):
             reaction = mcdc["neutron_inelastic_scattering_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["reactions"][reaction_base_ID]
-            xs = reaction_micro_xs(E, reaction_base, nuclide, data)
+            xs = reaction_micro_xs(E_in, reaction_base, nuclide, data)
             total += xs
             if xi < total:
-                inelastic_scattering(reaction, particle_container, nuclide, mcdc, data)
-                return
+                E_out_weighted = inelastic_scattering(
+                    reaction, particle_container, nuclide, mcdc, data
+                )
+                dep = E_in * w_transport - E_out_weighted
+                if dep > 0.0:
+                    edep_weighted += dep
+                if edep_weighted < 0.0:
+                    edep_weighted = 0.0
+                return edep_weighted
 
     # Fission (arive here only if nuclide is fissionable)
     total += sigma_fission
@@ -317,10 +340,19 @@ def collision(particle_container, mcdc, data):
             reaction = mcdc["neutron_fission_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["reactions"][reaction_base_ID]
-            total += reaction_micro_xs(E, reaction_base, nuclide, data)
+            total += reaction_micro_xs(E_in, reaction_base, nuclide, data)
             if xi < total:
-                fission(reaction, particle_container, nuclide, mcdc, data)
-                return
+                E_out_weighted = fission(reaction, particle_container, nuclide, mcdc, data)
+                dep = E_in * w_transport - E_out_weighted
+                if dep > 0.0:
+                    edep_weighted += dep
+                if edep_weighted < 0.0:
+                    edep_weighted = 0.0
+                return edep_weighted
+
+    if edep_weighted < 0.0:
+        edep_weighted = 0.0
+    return edep_weighted
 
 
 # ======================================================================================
@@ -408,6 +440,8 @@ def elastic_scattering(reaction, particle_container, nuclide, mcdc, data):
     particle["uy"] = vy / speed
     particle["uz"] = vz / speed
 
+    return particle["E"] * particle["w"]
+
 
 @njit
 def sample_nucleus_velocity(A, particle_container):
@@ -482,6 +516,8 @@ def inelastic_scattering(reaction, particle_container, nuclide, mcdc, data):
     # Set up secondary partice container
     particle_container_new = np.zeros(1, type_.particle_data)
     particle_new = particle_container_new[0]
+    E_out_weighted = 0.0
+
 
     # Create the secondaries
     for n in range(N):
@@ -574,6 +610,8 @@ def inelastic_scattering(reaction, particle_container, nuclide, mcdc, data):
         particle_new["uz"] = uz_new
         particle_new["E"] = E_new
 
+        E_out_weighted += particle_new["E"] * particle_new["w"]
+
         # ==============================================================================
         # Bank the new particle
         # ==============================================================================
@@ -587,6 +625,8 @@ def inelastic_scattering(reaction, particle_container, nuclide, mcdc, data):
             particle["E"] = particle_new["E"]
         else:
             particle_bank_module.bank_active_particle(particle_container_new, mcdc)
+
+    return E_out_weighted
 
 
 # ======================================================================================
@@ -630,6 +670,7 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
     # Set up secondary partice container
     particle_container_new = np.zeros(1, type_.particle_data)
     particle_new = particle_container_new[0]
+    E_out_weighted = 0.0
 
     # Create the secondaries
     for n in range(N):
@@ -722,6 +763,8 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
                 xi = rng.lcg(particle_container_new)
                 particle_new["t"] -= math.log(xi) / decay_rate
 
+        E_out_weighted += particle_new["E"] * particle_new["w"]
+
         # Eigenvalue mode: bank right away
         if settings["eigenvalue_mode"]:
             particle_bank_module.bank_census_particle(particle_container_new, mcdc)
@@ -770,6 +813,8 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
         else:
             # Particle will participate after the current census is completed
             particle_bank_module.bank_census_particle(particle_container_new, mcdc)
+
+    return E_out_weighted
 
 
 @njit
