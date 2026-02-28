@@ -53,7 +53,7 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
 @njit
 def collision_distance(particle_container, mcdc, data):
     # Get total cross-section
-    SigmaT = macro_xs(REACTION_TOTAL, particle_container, mcdc, data)
+    SigmaT = macro_xs(NEUTRON_REACTION_TOTAL, particle_container, mcdc, data)
 
     # Vacuum material?
     if SigmaT == 0.0:
