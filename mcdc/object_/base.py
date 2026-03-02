@@ -88,7 +88,7 @@ def register_object(object_):
     elif isinstance(object_, Nuclide):
         object_list = simulation.nuclides
     elif isinstance(object_, NeutronReactionBase):
-        object_list = simulation.reactions
+        object_list = simulation.neutron_reactions
     elif isinstance(object_, Region):
         object_list = simulation.regions
     elif isinstance(object_, Source):

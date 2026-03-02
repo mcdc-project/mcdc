@@ -57,7 +57,7 @@ class Simulation(ObjectSingleton):
     distributions: list[DistributionBase]
     materials: list[MaterialBase]
     nuclides: list[Nuclide]
-    reactions: list[NeutronReactionBase]
+    neutron_reactions: list[NeutronReactionBase]
     sources: list[Source]
 
     # Geometry
@@ -139,7 +139,7 @@ class Simulation(ObjectSingleton):
         self.distributions = [DistributionNone()]
         self.materials = []
         self.nuclides = []
-        self.reactions = []
+        self.neutron_reactions = []
         self.sources = []
 
         # Geometry
