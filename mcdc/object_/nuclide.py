@@ -58,15 +58,23 @@ class Nuclide(ObjectNonSingleton):
         self.name = nuclide_name
         self.temperature = temperature
 
-        # Set attributes from the hdf5 file
+        # Basic properties
         dir_name = os.getenv("MCDC_LIB")
         file_name = f"{nuclide_name}-{temperature}K.h5"
         file = h5py.File(f"{dir_name}/{file_name}", "r")
-
-        # Basic properties
         self.atomic_weight_ratio = file["atomic_weight_ratio"][()]
         self.fissionable = bool(file["fissionable"][()])
         self.excitation_level = int(file["excitation_level"][()])
+        file.close()
+
+    def set_neutron_data(self):
+        nuclide_name = self.name
+        temperature = self.temperature
+
+        # Load data library
+        dir_name = os.getenv("MCDC_LIB")
+        file_name = f"{nuclide_name}-{temperature}K.h5"
+        file = h5py.File(f"{dir_name}/{file_name}", "r")
 
         # The reactions
         rx_names = [
