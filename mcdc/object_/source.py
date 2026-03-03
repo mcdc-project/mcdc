@@ -9,16 +9,21 @@ from typing import Annotated, Iterable
 
 import mcdc.object_.distribution as distribution
 
-from mcdc.constant import PARTICLE_NEUTRON, INF, PI
+from mcdc.constant import PARTICLE_NEUTRON, PARTICLE_ELECTRON, PARTICLE_PROTON, INF, PI
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.distribution import DistributionTabulated, DistributionPMF
 from mcdc.object_.simulation import simulation
 from mcdc.object_.util import move_object
+from mcdc.print_ import print_error
 
 
 def decode_particle_type(type_):
     if type_ == PARTICLE_NEUTRON:
         return "Neutron"
+    elif type_ == PARTICLE_ELECTRON:
+        return "Electron"
+    elif type_ == PARTICLE_PROTON:
+        return "Proton"
 
 
 # ======================================================================================
@@ -123,6 +128,9 @@ class Source(ObjectNonSingleton):
         energy_group: int | NDArray[int64] | NoneType = None,
         #
         time: float | Iterable[float] = 0.0,
+        #
+        particle_type: str = "neutron",
+        #
         probability: float = 1.0,
     ):
 
@@ -234,6 +242,16 @@ class Source(ObjectNonSingleton):
         else:
             self.discrete_time = False
             self.time_range = np.array(time)
+
+        # Particle type
+        if particle_type == "neutron":
+            self.particle_type = PARTICLE_NEUTRON
+        elif particle_type == "electron":
+            self.particle_type = PARTICLE_ELECTRON
+        elif particle_type == "proton":
+            self.particle_type = PARTICLE_PROTON
+        else:
+            print_error(r"Unsupported particle types: {particle_typ}")
 
         # Moving source parameters
         self.moving = False

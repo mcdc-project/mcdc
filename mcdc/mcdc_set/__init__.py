@@ -58,6 +58,8 @@ import mcdc.mcdc_set.structured_mesh as structured_mesh
 
 import mcdc.mcdc_set.uniform_mesh as uniform_mesh
 
+import mcdc.mcdc_set.neutron_reaction as neutron_reaction
+
 import mcdc.mcdc_set.neutron_capture_reaction as neutron_capture_reaction
 
 import mcdc.mcdc_set.neutron_elastic_scattering_reaction as neutron_elastic_scattering_reaction
@@ -67,8 +69,6 @@ import mcdc.mcdc_set.neutron_fission_reaction as neutron_fission_reaction
 import mcdc.mcdc_set.neutron_inelastic_scattering_reaction as neutron_inelastic_scattering_reaction
 
 import mcdc.mcdc_set.particle_bank as particle_bank
-
-import mcdc.mcdc_set.reaction as reaction
 
 import mcdc.mcdc_set.settings as settings
 

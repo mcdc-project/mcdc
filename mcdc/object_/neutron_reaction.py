@@ -12,10 +12,10 @@ from mcdc.constant import (
     ANGLE_DISTRIBUTED,
     INTERPOLATION_LINEAR,
     INTERPOLATION_LOG,
-    REACTION_NEUTRON_CAPTURE,
-    REACTION_NEUTRON_ELASTIC_SCATTERING,
-    REACTION_NEUTRON_FISSION,
-    REACTION_NEUTRON_INELASTIC_SCATTERING,
+    NEUTRON_REACTION_CAPTURE,
+    NEUTRON_REACTION_ELASTIC_SCATTERING,
+    NEUTRON_REACTION_FISSION,
+    NEUTRON_REACTION_INELASTIC_SCATTERING,
     REFERENCE_FRAME_COM,
     REFERENCE_FRAME_LAB,
 )
@@ -34,13 +34,13 @@ from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
 
 # ======================================================================================
-# Reaction base class
+# Neutron reaction base class
 # ======================================================================================
 
 
-class ReactionBase(ObjectPolymorphic):
+class NeutronReactionBase(ObjectPolymorphic):
     # Annotations for Numba mode
-    label: str = "reaction"
+    label: str = "neutron_reaction"
     #
     MT: int
     xs: NDArray[float64]
@@ -65,13 +65,13 @@ class ReactionBase(ObjectPolymorphic):
 
 
 def decode_type(type_):
-    if type_ == REACTION_NEUTRON_ELASTIC_SCATTERING:
+    if type_ == NEUTRON_REACTION_ELASTIC_SCATTERING:
         return "Neutron elastic scattering"
-    elif type_ == REACTION_NEUTRON_CAPTURE:
+    elif type_ == NEUTRON_REACTION_CAPTURE:
         return "Neutron capture"
-    elif type_ == REACTION_NEUTRON_INELASTIC_SCATTERING:
+    elif type_ == NEUTRON_REACTION_INELASTIC_SCATTERING:
         return "Neutron inelastic scattering"
-    elif type_ == REACTION_NEUTRON_FISSION:
+    elif type_ == NEUTRON_REACTION_FISSION:
         return "Neutron fission"
 
 
@@ -87,14 +87,14 @@ def decode_reference_frame(type_):
 # ======================================================================================
 
 
-class ReactionNeutronElasticScattering(ReactionBase):
+class NeutronReactionElasticScattering(NeutronReactionBase):
     # Annotations for Numba mode
     label: str = "neutron_elastic_scattering_reaction"
     #
     mu_table: DistributionMultiTable
 
     def __init__(self, MT, xs, xs_offset, reference_frame, mu):
-        type_ = REACTION_NEUTRON_ELASTIC_SCATTERING
+        type_ = NEUTRON_REACTION_ELASTIC_SCATTERING
         super().__init__(type_, MT, xs, xs_offset, reference_frame)
         self.mu_table = mu
 
@@ -115,12 +115,12 @@ class ReactionNeutronElasticScattering(ReactionBase):
 # ======================================================================================
 
 
-class ReactionNeutronCapture(ReactionBase):
+class NeutronReactionCapture(NeutronReactionBase):
     # Annotations for Numba mode
     label: str = "neutron_capture_reaction"
 
     def __init__(self, MT, xs, xs_offset, reference_frame):
-        type_ = REACTION_NEUTRON_CAPTURE
+        type_ = NEUTRON_REACTION_CAPTURE
         super().__init__(type_, MT, xs, xs_offset, reference_frame)
 
     @classmethod
@@ -134,7 +134,7 @@ class ReactionNeutronCapture(ReactionBase):
 # ======================================================================================
 
 
-class ReactionNeutronInelasticScattering(ReactionBase):
+class NeutronReactionInelasticScattering(NeutronReactionBase):
     # Annotations for Numba mode
     label: str = "neutron_inelastic_scattering_reaction"
     #
@@ -162,7 +162,7 @@ class ReactionNeutronInelasticScattering(ReactionBase):
         spectrum_probability,
         energy_spectra,
     ):
-        type_ = REACTION_NEUTRON_INELASTIC_SCATTERING
+        type_ = NEUTRON_REACTION_INELASTIC_SCATTERING
         super().__init__(type_, MT, xs, xs_offset, reference_frame)
 
         self.reference_frame = reference_frame
@@ -227,7 +227,7 @@ class ReactionNeutronInelasticScattering(ReactionBase):
 # ======================================================================================
 
 
-class ReactionNeutronFission(ReactionBase):
+class NeutronReactionFission(NeutronReactionBase):
     # Annotations for Numba mode
     label: str = "neutron_fission_reaction"
     #
@@ -245,7 +245,7 @@ class ReactionNeutronFission(ReactionBase):
         mu,
         spectrum,
     ):
-        type_ = REACTION_NEUTRON_FISSION
+        type_ = NEUTRON_REACTION_FISSION
         super().__init__(type_, MT, xs, xs_offset, reference_frame)
         self.angle_type = angle_type
         self.mu = mu

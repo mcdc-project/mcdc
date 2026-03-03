@@ -15,9 +15,9 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE_TIME,
     INF,
     MULTIPLIER_ENERGY,
-    REACTION_NEUTRON_CAPTURE,
-    REACTION_NEUTRON_FISSION,
-    REACTION_TOTAL,
+    NEUTRON_REACTION_CAPTURE,
+    NEUTRON_REACTION_FISSION,
+    NEUTRON_REACTION_TOTAL,
     SCORE_FLUX,
     SCORE_DENSITY,
     SCORE_COLLISION,
@@ -51,15 +51,15 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
             score = flux / speed
         elif score_type == SCORE_COLLISION:
             score = flux * physics.macro_xs(
-                REACTION_TOTAL, particle_container, mcdc, data
+                NEUTRON_REACTION_TOTAL, particle_container, mcdc, data
             )
         elif score_type == SCORE_CAPTURE:
             score = flux * physics.macro_xs(
-                REACTION_NEUTRON_CAPTURE, particle_container, mcdc, data
+                NEUTRON_REACTION_CAPTURE, particle_container, mcdc, data
             )
         elif score_type == SCORE_FISSION:
             score = flux * physics.macro_xs(
-                REACTION_NEUTRON_FISSION, particle_container, mcdc, data
+                NEUTRON_REACTION_FISSION, particle_container, mcdc, data
             )
         elif score_type == SCORE_NET_CURRENT:
             surface = mcdc["surfaces"][particle["surface_ID"]]
@@ -377,7 +377,7 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
 
     # Get nu-fission
     nuSigmaF = physics.neutron_production_xs(
-        REACTION_NEUTRON_FISSION, particle_container, mcdc, data
+        NEUTRON_REACTION_FISSION, particle_container, mcdc, data
     )
 
     # Fission production (needed even during inactive cycle)
@@ -423,7 +423,7 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
                 decay = nuclide["ce_decay"][j]
                 total += nu_d / decay
 
-    SigmaF = physics.macro_xs(REACTION_NEUTRON_FISSION, particle_container, mcdc, data)
+    SigmaF = physics.macro_xs(NEUTRON_REACTION_FISSION, particle_container, mcdc, data)
     C_density = flux * total * SigmaF / mcdc["k_eff"]
     atomic_add(mcdc["eigenvalue_tally_C"], 0, C_density)
 
