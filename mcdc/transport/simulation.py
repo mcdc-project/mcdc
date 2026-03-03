@@ -416,7 +416,7 @@ def move_to_event(particle_container, mcdc, data):
         # Mesh tallies
         for i in range(mcdc["N_mesh_tally"]):
             tally = mcdc["mesh_tallies"][i]
-            tally_module.score.mesh_tally(
+            tally_module.score.tracklength_tally(
                 particle_container, distance, tally, mcdc, data
             )
 
