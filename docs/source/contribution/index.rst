@@ -116,7 +116,7 @@ The input objects are defined as dataclasses in the ``mcdc/object_/`` directory:
 #. ``mcdc/object_/surface.py`` — surface geometry (``Surface`` class methods)
 #. ``mcdc/object_/cell.py`` — cell definitions (``Cell``)
 #. ``mcdc/object_/source.py`` — source specifications (``Source``)
-#. ``mcdc/object_/tally.py`` — tally objects (``TallyGlobal``, ``TallyCell``, ``TallySurface``, ``TallyMesh``)
+#. ``mcdc/object_/tally.py`` — tally objects (``Tally``)
 #. ``mcdc/object_/technique.py`` — variance reduction techniques
 #. ``mcdc/config.py`` — command-line argument definitions
 
