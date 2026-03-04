@@ -205,7 +205,9 @@ def create_tally_dataset(file, mcdc, data):
         # Roll tally so that score is in the front
         roll_reference = 4
         if tally["child_type"] == TALLY_TRACKLENGTH:
-            roll_reference = 7
+            tracklength_tally = mcdc["tracklength_tallies"][tally["child_ID"]]
+            if tracklength_tally["spatial_filter_type"] == SPATIAL_FILTER_MESH:
+                roll_reference = 7
         mean = np.rollaxis(mean, roll_reference, 0)
         sdev = np.rollaxis(sdev, roll_reference, 0)
 

@@ -347,16 +347,29 @@ class TallyTracklength(Tally):
             spatial_shape=spatial_shape,
         )
 
+        # ==============================================================================
         # Set spatial filter
+        # ==============================================================================
+
+        # Default: no filter
+        self.spatial_filter = None
+        self.spatial_filter_type = SPATIAL_FILTER_NONE
+        self.spatial_filter_subtype = -1
+        self.spatial_filter_ID = -1
+        self.mesh_stride_z = -1
+        self.mesh_stride_y = -1
+        self.mesh_stride_x = -1
+
+        # Cell filter
         if cell is not None:
             self.spatial_filter = cell
             self.spatial_filter_type = SPATIAL_FILTER_CELL
-            self.spatial_filter_subtype = -1
             self.spatial_filter_ID = cell.ID
 
             # Attach tally to the cell
             cell.tallies.append(self)
 
+        # Mesh filter
         elif mesh is not None:
             self.spatial_filter = mesh
             self.spatial_filter_type = SPATIAL_FILTER_MESH
@@ -371,12 +384,6 @@ class TallyTracklength(Tally):
             self.mesh_stride_z = N_score
             self.mesh_stride_y = N_score * mesh.Nz
             self.mesh_stride_x = N_score * mesh.Nz * mesh.Ny
-
-        else:
-            self.spatial_filter = None
-            self.spatial_filter_type = SPATIAL_FILTER_NONE
-            self.spatial_filter_subtype = -1
-            self.spatial_filter_ID = -1
 
     def __repr__(self):
         text = super().__repr__()
