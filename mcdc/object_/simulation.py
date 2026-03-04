@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from mcdc.object_.neutron_reaction import NeutronReactionBase
     from mcdc.object_.source import Source
     from mcdc.object_.surface import Surface
-    from mcdc.object_.tally import TallyBase
+    from mcdc.object_.tally import Tally
 
 ####
 
@@ -31,7 +31,7 @@ from mcdc.object_.base import ObjectSingleton
 from mcdc.object_.data import DataBase, DataNone
 from mcdc.object_.distribution import DistributionBase, DistributionNone
 from mcdc.object_.gpu_tools import GPUMeta
-from mcdc.object_.mesh import MeshBase
+from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.object_.particle import ParticleBank
 from mcdc.object_.settings import Settings
 from mcdc.object_.universe import Universe, Lattice
@@ -69,7 +69,7 @@ class Simulation(ObjectSingleton):
     meshes: list[MeshBase]
 
     # Tallies
-    tallies: list[TallyBase]
+    tallies: list[Tally]
 
     # Settings
     settings: Settings

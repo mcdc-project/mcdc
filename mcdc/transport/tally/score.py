@@ -14,7 +14,6 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
     COINCIDENCE_TOLERANCE_TIME,
     INF,
-    MULTIPLIER_ENERGY,
     NEUTRON_REACTION_CAPTURE,
     NEUTRON_REACTION_FISSION,
     NEUTRON_REACTION_TOTAL,
@@ -24,7 +23,7 @@ from mcdc.constant import (
     SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
-    TALLY_MESH,
+    SPATIAL_FILTER_MESH,
 )
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import get_filter_indices
@@ -35,12 +34,6 @@ from mcdc.transport.util import atomic_add
 def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
     particle = particle_container[0]
     speed = physics.particle_speed(particle_container, mcdc, data)
-
-    multiplier = 1.0
-    for i_multiplier in range(tally["multipliers_length"]):
-        multiplier_type = mcdc_get.tally.multipliers(i_multiplier, tally, data)
-        if multiplier_type == MULTIPLIER_ENERGY:
-            multiplier *= particle["E"]
 
     for i_score in range(tally["scores_length"]):
         score_type = mcdc_get.tally.scores(i_score, tally, data)
@@ -65,7 +58,7 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
             surface = mcdc["surfaces"][particle["surface_ID"]]
             mu = get_normal_component(particle_container, speed, surface, data)
             score = flux * mu
-        atomic_add(data, idx_base + i_score, score * multiplier)
+        atomic_add(data, idx_base + i_score, score)
 
 
 # ======================================================================================
@@ -121,12 +114,12 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
     #   - Return if it's outside mesh grid
 
     # Flag if it's a mesh tally
-    mesh_tally = tally_base["child_type"] == TALLY_MESH
+    mesh_tally = tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
 
     # Mesh axis indices
     i_x, i_y, i_z = 0, 0, 0
     if mesh_tally:
-        mesh = mcdc["meshes"][tally["mesh_ID"]]
+        mesh = mcdc["meshes"][tally["spatial_filter_ID"]]
 
         # Mesh axis indices
         i_x, i_y, i_z = mesh_module.get_indices(particle_container, mesh, mcdc, data)
@@ -203,7 +196,9 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
     )
     if mesh_tally:
         idx_base += (
-            i_x * tally["stride_x"] + i_y * tally["stride_y"] + i_z * tally["stride_z"]
+            i_x * tally["mesh_stride_x"]
+            + i_y * tally["mesh_stride_y"]
+            + i_z * tally["mesh_stride_z"]
         )
 
     # Sweep through the distance
@@ -225,7 +220,7 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
 
         axis_crossed = AXIS_T
         if mesh_tally:
-            mesh = mcdc["meshes"][tally["mesh_ID"]]
+            mesh = mcdc["meshes"][tally["spatial_filter_ID"]]
 
             # x-direction
             if ux == 0.0:
@@ -296,40 +291,40 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
             if i_time == tally_base["time_length"] - 1:
                 return
         elif mesh_tally:
-            mesh = mcdc["meshes"][tally["mesh_ID"]]
+            mesh = mcdc["meshes"][tally["spatial_filter_ID"]]
             if axis_crossed == AXIS_X:
                 if ux > 0.0:
                     i_x += 1
                     if i_x == mesh["Nx"]:
                         return
-                    idx_base += tally["stride_x"]
+                    idx_base += tally["mesh_stride_x"]
                 else:
                     i_x -= 1
                     if i_x == -1:
                         return
-                    idx_base -= tally["stride_x"]
+                    idx_base -= tally["mesh_stride_x"]
             elif axis_crossed == AXIS_Y:
                 if uy > 0.0:
                     i_y += 1
                     if i_y == mesh["Ny"]:
                         return
-                    idx_base += tally["stride_y"]
+                    idx_base += tally["mesh_stride_y"]
                 else:
                     i_y -= 1
                     if i_y == -1:
                         return
-                    idx_base -= tally["stride_y"]
+                    idx_base -= tally["mesh_stride_y"]
             elif axis_crossed == AXIS_Z:
                 if uz > 0.0:
                     i_z += 1
                     if i_z == mesh["Nz"]:
                         return
-                    idx_base += tally["stride_z"]
+                    idx_base += tally["mesh_stride_z"]
                 else:
                     i_z -= 1
                     if i_z == -1:
                         return
-                    idx_base -= tally["stride_z"]
+                    idx_base -= tally["mesh_stride_z"]
 
 
 @njit

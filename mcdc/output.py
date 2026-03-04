@@ -10,7 +10,6 @@ import mcdc.print_ as print_module
 from mcdc.constant import (
     MESH_UNIFORM,
     MESH_STRUCTURED,
-    TALLY_MESH,
 )
 
 # ======================================================================================
@@ -141,6 +140,7 @@ def create_runtime_dataset(file, mcdc):
 
 
 def create_tally_dataset(file, mcdc, data):
+    from mcdc.constant import TALLY_TRACKLENGTH
     from mcdc.object_.tally import decode_score_type
 
     # Loop over all tally types
@@ -165,7 +165,7 @@ def create_tally_dataset(file, mcdc, data):
         )
 
         # Mesh grid (TODO: Make mesh dataset in a separate group)
-        if tally["child_type"] == TALLY_MESH:
+        if tally["child_type"] == TALLY_TRACKLENGTH:
             mesh_tally = mcdc["mesh_tallies"][tally["child_ID"]]
             mesh_base = mcdc["meshes"][mesh_tally["mesh_ID"]]
             mesh_type = mesh_base["child_type"]
@@ -202,7 +202,7 @@ def create_tally_dataset(file, mcdc, data):
 
         # Roll tally so that score is in the front
         roll_reference = 4
-        if tally["child_type"] == TALLY_MESH:
+        if tally["child_type"] == TALLY_TRACKLENGTH:
             roll_reference = 7
         mean = np.rollaxis(mean, roll_reference, 0)
         sdev = np.rollaxis(sdev, roll_reference, 0)

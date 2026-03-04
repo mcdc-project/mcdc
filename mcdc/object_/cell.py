@@ -31,7 +31,7 @@ from mcdc.constant import (
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.material import MaterialBase
 from mcdc.object_.simulation import simulation
-from mcdc.object_.tally import TallyCell
+from mcdc.object_.tally import Tally
 from mcdc.object_.universe import Universe, Lattice
 from mcdc.print_ import print_error
 
@@ -140,7 +140,7 @@ class Cell(ObjectNonSingleton):
     region_RPN_tokens: list[int]
     region_RPN: Boolean
     surfaces: list[Surface]
-    tallies: list[TallyCell]
+    tallies: list[Tally]
     #
     fill_type: int
     fill_ID: int

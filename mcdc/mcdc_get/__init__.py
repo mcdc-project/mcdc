@@ -10,7 +10,7 @@ import mcdc.mcdc_get.lattice as lattice
 
 import mcdc.mcdc_get.material as material
 
-import mcdc.mcdc_get.cell_tally as cell_tally
+import mcdc.mcdc_get.tally as tally
 
 import mcdc.mcdc_get.universe as universe
 
@@ -86,11 +86,7 @@ import mcdc.mcdc_get.surface as surface
 
 import mcdc.mcdc_get.surface_tally as surface_tally
 
-import mcdc.mcdc_get.tally as tally
-
-import mcdc.mcdc_get.global_tally as global_tally
-
-import mcdc.mcdc_get.mesh_tally as mesh_tally
+import mcdc.mcdc_get.tracklength_tally as tracklength_tally
 
 import mcdc.mcdc_get.bank_active as bank_active
 
