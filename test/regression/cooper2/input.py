@@ -49,7 +49,7 @@ mcdc.Source(
 
 # Tallies
 mesh = mcdc.MeshUniform(x=(0.0, 0.1, 40), y=(0.0, 0.1, 40))
-mcdc.TallyMesh(mesh=mesh, scores=["flux"])
+mcdc.Tally(mesh=mesh, scores=["flux"])
 
 # Settings
 mcdc.settings.N_particle = 50
