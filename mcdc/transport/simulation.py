@@ -401,7 +401,7 @@ def move_to_event(particle_container, mcdc, data):
         cell = mcdc["cells"][particle["cell_ID"]]
         for i in range(cell["N_tally"]):
             tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-            tally = mcdc["cell_tallies"][tally_ID]
+            tally = mcdc["tracklength_tallies"][tally_ID]
             tally_module.score.tracklength_tally(
                 particle_container, distance, tally, mcdc, data
             )

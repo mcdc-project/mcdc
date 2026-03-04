@@ -332,6 +332,9 @@ class TallyTracklength(Tally):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_TRACKLENGTH
+        spatial_shape = None
+        if mesh is not None:
+            spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
         super(Tally, self).__init__(type_)
         super().__init__(
             name,
@@ -341,6 +344,7 @@ class TallyTracklength(Tally):
             polar_reference=polar_reference,
             energy=energy,
             time=time,
+            spatial_shape=spatial_shape,
         )
 
         # Set spatial filter
