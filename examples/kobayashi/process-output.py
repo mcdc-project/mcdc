@@ -5,12 +5,12 @@ import h5py
 
 # Load result and grid
 with h5py.File("output.h5", "r") as f:
-    x = f["tallies/mesh_tally_0/grid/x"][:]
-    y = f["tallies/mesh_tally_0/grid/y"][:]
-    z = f["tallies/mesh_tally_0/grid/z"][:]
+    x = f["tallies/tracklength_tally_0/grid/x"][:]
+    y = f["tallies/tracklength_tally_0/grid/y"][:]
+    z = f["tallies/tracklength_tally_0/grid/z"][:]
 
-    phi = f["tallies/mesh_tally_0/flux/mean"][:]
-    phi_sd = f["tallies/mesh_tally_0/flux/sdev"][:]
+    phi = f["tallies/tracklength_tally_0/flux/mean"][:]
+    phi_sd = f["tallies/tracklength_tally_0/flux/sdev"][:]
 
 # The 2D grid for Z-scan plots
 X, Y = np.meshgrid(y, x)
