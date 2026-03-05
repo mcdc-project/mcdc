@@ -34,11 +34,9 @@ mcdc.Source(z=[0.0, 6.0], isotropic=True, energy_group=0)
 # ======================================================================================
 
 # Tallies
-mcdc.TallySurface(surface=s4, scores=["net-current"])
+mcdc.Tally(surface=s4, scores=["net-current"])
 mesh = mcdc.MeshStructured(z=np.linspace(0.0, 6.0, 61))
-mcdc.TallyMesh(
-    mesh=mesh, mu=np.linspace(-1.0, 1.0, 32 + 1), scores=["flux", "collision"]
-)
+mcdc.Tally(mesh=mesh, mu=np.linspace(-1.0, 1.0, 32 + 1), scores=["flux", "collision"])
 
 # Settings
 mcdc.settings.N_particle = 100

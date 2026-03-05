@@ -101,7 +101,7 @@ We define a uniform isotropic source throughout the domain:
     mcdc.Source(z=[0.0, 6.0], isotropic=True, energy_group=0)
 
 Next we set tallies and specify the specific parameters of interest. Here, we're interested in the space-averaged flux
-and collision rate. A mesh is created first, then a ``TallyMesh`` is constructed on that mesh.
+and collision rate. A mesh is created first, then a mesh-filtered ``Tally`` is constructed on that mesh.
 Direction bins can also be specified on the tally.
 Regardless of problem specifics, particles are simulated through all space, direction, and time;
 the tally definitions are used to indicate in which dimensions a record of particle behavior should be kept.
@@ -111,7 +111,7 @@ Available scores include ``"flux"``, ``"density"``, ``"collision"``, ``"capture"
 
     # Tally: cell-average fluxes and collisions
     mesh = mcdc.MeshStructured(z=np.linspace(0.0, 6.0, 61))
-    mcdc.TallyMesh(
+    mcdc.Tally(
         mesh=mesh,
         scores=["flux", "collision"],
         mu=np.linspace(-1.0, 1.0, 32 + 1),
@@ -173,7 +173,7 @@ Put together, our example ``input.py`` file:
 
     # Tally: cell-average fluxes and collisions
     mesh = mcdc.MeshStructured(z=np.linspace(0.0, 6.0, 61))
-    mcdc.TallyMesh(
+    mcdc.Tally(
         mesh=mesh,
         scores=["flux", "collision"],
         mu=np.linspace(-1.0, 1.0, 32 + 1),

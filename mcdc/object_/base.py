@@ -70,7 +70,7 @@ def register_object(object_):
     from mcdc.object_.neutron_reaction import NeutronReactionBase
     from mcdc.object_.source import Source
     from mcdc.object_.surface import Surface
-    from mcdc.object_.tally import TallyBase
+    from mcdc.object_.tally import Tally
 
     object_list = []
     if isinstance(object_, Cell):
@@ -95,7 +95,7 @@ def register_object(object_):
         object_list = simulation.sources
     elif isinstance(object_, Surface):
         object_list = simulation.surfaces
-    elif isinstance(object_, TallyBase):
+    elif isinstance(object_, Tally):
         object_list = simulation.tallies
     elif isinstance(object_, Universe):
         object_list = simulation.universes

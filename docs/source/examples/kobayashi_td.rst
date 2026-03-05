@@ -39,7 +39,7 @@ over a 50 s window rather than instantaneously.
 
 A ``time`` grid is added to both the mesh tally and a global density
 tally.  This creates a time-resolved :math:`\phi(x, y, t)` dataset.
-``TallyGlobal`` with ``scores=["density"]`` tracks total neutron
+Global ``Tally`` with ``scores=["density"]`` tracks total neutron
 population over time.
 
 **What to try:**

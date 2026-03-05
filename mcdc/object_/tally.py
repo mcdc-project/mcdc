@@ -22,7 +22,8 @@ import mcdc.object_.mesh as mesh_module
 
 from mcdc.constant import (
     INF,
-    MULTIPLIER_ENERGY,
+    MESH_STRUCTURED,
+    MESH_UNIFORM,
     PI,
     SCORE_FLUX,
     SCORE_DENSITY,
@@ -30,60 +31,83 @@ from mcdc.constant import (
     SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
-    TALLY_GLOBAL,
-    TALLY_CELL,
-    TALLY_MESH,
+    SPATIAL_FILTER_CELL,
+    SPATIAL_FILTER_MESH,
+    SPATIAL_FILTER_NONE,
     TALLY_SURFACE,
+    TALLY_COLLISION,
+    TALLY_TRACKLENGTH,
 )
-from mcdc.object_.mesh import MeshBase
+from mcdc.object_.mesh import MeshBase, MeshStructured, MeshUniform
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
 
-# ======================================================================================
-# Tally base class
-# ======================================================================================
 
+class Tally(ObjectPolymorphic):
+    """
+    Define a tally.
+    """
 
-class TallyBase(ObjectPolymorphic):
     # Annotations for Numba mode
     label: str = "tally"
     #
     name: str
     scores: list[int]
-    multipliers: list[int]
+    #
+    filter_direction: bool
+    filter_energy: bool
+    filter_time: bool
     mu: NDArray[float64]
     azi: NDArray[float64]
     polar_reference: Annotated[NDArray[float64], (3,)]
     energy: NDArray[float64]
     time: NDArray[float64]
-    filter_direction: bool
-    filter_energy: bool
-    filter_time: bool
+    #
     bin: NDArray[float64]
     bin_sum: NDArray[float64]
     bin_sum_square: NDArray[float64]
     bin_shape: list[int]
+    #
     stride_mu: int
     stride_azi: int
     stride_energy: int
     stride_time: int
 
+    def __new__(
+        cls,
+        name: str = "",
+        scores: list[str] = ["flux"],
+        surface: Surface | NoneType = None,
+        cell: Cell | NoneType = None,
+        mesh: MeshBase | NoneType = None,
+        mu: Iterable[float] | NoneType = None,
+        azi: Iterable[float] | NoneType = None,
+        polar_reference: Iterable[float] | NoneType = None,
+        energy: Iterable[float] | str | NoneType = None,
+        time: Iterable[float] | NoneType = None,
+    ) -> TallySurface | TallyTracklength:
+        # Determine type and create the tally self based on the provided
+        # spatial filters and scores
+        if surface is not None:
+            return super().__new__(TallySurface)
+        else:
+            return super().__new__(TallyTracklength)
+
     def __init__(
         self,
-        type_,
-        name,
-        scores,
-        multipliers,
-        mu,
-        azi,
-        polar_reference,
-        energy,
-        time,
-        spatial_shape=None,
+        name: str = "",
+        scores: list[str] = ["flux"],
+        surface: Surface | NoneType = None,
+        cell: Cell | NoneType = None,
+        mesh: MeshBase | NoneType = None,
+        mu: Iterable[float] | NoneType = None,
+        azi: Iterable[float] | NoneType = None,
+        polar_reference: Iterable[float] | NoneType = None,
+        energy: Iterable[float] | str | NoneType = None,
+        time: Iterable[float] | NoneType = None,
+        spatial_shape: tuple[int] | NoneType = None,
     ):
-        super().__init__(type_)
-
         # Set name
         if name != "":
             self.name = name
@@ -107,14 +131,6 @@ class TallyBase(ObjectPolymorphic):
                 self.scores.append(SCORE_NET_CURRENT)
             else:
                 print_error(f"Unknown tally score: {score}")
-
-        # Set multipliers
-        self.multipliers = []
-        for multiplier in multipliers:
-            if multiplier == "energy":
-                self.multipliers.append(MULTIPLIER_ENERGY)
-            else:
-                print_error(f"Unknown tally multiplier: {multiplier}")
 
         # Phase-space filters
         self.mu = np.array([-1.0, 1.0])
@@ -193,7 +209,8 @@ class TallyBase(ObjectPolymorphic):
     def _phasespace_filter_text(self):
         text = ""
         text += f"  - Scores: {[decode_score_type(x) for x in self.scores]}\n"
-        text += f"  - Phase-space filters\n"
+        if self.filter_time or self.filter_energy or self.filter_direction:
+            text += f"  - Phase-space filters\n"
         if self.filter_time:
             text += f"    - Time {print_1d_array(self.time)} s\n"
         if self.filter_energy:
@@ -214,14 +231,12 @@ class TallyBase(ObjectPolymorphic):
 
 
 def decode_type(type_):
-    if type_ == TALLY_GLOBAL:
-        return "Global tally"
-    elif type_ == TALLY_CELL:
-        return "Cell tally"
+    if type_ == TALLY_TRACKLENGTH:
+        return "Tracklength tally"
     elif type_ == TALLY_SURFACE:
         return "Surface tally"
-    elif type_ == TALLY_MESH:
-        return "Mesh tally"
+    elif type_ == TALLY_COLLISION:
+        return "Collision tally"
 
 
 def decode_score_type(type_, lower_case=False):
@@ -240,179 +255,11 @@ def decode_score_type(type_, lower_case=False):
 
 
 # ======================================================================================
-# Global tally
-# ======================================================================================
-
-
-class TallyGlobal(TallyBase):
-    """
-    Define a global (volume-integrated) tally.
-
-    Parameters
-    ----------
-    name : str, optional
-        User label.
-    scores : list of str, optional
-        Scores to tally (e.g. ``"flux"``, ``"fission"``, ``"collision"``).
-    multipliers : list of str, optional
-        Tally multipliers (e.g. ``"energy"``).
-    mu : array_like of float, optional
-        Polar cosine bin edges.
-    azi : array_like of float, optional
-        Azimuthal angle bin edges.
-    polar_reference : array_like of float, optional
-        Reference direction for polar angle binning.
-    energy : array_like of float or str, optional
-        Energy bin edges (eV).
-    time : array_like of float, optional
-        Time bin edges (s).
-
-    Returns
-    -------
-    TallyGlobal
-        The global tally object.
-    """
-
-    # Annotations for Numba mode
-    label: str = "global_tally"
-
-    def __init__(
-        self,
-        name: str = "",
-        scores: list[str] = ["flux"],
-        multipliers: list[str] = [],
-        mu: Iterable[float] | NoneType = None,
-        azi: Iterable[float] | NoneType = None,
-        polar_reference: Iterable[float] | NoneType = None,
-        energy: Iterable[float] | str | NoneType = None,
-        time: Iterable[float] | NoneType = None,
-    ):
-        type_ = TALLY_GLOBAL
-        super().__init__(
-            type_, name, scores, multipliers, mu, azi, polar_reference, energy, time
-        )
-
-    def __repr__(self):
-        text = super().__repr__()
-        text += super()._phasespace_filter_text()
-        text += f"  - Bin shape (mu, azi, energy, time, score): {self.bin.shape} \n"
-        return text
-
-
-# ======================================================================================
-# Cell tally
-# ======================================================================================
-
-
-class TallyCell(TallyBase):
-    """
-    Define a cell tally.
-
-    Parameters
-    ----------
-    cell : Cell
-        The cell to tally over.
-    name : str, optional
-        User label.
-    scores : list of str, optional
-        Scores to tally.
-    multipliers : list of str, optional
-        Tally multipliers.
-    mu : array_like of float, optional
-        Polar cosine bin edges.
-    azi : array_like of float, optional
-        Azimuthal angle bin edges.
-    polar_reference : array_like of float, optional
-        Reference direction for polar angle binning.
-    energy : array_like of float or str, optional
-        Energy bin edges (eV).
-    time : array_like of float, optional
-        Time bin edges (s).
-
-    Returns
-    -------
-    TallyCell
-        The cell tally object.
-
-    See Also
-    --------
-    mcdc.Cell : Creates a cell to tally over.
-    """
-
-    # Annotations for Numba mode
-    label: str = "cell_tally"
-    #
-    cell: Cell
-
-    def __init__(
-        self,
-        cell: Cell,
-        name: str = "",
-        scores: list[str] = ["flux"],
-        multipliers: list[str] = [],
-        mu: Iterable[float] | NoneType = None,
-        azi: Iterable[float] | NoneType = None,
-        polar_reference: Iterable[float] | NoneType = None,
-        energy: Iterable[float] | str | NoneType = None,
-        time: Iterable[float] | NoneType = None,
-    ):
-        type_ = TALLY_CELL
-        super().__init__(
-            type_, name, scores, multipliers, mu, azi, polar_reference, energy, time
-        )
-
-        # Attach cell and attach tally to the cell
-        self.cell = cell
-        cell.tallies.append(self)
-
-    def __repr__(self):
-        text = super().__repr__()
-        text += f"  - Cell: {self.cell.name}\n"
-        text += super()._phasespace_filter_text()
-        text += f"  - Bin shape (mu, azi, energy, time, score): {self.bin.shape} \n"
-        return text
-
-
-# ======================================================================================
 # Surface tally
 # ======================================================================================
 
 
-class TallySurface(TallyBase):
-    """
-    Define a surface tally.
-
-    Parameters
-    ----------
-    surface : Surface
-        The surface to tally across.
-    name : str, optional
-        User label.
-    scores : list of str, optional
-        Scores to tally.
-    multipliers : list of str, optional
-        Tally multipliers.
-    mu : array_like of float, optional
-        Polar cosine bin edges.
-    azi : array_like of float, optional
-        Azimuthal angle bin edges.
-    polar_reference : array_like of float, optional
-        Reference direction for polar angle binning.
-    energy : array_like of float or str, optional
-        Energy bin edges (eV).
-    time : array_like of float, optional
-        Time bin edges (s).
-
-    Returns
-    -------
-    TallySurface
-        The surface tally object.
-
-    See Also
-    --------
-    mcdc.Surface : Creates a surface to tally across.
-    """
-
+class TallySurface(Tally):
     # Annotations for Numba mode
     label: str = "surface_tally"
     #
@@ -423,7 +270,6 @@ class TallySurface(TallyBase):
         surface: Surface,
         name: str = "",
         scores: list[str] = ["flux"],
-        multipliers: list[str] = [],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
@@ -431,8 +277,15 @@ class TallySurface(TallyBase):
         time: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_SURFACE
+        super(Tally, self).__init__(type_)
         super().__init__(
-            type_, name, scores, multipliers, mu, azi, polar_reference, energy, time
+            name,
+            scores,
+            mu=mu,
+            azi=azi,
+            polar_reference=polar_reference,
+            energy=energy,
+            time=time,
         )
 
         # Set surface and attach tally to the surface
@@ -443,99 +296,101 @@ class TallySurface(TallyBase):
         text = super().__repr__()
         text += f"  - Surface: {self.surface.name}\n"
         text += super()._phasespace_filter_text()
-        text += f"  - Bin shape (mu, azi, energy, time, score): {self.bin.shape} \n"
+        text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
         return text
 
 
 # ======================================================================================
-# Mesh tally
+# Tracklength tally
 # ======================================================================================
 
 
-class TallyMesh(TallyBase):
-    """
-    Define a mesh tally.
-
-    Parameters
-    ----------
-    mesh : MeshUniform or MeshStructured
-        The spatial mesh to tally on.
-    name : str, optional
-        User label.
-    scores : list of str, optional
-        Scores to tally.
-    multipliers : list of str, optional
-        Tally multipliers.
-    mu : array_like of float, optional
-        Polar cosine bin edges.
-    azi : array_like of float, optional
-        Azimuthal angle bin edges.
-    polar_reference : array_like of float, optional
-        Reference direction for polar angle binning.
-    energy : array_like of float or str, optional
-        Energy bin edges (eV).
-    time : array_like of float, optional
-        Time bin edges (s).
-
-    Returns
-    -------
-    TallyMesh
-        The mesh tally object.
-
-    See Also
-    --------
-    mcdc.MeshUniform : Creates a uniform mesh.
-    mcdc.MeshStructured : Creates a structured mesh.
-    """
-
+class TallyTracklength(Tally):
     # Annotations for Numba mode
-    label: str = "mesh_tally"
+    label: str = "tracklength_tally"
+    non_numba: list[str] = ["spatial_filter"]
     #
-    mesh: MeshBase
-    stride_z: int
-    stride_y: int
-    stride_x: int
+    spatial_filter: Cell | MeshBase | NoneType
+    spatial_filter_type: int
+    spatial_filter_ID: int
+    spatial_filter_subtype: int
+    #
+    mesh_stride_z: int
+    mesh_stride_y: int
+    mesh_stride_x: int
 
     def __init__(
         self,
-        mesh: MeshBase,
+        cell: Cell | NoneType = None,
+        mesh: MeshBase | NoneType = None,
         name: str = "",
         scores: list[str] = ["flux"],
-        multipliers: list[str] = [],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
         energy: Iterable[float] | str | NoneType = None,
         time: Iterable[float] | NoneType = None,
     ):
-        type_ = TALLY_MESH
-        spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
+        type_ = TALLY_TRACKLENGTH
+        spatial_shape = None
+        if mesh is not None:
+            spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
+        super(Tally, self).__init__(type_)
         super().__init__(
-            type_,
             name,
             scores,
-            multipliers,
-            mu,
-            azi,
-            polar_reference,
-            energy,
-            time,
-            spatial_shape,
+            mu=mu,
+            azi=azi,
+            polar_reference=polar_reference,
+            energy=energy,
+            time=time,
+            spatial_shape=spatial_shape,
         )
 
-        self.mesh = mesh
+        # ==============================================================================
+        # Set spatial filter
+        # ==============================================================================
 
-        # Set the strides
-        N_score = len(self.scores)
-        self.stride_z = N_score
-        self.stride_y = N_score * mesh.Nz
-        self.stride_x = N_score * mesh.Nz * mesh.Ny
+        # Default: no filter
+        self.spatial_filter = None
+        self.spatial_filter_type = SPATIAL_FILTER_NONE
+        self.spatial_filter_subtype = -1
+        self.spatial_filter_ID = -1
+        self.mesh_stride_z = -1
+        self.mesh_stride_y = -1
+        self.mesh_stride_x = -1
+
+        # Cell filter
+        if cell is not None:
+            self.spatial_filter = cell
+            self.spatial_filter_type = SPATIAL_FILTER_CELL
+            self.spatial_filter_ID = cell.ID
+
+            # Attach tally to the cell
+            cell.tallies.append(self)
+
+        # Mesh filter
+        elif mesh is not None:
+            self.spatial_filter = mesh
+            self.spatial_filter_type = SPATIAL_FILTER_MESH
+            if isinstance(mesh, MeshStructured):
+                self.spatial_filter_subtype = MESH_STRUCTURED
+            elif isinstance(mesh, MeshUniform):
+                self.spatial_filter_subtype = MESH_UNIFORM
+            self.spatial_filter_ID = mesh.ID
+
+            # Set the strides
+            N_score = len(self.scores)
+            self.mesh_stride_z = N_score
+            self.mesh_stride_y = N_score * mesh.Nz
+            self.mesh_stride_x = N_score * mesh.Nz * mesh.Ny
 
     def __repr__(self):
         text = super().__repr__()
-        text += (
-            f"  - Mesh: {mesh_module.decode_type(self.mesh.type)} (ID {self.mesh.ID})\n"
-        )
+        if self.spatial_filter_type == SPATIAL_FILTER_CELL:
+            text += f"  - Cell: {self.spatial_filter.name}\n"
+        elif self.spatial_filter_type == SPATIAL_FILTER_MESH:
+            text += f"  - Mesh: {mesh_module.decode_type(self.spatial_filter.type)} (ID {self.spatial_filter.ID})\n"
         text += super()._phasespace_filter_text()
-        text += f"  - Bin shape (mu, azi, energy, time, x, y, z, score): {self.bin.shape} \n"
+        text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
         return text

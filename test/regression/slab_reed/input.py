@@ -43,7 +43,7 @@ mcdc.Source(z=[5.0, 6.0], isotropic=True, energy_group=0, probability=0.5)
 
 # Tallies
 mesh = mcdc.MeshStructured(z=np.linspace(0.0, 8.0, 81))
-mcdc.TallyMesh(mesh=mesh, scores=["flux"])
+mcdc.Tally(mesh=mesh, scores=["flux"])
 
 # Settings
 mcdc.settings.N_particle = 4000

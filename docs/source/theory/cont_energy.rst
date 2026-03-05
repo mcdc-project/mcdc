@@ -136,8 +136,6 @@ define materials with ``mcdc.Material()``:
 MC/DC will automatically look up the matching HDF5 file in ``$MCDC_LIB``
 (e.g., ``U235-293.6K.h5``) and load the pointwise cross sections.
 
-See the :ref:`example_pincell` for a complete continuous-energy input deck.
-
 
 Note on External Data Sources
 ------------------------------
