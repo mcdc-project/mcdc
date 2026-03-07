@@ -97,12 +97,12 @@ Every point in the problem domain must belong to exactly one cell.
 MC/DC does not verify non-overlapping coverage automatically — the user
 is responsible for ensuring consistent cell definitions.
 
-**Named cells** can be used for cell-based tallies:
+**Named cells** can be used for cell-filtered tallies:
 
 .. code-block:: python3
 
    sphere_cell = mcdc.Cell(name="Fuel sphere", region=-sphere, fill=fuel)
-   mcdc.TallyCell(cell=sphere_cell, scores=["fission"])
+   mcdc.Cell(cell=sphere_cell, scores=["fission"])
 
 
 Universes and Packaging

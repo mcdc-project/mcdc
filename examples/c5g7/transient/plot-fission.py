@@ -7,11 +7,11 @@ import shutil
 
 # Get results
 with h5py.File("output.h5", "r") as f:
-    fissions = f["tallies/mesh_tally_0/fission/mean"][()]
-    x = f["tallies/mesh_tally_0/grid/x"][()]
-    y = f["tallies/mesh_tally_0/grid/y"][()]
-    z = f["tallies/mesh_tally_0/grid/z"][()]
-    t = f["tallies/mesh_tally_0/grid/time"][()]
+    fissions = f["tallies/tracklength_tally_0/fission/mean"][()]
+    x = f["tallies/tracklength_tally_0/grid/x"][()]
+    y = f["tallies/tracklength_tally_0/grid/y"][()]
+    z = f["tallies/tracklength_tally_0/grid/z"][()]
+    t = f["tallies/tracklength_tally_0/grid/time"][()]
 
 # Total fission
 fission_total = np.average(fissions, axis=(1, 2, 3))

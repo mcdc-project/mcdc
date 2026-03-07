@@ -12,10 +12,10 @@ if TYPE_CHECKING:
     from mcdc.object_.cell import Cell, Region
     from mcdc.object_.material import MaterialBase
     from mcdc.object_.nuclide import Nuclide
-    from mcdc.object_.reaction import ReactionBase
+    from mcdc.object_.neutron_reaction import NeutronReactionBase
     from mcdc.object_.source import Source
     from mcdc.object_.surface import Surface
-    from mcdc.object_.tally import TallyBase
+    from mcdc.object_.tally import Tally
 
 ####
 
@@ -31,7 +31,7 @@ from mcdc.object_.base import ObjectSingleton
 from mcdc.object_.data import DataBase, DataNone
 from mcdc.object_.distribution import DistributionBase, DistributionNone
 from mcdc.object_.gpu_tools import GPUMeta
-from mcdc.object_.mesh import MeshBase
+from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.object_.particle import ParticleBank
 from mcdc.object_.settings import Settings
 from mcdc.object_.universe import Universe, Lattice
@@ -57,7 +57,7 @@ class Simulation(ObjectSingleton):
     distributions: list[DistributionBase]
     materials: list[MaterialBase]
     nuclides: list[Nuclide]
-    reactions: list[ReactionBase]
+    neutron_reactions: list[NeutronReactionBase]
     sources: list[Source]
 
     # Geometry
@@ -69,7 +69,7 @@ class Simulation(ObjectSingleton):
     meshes: list[MeshBase]
 
     # Tallies
-    tallies: list[TallyBase]
+    tallies: list[Tally]
 
     # Settings
     settings: Settings
@@ -139,7 +139,7 @@ class Simulation(ObjectSingleton):
         self.distributions = [DistributionNone()]
         self.materials = []
         self.nuclides = []
-        self.reactions = []
+        self.neutron_reactions = []
         self.sources = []
 
         # Geometry

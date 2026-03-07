@@ -406,22 +406,20 @@ def move_to_event(particle_container, simulation, data):
         cell = simulation["cells"][particle["cell_ID"]]
         for i in range(cell["N_tally"]):
             tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-            tally = simulation["cell_tallies"][tally_ID]
+            tally = simulation["tracklength_tallies"][tally_ID]
             tally_module.score.tracklength_tally(
                 particle_container, distance, tally, simulation, data
             )
 
-        # Global tallies
-        for i in range(simulation["N_global_tally"]):
-            tally = simulation["global_tallies"][i]
-            tally_module.score.tracklength_tally(
-                particle_container, distance, tally, simulation, data
-            )
+        # Other tracklength tallies
+        for i in range(simulation["N_tracklength_tally"]):
+            tally = simulation["tracklength_tallies"][i]
 
-        # Mesh tallies
-        for i in range(simulation["N_mesh_tally"]):
-            tally = simulation["mesh_tallies"][i]
-            tally_module.score.mesh_tally(
+            # Skip cell tallies
+            if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
+                continue
+
+            tally_module.score.tracklength_tally(
                 particle_container, distance, tally, simulation, data
             )
 

@@ -189,7 +189,7 @@ mesh = mcdc.MeshStructured(
     x=np.linspace(0.0, pitch * 17 * 3, 17 * 3 + 1),
     y=np.linspace(-pitch * 17 * 3, 0.0, 17 * 3 + 1),
 )
-mcdc.TallyMesh(mesh=mesh, scores=["flux"])
+mcdc.Tally(mesh=mesh, scores=["flux"])
 
 # Settings
 mcdc.settings.N_particle = 20

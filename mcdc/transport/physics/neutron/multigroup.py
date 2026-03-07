@@ -13,12 +13,12 @@ import mcdc.transport.rng as rng
 
 from mcdc.constant import (
     PI,
-    REACTION_TOTAL,
-    REACTION_NEUTRON_CAPTURE,
-    REACTION_NEUTRON_ELASTIC_SCATTERING,
-    REACTION_NEUTRON_FISSION,
-    REACTION_NEUTRON_FISSION_DELAYED,
-    REACTION_NEUTRON_FISSION_PROMPT,
+    NEUTRON_REACTION_TOTAL,
+    NEUTRON_REACTION_CAPTURE,
+    NEUTRON_REACTION_ELASTIC_SCATTERING,
+    NEUTRON_REACTION_FISSION,
+    NEUTRON_REACTION_FISSION_DELAYED,
+    NEUTRON_REACTION_FISSION_PROMPT,
 )
 from mcdc.transport.physics.util import scatter_direction
 from mcdc.transport.distribution import sample_isotropic_direction
@@ -46,13 +46,13 @@ def macro_xs(reaction_type, particle_container, simulation, data):
     material = simulation["multigroup_materials"][particle["material_ID"]]
     g = particle["g"]
 
-    if reaction_type == REACTION_TOTAL:
+    if reaction_type == NEUTRON_REACTION_TOTAL:
         return mcdc_get.multigroup_material.mgxs_total(g, material, data)
-    elif reaction_type == REACTION_NEUTRON_CAPTURE:
+    elif reaction_type == NEUTRON_REACTION_CAPTURE:
         return mcdc_get.multigroup_material.mgxs_capture(g, material, data)
-    elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
+    elif reaction_type == NEUTRON_REACTION_ELASTIC_SCATTERING:
         return mcdc_get.multigroup_material.mgxs_scatter(g, material, data)
-    elif reaction_type == REACTION_NEUTRON_FISSION:
+    elif reaction_type == NEUTRON_REACTION_FISSION:
         return mcdc_get.multigroup_material.mgxs_fission(g, material, data)
     return 0.0
 
@@ -63,33 +63,33 @@ def neutron_production_xs(reaction_type, particle_container, simulation, data):
     material = simulation["multigroup_materials"][particle["material_ID"]]
 
     g = particle["g"]
-    if reaction_type == REACTION_TOTAL:
+    if reaction_type == NEUTRON_REACTION_TOTAL:
         total = 0.0
         total += neutron_production_xs(
-            REACTION_NEUTRON_ELASTIC_SCATTERING,
+            NEUTRON_REACTION_ELASTIC_SCATTERING,
             particle_container,
             simulation,
             data,
         )
         total += neutron_production_xs(
-            REACTION_NEUTRON_FISSION, particle_container, simulation, data
+            NEUTRON_REACTION_FISSION, particle_container, simulation, data
         )
         return total
-    elif reaction_type == REACTION_NEUTRON_CAPTURE:
+    elif reaction_type == NEUTRON_REACTION_CAPTURE:
         return 0.0
-    elif reaction_type == REACTION_NEUTRON_ELASTIC_SCATTERING:
+    elif reaction_type == NEUTRON_REACTION_ELASTIC_SCATTERING:
         nu = mcdc_get.multigroup_material.mgxs_nu_s(g, material, data)
         xs = mcdc_get.multigroup_material.mgxs_scatter(g, material, data)
         return nu * xs
-    elif reaction_type == REACTION_NEUTRON_FISSION:
+    elif reaction_type == NEUTRON_REACTION_FISSION:
         nu = mcdc_get.multigroup_material.mgxs_nu_f(g, material, data)
         xs = mcdc_get.multigroup_material.mgxs_fission(g, material, data)
         return nu * xs
-    elif reaction_type == REACTION_NEUTRON_FISSION_PROMPT:
+    elif reaction_type == NEUTRON_REACTION_FISSION_PROMPT:
         nu = mcdc_get.multigroup_material.mgxs_nu_p(g, material, data)
         xs = mcdc_get.multigroup_material.mgxs_fission(g, material, data)
         return nu * xs
-    elif reaction_type == REACTION_NEUTRON_FISSION_DELAYED:
+    elif reaction_type == NEUTRON_REACTION_FISSION_DELAYED:
         nu = mcdc_get.multigroup_material.mgxs_nu_d_total(g, material, data)
         xs = mcdc_get.multigroup_material.mgxs_fission(g, material, data)
         return nu * xs
@@ -105,12 +105,12 @@ def collision(particle_container, simulation, data):
     particle = particle_container[0]
 
     # Get the reaction cross-sections
-    SigmaT = macro_xs(REACTION_TOTAL, particle_container, simulation, data)
+    SigmaT = macro_xs(NEUTRON_REACTION_TOTAL, particle_container, simulation, data)
     SigmaS = macro_xs(
-        REACTION_NEUTRON_ELASTIC_SCATTERING, particle_container, simulation, data
+        NEUTRON_REACTION_ELASTIC_SCATTERING, particle_container, simulation, data
     )
-    SigmaC = macro_xs(REACTION_NEUTRON_CAPTURE, particle_container, simulation, data)
-    SigmaF = macro_xs(REACTION_NEUTRON_FISSION, particle_container, simulation, data)
+    SigmaC = macro_xs(NEUTRON_REACTION_CAPTURE, particle_container, simulation, data)
+    SigmaF = macro_xs(NEUTRON_REACTION_FISSION, particle_container, simulation, data)
 
     # Implicit capture
     if simulation["implicit_capture"]["active"]:

@@ -10,15 +10,15 @@ from matplotlib import colors
 
 # Results
 with h5py.File("output.h5", "r") as f:
-    phi_avg = f["tallies/mesh_tally_0/flux/mean"][:]
-    phi_sd = f["tallies/mesh_tally_0/flux/sdev"][:]
+    phi_avg = f["tallies/tracklength_tally_0/flux/mean"][:]
+    phi_sd = f["tallies/tracklength_tally_0/flux/sdev"][:]
     k = f["k_cycle"][:]
     k_avg = f["k_mean"][()]
     k_sd = f["k_sdev"][()]
     rg = f["gyration_radius"][:]
-    x = f["tallies/mesh_tally_0/grid/x"][:]
-    y = f["tallies/mesh_tally_0/grid/y"][:]
-    z = f["tallies/mesh_tally_0/grid/z"][:]
+    x = f["tallies/tracklength_tally_0/grid/x"][:]
+    y = f["tallies/tracklength_tally_0/grid/y"][:]
+    z = f["tallies/tracklength_tally_0/grid/z"][:]
 
 dx = x[1] - x[0]
 dz = z[1] - z[0]

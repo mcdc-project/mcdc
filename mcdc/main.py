@@ -146,6 +146,11 @@ def preparation():
     # Get settings
     settings = simulationPy.settings
 
+    # Set nuclear and atomic data for transported particles
+    if settings.neutron_transport:
+        for nuclide in simulation.nuclides:
+            nuclide.set_neutron_data()
+
     # Set physics mode
     if len(simulationPy.materials) == 0:
         # Default physics in dummy mode
