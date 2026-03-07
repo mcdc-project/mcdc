@@ -148,7 +148,7 @@ def preparation():
 
     # Set nuclear and atomic data for transported particles
     if settings.neutron_transport:
-        for nuclide in simulation.nuclides:
+        for nuclide in simulationPy.nuclides:
             nuclide.set_neutron_data()
 
     # Set physics mode
