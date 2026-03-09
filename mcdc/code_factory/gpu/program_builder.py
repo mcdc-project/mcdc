@@ -10,10 +10,6 @@ from mpi4py import MPI
 import mcdc.config as config
 import mcdc.numba_types as type_
 
-# ======================================================================================
-# Build GPU program
-# ======================================================================================
-
 # Main types
 none_type = None
 simulation_type = None
@@ -41,7 +37,7 @@ src_free_program = lambda pointer: None
 free_state = lambda pointer: None
 
 
-def build_gpu_program(simulation, size):
+def forward_declare_gpu_program(simulation, data_size):
     global none_type, simulation_type, data_type
     global state_spec, simulation_gpu, data_gpu, group_gpu, thread_gpu, particle_gpu, particle_record_gpu
     global step_async, find_cell_async
@@ -54,10 +50,6 @@ def build_gpu_program(simulation, size):
             harmonize.config.should_compile(harmonize.config.ShouldCompile.ALWAYS)
     else:
         harmonize.config.should_compile(harmonize.config.ShouldCompile.NEVER)
-
-    # ==================================================================================
-    # Forward declaration
-    # ==================================================================================
 
     # ROCm and CUDA paths
     if config.args.gpu_cuda_path != None:
@@ -105,6 +97,8 @@ def build_gpu_program(simulation, size):
     alloc_managed_bytes = harmonize.alloc_managed_bytes
     alloc_device_bytes = harmonize.alloc_device_bytes
 
+
+'''
     # ==================================================================================
     # "gpu_sources_spec"
     # ==================================================================================
@@ -240,7 +234,7 @@ def build_gpu_program(simulation, size):
 def teardown_gpu_program(mcdc):
     src_free_program(cast_uintp_to_voidptr(mcdc["gpu_meta"]["source_program_pointer"]))
     free_state(cast_uintp_to_voidptr(mcdc["gpu_meta"]["state_pointer"]))
-
+'''
 
 # ======================================================================================
 # Simulation structure and data creators

@@ -11,19 +11,13 @@ from numba import njit
 from numba.extending import intrinsic
 from pathlib import Path
 
-if importlib.util.find_spec("harmonize") is None:
-    HAS_HARMONIZE = False
-else:
-    import harmonize
-
-    HAS_HARMONIZE = True
-
 ####
 
 import mcdc
 import mcdc.config as config
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
+import mcdc.code_factory.gpu.program_builder as gpu_builder
 
 from mcdc.object_.base import (
     ObjectBase,
@@ -266,13 +260,11 @@ def generate_numba_objects(simulation):
         set_object(object_, annotations, structures, records, data)
     set_object(simulation, annotations, structures, records, data)
 
-    """
-    # Build GPU program if needed
+    # Forward declare GPU program, if needed
     if config.target == "gpu":
-        from mcdc.code_factory.gpu.program_builder import build_gpu_program
+        from mcdc.code_factory.gpu.program_builder import forward_declare_gpu_program
 
-        build_gpu_program(simulation, data["size"])
-    """
+        forward_declare_gpu_program(simulation, data["size"])
 
     # Allocate the flattened data and re-set the objects
     data["array"], data["pointer"] = create_data_array(data["size"], type_map[float])
@@ -677,7 +669,7 @@ def create_data_array_on_gpu(size, dtype):
         pass
         # data_ptr = harmonize.alloc_managed_bytes(size)
     else:
-        data_ptr = harmonize.alloc_device_bytes(size)
+        data_ptr = gpu_builder.alloc_device_bytes(size)
     data_uint = voidptr_to_uintp(data_ptr)
     data = nb.carray(data_ptr, (size,), dtype)
     return data, data_uint
