@@ -2,10 +2,21 @@ from __future__ import annotations
 
 ####
 
+import importlib
+import numba as nb
 import numpy as np
 
-from pathlib import Path
 from mpi4py import MPI
+from numba import njit
+from numba.extending import intrinsic
+from pathlib import Path
+
+if importlib.util.find_spec("harmonize") is None:
+    HAS_HARMONIZE = False
+else:
+    import harmonize
+
+    HAS_HARMONIZE = True
 
 ####
 
@@ -657,18 +668,23 @@ def create_data_array(size, dtype):
         data = np.zeros(size, dtype=dtype)
         return data, 0
     else:
-        import harmonize
-
-        if config.gpu_state_storage == "managed":
-            data_ptr = harmonize.alloc_managed_bytes(size)
-        else:
-            data_ptr = harmonize.alloc_device_bytes(size)
-        data_uint = voidptr_to_uintp(data_ptr)
-        data = numba.carray(data_ptr, (size,), type_.float64)
-        return data, data_uint
+        create_data_array_on_gpu(size, dtype)
 
 
-def create_mcdc_container(dtype):
+@njit
+def create_data_array_on_gpu(size, dtype):
+    if config.gpu_state_storage == "managed":
+        pass
+        # data_ptr = harmonize.alloc_managed_bytes(size)
+    else:
+        data_ptr = harmonize.alloc_device_bytes(size)
+    data_uint = voidptr_to_uintp(data_ptr)
+    data = nb.carray(data_ptr, (size,), dtype)
+    return data, data_uint
+
+
+@njit
+def create_mcdc_container_on_gpu(dtype):
     if config.target == "gpu":
         import mcdc.code_factory.gpu.program_builder as gpu_builder
 
@@ -676,6 +692,35 @@ def create_mcdc_container(dtype):
     else:
         mcdc_container = np.zeros((1,), dtype=dtype)
         return mcdc_container, 0
+
+
+# =============================================================================
+# Type casters
+# =============================================================================
+
+
+@intrinsic
+def cast_voidptr_to_uintp(typingctx, src):
+    # check for accepted types
+    if isinstance(src, nb.types.RawPointer):
+        # create the expected type signature
+        result_type = nb.types.uintp
+        sig = result_type(nb.types.voidptr)
+
+        # defines the custom code generation
+        def codegen(context, builder, signature, args):
+            # llvm IRBuilder code here
+            [src] = args
+            rtype = signature.return_type
+            llrtype = context.get_value_type(rtype)
+            return builder.ptrtoint(src, llrtype)
+
+        return sig, codegen
+
+
+@njit()
+def voidptr_to_uintp(value):
+    return cast_voidptr_to_uintp(value)
 
 
 # ======================================================================================
