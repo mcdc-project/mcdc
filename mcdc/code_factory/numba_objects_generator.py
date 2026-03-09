@@ -227,7 +227,7 @@ def generate_numba_objects(simulation):
         ]
 
     # ==================================================================================
-    # Set records and data based on the simulation structures and objects
+    # Set records and data size based on the simulation structures and objects
     # ==================================================================================
 
     # Allocate object containers
@@ -255,32 +255,10 @@ def generate_numba_objects(simulation):
                 if type(item) in mcdc_classes:
                     objects.append(item)
 
-    # Set the objects
+    # Set the records and the data size
     for object_ in objects:
         set_object(object_, annotations, structures, records, data)
     set_object(simulation, annotations, structures, records, data)
-
-    # Forward declare GPU program, if needed
-    if config.target == "gpu":
-        from mcdc.code_factory.gpu.program_builder import forward_declare_gpu_program
-
-        forward_declare_gpu_program(simulation, data["size"])
-
-    # Allocate the flattened data and re-set the objects
-    data["array"], data["pointer"] = create_data_array(data["size"], type_map[float])
-
-    data["size"] = 0
-    records = {}
-    for mcdc_class in mcdc_classes:
-        if issubclass(mcdc_class, ObjectNonSingleton):
-            records[mcdc_class.label] = []
-        else:
-            records[mcdc_class.label] = {}
-    records["simulation"] = records.pop("simulation")
-
-    for object_ in objects:
-        set_object(object_, annotations, structures, records, data, set_data=True)
-    set_object(simulation, annotations, structures, records, data, set_data=True)
 
     # ==================================================================================
     # Finalize the simulation object structure and set record
@@ -353,11 +331,37 @@ def generate_numba_objects(simulation):
             f.write(text)
 
     # ==================================================================================
+    # GPU setup: Adapt transport functions, forward declare, and build program
+    # ==================================================================================
+
+    if config.target == "gpu":
+        from mcdc.code_factory.gpu.program_builder import (
+            adapt_transport_functions,
+            forward_declare_gpu_program,
+            build_gpu_program,
+        )
+
+        adapt_transport_functions()
+        forward_declare_gpu_program()
+        build_gpu_program(data["size"])
+
+    # ==================================================================================
+    # Allocate the flattened data and re-set the objects
+    # ==================================================================================
+
+    data["array"], data["pointer"] = create_data_array(data["size"], type_map[float])
+
+    data["size"] = 0
+    for object_ in objects:
+        set_object(object_, annotations, structures, records, data, set_data=True)
+    set_object(simulation, annotations, structures, records, data, set_data=True)
+
+    # ==================================================================================
     # Set with records
     # ==================================================================================
 
     # The global structure/variable container
-    mcdc_simulation_container, mcdc_simulation_pointer = create_mcdc_container(
+    mcdc_simulation_container, mcdc_simulation_pointer = create_simulation_container(
         into_dtype(structures["simulation"])
     )
     mcdc_simulation = mcdc_simulation_container[0]
@@ -663,7 +667,7 @@ def create_data_array(size, dtype):
         create_data_array_on_gpu(size, dtype)
 
 
-# @njit
+@njit
 def create_data_array_on_gpu(size, dtype):
     if config.gpu_state_storage == "managed":
         data_ptr = gpu_builder.alloc_managed_bytes(size)
@@ -674,15 +678,24 @@ def create_data_array_on_gpu(size, dtype):
     return data, data_uint
 
 
-@njit
-def create_mcdc_container_on_gpu(dtype):
-    if config.target == "gpu":
-        import mcdc.code_factory.gpu.program_builder as gpu_builder
-
-        return gpu_builder.create_mcdc_container(dtype)
+def create_simulation_container(dtype):
+    if not config.target == "gpu":
+        simulation_container = np.zeros((1,), dtype=dtype)
+        return simulation_container, 0
     else:
-        mcdc_container = np.zeros((1,), dtype=dtype)
-        return mcdc_container, 0
+        create_simulation_container_on_gpu(dtype)
+
+
+@njit
+def create_simulation_container_on_gpu(dtype):
+    size = dtype.itemsize
+    if config.gpu_state_storage == "managed":
+        simulation_ptr = gpu_builder.alloc_managed_bytes(size)
+    else:
+        simulation_ptr = gpu_builder.alloc_device_bytes(size)
+    simulation_uint = voidptr_to_uintp(simulation_ptr)
+    simulation = nb.carray(simulation_ptr, (size,), dtype)
+    return simulation, simulation_uint
 
 
 # =============================================================================

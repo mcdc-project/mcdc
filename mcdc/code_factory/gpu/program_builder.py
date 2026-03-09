@@ -9,6 +9,26 @@ from mpi4py import MPI
 
 import mcdc.config as config
 
+
+def adapt_transport_functions():
+    import ast, pathlib
+
+    base_path = pathlib.Path(__file__).parent.resolve() / "transport"
+    print(base_path)
+    file_paths = [str(p) for p in base_path.rglob("*") if p.is_file()]
+
+    collection = {}
+    for file_path in file_paths:
+        with open(file_path, "r", encoding="utf-8") as f:
+            tree = ast.parse(f.read())
+        function_names = [
+            node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+        ]
+        collection[file_path] = function_names
+        print(file_path, function_names)
+    exit()
+
+
 # Main types
 none_type = None
 simulation_type = None
@@ -36,14 +56,13 @@ src_free_program = lambda pointer: None
 free_state = lambda pointer: None
 
 
-def forward_declare_gpu_program(simulation, data_size):
+def forward_declare_gpu_program():
     import mcdc.numba_types as type_
 
     global none_type, simulation_type, data_type
     global state_spec, simulation_gpu, data_gpu, group_gpu, thread_gpu, particle_gpu, particle_record_gpu
     global step_async, find_cell_async
     global alloc_managed_bytes, alloc_device_bytes
-    global src_free_program, free_state
 
     # Compilation check
     if MPI.COMM_WORLD.Get_rank() == 0:
@@ -99,7 +118,9 @@ def forward_declare_gpu_program(simulation, data_size):
     alloc_device_bytes = harmonize.alloc_device_bytes
 
 
-'''
+def build_gpu_program(data_size):
+    global src_free_program, free_state
+
     # ==================================================================================
     # "gpu_sources_spec"
     # ==================================================================================
@@ -134,7 +155,7 @@ def forward_declare_gpu_program(simulation, data_size):
     # Async. functions
     # ================
 
-    shape = (size,)
+    shape = (data_size,)
 
     def step(program: nb.uintp, particle_input: particle_gpu):
         simulation = simulation_gpu(program)
@@ -235,7 +256,7 @@ def forward_declare_gpu_program(simulation, data_size):
 def teardown_gpu_program(mcdc):
     src_free_program(cast_uintp_to_voidptr(mcdc["gpu_meta"]["source_program_pointer"]))
     free_state(cast_uintp_to_voidptr(mcdc["gpu_meta"]["state_pointer"]))
-'''
+
 
 # ======================================================================================
 # Simulation structure and data creators
