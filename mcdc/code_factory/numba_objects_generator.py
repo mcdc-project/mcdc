@@ -255,11 +255,13 @@ def generate_numba_objects(simulation):
         set_object(object_, annotations, structures, records, data)
     set_object(simulation, annotations, structures, records, data)
 
+    """
     # Build GPU program if needed
     if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import build_gpu_program
 
         build_gpu_program(simulation, data["size"])
+    """
 
     # Allocate the flattened data and re-set the objects
     data["array"], data["pointer"] = create_data_array(data["size"], type_map[float])
@@ -646,18 +648,24 @@ def set_object(
 
 
 # =============================================================================
-# Global GPU/CPU Array Variable Constructors
+# Global GPU/CPU variable array constructors
 # =============================================================================
 
 
 def create_data_array(size, dtype):
-    if config.target == "gpu":
-        import mcdc.code_factory.gpu.program_builder as gpu_builder
-
-        return gpu_builder.create_data_array(size, dtype)
+    if not config.target == "gpu":
+        data = np.zeros(size, dtype=dtype)
+        return data, 0
     else:
-        data_tally = np.zeros(size, dtype=dtype)
-        return data_tally, 0
+        import harmonize
+
+        if config.gpu_state_storage == "managed":
+            data_ptr = harmonize.alloc_managed_bytes(size)
+        else:
+            data_ptr = harmonize.alloc_device_bytes(size)
+        data_uint = voidptr_to_uintp(data_ptr)
+        data = numba.carray(data_ptr, (size,), type_.float64)
+        return data, data_uint
 
 
 def create_mcdc_container(dtype):

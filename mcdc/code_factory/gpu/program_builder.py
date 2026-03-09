@@ -113,23 +113,26 @@ def build_gpu_program(simulation, size):
     # Base functions
     # ==============
 
-    def make_work(prog: nb.uintp) -> nb.boolean:
-        mcdc = adapt.mcdc_global(prog)
+    def make_work(program: nb.uintp) -> nb.boolean:
+        simulation = simulation_gpu(program)
 
-        idx_work = adapt.global_add(mcdc["mpi_work_iter"], 0, 1)
+        idx_work = adapt.global_add(simulation["mpi_work_iter"], 0, 1)
 
-        if idx_work >= mcdc["mpi_work_size"]:
+        if idx_work >= simulation["mpi_work_size"]:
             return False
 
         generate_source_particle(
-            mcdc["mpi_work_start"], nb.uint64(idx_work), mcdc["source_seed"], prog
+            simulation["mpi_work_start"],
+            nb.uint64(idx_work),
+            simulation["source_seed"],
+            program,
         )
         return True
 
-    def initialize(prog: nb.uintp):
+    def initialize(program: nb.uintp):
         pass
 
-    def finalize(prog: nb.uintp):
+    def finalize(program: nb.uintp):
         pass
 
     # ================
@@ -138,19 +141,19 @@ def build_gpu_program(simulation, size):
 
     shape = (size,)
 
-    def step(prog: nb.uintp, P_input: particle_gpu):
-        mcdc = adapt.mcdc_global(prog)
-        data_ptr = adapt.mcdc_data(prog)
+    def step(program: nb.uintp, particle_input: particle_gpu):
+        simulation = simulation_gpu(program)
+        data_ptr = adapt.mcdc_data(program)
         data = adapt.harm.array_from_ptr(data_ptr, shape, nb.float64)
-        P_arr = adapt.local_array(1, type_.particle)
-        P_arr[0] = P_input
-        P = P_arr[0]
-        if P["fresh"]:
-            prep_particle(P_arr, prog)
-        P["fresh"] = False
-        step_particle(P_arr, data, prog)
-        if P["alive"]:
-            adapt.step_async(prog, P)
+        particle_container = adapt.local_array(1, type_.particle)
+        particle_container[0] = particle_input
+        particle = particle_container[0]
+        if particle["fresh"]:
+            prep_particle(particle_container, program)
+        particle["fresh"] = False
+        step_particle(particle_container, data, program)
+        if particle["alive"]:
+            adapt.step_async(program, particle)
 
     # Bind them all
     base_fns = (initialize, finalize, make_work)
