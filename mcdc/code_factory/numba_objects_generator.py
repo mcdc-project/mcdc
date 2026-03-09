@@ -14,10 +14,10 @@ from pathlib import Path
 ####
 
 import mcdc
+import mcdc.code_factory.gpu.program_builder as gpu_builder
 import mcdc.config as config
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
-import mcdc.code_factory.gpu.program_builder as gpu_builder
 
 from mcdc.object_.base import (
     ObjectBase,
@@ -663,11 +663,10 @@ def create_data_array(size, dtype):
         create_data_array_on_gpu(size, dtype)
 
 
-@njit
+# @njit
 def create_data_array_on_gpu(size, dtype):
     if config.gpu_state_storage == "managed":
-        pass
-        # data_ptr = harmonize.alloc_managed_bytes(size)
+        data_ptr = gpu_builder.alloc_managed_bytes(size)
     else:
         data_ptr = gpu_builder.alloc_device_bytes(size)
     data_uint = voidptr_to_uintp(data_ptr)

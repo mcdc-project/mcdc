@@ -8,7 +8,6 @@ from mpi4py import MPI
 ####
 
 import mcdc.config as config
-import mcdc.numba_types as type_
 
 # Main types
 none_type = None
@@ -38,6 +37,8 @@ free_state = lambda pointer: None
 
 
 def forward_declare_gpu_program(simulation, data_size):
+    import mcdc.numba_types as type_
+
     global none_type, simulation_type, data_type
     global state_spec, simulation_gpu, data_gpu, group_gpu, thread_gpu, particle_gpu, particle_record_gpu
     global step_async, find_cell_async
