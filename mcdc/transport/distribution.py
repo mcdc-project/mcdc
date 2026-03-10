@@ -150,7 +150,11 @@ def sample_direction(polar_cosine, azimuthal, polar_coordinate, rng_state):
 @njit
 def sample_tabulated(table, rng_state, data):
     xi = rng.lcg(rng_state)
-    idx = find_bin(xi, mcdc_get.tabulated_distribution.cdf_all(table, data))
+
+    cdf = data[table["cdf_offset"] : (table["cdf_offset"] + table["cdf_length"])]
+    # Above is equivalent to: cmf = mcdc_get.tabulated_distribution.cdf_all(table, data)
+
+    idx = find_bin(xi, cdf)
     cdf_low = mcdc_get.tabulated_distribution.cdf(idx, table, data)
     cdf_high = mcdc_get.tabulated_distribution.cdf(idx + 1, table, data)
     value_low = mcdc_get.tabulated_distribution.value(idx, table, data)
@@ -161,7 +165,11 @@ def sample_tabulated(table, rng_state, data):
 @njit
 def sample_pmf(pmf, rng_state, data):
     xi = rng.lcg(rng_state)
-    idx = find_bin(xi, mcdc_get.pmf_distribution.cmf_all(pmf, data))
+
+    cmf = data[pmf["cmf_offset"] : (pmf["cmf_offset"] + pmf["cmf_length"])]
+    # Above is equivalent to: cmf = mcdc_get.pmf_distribution.cmf_all(pmf, data)
+
+    idx = find_bin(xi, cmf)
     return mcdc_get.pmf_distribution.value(idx, pmf, data)
 
 

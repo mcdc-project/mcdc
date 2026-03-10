@@ -5,7 +5,7 @@ from numba import njit
 import mcdc.mcdc_get as mcdc_get
 
 from mcdc.constant import COINCIDENCE_TOLERANCE, COINCIDENCE_TOLERANCE_TIME, INF
-from mcdc.transport.util import find_bin
+from mcdc.transport.util import find_bin_with_rules
 
 
 @njit
@@ -24,9 +24,17 @@ def get_indices(particle_container, mesh, data):
     uz = particle["uz"]
 
     tolerance = COINCIDENCE_TOLERANCE
-    ix = find_bin(x, mcdc_get.structured_mesh.x_all(mesh, data), tolerance, ux < 0.0)
-    iy = find_bin(y, mcdc_get.structured_mesh.y_all(mesh, data), tolerance, uy < 0.0)
-    iz = find_bin(z, mcdc_get.structured_mesh.z_all(mesh, data), tolerance, uz < 0.0)
+
+    grid_x = data[mesh["x_offset"] : (mesh["x_offset"] + mesh["x_length"])]
+    # Above is equivalent to: grid_x = mcdc_get.structured_mesh.x_all(mesh, data)
+    grid_y = data[mesh["y_offset"] : (mesh["y_offset"] + mesh["y_length"])]
+    # Above is equivalent to: grid_y = mcdc_get.structured_mesh.y_all(mesh, data)
+    grid_z = data[mesh["z_offset"] : (mesh["z_offset"] + mesh["z_length"])]
+    # Above is equivalent to: grid_z = mcdc_get.structured_mesh.z_all(mesh, data)
+
+    ix = find_bin_with_rules(x, grid_x, tolerance, go_lower=ux < 0.0)
+    iy = find_bin_with_rules(y, grid_y, tolerance, go_lower=uy < 0.0)
+    iz = find_bin_with_rules(z, grid_z, tolerance, go_lower=uz < 0.0)
 
     return ix, iy, iz
 

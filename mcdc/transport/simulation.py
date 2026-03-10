@@ -15,6 +15,7 @@ import mcdc.transport.physics as physics
 import mcdc.transport.rng as rng
 import mcdc.transport.tally as tally_module
 import mcdc.transport.technique as technique
+import mcdc.transport.util as util
 
 from mcdc.constant import *
 from mcdc.print_ import (
@@ -23,7 +24,6 @@ from mcdc.print_ import (
     print_progress_eigenvalue,
 )
 from mcdc.transport.source import source_particle
-from mcdc.transport.util import local_array
 
 # ======================================================================================
 # Main simulations
@@ -182,11 +182,12 @@ def source_loop(seed, simulation, data):
 
 
 @njit
-def generate_source_particle(work_start, idx_work, seed, simulation, data):
+def generate_source_particle(work_start, idx_work, seed, program, data):
     """Get a source particle and put into one of the banks"""
+    simulation = util.access_simulation(program)
     settings = simulation["settings"]
 
-    particle_container = local_array(1, type_.particle_data)
+    particle_container = util.local_array(1, type_.particle_data)
     particle = particle_container[0]
 
     # Get from fixed-source?
@@ -233,7 +234,7 @@ def generate_source_particle(work_start, idx_work, seed, simulation, data):
 
 @njit
 def exhaust_active_bank(simulation, data):
-    particle_container = local_array(1, type_.particle)
+    particle_container = util.local_array(1, type_.particle)
     particle = particle_container[0]
 
     # Loop until active bank is exhausted
@@ -241,15 +242,8 @@ def exhaust_active_bank(simulation, data):
         # Get particle from active bank
         particle_bank_module.pop_particle(particle_container, simulation["bank_active"])
 
-        prep_particle(particle_container, simulation)
-
         # Particle loop
         particle_loop(particle_container, simulation, data)
-
-
-@njit
-def prep_particle(particle_container, simulation):
-    particle = particle_container[0]
 
 
 @njit

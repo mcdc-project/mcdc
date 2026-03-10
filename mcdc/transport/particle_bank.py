@@ -13,10 +13,10 @@ import mcdc.numba_types as type_
 import mcdc.transport.mpi as mpi
 import mcdc.transport.particle as particle_module
 import mcdc.transport.technique as technique
+import mcdc.transport.util as util
 
 from mcdc.constant import *
 from mcdc.print_ import print_error
-from mcdc.transport.util import atomic_add, local_array
 
 # =============================================================================
 # Bank size
@@ -35,7 +35,7 @@ def set_bank_size(bank, value):
 
 @njit
 def add_bank_size(bank, value):
-    atomic_add(bank["size"], 0, value)
+    util.atomic_add(bank["size"], 0, value)
 
 
 # =============================================================================
@@ -126,7 +126,7 @@ def promote_future_particles(simulation, data):
     next_census_time = mcdc_get.settings.census_time(idx, simulation["settings"], data)
 
     # Particle container
-    particle_container = local_array(1, type_.particle_data)
+    particle_container = util.local_array(1, type_.particle_data)
     particle = particle_container[0]
 
     # Loop over all particles in future bank

@@ -12,7 +12,7 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE_ENERGY,
     COINCIDENCE_TOLERANCE_TIME,
 )
-from mcdc.transport.util import find_bin
+from mcdc.transport.util import find_bin_with_tolerance, find_bin_with_rules
 
 
 @njit
@@ -55,8 +55,14 @@ def get_direction_index(particle_container, tally, data):
         azi *= -1
 
     tolerance = COINCIDENCE_TOLERANCE_DIRECTION
-    i_mu = find_bin(mu, mcdc_get.tally.mu_all(tally, data), tolerance)
-    i_azi = find_bin(azi, mcdc_get.tally.azi_all(tally, data), tolerance)
+
+    grid_mu = data[tally["mu_offset"] : (tally["mu_offset"] + tally["mu_length"])]
+    # Above is equivalent to: grid_mu = mcdc_get.tally.mu_all(tally, data)
+    grid_azi = data[tally["azi_offset"] : (tally["azi_offset"] + tally["azi_length"])]
+    # Above is equivalent to: grid_azi = mcdc_get.tally.azi_all(tally, data)
+
+    i_mu = find_bin_with_tolerance(mu, grid_mu, tolerance)
+    i_azi = find_bin_with_tolerance(azi, grid_azi, tolerance)
     return i_mu, i_azi
 
 
@@ -70,7 +76,12 @@ def get_energy_index(particle_container, tally, data, multigroup_mode):
         E = particle["E"]
 
     tolerance = COINCIDENCE_TOLERANCE_ENERGY
-    return find_bin(E, mcdc_get.tally.energy_all(tally, data), tolerance)
+    grid_energy = data[
+        tally["energy_offset"] : (tally["energy_offset"] + tally["energy_length"])
+    ]
+    # Above is equivalent to: grid_energy = mcdc_get.tally.energy_all(tally, data)
+
+    return find_bin_with_tolerance(E, grid_energy, tolerance)
 
 
 @njit
@@ -81,9 +92,12 @@ def get_time_index(particle_container, tally, data):
     time = particle["t"]
 
     tolerance = COINCIDENCE_TOLERANCE_TIME
-    return find_bin(
-        time, mcdc_get.tally.time_all(tally, data), tolerance, go_lower=False
-    )
+    grid_time = data[
+        tally["time_offset"] : (tally["time_offset"] + tally["time_length"])
+    ]
+    # Above is equivalent to: grid_time = mcdc_get.tally.time_all(tally, data)
+
+    return find_bin_with_rules(time, grid_time, tolerance, go_lower=False)
 
 
 @njit

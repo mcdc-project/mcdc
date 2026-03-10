@@ -36,7 +36,7 @@ from mcdc.constant import (
     SURFACE_CONE_Y,
     SURFACE_CONE_Z,
 )
-from mcdc.transport.util import find_bin
+from mcdc.transport.util import find_bin_with_rules
 
 
 @njit
@@ -351,7 +351,8 @@ def _get_move_idx(t, surface, data):
     Get moving interval index wrt the given time
     """
     time_grid = mcdc_get.surface.move_time_grid_all(surface, data)
-    idx = find_bin(t, time_grid, epsilon=COINCIDENCE_TOLERANCE_TIME, go_lower=False)
+    tolerance = COINCIDENCE_TOLERANCE_TIME
+    idx = find_bin_with_rules(t, time_grid, tolerance, go_lower=False)
 
     # Coinciding cases
     if abs(time_grid[idx + 1] - t) < COINCIDENCE_TOLERANCE:

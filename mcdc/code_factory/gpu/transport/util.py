@@ -1,6 +1,7 @@
 import harmonize
+import numba as nb
 
-from numba import njit
+from numba import njit, types
 
 
 @njit
@@ -17,31 +18,31 @@ def local_array(shape, dtype):
     return np.zeros(shape, dtype=dtype)
 
 
-@numba.extending.type_callable(local_array)
+@nb.extending.type_callable(local_array)
 def type_local_array(context):
 
     from numba.core.typing.npydecl import parse_dtype, parse_shape
 
-    if isinstance(context, numba.core.typing.context.Context):
+    if isinstance(context, nb.core.typing.context.Context):
 
         # Function repurposed from Numba's ol_np_empty.
         def typer(shape, dtype):
-            numba.np.arrayobj._check_const_str_dtype("empty", dtype)
+            nb.np.arrayobj._check_const_str_dtype("empty", dtype)
 
             # Only integer literals and tuples of integer literals are valid
             # shapes
             if isinstance(shape, types.Integer):
                 if not isinstance(shape, types.IntegerLiteral):
-                    raise numba.core.errors.UnsupportedError(
+                    raise nb.core.errors.UnsupportedError(
                         f"Integer shape type {shape} is not literal."
                     )
             elif isinstance(shape, (types.Tuple, types.UniTuple)):
                 if any([not isinstance(s, types.IntegerLiteral) for s in shape]):
-                    raise numba.core.errors.UnsupportedError(
+                    raise nb.core.errors.UnsupportedError(
                         f"At least one element of shape tuple type{shape} is not an integer literal."
                     )
             else:
-                raise numba.core.errors.UnsupportedError(
+                raise nb.core.errors.UnsupportedError(
                     f"Shape is of unsupported type {shape}."
                 )
 
@@ -56,11 +57,11 @@ def type_local_array(context):
                 return sig
             else:
                 msg = f"Cannot parse input types to function np.empty({shape}, {dtype})"
-                raise numba.errors.TypingError(msg)
+                raise nb.errors.TypingError(msg)
 
         return typer
 
-    elif isinstance(context, numba.cuda.target.CUDATypingContext):
+    elif isinstance(context, nb.cuda.target.CUDATypingContext):
 
         # Function repurposed from Numba's Cuda_array_decl.
         def typer(shape, dtype):
@@ -83,7 +84,7 @@ def type_local_array(context):
 
         return typer
 
-    elif isinstance(context, numba.hip.target.HIPTypingContext):
+    elif isinstance(context, nb.hip.target.HIPTypingContext):
 
         def typer(shape, dtype):
             # Only integer literals and tuples of integer literals are valid
@@ -106,12 +107,10 @@ def type_local_array(context):
         return typer
 
     else:
-        raise numba.core.errors.UnsupportedError(
-            f"Unsupported target context {context}."
-        )
+        raise nb.core.errors.UnsupportedError(f"Unsupported target context {context}.")
 
 
-@numba.extending.lower_builtin(local_array, types.IntegerLiteral, types.Any)
+@nb.extending.lower_builtin(local_array, types.IntegerLiteral, types.Any)
 def builtin_local_array(context, builder, sig, args):
 
     shape, dtype = sig.args
@@ -119,7 +118,7 @@ def builtin_local_array(context, builder, sig, args):
     from numba.core.typing.npydecl import parse_dtype, parse_shape
     import numba.np.arrayobj as arrayobj
 
-    if isinstance(context, numba.core.cpu.CPUContext):
+    if isinstance(context, nb.core.cpu.CPUContext):
 
         # No default arguments.
         nb_dtype = parse_dtype(dtype)
@@ -136,32 +135,30 @@ def builtin_local_array(context, builder, sig, args):
         ary = arrayobj._empty_nd_impl(context, builder, arrtype, shapes)
 
         return ary._getvalue()
-    elif isinstance(context, numba.cuda.target.CUDATargetContext):
+    elif isinstance(context, nb.cuda.target.CUDATargetContext):
         length = sig.args[0].literal_value
         dtype = parse_dtype(sig.args[1])
-        return numba.cuda.cudaimpl._generic_array(
+        return nb.cuda.cudaimpl._generic_array(
             context,
             builder,
             shape=(length,),
             dtype=dtype,
             symbol_name="_cudapy_harm_lmem",
-            addrspace=numba.cuda.cudadrv.nvvm.ADDRSPACE_LOCAL,
+            addrspace=nb.cuda.cudadrv.nvvm.ADDRSPACE_LOCAL,
             can_dynsized=False,
         )
-    elif isinstance(context, numba.hip.target.HIPTargetContext):
+    elif isinstance(context, nb.hip.target.HIPTargetContext):
         length = sig.args[0].literal_value
         dtype = parse_dtype(sig.args[1])
-        result = numba.hip.typing_lowering.hip.lowering._generic_array(
+        result = nb.hip.typing_lowering.hip.lowering._generic_array(
             context,
             builder,
             shape=(length,),
             dtype=dtype,
             symbol_name="_HIPpy_lmem",
-            addrspace=numba.hip.amdgcn.ADDRSPACE_LOCAL,
+            addrspace=nb.hip.amdgcn.ADDRSPACE_LOCAL,
             can_dynsized=False,
         )
         return result
     else:
-        raise numba.core.errors.UnsupportedError(
-            f"Unsupported target context {context}."
-        )
+        raise nb.core.errors.UnsupportedError(f"Unsupported target context {context}.")

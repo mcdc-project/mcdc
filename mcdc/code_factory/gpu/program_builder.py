@@ -25,6 +25,12 @@ def adapt_transport_functions():
     transport.util.local_array = gpu_transport.util.local_array
 
 
+def adapt_transport_functions_post_declare():
+    import mcdc.transport as transport
+
+    transport.util.access_simulation = access_simulation
+
+
 # ======================================================================================
 # Forward declaration
 # ======================================================================================
@@ -126,15 +132,14 @@ free_state = lambda pointer: None
 
 def build_gpu_program(data_size):
     import harmonize
+    import mcdc.numba_types as type_
+    import mcdc.transport.util as util
 
-    from mcdc.transport.util import atomic_add
-    from mcdc.transport.simulation import generate_source_particle
+    from mcdc.transport.simulation import generate_source_particle, step_particle
 
     global src_free_program, free_state
 
-    # ==================================================================================
-    # "gpu_sources_spec"
-    # ==================================================================================
+    shape = eval(f"{(data_size,)}")
 
     # ==============
     # Base functions
@@ -143,9 +148,9 @@ def build_gpu_program(data_size):
     def make_work(program: nb.uintp) -> nb.boolean:
         simulation = access_simulation(program)
         data_ptr = access_data_ptr(program)
-        data = adapt.harm.array_from_ptr(data_ptr, shape, nb.float64)
+        data = harmonize.array_from_ptr(data_ptr, shape, nb.float64)
 
-        atomic_add(simulation["mpi_work_iter"], 0, 1)
+        util.atomic_add(simulation["mpi_work_iter"], 0, 1)
         idx_work = simulation["mpi_work_iter"][0]
 
         if idx_work >= simulation["mpi_work_size"]:
@@ -172,27 +177,26 @@ def build_gpu_program(data_size):
     # Async. functions
     # ================
 
-    shape = (data_size,)
-
     def step(program: nb.uintp, particle_input: particle_gpu):
         simulation = access_simulation(program)
-        data_ptr = access_data(program)
-        data = adapt.harm.array_from_ptr(data_ptr, shape, nb.float64)
+        data_ptr = access_data_ptr(program)
+        data = harmonize.array_from_ptr(data_ptr, shape, nb.float64)
 
-        particle_container = adapt.local_array(1, type_.particle)
+        particle_container = util.local_array(1, type_.particle)
         particle_container[0] = particle_input
         particle = particle_container[0]
-        if particle["fresh"]:
-            prep_particle(particle_container, program)
         particle["fresh"] = False
         step_particle(particle_container, data, program)
         if particle["alive"]:
-            adapt.step_async(program, particle)
+            step_async(program, particle)
 
     # Bind them all
     base_fns = (initialize, finalize, make_work)
     async_fns = [step]
+    async_fns = []
     src_spec = harmonize.RuntimeSpec("mcdc_source", state_spec, base_fns, async_fns)
+    print("PASS")
+    exit()
     harmonize.RuntimeSpec.bind_specs()
 
     # ==================================================================================

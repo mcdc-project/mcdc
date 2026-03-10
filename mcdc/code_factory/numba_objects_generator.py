@@ -338,11 +338,19 @@ def generate_numba_objects(simulation):
         from mcdc.code_factory.gpu.program_builder import (
             adapt_transport_functions,
             forward_declare_gpu_program,
-            build_gpu_program,
         )
 
         adapt_transport_functions()
         forward_declare_gpu_program()
+
+        from mcdc.code_factory.gpu.program_builder import (
+            adapt_transport_functions_post_declare,
+        )
+
+        adapt_transport_functions_post_declare()
+
+        from mcdc.code_factory.gpu.program_builder import build_gpu_program
+
         build_gpu_program(data["size"])
 
     # ==================================================================================

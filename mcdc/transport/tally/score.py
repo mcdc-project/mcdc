@@ -5,6 +5,7 @@ from numba import njit
 import mcdc.mcdc_get as mcdc_get
 import mcdc.transport.mesh as mesh_module
 import mcdc.transport.physics as physics
+import mcdc.transport.util as util
 
 from mcdc.constant import (
     AXIS_T,
@@ -27,7 +28,6 @@ from mcdc.constant import (
 )
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import get_filter_indices
-from mcdc.transport.util import atomic_add
 
 
 @njit
@@ -58,7 +58,7 @@ def make_scores(particle_container, flux, tally, idx_base, simulation, data):
             surface = simulation["surfaces"][particle["surface_ID"]]
             mu = get_normal_component(particle_container, speed, surface, data)
             score = flux * mu
-        atomic_add(data, idx_base + i_score, score)
+        util.atomic_add(data, idx_base + i_score, score)
 
 
 # ======================================================================================
@@ -378,7 +378,7 @@ def eigenvalue_tally(particle_container, distance, simulation, data):
     )
 
     # Fission production (needed even during inactive cycle)
-    atomic_add(simulation["eigenvalue_tally_nuSigmaF"], 0, flux * nuSigmaF)
+    util.atomic_add(simulation["eigenvalue_tally_nuSigmaF"], 0, flux * nuSigmaF)
 
     # Done, if inactive
     if not simulation["cycle_active"]:
@@ -390,7 +390,7 @@ def eigenvalue_tally(particle_container, distance, simulation, data):
 
     v = physics.particle_speed(particle_container, simulation, data)
     n_density = flux / v
-    atomic_add(simulation["eigenvalue_tally_n"], 0, n_density)
+    util.atomic_add(simulation["eigenvalue_tally_n"], 0, n_density)
 
     # Maximum neutron density
     if simulation["n_max"] < n_density:
@@ -424,7 +424,7 @@ def eigenvalue_tally(particle_container, distance, simulation, data):
         NEUTRON_REACTION_FISSION, particle_container, simulation, data
     )
     C_density = flux * total * SigmaF / simulation["k_eff"]
-    atomic_add(simulation["eigenvalue_tally_C"], 0, C_density)
+    util.atomic_add(simulation["eigenvalue_tally_C"], 0, C_density)
 
     # Maximum precursor density
     if simulation["C_max"] < C_density:

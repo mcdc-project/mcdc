@@ -6,9 +6,7 @@ from typing import Sequence
 
 
 @njit
-def find_bin(
-    value: float, grid: Sequence[float], epsilon: float = 0.0, go_lower: bool = True
-) -> int:
+def find_bin_with_rules(value, grid, epsilon=0.0, go_lower=True):
     """
     Return the bin index i for which grid[i] <= value < grid[i+1], with optional
     epsilon tolerance and tie-breaking toward the lower/upper bin.
@@ -97,13 +95,16 @@ def find_bin(
 
 
 @njit
-def atomic_add(array, idx, value):
-    array[idx] += value
+def find_bin(value, grid):
+    tolerance = 0.0
+    go_lower = True
+    return find_bin_with_rules(value, grid, tolerance, go_lower)
 
 
 @njit
-def local_array(shape, dtype):
-    return np.zeros(shape, dtype=dtype)
+def find_bin_with_tolerance(value, grid, tolerance):
+    go_lower = True
+    return find_bin_with_rules(value, grid, tolerance, go_lower)
 
 
 # ======================================================================================
@@ -129,3 +130,23 @@ def log_interpolation(x, x1, x2, y1, y2):
     ly = ly1 + m * (math.log(x) - lx1)
 
     return math.exp(ly)
+
+
+# ======================================================================================
+# Framework utilities
+# ======================================================================================
+
+
+@njit
+def atomic_add(array, idx, value):
+    array[idx] += value
+
+
+@njit
+def local_array(shape, dtype):
+    return np.zeros(shape, dtype=dtype)
+
+
+@njit
+def access_simulation(program):
+    return program
