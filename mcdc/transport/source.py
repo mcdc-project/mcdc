@@ -85,9 +85,16 @@ def source_particle(P_rec_arr, seed, simulation, data):
     # Motion translation
     if source["moving"]:
         # Get moving interval index wrt the given time
-        time_grid = mcdc_get.source.move_time_grid_all(source, data)
+        time_grid = data[
+            source["move_time_grid_offset"] : (
+                source["move_time_grid_offset"] + source["N_move_grid"]
+            )
+        ]
+        # Above is equivalent to: time_grid = mcdc_get.source.move_time_grid_all(source, data)
+
         tolerance = COINCIDENCE_TOLERANCE_TIME
-        idx = find_bin_with_rules(t, time_grid, tolerance, go_lower=False)
+        go_lower = False
+        idx = find_bin_with_rules(t, time_grid, tolerance, go_lower)
 
         # Coinciding cases
         if abs(time_grid[idx + 1] - t) < COINCIDENCE_TOLERANCE:

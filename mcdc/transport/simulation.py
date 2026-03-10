@@ -203,6 +203,7 @@ def generate_source_particle(work_start, idx_work, seed, program, data):
         ]
         particle = particle_container[0]
 
+    return
     # Skip if beyond time boundary
     if particle["t"] > settings["time_boundary"]:
         return

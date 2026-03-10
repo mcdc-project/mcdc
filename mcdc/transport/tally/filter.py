@@ -91,13 +91,14 @@ def get_time_index(particle_container, tally, data):
     # Particle properties
     time = particle["t"]
 
-    tolerance = COINCIDENCE_TOLERANCE_TIME
     grid_time = data[
         tally["time_offset"] : (tally["time_offset"] + tally["time_length"])
     ]
     # Above is equivalent to: grid_time = mcdc_get.tally.time_all(tally, data)
 
-    return find_bin_with_rules(time, grid_time, tolerance, go_lower=False)
+    tolerance = COINCIDENCE_TOLERANCE_TIME
+    go_lower = False
+    return find_bin_with_rules(time, grid_time, tolerance, go_lower)
 
 
 @njit

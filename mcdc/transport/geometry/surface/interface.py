@@ -352,7 +352,8 @@ def _get_move_idx(t, surface, data):
     """
     time_grid = mcdc_get.surface.move_time_grid_all(surface, data)
     tolerance = COINCIDENCE_TOLERANCE_TIME
-    idx = find_bin_with_rules(t, time_grid, tolerance, go_lower=False)
+    go_lower = False
+    idx = find_bin_with_rules(t, time_grid, tolerance, go_lower)
 
     # Coinciding cases
     if abs(time_grid[idx + 1] - t) < COINCIDENCE_TOLERANCE:

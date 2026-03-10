@@ -6,7 +6,7 @@ from typing import Sequence
 
 
 @njit
-def find_bin_with_rules(value, grid, epsilon=0.0, go_lower=True):
+def find_bin_with_rules(value, grid, epsilon, go_lower):
     """
     Return the bin index i for which grid[i] <= value < grid[i+1], with optional
     epsilon tolerance and tie-breaking toward the lower/upper bin.
@@ -17,10 +17,10 @@ def find_bin_with_rules(value, grid, epsilon=0.0, go_lower=True):
         Query point.
     grid : Sequence[float]
         Monotonically increasing bin edges of length N_grid = N_bin + 1.
-    epsilon : float, optional (default: 0.0)
+    epsilon : float
         Tolerance to treat values as being exactly on a grid edge if
         |value - grid[k]| <= epsilon.
-    go_lower : bool, optional (default: True)
+    go_lower : bool
         Tie-breaking rule when value is at/within epsilon of a grid edge:
           - True  -> tie to the lower/left bin
           - False -> tie to the upper/right bin
