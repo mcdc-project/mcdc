@@ -1,3 +1,5 @@
+import mcdc.transport.geometry.interface as interface
+
 from .interface import (
     inspect_geometry,
     locate_particle,

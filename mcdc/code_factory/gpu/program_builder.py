@@ -1,4 +1,3 @@
-import harmonize
 import numba as nb
 import numba.extending as nbxt
 import numpy as np
@@ -11,22 +10,14 @@ import mcdc.config as config
 
 
 def adapt_transport_functions():
-    import ast, pathlib
+    import mcdc.code_factory.gpu.transport as gpu_transport
+    import mcdc.transport as transport
 
-    base_path = pathlib.Path(__file__).parent.resolve() / "transport"
-    print(base_path)
-    file_paths = [str(p) for p in base_path.rglob("*") if p.is_file()]
-
-    collection = {}
-    for file_path in file_paths:
-        with open(file_path, "r", encoding="utf-8") as f:
-            tree = ast.parse(f.read())
-        function_names = [
-            node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
-        ]
-        collection[file_path] = function_names
-        print(file_path, function_names)
-    exit()
+    # TODO: Make the following automatic
+    transport.util.atomic_add = gpu_transport.util.atomic_add
+    transport.geometry.interface = gpu_transport.geometry.interface
+    transport.particle_bank = gpu_transport.particle_bank
+    # transport.simulation = gpu_transport.simulation
 
 
 # Main types
@@ -57,6 +48,9 @@ free_state = lambda pointer: None
 
 
 def forward_declare_gpu_program():
+    import harmonize
+
+    ###
     import mcdc.numba_types as type_
 
     global none_type, simulation_type, data_type
