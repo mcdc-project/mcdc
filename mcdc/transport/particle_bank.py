@@ -16,7 +16,7 @@ import mcdc.transport.technique as technique
 
 from mcdc.constant import *
 from mcdc.print_ import print_error
-from mcdc.transport.util import atomic_add
+from mcdc.transport.util import atomic_add, local_array
 
 # =============================================================================
 # Bank size
@@ -126,7 +126,7 @@ def promote_future_particles(simulation, data):
     next_census_time = mcdc_get.settings.census_time(idx, simulation["settings"], data)
 
     # Particle container
-    particle_container = np.zeros(1, type_.particle_data)
+    particle_container = local_array(1, type_.particle_data)
     particle = particle_container[0]
 
     # Loop over all particles in future bank

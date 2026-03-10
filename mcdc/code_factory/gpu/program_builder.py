@@ -8,17 +8,26 @@ from mpi4py import MPI
 
 import mcdc.config as config
 
+# ======================================================================================
+# Transport function adapter
+# ======================================================================================
+
 
 def adapt_transport_functions():
     import mcdc.code_factory.gpu.transport as gpu_transport
     import mcdc.transport as transport
 
     # TODO: Make the following automatic
-    transport.util.atomic_add = gpu_transport.util.atomic_add
     transport.geometry.interface = gpu_transport.geometry.interface
     transport.particle_bank = gpu_transport.particle_bank
     # transport.simulation = gpu_transport.simulation
+    transport.util.atomic_add = gpu_transport.util.atomic_add
+    transport.util.local_array = gpu_transport.util.local_array
 
+
+# ======================================================================================
+# Forward declaration
+# ======================================================================================
 
 # Main types
 none_type = None
@@ -27,10 +36,10 @@ data_type = None
 
 # Access functions
 state_spec = None
-simulation_gpu = None
-data_gpu = None
-group_gpu = None
-thread_gpu = None
+access_simulation = None
+access_data_ptr = None
+access_group = None
+access_thread = None
 particle_gpu = None
 particle_record_gpu = None
 
@@ -42,19 +51,14 @@ find_cell_async = None
 alloc_managed_bytes = None
 alloc_device_bytes = None
 
-# For teardown functions
-src_free_program = lambda pointer: None
-free_state = lambda pointer: None
-
 
 def forward_declare_gpu_program():
     import harmonize
-
-    ###
     import mcdc.numba_types as type_
 
+    # Get to set the globals
     global none_type, simulation_type, data_type
-    global state_spec, simulation_gpu, data_gpu, group_gpu, thread_gpu, particle_gpu, particle_record_gpu
+    global state_spec, access_simulation, access_data_ptr, access_group, access_thread, particle_gpu, particle_record_gpu
     global step_async, find_cell_async
     global alloc_managed_bytes, alloc_device_bytes
 
@@ -79,17 +83,17 @@ def forward_declare_gpu_program():
     # Set access functions
     state_spec = (
         {
-            "global": simulation_type,
+            "simulation": simulation_type,
             "data": data_type,
         },
         none_type,
         none_type,
     )
     access_fns = harmonize.RuntimeSpec.access_fns(state_spec)
-    simulation_gpu = access_fns["device"]["global"]["indirect"]
-    data_gpu = access_fns["device"]["data"]["direct"]
-    group_gpu = access_fns["group"]
-    thread_gpu = access_fns["thread"]
+    access_simulation = access_fns["device"]["simulation"]["indirect"]
+    access_data_ptr = access_fns["device"]["data"]["direct"]
+    access_group = access_fns["group"]
+    access_thread = access_fns["thread"]
     particle_gpu = nb.from_dtype(type_.particle)
     particle_record_gpu = nb.from_dtype(type_.particle_data)
 
@@ -112,7 +116,20 @@ def forward_declare_gpu_program():
     alloc_device_bytes = harmonize.alloc_device_bytes
 
 
+# ======================================================================================
+# Program builder
+# ======================================================================================
+
+src_free_program = lambda pointer: None
+free_state = lambda pointer: None
+
+
 def build_gpu_program(data_size):
+    import harmonize
+
+    from mcdc.transport.util import atomic_add
+    from mcdc.transport.simulation import generate_source_particle
+
     global src_free_program, free_state
 
     # ==================================================================================
@@ -124,18 +141,24 @@ def build_gpu_program(data_size):
     # ==============
 
     def make_work(program: nb.uintp) -> nb.boolean:
-        simulation = simulation_gpu(program)
+        simulation = access_simulation(program)
+        data_ptr = access_data_ptr(program)
+        data = adapt.harm.array_from_ptr(data_ptr, shape, nb.float64)
 
-        idx_work = adapt.global_add(simulation["mpi_work_iter"], 0, 1)
+        atomic_add(simulation["mpi_work_iter"], 0, 1)
+        idx_work = simulation["mpi_work_iter"][0]
 
         if idx_work >= simulation["mpi_work_size"]:
             return False
+
+        work_start = simulation["mpi_work_start"]
 
         generate_source_particle(
             simulation["mpi_work_start"],
             nb.uint64(idx_work),
             simulation["source_seed"],
             program,
+            data,
         )
         return True
 
@@ -152,9 +175,10 @@ def build_gpu_program(data_size):
     shape = (data_size,)
 
     def step(program: nb.uintp, particle_input: particle_gpu):
-        simulation = simulation_gpu(program)
-        data_ptr = adapt.mcdc_data(program)
+        simulation = access_simulation(program)
+        data_ptr = access_data(program)
         data = adapt.harm.array_from_ptr(data_ptr, shape, nb.float64)
+
         particle_container = adapt.local_array(1, type_.particle)
         particle_container[0] = particle_input
         particle = particle_container[0]

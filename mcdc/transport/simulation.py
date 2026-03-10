@@ -23,6 +23,7 @@ from mcdc.print_ import (
     print_progress_eigenvalue,
 )
 from mcdc.transport.source import source_particle
+from mcdc.transport.util import local_array
 
 # ======================================================================================
 # Main simulations
@@ -185,7 +186,7 @@ def generate_source_particle(work_start, idx_work, seed, simulation, data):
     """Get a source particle and put into one of the banks"""
     settings = simulation["settings"]
 
-    particle_container = np.zeros(1, type_.particle_data)
+    particle_container = local_array(1, type_.particle_data)
     particle = particle_container[0]
 
     # Get from fixed-source?
@@ -232,7 +233,7 @@ def generate_source_particle(work_start, idx_work, seed, simulation, data):
 
 @njit
 def exhaust_active_bank(simulation, data):
-    particle_container = np.zeros(1, type_.particle)
+    particle_container = local_array(1, type_.particle)
     particle = particle_container[0]
 
     # Loop until active bank is exhausted

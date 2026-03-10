@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 from numba import njit
 from typing import Sequence
@@ -98,6 +99,11 @@ def find_bin(
 @njit
 def atomic_add(array, idx, value):
     array[idx] += value
+
+
+@njit
+def local_array(shape, dtype):
+    return np.zeros(shape, dtype=dtype)
 
 
 # ======================================================================================
