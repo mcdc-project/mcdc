@@ -100,10 +100,18 @@ def source_particle(P_rec_arr, seed, simulation, data):
         if abs(time_grid[idx + 1] - t) < COINCIDENCE_TOLERANCE:
             idx += 1
 
-        # Surface move translations, velocities, and time grid
-        trans_0 = mcdc_get.surface.move_translations_vector(idx, source, data)
-        time_0 = mcdc_get.surface.move_time_grid(idx, source, data)
-        V = mcdc_get.surface.move_velocities_vector(idx, source, data)
+        # Source move translations
+        start = source["move_translations_offset"] + idx * 3
+        trans_0 = data[start : start + 3]
+        # Above is equivalent to: trans_0 = mcdc_get.source.move_translations_vector(idx, source, data)
+
+        # Source move velocities
+        start = source["move_velocities_offset"] + idx * 3
+        V = data[start : start + 3]
+        # Above is equivalent to: V = mcdc_get.source.move_velocities_vector(idx, source, data)
+
+        # Source move time grid
+        time_0 = mcdc_get.source.move_time_grid(idx, source, data)
 
         # Translate the particle
         t_local = t - time_0
