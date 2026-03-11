@@ -66,6 +66,9 @@ class Settings(ObjectSingleton):
     electron_transport: bool = False
     proton_transport: bool = False
 
+    # GPU mode
+    gpu_strategy: int = GPU_STRATEGY_SIMPLE_ASYNC
+
     def __post_init__(self):
         super().__init__()
 

@@ -183,3 +183,6 @@ WW_PREVIOUS = 1
 # Weight Windows Modifications
 WW_MIN = 0
 WW_WOLLABER = 1
+
+# GPU strategies
+GPU_STRATEGY_SIMPLE_ASYNC = 0

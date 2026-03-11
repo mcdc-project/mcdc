@@ -223,7 +223,7 @@ def generate_source_particle(work_start, idx_work, seed, program, data):
 
     # Put into the right bank
     if not hit_census:
-        particle_bank_module.bank_active_particle(particle_container, simulation)
+        particle_bank_module.bank_active_particle(particle_container, program)
     elif not hit_next_census:
         # Particle will participate after the current census
         particle_bank_module.bank_census_particle(particle_container, simulation)
