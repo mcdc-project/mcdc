@@ -196,14 +196,13 @@ def build_gpu_program(data_size):
         particle_container[0] = particle_input
         particle = particle_container[0]
         particle["fresh"] = False
-        step_particle(particle_container, data, program)
+        step_particle(particle_container, program, data)
         if particle["alive"]:
             step_async(program, particle)
 
     # Bind them all
     base_fns = (initialize, finalize, make_work)
     async_fns = [step]
-    async_fns = []
     src_spec = harmonize.RuntimeSpec("mcdc_source", state_spec, base_fns, async_fns)
     print("PASS")
     exit()

@@ -278,7 +278,8 @@ def particle_loop(particle_container, simulation, data):
 
 
 @njit
-def step_particle(particle_container, simulation, data):
+def step_particle(particle_container, program, data):
+    simulation = util.access_simulation(program)
     particle = particle_container[0]
 
     # Determine and move to event

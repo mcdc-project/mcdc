@@ -10,6 +10,7 @@ import mcdc.transport.literals as literals
 import mcdc.transport.mesh as mesh
 import mcdc.transport.physics as physics
 import mcdc.transport.tally as tally_module
+import mcdc.transport.util as util
 
 from mcdc.constant import *
 from mcdc.transport.geometry.surface import get_distance, check_sense, reflect
@@ -361,7 +362,7 @@ def check_cell(particle_container, cell, simulation, data):
         return True
 
     # Create local value array
-    value = np.zeros(literals.rpn_evaluation_buffer_size, np.bool_)
+    value = util.local_array(literals.rpn_evaluation_buffer_size(), np.bool_)
     N_value = 0
 
     # Particle parameters
