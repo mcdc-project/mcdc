@@ -187,11 +187,11 @@ def generate_source_particle(work_start, idx_work, seed, program, data):
     simulation = util.access_simulation(program)
     settings = simulation["settings"]
 
-    particle_container = util.local_array(1, type_.particle_data)
-    particle = particle_container[0]
-
     # Get from fixed-source?
     if particle_bank_module.get_bank_size(simulation["bank_source"]) == 0:
+        particle_container = util.local_array(1, type_.particle_data)
+        particle = particle_container[0]
+
         # Sample source
         seed_work = rng.split_seed(work_start + idx_work, seed)
         source_particle(particle_container, seed_work, simulation, data)
@@ -203,7 +203,6 @@ def generate_source_particle(work_start, idx_work, seed, program, data):
         ]
         particle = particle_container[0]
 
-    return
     # Skip if beyond time boundary
     if particle["t"] > settings["time_boundary"]:
         return
