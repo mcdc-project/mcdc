@@ -33,35 +33,6 @@ def scores_chunk(start, length, tally, data, value):
 
 
 @njit
-def multipliers(index, tally, data, value):
-    offset = tally["multipliers_offset"]
-    data[offset + index] = value
-
-
-@njit
-def multipliers_all(tally, data, value):
-    start = tally["multipliers_offset"]
-    size = tally["multipliers_length"]
-    end = start + size
-    data[start:end] = value
-
-
-@njit
-def multipliers_last(tally, data, value):
-    start = tally["multipliers_offset"]
-    size = tally["multipliers_length"]
-    end = start + size
-    data[end - 1] = value
-
-
-@njit
-def multipliers_chunk(start, length, tally, data, value):
-    start += tally["multipliers_offset"]
-    end = start + length
-    data[start:end] = value
-
-
-@njit
 def mu(index, tally, data, value):
     offset = tally["mu_offset"]
     data[offset + index] = value

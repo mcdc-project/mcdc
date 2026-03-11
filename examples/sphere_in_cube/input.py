@@ -43,7 +43,7 @@ mcdc.Source(
 # ======================================================================================
 
 # Tallies
-mcdc.TallyCell(name="Spherical fission detector", cell=sphere_cell, scores=["fission"])
+mcdc.Tally(name="Spherical fission detector", cell=sphere_cell, scores=["fission"])
 
 # Settings
 mcdc.settings.N_particle = 1000

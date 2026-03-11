@@ -7,13 +7,13 @@ import shutil
 
 # Get fission rates
 with h5py.File("output.h5", "r") as f:
-    fissions = f["tallies/mesh_tally_0/fission/mean"][()]
-    fissions_sd = f["tallies/mesh_tally_0/fission/sdev"][()]
+    fissions = f["tallies/tracklength_tally_0/fission/mean"][()]
+    fissions_sd = f["tallies/tracklength_tally_0/fission/sdev"][()]
 
-    x = f["tallies/mesh_tally_0/grid/x"][()]
-    y = f["tallies/mesh_tally_0/grid/y"][()]
-    z = f["tallies/mesh_tally_0/grid/z"][()]
-    t = f["tallies/mesh_tally_0/grid/time"][()]
+    x = f["tallies/tracklength_tally_0/grid/x"][()]
+    y = f["tallies/tracklength_tally_0/grid/y"][()]
+    z = f["tallies/tracklength_tally_0/grid/z"][()]
+    t = f["tallies/tracklength_tally_0/grid/time"][()]
 
 # The grids
 t_mid = 0.5 * (t[:-1] + t[1:])

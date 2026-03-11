@@ -117,13 +117,13 @@ A uniform isotropic source fills the cube over :math:`t \in [0,50]` s.
    :linenos:
    :lineno-match:
 
-This example uses ``TallyCell`` — it tallies fission events inside a
+This example uses cell-filtered ``Tally`` — it tallies fission events inside a
 specific cell (the sphere) rather than on a spatial mesh.
 Implicit capture is enabled to keep particles alive longer.
 
 **What to try:**
 
-- Replace ``TallyCell`` with a ``TallyMesh`` to visualise the 3-D flux.
+- Replace the cell filter with a mesh filter to visualise the 3-D flux.
 - Change the sphere radius or :math:`\nu` to see how fission rate changes.
 - Add a time grid to the cell tally for time-resolved data.
 

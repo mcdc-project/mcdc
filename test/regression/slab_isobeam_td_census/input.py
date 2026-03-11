@@ -35,7 +35,7 @@ mcdc.Source(
 
 # Tallies
 mesh = mcdc.MeshUniform(x=(0.0, 0.1, 50))
-mcdc.TallyMesh(
+mcdc.Tally(
     mesh=mesh,
     scores=["flux"],
     time=np.linspace(0.0, 5.0, 51),

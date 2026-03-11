@@ -87,8 +87,6 @@ MC/DC supports two main estimator types:
 
       \hat{\phi}_V = \frac{1}{V} \sum_{\text{tracks}} w\,\ell
 
-   This is the default estimator for mesh tallies (``TallyMesh``).
-
 **Collision estimator**
    Scores at each collision site:
 
@@ -99,10 +97,6 @@ MC/DC supports two main estimator types:
 Both estimators are unbiased for the volume-averaged scalar flux.
 The track-length estimator generally has lower variance because it
 scores on every flight segment, not just at collision points.
-
-Cell tallies (``TallyCell``) and surface tallies (``TallySurface``) use
-similar estimator concepts applied to specific geometric cells or
-surface crossings.
 
 Statistical Uncertainty
 -----------------------
