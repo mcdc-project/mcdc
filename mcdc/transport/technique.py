@@ -61,21 +61,21 @@ def population_control(simulation):
     particle_bank_module.set_bank_size(bank_source, 0)
     for idx in range(N_local):
         # Weight of the surviving particles
-        w = bank_census["particles"][idx]["w"]
+        w = bank_census["particle_data"][idx]["w"]
         w_survive = w * ws
 
         # Determine number of guaranteed splits
         N_split = math.floor(sn)
 
         # Survive the russian roulette?
-        xi = rng.lcg(bank_census["particles"][idx : idx + 1])
+        xi = rng.lcg(bank_census["particle_data"][idx : idx + 1])
         if xi < sn - N_split:
             N_split += 1
 
         # Split the particle
         for i in range(N_split):
             particle_module.copy_as_child(
-                P_rec_arr, bank_census["particles"][idx : idx + 1]
+                P_rec_arr, bank_census["particle_data"][idx : idx + 1]
             )
             # Set weight
             P_rec["w"] = w_survive

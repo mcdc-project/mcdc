@@ -46,12 +46,12 @@ def add_bank_size(bank, value):
 @njit
 def _bank_particle(particle_container, bank):
     # Check if bank is full
-    if get_bank_size(bank) == bank["particles"].shape[0]:
+    if get_bank_size(bank) == bank["particle_data"].shape[0]:
         report_full_bank(bank)
 
     # Set particle data
     idx = get_bank_size(bank)
-    particle_module.copy(bank["particles"][idx : idx + 1], particle_container)
+    particle_module.copy(bank["particle_data"][idx : idx + 1], particle_container)
 
     # Increment bank size
     add_bank_size(bank, 1)
@@ -85,7 +85,7 @@ def pop_particle(particle_container, bank):
 
     # Set particle data
     idx = get_bank_size(bank) - 1
-    particle_module.copy(particle_container, bank["particles"][idx : idx + 1])
+    particle_module.copy(particle_container, bank["particle_data"][idx : idx + 1])
 
     # Decrement bank size
     add_bank_size(bank, -1)
@@ -136,7 +136,7 @@ def promote_future_particles(simulation, data):
         #   NOTE: future bank size decreases as particles are promoted to census bank
         idx = i - (initial_size - get_bank_size(future_bank))
         particle_module.copy(
-            particle_container, future_bank["particles"][idx : idx + 1]
+            particle_container, future_bank["particle_data"][idx : idx + 1]
         )
 
         # Promote the future particle to census bank
@@ -147,8 +147,8 @@ def promote_future_particles(simulation, data):
             # Consolidate the emptied space in the future bank
             j = get_bank_size(future_bank)
             particle_module.copy(
-                future_bank["particles"][idx : idx + 1],
-                future_bank["particles"][j : j + 1],
+                future_bank["particle_data"][idx : idx + 1],
+                future_bank["particle_data"][j : j + 1],
             )
 
 
@@ -185,11 +185,11 @@ def manage_particle_banks(simulation):
         census_bank = simulation["bank_census"]
 
         size = get_bank_size(census_bank)
-        if size >= source_bank["particles"].shape[0]:
+        if size >= source_bank["particle_data"].shape[0]:
             report_full_bank(source_bank)
 
         # TODO: better alternative?
-        source_bank["particles"][:size] = census_bank["particles"][:size]
+        source_bank["particle_data"][:size] = census_bank["particle_data"][:size]
         set_bank_size(source_bank, size)
 
     # Redistribute work and rebalance bank size across MPI ranks
@@ -249,13 +249,13 @@ def bank_rebalance(simulation):
 
     # MPI nearest-neighbor send/receive
     buff = np.zeros(
-        simulation["bank_source"]["particles"].shape[0], dtype=type_.particle_data
+        simulation["bank_source"]["particle_data"].shape[0], dtype=type_.particle_data
     )
 
     with objmode(size="int64"):
         # Create MPI-supported numpy object
         size = get_bank_size(simulation["bank_source"])
-        bank = np.array(simulation["bank_source"]["particles"][:size])
+        bank = np.array(simulation["bank_source"]["particle_data"][:size])
 
         if receive_first:
             if receive_from_left:
@@ -293,7 +293,7 @@ def bank_rebalance(simulation):
     # Set source bank from buffer
     set_bank_size(simulation["bank_source"], size)
     for i in range(size):
-        simulation["bank_source"]["particles"][i] = buff[i]
+        simulation["bank_source"]["particle_data"][i] = buff[i]
 
 
 # ======================================================================================
@@ -326,7 +326,7 @@ def bank_scanning_weight(bank, simulation):
     N_local = get_bank_size(bank)
     w_cdf = np.zeros(N_local + 1)
     for i in range(N_local):
-        w_cdf[i + 1] = w_cdf[i] + bank["particles"][i]["w"]
+        w_cdf[i + 1] = w_cdf[i] + bank["particle_data"][i]["w"]
     W_local = w_cdf[-1]
 
     # Starting weight
@@ -352,7 +352,7 @@ def normalize_weight(bank, norm):
 
     # Normalize weight
     for i in range(get_bank_size(bank)):
-        bank["particles"][i]["w"] *= norm / W
+        bank["particle_data"][i]["w"] *= norm / W
 
 
 @njit
@@ -360,7 +360,7 @@ def total_weight(bank):
     # Local total weight
     W_local = np.zeros(1)
     for i in range(get_bank_size(bank)):
-        W_local[0] += bank["particles"][i]["w"]
+        W_local[0] += bank["particle_data"][i]["w"]
 
     # MPI Allreduce
     buff = np.zeros(1, np.float64)

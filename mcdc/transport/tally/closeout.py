@@ -242,7 +242,7 @@ def eigenvalue_cycle(simulation, data):
         total_local = np.zeros(4, np.float64)  # [x,y,z,W]
         total = np.zeros(4, np.float64)
         for i in range(N_local):
-            P = simulation["bank_census"]["particles"][i]
+            P = simulation["bank_census"]["particle_data"][i]
             total_local[0] += P["x"] * P["w"]
             total_local[1] += P["y"] * P["w"]
             total_local[2] += P["z"] * P["w"]
@@ -262,7 +262,7 @@ def eigenvalue_cycle(simulation, data):
         gr_type = simulation["settings"]["gyration_radius_type"]
         if gr_type == GYRATION_RADIUS_ALL:
             for i in range(N_local):
-                P = simulation["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particle_data"][i]
                 rms_local[0] += (
                     (P["x"] - com_x) ** 2
                     + (P["y"] - com_y) ** 2
@@ -270,27 +270,27 @@ def eigenvalue_cycle(simulation, data):
                 ) * P["w"]
         elif gr_type == GYRATION_RADIUS_INFINITE_X:
             for i in range(N_local):
-                P = simulation["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particle_data"][i]
                 rms_local[0] += ((P["y"] - com_y) ** 2 + (P["z"] - com_z) ** 2) * P["w"]
         elif gr_type == GYRATION_RADIUS_INFINITE_Y:
             for i in range(N_local):
-                P = simulation["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particle_data"][i]
                 rms_local[0] += ((P["x"] - com_x) ** 2 + (P["z"] - com_z) ** 2) * P["w"]
         elif gr_type == GYRATION_RADIUS_INFINITE_Z:
             for i in range(N_local):
-                P = simulation["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particle_data"][i]
                 rms_local[0] += ((P["x"] - com_x) ** 2 + (P["y"] - com_y) ** 2) * P["w"]
         elif gr_type == GYRATION_RADIUS_ONLY_X:
             for i in range(N_local):
-                P = simulation["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particle_data"][i]
                 rms_local[0] += ((P["x"] - com_x) ** 2) * P["w"]
         elif gr_type == GYRATION_RADIUS_ONLY_Y:
             for i in range(N_local):
-                P = simulation["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particle_data"][i]
                 rms_local[0] += ((P["y"] - com_y) ** 2) * P["w"]
         elif gr_type == GYRATION_RADIUS_ONLY_Z:
             for i in range(N_local):
-                P = simulation["bank_census"]["particles"][i]
+                P = simulation["bank_census"]["particle_data"][i]
                 rms_local[0] += ((P["z"] - com_z) ** 2) * P["w"]
 
         # MPI Allreduce

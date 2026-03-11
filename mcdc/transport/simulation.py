@@ -198,7 +198,7 @@ def generate_source_particle(work_start, idx_work, seed, program, data):
 
     # Get from source bank
     else:
-        particle_container = simulation["bank_source"]["particles"][
+        particle_container = simulation["bank_source"]["particle_data"][
             idx_work : (idx_work + 1)
         ]
         particle = particle_container[0]

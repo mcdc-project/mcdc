@@ -214,12 +214,12 @@ def generate_numba_objects(simulation):
             else:
                 structures[class_.label].append(("parent_ID", "i8"))
 
-    # Add particles to particle banks and add particle banks to the simulation
+    # Add particle data to particle banks and add particle banks to the simulation
     for name in bank_names:
         bank = getattr(simulation, name)
         size = int(bank.size[0])
         structures[name] += [
-            ("particles", into_dtype(structures["particle_data"]), (size,))
+            ("particle_data", into_dtype(structures["particle_data"]), (size,))
         ]
         #
         structures["simulation"] = [(name, into_dtype(structures[name]))] + structures[
