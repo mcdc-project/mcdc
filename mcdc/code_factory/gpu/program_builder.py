@@ -18,8 +18,18 @@ def adapt_transport_functions():
     import mcdc.transport as transport
 
     # TODO: Make the following automatic
-    transport.geometry.interface = gpu_transport.geometry.interface
-    transport.particle_bank = gpu_transport.particle_bank
+    transport.geometry.interface.report_lost_particle = (
+        gpu_transport.geometry.interface.report_lost_particle
+    )
+    transport.particle_bank.bank_active_particle = (
+        gpu_transport.particle_bank.bank_active_particle
+    )
+    transport.particle_bank.report_full_bank = (
+        gpu_transport.particle_bank.report_full_bank
+    )
+    transport.particle_bank.report_empty_bank = (
+        gpu_transport.particle_bank.report_empty_bank
+    )
     # transport.simulation = gpu_transport.simulation
     transport.util.atomic_add = gpu_transport.util.atomic_add
     transport.util.local_array = gpu_transport.util.local_array
