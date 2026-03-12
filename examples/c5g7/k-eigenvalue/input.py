@@ -292,7 +292,7 @@ z_grid = np.linspace(
 )
 g_grid = np.array([-0.5, 3.5, 6.5])  # Collapsing to fast (1-4) and slow (5-7)
 mesh = mcdc.MeshStructured(x=x_grid, y=y_grid, z=z_grid)
-mcdc.TallyMesh(mesh=mesh, scores=["flux"], energy=g_grid)
+mcdc.Tally(mesh=mesh, scores=["flux"], energy=g_grid)
 
 # Settings
 mcdc.settings.N_particle = 50

@@ -21,7 +21,7 @@ from mcdc.object_.base import (
     ObjectSingleton,
 )
 from mcdc.object_.particle import Particle, ParticleBank, ParticleData
-from mcdc.object_.tally import TallyBase
+from mcdc.object_.tally import Tally
 from mcdc.print_ import print_error
 from mcdc.util import flatten
 
@@ -74,7 +74,9 @@ for file_name in file_names:
                 mcdc_classes.append(item)
 
 polymorphic_bases = [
-    x for x in all_classes if x.__name__[-4:] == "Base" and "label" in dir(x)
+    x
+    for x in all_classes
+    if (x.__name__[-4:] == "Base" or x.__name__ == "Tally") and "label" in dir(x)
 ]
 
 # ======================================================================================
@@ -201,7 +203,7 @@ def generate_numba_objects(simulation):
             structures[class_.label].append(("ID", "i8"))
         # Set parent and child ID and type if polymorphic
         if issubclass(class_, ObjectPolymorphic):
-            if class_.__name__[-4:] == "Base":
+            if class_.__name__[-4:] == "Base" or class_.__name__ == "Tally":
                 structures[class_.label].append(("child_type", "i8"))
                 structures[class_.label].append(("child_ID", "i8"))
             else:
@@ -615,7 +617,7 @@ def set_object(
                 record["parent_ID"] = object_.ID
 
     # Set tally bins
-    if class_ == TallyBase:
+    if class_ == Tally:
         tally_size = np.prod(object_.bin_shape)
         record[f"bin_offset"] = data["size"]
         record[f"bin_sum_offset"] = data["size"] + tally_size

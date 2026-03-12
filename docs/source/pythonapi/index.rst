@@ -61,10 +61,7 @@ Defining tallies
    :nosignatures:
    :template: omcclass.rst
 
-   mcdc.TallyGlobal
-   mcdc.TallyCell
-   mcdc.TallySurface
-   mcdc.TallyMesh
+   mcdc.Tally
 
 Defining simulation settings
 -----------------------------

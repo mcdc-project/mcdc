@@ -10,7 +10,7 @@ import mcdc.mcdc_get.lattice as lattice
 
 import mcdc.mcdc_get.material as material
 
-import mcdc.mcdc_get.cell_tally as cell_tally
+import mcdc.mcdc_get.tally as tally
 
 import mcdc.mcdc_get.universe as universe
 
@@ -58,6 +58,8 @@ import mcdc.mcdc_get.structured_mesh as structured_mesh
 
 import mcdc.mcdc_get.uniform_mesh as uniform_mesh
 
+import mcdc.mcdc_get.neutron_reaction as neutron_reaction
+
 import mcdc.mcdc_get.neutron_capture_reaction as neutron_capture_reaction
 
 import mcdc.mcdc_get.neutron_elastic_scattering_reaction as neutron_elastic_scattering_reaction
@@ -67,8 +69,6 @@ import mcdc.mcdc_get.neutron_fission_reaction as neutron_fission_reaction
 import mcdc.mcdc_get.neutron_inelastic_scattering_reaction as neutron_inelastic_scattering_reaction
 
 import mcdc.mcdc_get.particle_bank as particle_bank
-
-import mcdc.mcdc_get.reaction as reaction
 
 import mcdc.mcdc_get.settings as settings
 
@@ -86,11 +86,7 @@ import mcdc.mcdc_get.surface as surface
 
 import mcdc.mcdc_get.surface_tally as surface_tally
 
-import mcdc.mcdc_get.tally as tally
-
-import mcdc.mcdc_get.global_tally as global_tally
-
-import mcdc.mcdc_get.mesh_tally as mesh_tally
+import mcdc.mcdc_get.tracklength_tally as tracklength_tally
 
 import mcdc.mcdc_get.bank_active as bank_active
 

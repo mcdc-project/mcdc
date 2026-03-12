@@ -26,7 +26,6 @@ Basic Examples
 
    kobayashi_dog_leg
    kobayashi_td
-   pincell
 
 Advanced Examples
 -----------------
