@@ -186,7 +186,10 @@ def scattering(particle_container, simulation, data):
         particle_new["uz"] = uz_new
 
         # Get outgoing spectrum
-        chi_s = mcdc_get.multigroup_material.mgxs_chi_s_vector(g, material, data)
+        stride = material["G"]
+        start = material["mgxs_chi_s_offset"] + g * stride
+        chi_s = data[start : start + stride]
+        # Above is equivalent to: chi_s = mcdc_get.multigroup_material.mgxs_chi_s_vector(g, material, data)
 
         # Sample outgoing energy
         xi = rng.lcg(particle_container_new)
@@ -240,7 +243,10 @@ def fission(particle_container, simulation, data):
     nu = mcdc_get.multigroup_material.mgxs_nu_f(g, material, data)
     nu_p = mcdc_get.multigroup_material.mgxs_nu_p(g, material, data)
     if J > 0:
-        nu_d = mcdc_get.multigroup_material.mgxs_nu_d_vector(g, material, data)
+        stride = material["G"]
+        start = material["mgxs_nu_d_offset"] + g * stride
+        nu_d = data[start : start + stride]
+        # Above is equivalent to: nu_d = mcdc_get.multigroup_material.mgxs_nu_d_vector(g, material, data)
 
     # Get number of secondaries
     N = int(
@@ -272,7 +278,10 @@ def fission(particle_container, simulation, data):
         total = nu_p
         if xi < total:
             prompt = True
-            spectrum = mcdc_get.multigroup_material.mgxs_chi_p_vector(g, material, data)
+            stride = material["G"]
+            start = material["mgxs_chi_p"] + g * stride
+            spectrum = data[start : start + stride]
+            # Above is equivalent to: spectrum = mcdc_get.multigroup_material.mgxs_chi_p_vector(g, material, data)
         else:
             prompt = False
 
@@ -280,9 +289,13 @@ def fission(particle_container, simulation, data):
             for j in range(J):
                 total += nu_d[j]
                 if xi < total:
-                    spectrum = mcdc_get.multigroup_material.mgxs_chi_d_vector(
-                        j, material, data
-                    )
+                    stride = material["G"]
+                    start = material["mgxs_chi_d_offset"] + j * stride
+                    spectrum = data[start : start + stride]
+                    # Above is equivalent to:
+                    # spectrum = mcdc_get.multigroup_material.mgxs_chi_d_vector(
+                    #     j, material, data
+                    # )
                     decay = mcdc_get.multigroup_material.mgxs_decay_rate(
                         j, material, data
                     )

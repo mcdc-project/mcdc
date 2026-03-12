@@ -151,8 +151,10 @@ def sample_direction(polar_cosine, azimuthal, polar_coordinate, rng_state):
 def sample_tabulated(table, rng_state, data):
     xi = rng.lcg(rng_state)
 
-    cdf = data[table["cdf_offset"] : (table["cdf_offset"] + table["cdf_length"])]
-    # Above is equivalent to: cmf = mcdc_get.tabulated_distribution.cdf_all(table, data)
+    offset = table["cdf_offset"]
+    length = table["cdf_length"]
+    cdf = data[offset : offset + length]
+    # Above is equivalent to: cdf = mcdc_get.tabulated_distribution.cdf_all(table, data)
 
     idx = find_bin(xi, cdf)
     cdf_low = mcdc_get.tabulated_distribution.cdf(idx, table, data)
@@ -166,7 +168,9 @@ def sample_tabulated(table, rng_state, data):
 def sample_pmf(pmf, rng_state, data):
     xi = rng.lcg(rng_state)
 
-    cmf = data[pmf["cmf_offset"] : (pmf["cmf_offset"] + pmf["cmf_length"])]
+    offset = pmf["cmf_offset"]
+    length = pmf["cmf_length"]
+    cmf = data[offset : offset + length]
     # Above is equivalent to: cmf = mcdc_get.pmf_distribution.cmf_all(pmf, data)
 
     idx = find_bin(xi, cmf)
@@ -205,7 +209,10 @@ def sample_white_direction(nx, ny, nz, rng_state):
 
 @njit
 def sample_multi_table(E, rng_state, multi_table, data, scale=False):
-    grid = mcdc_get.multi_table_distribution.grid_all(multi_table, data)
+    offset = multi_table["grid_offset"]
+    length = multi_table["grid_length"]
+    grid = data[offset : offset + length]
+    # Above is equivalent to: grid = mcdc_get.multi_table_distribution.grid_all(multi_table, data)
 
     # Edge cases
     if E < grid[0]:
@@ -353,7 +360,10 @@ def sample_evaporation(E, rng_state, evaporation, simulation, data):
 
 @njit
 def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
-    grid = mcdc_get.kalbach_mann_distribution.energy_all(kalbach_mann, data)
+    offset = kalbach_mann["energy_offset"]
+    length = kalbach_mann["energy_length"]
+    grid = data[offset : offset + length]
+    # Above is equivalent to: grid = mcdc_get.kalbach_mann_distribution.energy_all(kalbach_mann, data)
 
     # Random numbers
     xi1 = rng.lcg(rng_state)
@@ -456,7 +466,10 @@ def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
 
 @njit
 def sample_tabulated_energy_angle(E, rng_state, table, data):
-    grid = mcdc_get.tabulated_energy_angle_distribution.energy_all(table, data)
+    offset = kalbach_mann["energy_offset"]
+    length = kalbach_mann["energy_length"]
+    grid = data[offset : offset + length]
+    # Above is equivalent to: grid = mcdc_get.tabulated_energy_angle_distribution.energy_all(table, data)
 
     # Random numbers
     xi1 = rng.lcg(rng_state)

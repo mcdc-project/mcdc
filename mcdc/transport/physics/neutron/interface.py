@@ -13,7 +13,7 @@ import mcdc.transport.physics.neutron.native as native
 @njit
 def particle_speed(particle_container, simulation, data):
     if simulation["settings"]["neutron_multigroup_mode"]:
-        return multigroup.particle_speed(particle_container)
+        return multigroup.particle_speed(particle_container, simulation, data)
     else:
         return native.particle_speed(particle_container)
 

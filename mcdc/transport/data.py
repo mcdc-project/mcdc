@@ -29,7 +29,11 @@ def evaluate_data(x, data_base, simulation, data):
 
 @njit
 def evaluate_table(x, table, data):
-    grid = mcdc_get.table_data.x_all(table, data)
+    offset = table["x_offset"]
+    length = table["x_length"]
+    grid = data[offset : offset + length]
+    # Above is equivalent to: grid = mcdc_get.table_data.x_all(table, data)
+
     idx = find_bin(x, grid)
     x1 = grid[idx]
     x2 = grid[idx + 1]
@@ -44,7 +48,11 @@ def evaluate_table(x, table, data):
 
 @njit
 def evaluate_polynomial(x, polynomial, data):
-    coeffs = mcdc_get.polynomial_data.coefficients_all(polynomial, data)
+    offset = polynomial["coefficients_offset"]
+    length = polynomial["coefficients_length"]
+    coeffs = data[offset : offset + length]
+    # Above is equivalent to: coeffs = mcdc_get.polynomial_data.coefficients_all(polynomial, data)
+
     total = 0.0
     for i in range(len(coeffs)):
         total += coeffs[i] * x**i
