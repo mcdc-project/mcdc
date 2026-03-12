@@ -2,6 +2,7 @@ from numba import njit
 
 ####
 
+import mcdc.transport.physics.neutron.multigroup as multigroup
 import mcdc.transport.physics.neutron.native as native
 
 # ======================================================================================
@@ -11,7 +12,10 @@ import mcdc.transport.physics.neutron.native as native
 
 @njit
 def particle_speed(particle_container, simulation, data):
-    return native.particle_speed(particle_container)
+    if simulation["settings"]["neutron_multigroup_mode"]:
+        return multigroup.particle_speed(particle_container)
+    else:
+        return native.particle_speed(particle_container)
 
 
 # ======================================================================================
@@ -21,14 +25,22 @@ def particle_speed(particle_container, simulation, data):
 
 @njit
 def macro_xs(reaction_type, particle_container, simulation, data):
-    return native.macro_xs(reaction_type, particle_container, simulation, data)
+    if simulation["settings"]["neutron_multigroup_mode"]:
+        return multigroup.macro_xs(reaction_type, particle_container, simulation, data)
+    else:
+        return native.macro_xs(reaction_type, particle_container, simulation, data)
 
 
 @njit
 def neutron_production_xs(reaction_type, particle_container, simulation, data):
-    return native.neutron_production_xs(
-        reaction_type, particle_container, simulation, data
-    )
+    if simulation["settings"]["neutron_multigroup_mode"]:
+        return multigroup.neutron_production_xs(
+            reaction_type, particle_container, simulation, data
+        )
+    else:
+        return native.neutron_production_xs(
+            reaction_type, particle_container, simulation, data
+        )
 
 
 # ======================================================================================
@@ -38,4 +50,7 @@ def neutron_production_xs(reaction_type, particle_container, simulation, data):
 
 @njit
 def collision(particle_container, simulation, data):
-    native.collision(particle_container, simulation, data)
+    if simulation["settings"]["neutron_multigroup_mode"]:
+        multigroup.collision(particle_container, simulation, data)
+    else:
+        native.collision(particle_container, simulation, data)

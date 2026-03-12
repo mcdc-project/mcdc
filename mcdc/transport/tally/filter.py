@@ -67,10 +67,10 @@ def get_direction_index(particle_container, tally, data):
 
 
 @njit
-def get_energy_index(particle_container, tally, data, multigroup_mode):
+def get_energy_index(particle_container, tally, data, neutron_multigroup_mode):
     particle = particle_container[0]
 
-    if multigroup_mode:
+    if neutron_multigroup_mode:
         E = particle["g"]
     else:
         E = particle["E"]

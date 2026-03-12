@@ -140,7 +140,7 @@ def print_warning(msg):
 def print_progress(percent, mcdc):
     if master:
         sys.stdout.write("\r")
-        if not mcdc["settings"]["eigenvalue_mode"]:
+        if not mcdc["settings"]["neutron_eigenvalue_mode"]:
             if mcdc["settings"]["N_census"] == 1:
                 sys.stdout.write(
                     " [%-28s] %d%%" % ("=" * int(percent * 28), percent * 100.0)

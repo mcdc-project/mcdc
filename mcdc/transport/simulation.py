@@ -250,7 +250,7 @@ def exhaust_active_bank(simulation, data):
 def source_closeout(simulation, idx_work, N_prog, data):
     # Tally history closeout for one-batch fixed-source simulation
     if (
-        not simulation["settings"]["eigenvalue_mode"]
+        not simulation["settings"]["neutron_eigenvalue_mode"]
         and simulation["settings"]["N_batch"] == 1
     ):
         if not simulation["settings"]["use_census_based_tally"]:
@@ -322,7 +322,7 @@ def move_to_event(particle_container, simulation, data):
 
     # Multigroup preparation
     #   In MG mode, particle speed is material-dependent.
-    if settings["multigroup_mode"]:
+    if settings["neutron_multigroup_mode"]:
         # If material is not identified yet, locate the particle
         if particle["material_ID"] == -1:
             if not geometry.locate_particle(particle_container, simulation, data):
@@ -419,7 +419,7 @@ def move_to_event(particle_container, simulation, data):
                 particle_container, distance, tally, simulation, data
             )
 
-    if settings["eigenvalue_mode"]:
+    if settings["neutron_eigenvalue_mode"]:
         tally_module.score.eigenvalue_tally(
             particle_container, distance, simulation, data
         )

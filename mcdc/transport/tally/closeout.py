@@ -109,7 +109,7 @@ def _finalize(tally, simulation, data):
     if N_batch > 1:
         N_history = N_batch
 
-    elif simulation["settings"]["eigenvalue_mode"]:
+    elif simulation["settings"]["neutron_eigenvalue_mode"]:
         N_history = simulation["settings"]["N_active"]
 
     else:

@@ -59,7 +59,7 @@ def source_particle(P_rec_arr, seed, simulation, data):
         )
 
     # Energy
-    if simulation["settings"]["multigroup_mode"]:
+    if simulation["settings"]["neutron_multigroup_mode"]:
         E = 0.0
         if source["mono_energetic"]:
             g = source["energy_group"]

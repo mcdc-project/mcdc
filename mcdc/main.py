@@ -61,7 +61,7 @@ def run():
         print_module.print_banner()
         print_module.print_configuration()
         print(" Now running the particle transport...")
-        if settings.eigenvalue_mode:
+        if settings.neutron_eigenvalue_mode:
             print_module.print_eigenvalue_header(simulation)
 
     # TIMER: preparation
@@ -77,7 +77,7 @@ def run():
     # Run simulation
     import mcdc.transport.simulation as simulation_module
 
-    if settings.eigenvalue_mode:
+    if settings.neutron_eigenvalue_mode:
         simulation_module.eigenvalue_simulation(simulation_container, data)
     else:
         simulation_module.fixed_source_simulation(simulation_container, data)
@@ -154,9 +154,11 @@ def preparation():
     # Set physics mode
     if len(simulationPy.materials) == 0:
         # Default physics in dummy mode
-        settings.multigroup_mode = True
+        settings.neutron_multigroup_mode = True
     else:
-        settings.multigroup_mode = isinstance(simulationPy.materials[0], MaterialMG)
+        settings.neutron_multigroup_mode = isinstance(
+            simulationPy.materials[0], MaterialMG
+        )
 
     # Set appropriate time boundary
     settings.time_boundary = min(
@@ -188,7 +190,7 @@ def preparation():
     simulationPy.k_eff = settings.k_init
 
     # Activate tally scoring for fixed-source
-    if not settings.eigenvalue_mode:
+    if not settings.neutron_eigenvalue_mode:
         simulationPy.cycle_active = True
     # All active eigenvalue cycle?
     elif settings.N_inactive == 0:
@@ -204,9 +206,9 @@ def preparation():
     N_census = settings.N_census
 
     # Determine bank size
-    if settings.eigenvalue_mode or N_census == 1:
+    if settings.neutron_eigenvalue_mode or N_census == 1:
         settings.future_bank_buffer_ratio = 0.0
-    if not settings.eigenvalue_mode and N_census == 1:
+    if not settings.neutron_eigenvalue_mode and N_census == 1:
         settings.census_bank_buffer_ratio = 0.0
         settings.source_bank_buffer_ratio = 0.0
     size_active = settings.active_bank_buffer
@@ -248,7 +250,7 @@ def preparation():
     # Pick physics model
     import mcdc.transport.physics as physics
 
-    if settings.multigroup_mode:
+    if settings.neutron_multigroup_mode:
         physics.neutron.particle_speed = physics.neutron.multigroup.particle_speed
         physics.neutron.macro_xs = physics.neutron.multigroup.macro_xs
         physics.neutron.neutron_production_xs = (

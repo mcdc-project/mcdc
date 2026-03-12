@@ -171,7 +171,7 @@ def manage_particle_banks(simulation):
     set_bank_size(simulation["bank_source"], 0)
 
     # Normalize weight
-    if simulation["settings"]["eigenvalue_mode"]:
+    if simulation["settings"]["neutron_eigenvalue_mode"]:
         normalize_weight(
             simulation["bank_census"], simulation["settings"]["N_particle"]
         )

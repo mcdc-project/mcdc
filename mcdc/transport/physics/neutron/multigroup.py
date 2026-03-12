@@ -303,7 +303,7 @@ def fission(particle_container, simulation, data):
             particle_new["t"] -= math.log(xi) / decay
 
         # Eigenvalue mode: bank right away
-        if settings["eigenvalue_mode"]:
+        if settings["neutron_eigenvalue_mode"]:
             particle_bank_module.bank_census_particle(
                 particle_container_new, simulation
             )

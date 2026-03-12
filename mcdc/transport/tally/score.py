@@ -72,7 +72,7 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
     tally_base = simulation["tallies"][tally["parent_ID"]]
 
     # Get filter indices
-    MG_mode = simulation["settings"]["multigroup_mode"]
+    MG_mode = simulation["settings"]["neutron_multigroup_mode"]
     i_mu, i_azi, i_energy, i_time = get_filter_indices(
         particle_container, tally_base, data, MG_mode
     )
@@ -335,7 +335,7 @@ def surface_tally(particle_container, surface, tally, simulation, data):
     tally_base = simulation["tallies"][tally["parent_ID"]]
 
     # Get filter indices
-    MG_mode = simulation["settings"]["multigroup_mode"]
+    MG_mode = simulation["settings"]["neutron_multigroup_mode"]
     i_mu, i_azi, i_energy, i_time = get_filter_indices(
         particle_container, tally_base, data, MG_mode
     )
@@ -402,7 +402,7 @@ def eigenvalue_tally(particle_container, distance, simulation, data):
     return
     # Get the decay-wighted multiplicity
     total = 0.0
-    if simulation["settings"]["multigroup_mode"]:
+    if simulation["settings"]["neutron_multigroup_mode"]:
         g = particle["g"]
         for j in range(J):
             nu_d = mcdc_get.material.mgxs_nu_d(g, j, material, data)
