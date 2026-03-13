@@ -329,6 +329,7 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
                         return
                     idx_base -= tally["mesh_stride_z"]
 
+
 @njit
 def collision_tally_edep(particle_container, edep_weighted, tally, mcdc, data):
     if tally["spatial_filter_type"] != SPATIAL_FILTER_MESH:
@@ -383,6 +384,7 @@ def collision_tally_edep(particle_container, edep_weighted, tally, mcdc, data):
         if score_type == SCORE_EDEP:
             atomic_add(data, idx_base + i_score, edep_weighted)
             return
+
 
 @njit
 def surface_tally(particle_container, surface, tally, mcdc, data):

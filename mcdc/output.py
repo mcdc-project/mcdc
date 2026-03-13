@@ -199,7 +199,6 @@ def create_tally_dataset(file, mcdc, data):
             file.create_dataset(f"tallies/{tally_name}/grid/y", data=y)
             file.create_dataset(f"tallies/{tally_name}/grid/z", data=z)
 
-
         # Get and reshape tally
         N_bin = tally["bin_length"]
         start_mean = tally["bin_sum_offset"]
@@ -216,7 +215,7 @@ def create_tally_dataset(file, mcdc, data):
             mesh_filtered_tally is not None
             and mesh_filtered_tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
         ):
-                roll_reference = 7
+            roll_reference = 7
         mean = np.rollaxis(mean, roll_reference, 0)
         sdev = np.rollaxis(sdev, roll_reference, 0)
 

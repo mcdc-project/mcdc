@@ -475,9 +475,7 @@ class TallyCollision(Tally):
         )
 
         if len(self.scores) != 1 or SCORE_EDEP not in self.scores:
-            print_error(
-                "Collision tally currently supports only scores=['edep']."
-            )
+            print_error("Collision tally currently supports only scores=['edep'].")
 
         self.spatial_filter = None
         self.spatial_filter_type = SPATIAL_FILTER_NONE
