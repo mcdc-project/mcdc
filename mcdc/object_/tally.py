@@ -44,27 +44,6 @@ from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
 
-TRACKLENGTH_SCORE_NAMES = {
-    "flux",
-    "density",
-    "collision",
-    "capture",
-    "fission",
-}
-
-
-COLLISION_SCORE_NAMES = {
-    "edep",
-}
-
-
-def _has_tracklength_score(scores: list[str]) -> bool:
-    return any(score in TRACKLENGTH_SCORE_NAMES for score in scores)
-
-
-def _has_collision_score(scores: list[str]) -> bool:
-    return any(score in COLLISION_SCORE_NAMES for score in scores)
-
 
 class Tally(ObjectPolymorphic):
     """
@@ -109,14 +88,18 @@ class Tally(ObjectPolymorphic):
         energy: Iterable[float] | str | NoneType = None,
         time: Iterable[float] | NoneType = None,
     ) -> TallySurface | TallyTracklength | TallyCollision:
-        has_tracklength = _has_tracklength_score(scores)
-        has_collision = _has_collision_score(scores)
         # Determine type and create the tally self based on the provided
         # spatial filters and scores
         if surface is not None:
             return super().__new__(TallySurface)
-        if has_collision and not has_tracklength:
-            return super().__new__(TallyCollision)
+        if "edep" in scores:
+            if len(scores) > 1:
+                print_error(
+                    "Score 'edep' cannot be grouped with other scores yet. "
+                    "Please request it in a separate tally."
+                )
+            else:
+                return super().__new__(TallyCollision)
         else:
             return super().__new__(TallyTracklength)
 
@@ -382,6 +365,12 @@ class TallyTracklength(Tally):
             time=time,
             spatial_shape=spatial_shape,
         )
+
+        if SCORE_EDEP in self.scores:
+            print_error(
+                "Score 'edep' uses the collision estimator and is not supported "
+                "for tracklength tallies."
+            )
 
         # ==============================================================================
         # Set spatial filter
