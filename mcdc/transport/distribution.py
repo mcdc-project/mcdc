@@ -27,7 +27,17 @@ from mcdc.transport.util import find_bin, linear_interpolation
 
 
 @njit
-def sample_distribution(E, distribution, rng_state, simulation, data, scale=False):
+def sample_distribution(E, distribution, rng_state, simulation, data):
+    return _sample_distribution(E, distribution, rng_state, simulation, data, False)
+
+
+@njit
+def sample_distribution_with_scale(E, distribution, rng_state, simulation, data):
+    return _sample_distribution(E, distribution, rng_state, simulation, data, True)
+
+
+@njit
+def _sample_distribution(E, distribution, rng_state, simulation, data, scale):
     distribution_type = distribution["child_type"]
     ID = distribution["child_ID"]
 
@@ -37,7 +47,7 @@ def sample_distribution(E, distribution, rng_state, simulation, data, scale=Fals
 
     elif distribution_type == DISTRIBUTION_MULTITABLE:
         multi_table = simulation["multi_table_distributions"][ID]
-        return sample_multi_table(E, rng_state, multi_table, data, scale)
+        return _sample_multi_table(E, rng_state, multi_table, data, scale)
 
     elif distribution_type == DISTRIBUTION_LEVEL_SCATTERING:
         level_scattering = simulation["level_scattering_distributions"][ID]
@@ -57,8 +67,24 @@ def sample_distribution(E, distribution, rng_state, simulation, data, scale=Fals
 
 
 @njit
-def sample_correlated_distribution(
-    E, distribution, rng_state, simulation, data, scale=False
+def sample_correlated_distribution(E, distribution, rng_state, simulation, data):
+    return _sample_correlated_distribution(
+        E, distribution, rng_state, simulation, data, False
+    )
+
+
+@njit
+def sample_correlated_distribution_with_scale(
+    E, distribution, rng_state, simulation, data
+):
+    return _sample_correlated_distribution(
+        E, distribution, rng_state, simulation, data, True
+    )
+
+
+@njit
+def _sample_correlated_distribution(
+    E, distribution, rng_state, simulation, data, scale
 ):
     distribution_type = distribution["child_type"]
     ID = distribution["child_ID"]
@@ -208,7 +234,12 @@ def sample_white_direction(nx, ny, nz, rng_state):
 
 
 @njit
-def sample_multi_table(E, rng_state, multi_table, data, scale=False):
+def sample_multi_table(E, rng_state, multi_table, data):
+    return _sample_multi_table(E, rng_state, multi_table, data, False)
+
+
+@njit
+def _sample_multi_table(E, rng_state, multi_table, data, scale):
     offset = multi_table["grid_offset"]
     length = multi_table["grid_length"]
     grid = data[offset : offset + length]
@@ -274,7 +305,9 @@ def sample_multi_table(E, rng_state, multi_table, data, scale=False):
     size = end - start
 
     # The CDF
-    cdf = mcdc_get.multi_table_distribution.cdf_chunk(start, size, multi_table, data)
+    offset = multi_table["cdf_offset"]
+    cdf = data[start + offset : start + offset + size]
+    # Above is equivalent to: cdf = mcdc_get.multi_table_distribution.cdf_chunk(start, size, multi_table, data)
 
     # Generate random numbers
     xi = rng.lcg(rng_state)
@@ -417,7 +450,9 @@ def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
     size = end - start
 
     # The CDF
-    cdf = mcdc_get.kalbach_mann_distribution.cdf_chunk(start, size, kalbach_mann, data)
+    offset = kalbach_mann["cdf_offset"]
+    cdf = data[start + offset : start + offset + size]
+    # Above is equivalent to: cdf = mcdc_get.kalbach_mann_distribution.cdf_chunk(start, size, kalbach_mann, data)
 
     # Sample bin index
     idx = find_bin(xi2, cdf)
@@ -466,8 +501,8 @@ def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
 
 @njit
 def sample_tabulated_energy_angle(E, rng_state, table, data):
-    offset = kalbach_mann["energy_offset"]
-    length = kalbach_mann["energy_length"]
+    offset = table["energy_offset"]
+    length = table["energy_length"]
     grid = data[offset : offset + length]
     # Above is equivalent to: grid = mcdc_get.tabulated_energy_angle_distribution.energy_all(table, data)
 
@@ -526,9 +561,12 @@ def sample_tabulated_energy_angle(E, rng_state, table, data):
     size = end - start
 
     # The CDF
-    cdf = mcdc_get.tabulated_energy_angle_distribution.cdf_chunk(
-        start, size, table, data
-    )
+    offset = table["cdf_offset"]
+    cdf = data[start + offset : start + offset + size]
+    # Above is equivalent to:
+    # cdf = mcdc_get.tabulated_energy_angle_distribution.cdf_chunk(
+    #     start, size, table, data
+    # )
 
     # Sample bin index
     idx = find_bin(xi2, cdf)
@@ -578,9 +616,12 @@ def sample_tabulated_energy_angle(E, rng_state, table, data):
     size = end - start
 
     # The CDF
-    cdf = mcdc_get.tabulated_energy_angle_distribution.cosine_cdf_chunk(
-        start, size, table, data
-    )
+    offset = table["cosine_cdf_offset"]
+    cdf = data[start + offset : start + offset + size]
+    # Above is equivalent to:
+    # cdf = mcdc_get.tabulated_energy_angle_distribution.cosine_cdf_chunk(
+    #     start, size, table, data
+    # )
 
     # Sample bin index
     idx = find_bin(xi3, cdf)

@@ -10,6 +10,7 @@ import mcdc.numba_types as type_
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
+import mcdc.transport.util as util
 
 from mcdc.constant import (
     PI,
@@ -61,38 +62,53 @@ def macro_xs(reaction_type, particle_container, simulation, data):
 def neutron_production_xs(reaction_type, particle_container, simulation, data):
     particle = particle_container[0]
     material = simulation["multigroup_materials"][particle["material_ID"]]
-
     g = particle["g"]
+
+    # Total production
     if reaction_type == NEUTRON_REACTION_TOTAL:
         total = 0.0
-        total += neutron_production_xs(
-            NEUTRON_REACTION_ELASTIC_SCATTERING,
-            particle_container,
-            simulation,
-            data,
-        )
-        total += neutron_production_xs(
-            NEUTRON_REACTION_FISSION, particle_container, simulation, data
-        )
+
+        # Scattering production
+        nu = mcdc_get.multigroup_material.mgxs_nu_s(g, material, data)
+        xs = mcdc_get.multigroup_material.mgxs_scatter(g, material, data)
+        total += nu * xs
+
+        # Fission production
+        nu = mcdc_get.multigroup_material.mgxs_nu_f(g, material, data)
+        xs = mcdc_get.multigroup_material.mgxs_fission(g, material, data)
+        total += nu * xs
         return total
+
+    # Capture production (none)
     elif reaction_type == NEUTRON_REACTION_CAPTURE:
         return 0.0
+
+    # Scattering production
     elif reaction_type == NEUTRON_REACTION_ELASTIC_SCATTERING:
         nu = mcdc_get.multigroup_material.mgxs_nu_s(g, material, data)
         xs = mcdc_get.multigroup_material.mgxs_scatter(g, material, data)
         return nu * xs
+
+    # Fission production
     elif reaction_type == NEUTRON_REACTION_FISSION:
         nu = mcdc_get.multigroup_material.mgxs_nu_f(g, material, data)
         xs = mcdc_get.multigroup_material.mgxs_fission(g, material, data)
         return nu * xs
+
+    # Prompt fission production
     elif reaction_type == NEUTRON_REACTION_FISSION_PROMPT:
         nu = mcdc_get.multigroup_material.mgxs_nu_p(g, material, data)
         xs = mcdc_get.multigroup_material.mgxs_fission(g, material, data)
         return nu * xs
+
+    # Delayed neutron production
     elif reaction_type == NEUTRON_REACTION_FISSION_DELAYED:
         nu = mcdc_get.multigroup_material.mgxs_nu_d_total(g, material, data)
         xs = mcdc_get.multigroup_material.mgxs_fission(g, material, data)
         return nu * xs
+
+    # Unsupported default
+    return 0.0
 
 
 # ======================================================================================
@@ -101,7 +117,8 @@ def neutron_production_xs(reaction_type, particle_container, simulation, data):
 
 
 @njit
-def collision(particle_container, simulation, data):
+def collision(particle_container, program, data):
+    simulation = util.access_simulation(program)
     particle = particle_container[0]
 
     # Get the reaction cross-sections
@@ -121,11 +138,12 @@ def collision(particle_container, simulation, data):
     xi = rng.lcg(particle_container) * SigmaT
     total = SigmaS
     if total > xi:
-        scattering(particle_container, simulation, data)
+        scattering(particle_container, program, data)
     else:
         total += SigmaF
         if total > xi:
-            fission(particle_container, simulation, data)
+            return
+            fission(particle_container, program, data)
         else:
             particle["alive"] = False
 
@@ -136,7 +154,9 @@ def collision(particle_container, simulation, data):
 
 
 @njit
-def scattering(particle_container, simulation, data):
+def scattering(particle_container, program, data):
+    simulation = util.access_simulation(program)
+
     # Particle attributes
     particle = particle_container[0]
     g = particle["g"]
@@ -164,7 +184,7 @@ def scattering(particle_container, simulation, data):
     N = int(math.floor(weight_production * nu_s + rng.lcg(particle_container)))
 
     # Set up secondary partice container
-    particle_container_new = np.zeros(1, type_.particle_data)
+    particle_container_new = util.local_array(1, type_.particle_data)
     particle_new = particle_container_new[0]
 
     # Create the secondaries
@@ -210,13 +230,12 @@ def scattering(particle_container, simulation, data):
             particle["E"] = particle_new["E"]
             particle["w"] = particle_new["w"]
         else:
-            particle_bank_module.bank_active_particle(
-                particle_container_new, simulation
-            )
+            particle_bank_module.bank_active_particle(particle_container_new, program)
 
 
 @njit
-def fission(particle_container, simulation, data):
+def fission(particle_container, program, data):
+    simulation = util.access_simulation(program)
     settings = simulation["settings"]
 
     # Particle properties
@@ -256,7 +275,7 @@ def fission(particle_container, simulation, data):
     )
 
     # Set up secondary partice container
-    particle_container_new = np.zeros(1, type_.particle_data)
+    particle_container_new = util.local_array(1, type_.particle_data)
     particle_new = particle_container_new[0]
 
     # Create the secondaries
@@ -355,7 +374,7 @@ def fission(particle_container, simulation, data):
                 particle["w"] = particle_new["w"]
             else:
                 particle_bank_module.bank_active_particle(
-                    particle_container_new, simulation
+                    particle_container_new, program
                 )
 
         # Hit future census --> add to future bank

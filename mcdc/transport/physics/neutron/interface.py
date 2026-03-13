@@ -4,6 +4,7 @@ from numba import njit
 
 import mcdc.transport.physics.neutron.multigroup as multigroup
 import mcdc.transport.physics.neutron.native as native
+import mcdc.transport.util as util
 
 # ======================================================================================
 # Particle attributes
@@ -49,8 +50,10 @@ def neutron_production_xs(reaction_type, particle_container, simulation, data):
 
 
 @njit
-def collision(particle_container, simulation, data):
+def collision(particle_container, program, data):
+    simulation = util.access_simulation(program)
+
     if simulation["settings"]["neutron_multigroup_mode"]:
-        multigroup.collision(particle_container, simulation, data)
+        multigroup.collision(particle_container, program, data)
     else:
-        native.collision(particle_container, simulation, data)
+        native.collision(particle_container, program, data)

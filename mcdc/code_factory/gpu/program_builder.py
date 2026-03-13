@@ -204,9 +204,9 @@ def build_gpu_program(data_size):
     base_fns = (initialize, finalize, make_work)
     async_fns = [step]
     src_spec = harmonize.RuntimeSpec("mcdc_source", state_spec, base_fns, async_fns)
+    harmonize.RuntimeSpec.bind_specs()
     print("PASS")
     exit()
-    harmonize.RuntimeSpec.bind_specs()
 
     # ==================================================================================
     #

@@ -291,7 +291,7 @@ def step_particle(particle_container, program, data):
 
     # Collision
     if particle["event"] & EVENT_COLLISION:
-        physics.collision(particle_container, simulation, data)
+        physics.collision(particle_container, program, data)
 
     # Surface and domain crossing
     if particle["event"] & EVENT_SURFACE_CROSSING:

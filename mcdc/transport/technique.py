@@ -9,6 +9,7 @@ import mcdc.numba_types as type_
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
+import mcdc.transport.util as util
 
 # ======================================================================================
 # Weight Roulette
@@ -54,7 +55,7 @@ def population_control(simulation):
     # Splitting Number
     sn = 1.0 / ws
 
-    P_rec_arr = np.zeros(1, type_.particle_data)
+    P_rec_arr = util.local_array(1, type_.particle_data)
     P_rec = P_rec_arr[0]
 
     # Perform split-roulette to all particles in local bank
