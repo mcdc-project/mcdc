@@ -23,6 +23,7 @@ from mcdc.constant import (
     SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
+    SCORE_EDEP,
     SPATIAL_FILTER_MESH,
 )
 from mcdc.transport.geometry.surface import get_normal_component
@@ -58,6 +59,8 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
             surface = mcdc["surfaces"][particle["surface_ID"]]
             mu = get_normal_component(particle_container, speed, surface, data)
             score = flux * mu
+        elif score_type == SCORE_EDEP:
+            continue
         atomic_add(data, idx_base + i_score, score)
 
 
@@ -326,6 +329,60 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
                         return
                     idx_base -= tally["mesh_stride_z"]
 
+@njit
+def collision_tally_edep(particle_container, edep_weighted, tally, mcdc, data):
+    if tally["spatial_filter_type"] != SPATIAL_FILTER_MESH:
+        return
+
+    particle = particle_container[0]
+    tally_base = mcdc["tallies"][tally["parent_ID"]]
+
+    MG_mode = mcdc["settings"]["multigroup_mode"]
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(
+        particle_container, tally_base, data, MG_mode
+    )
+    if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
+        return
+
+    mesh = mcdc["meshes"][tally["spatial_filter_ID"]]
+
+    x = particle["x"]
+    y = particle["y"]
+    z = particle["z"]
+
+    i_x, i_y, i_z = mesh_module.get_indices(particle_container, mesh, mcdc, data)
+
+    x_min = mesh_module.get_x(0, mesh, mcdc, data)
+    x_max = mesh_module.get_x(mesh["Nx"], mesh, mcdc, data)
+    if x < x_min + COINCIDENCE_TOLERANCE or x > x_max - COINCIDENCE_TOLERANCE:
+        return
+
+    y_min = mesh_module.get_y(0, mesh, mcdc, data)
+    y_max = mesh_module.get_y(mesh["Ny"], mesh, mcdc, data)
+    if y < y_min + COINCIDENCE_TOLERANCE or y > y_max - COINCIDENCE_TOLERANCE:
+        return
+
+    z_min = mesh_module.get_z(0, mesh, mcdc, data)
+    z_max = mesh_module.get_z(mesh["Nz"], mesh, mcdc, data)
+    if z < z_min + COINCIDENCE_TOLERANCE or z > z_max - COINCIDENCE_TOLERANCE:
+        return
+
+    idx_base = (
+        tally_base["bin_offset"]
+        + i_mu * tally_base["stride_mu"]
+        + i_azi * tally_base["stride_azi"]
+        + i_energy * tally_base["stride_energy"]
+        + i_time * tally_base["stride_time"]
+        + i_x * tally["mesh_stride_x"]
+        + i_y * tally["mesh_stride_y"]
+        + i_z * tally["mesh_stride_z"]
+    )
+
+    for i_score in range(tally_base["scores_length"]):
+        score_type = mcdc_get.tally.scores(i_score, tally_base, data)
+        if score_type == SCORE_EDEP:
+            atomic_add(data, idx_base + i_score, edep_weighted)
+            return
 
 @njit
 def surface_tally(particle_container, surface, tally, mcdc, data):

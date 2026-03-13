@@ -31,6 +31,7 @@ from mcdc.constant import (
     SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
+    SCORE_EDEP,
     SPATIAL_FILTER_CELL,
     SPATIAL_FILTER_MESH,
     SPATIAL_FILTER_NONE,
@@ -42,6 +43,27 @@ from mcdc.object_.mesh import MeshBase, MeshStructured, MeshUniform
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
+
+TRACKLENGTH_SCORE_NAMES = {
+    "flux",
+    "density",
+    "collision",
+    "capture",
+    "fission",
+}
+
+
+COLLISION_SCORE_NAMES = {
+    "edep",
+}
+
+
+def _has_tracklength_score(scores: list[str]) -> bool:
+    return any(score in TRACKLENGTH_SCORE_NAMES for score in scores)
+
+
+def _has_collision_score(scores: list[str]) -> bool:
+    return any(score in COLLISION_SCORE_NAMES for score in scores)
 
 
 class Tally(ObjectPolymorphic):
@@ -86,11 +108,15 @@ class Tally(ObjectPolymorphic):
         polar_reference: Iterable[float] | NoneType = None,
         energy: Iterable[float] | str | NoneType = None,
         time: Iterable[float] | NoneType = None,
-    ) -> TallySurface | TallyTracklength:
+    ) -> TallySurface | TallyTracklength | TallyCollision:
+        has_tracklength = _has_tracklength_score(scores)
+        has_collision = _has_collision_score(scores)
         # Determine type and create the tally self based on the provided
         # spatial filters and scores
         if surface is not None:
             return super().__new__(TallySurface)
+        if has_collision and not has_tracklength:
+            return super().__new__(TallyCollision)
         else:
             return super().__new__(TallyTracklength)
 
@@ -292,6 +318,12 @@ class TallySurface(Tally):
             time=time,
         )
 
+        if SCORE_EDEP in self.scores:
+            print_error(
+                "Score 'edep' uses the collision estimator and is not supported "
+                "for this tally type."
+            )
+
         # Set surface and attach tally to the surface
         self.surface = surface
         surface.tallies.append(self)
@@ -395,6 +427,98 @@ class TallyTracklength(Tally):
             text += f"  - Cell: {self.spatial_filter.name}\n"
         elif self.spatial_filter_type == SPATIAL_FILTER_MESH:
             text += f"  - Mesh: {mesh_module.decode_type(self.spatial_filter.type)} (ID {self.spatial_filter.ID})\n"
+        text += super()._phasespace_filter_text()
+        text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
+        return text
+
+
+class TallyCollision(Tally):
+    label: str = "collision_tally"
+    non_numba: list[str] = ["spatial_filter"]
+
+    spatial_filter: MeshBase | NoneType
+    spatial_filter_type: int
+    spatial_filter_ID: int
+    spatial_filter_subtype: int
+
+    mesh_stride_z: int
+    mesh_stride_y: int
+    mesh_stride_x: int
+
+    def __init__(
+        self,
+        cell: Cell | NoneType = None,
+        mesh: MeshBase | NoneType = None,
+        name: str = "",
+        scores: list[str] = ["edep"],
+        mu: Iterable[float] | NoneType = None,
+        azi: Iterable[float] | NoneType = None,
+        polar_reference: Iterable[float] | NoneType = None,
+        energy: Iterable[float] | str | NoneType = None,
+        time: Iterable[float] | NoneType = None,
+    ):
+        type_ = TALLY_COLLISION
+        spatial_shape = None
+        if mesh is not None:
+            spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
+
+        super(Tally, self).__init__(type_)
+        super().__init__(
+            name,
+            scores,
+            mu=mu,
+            azi=azi,
+            polar_reference=polar_reference,
+            energy=energy,
+            time=time,
+            spatial_shape=spatial_shape,
+        )
+
+        if len(self.scores) != 1 or SCORE_EDEP not in self.scores:
+            print_error(
+                "Collision tally currently supports only scores=['edep']."
+            )
+
+        self.spatial_filter = None
+        self.spatial_filter_type = SPATIAL_FILTER_NONE
+        self.spatial_filter_subtype = -1
+        self.spatial_filter_ID = -1
+        self.mesh_stride_z = -1
+        self.mesh_stride_y = -1
+        self.mesh_stride_x = -1
+
+        if cell is not None:
+            print_error(
+                "Collision tally with 'edep' is currently only supported "
+                "with a mesh spatial filter."
+            )
+
+        if SCORE_EDEP in self.scores and mesh is None:
+            print_error(
+                "Score 'edep' is currently only supported with a mesh spatial filter."
+            )
+
+        if mesh is not None:
+            self.spatial_filter = mesh
+            self.spatial_filter_type = SPATIAL_FILTER_MESH
+            if isinstance(mesh, MeshStructured):
+                self.spatial_filter_subtype = MESH_STRUCTURED
+            elif isinstance(mesh, MeshUniform):
+                self.spatial_filter_subtype = MESH_UNIFORM
+            self.spatial_filter_ID = mesh.ID
+
+            N_score = len(self.scores)
+            self.mesh_stride_z = N_score
+            self.mesh_stride_y = N_score * mesh.Nz
+            self.mesh_stride_x = N_score * mesh.Nz * mesh.Ny
+
+    def __repr__(self):
+        text = super().__repr__()
+        if self.spatial_filter_type == SPATIAL_FILTER_MESH:
+            text += (
+                f"  - Mesh: {mesh_module.decode_type(self.spatial_filter.type)} "
+                f"(ID {self.spatial_filter.ID})\n"
+            )
         text += super()._phasespace_filter_text()
         text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
         return text
