@@ -366,12 +366,6 @@ class TallyTracklength(Tally):
             spatial_shape=spatial_shape,
         )
 
-        if SCORE_EDEP in self.scores:
-            print_error(
-                "Score 'edep' uses the collision estimator and is not supported "
-                "for tracklength tallies."
-            )
-
         # ==============================================================================
         # Set spatial filter
         # ==============================================================================
