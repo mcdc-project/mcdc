@@ -84,6 +84,8 @@ import mcdc.mcdc_get.source as source
 
 import mcdc.mcdc_get.surface as surface
 
+import mcdc.mcdc_get.collision_tally as collision_tally
+
 import mcdc.mcdc_get.surface_tally as surface_tally
 
 import mcdc.mcdc_get.tracklength_tally as tracklength_tally

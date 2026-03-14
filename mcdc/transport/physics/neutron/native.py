@@ -245,10 +245,10 @@ def collision(particle_container, mcdc, data):
         nuclide = mcdc["nuclides"][nuclide_ID]
 
         nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
-        sigmaT = total_micro_xs(NEUTRON_REACTION_TOTAL, E, nuclide, data)
+        sigmaT = total_micro_xs(NEUTRON_REACTION_TOTAL, E_in, nuclide, data)
 
         if mcdc["implicit_capture"]["active"]:
-            sigmaC = total_micro_xs(NEUTRON_REACTION_CAPTURE, E, nuclide, data)
+            sigmaC = total_micro_xs(NEUTRON_REACTION_CAPTURE, E_in, nuclide, data)
             particle["w"] *= (sigmaT - sigmaC) / sigmaT
             sigmaT -= sigmaC
 
@@ -269,12 +269,12 @@ def collision(particle_container, mcdc, data):
     # ==================================================================================
 
     sigma_elastic = total_micro_xs(
-        NEUTRON_REACTION_ELASTIC_SCATTERING, E, nuclide, data
+        NEUTRON_REACTION_ELASTIC_SCATTERING, E_in, nuclide, data
     )
     sigma_inelastic = total_micro_xs(
-        NEUTRON_REACTION_INELASTIC_SCATTERING, E, nuclide, data
+        NEUTRON_REACTION_INELASTIC_SCATTERING, E_in, nuclide, data
     )
-    sigma_fission = total_micro_xs(NEUTRON_REACTION_FISSION, E, nuclide, data)
+    sigma_fission = total_micro_xs(NEUTRON_REACTION_FISSION, E_in, nuclide, data)
 
     xi = rng.lcg(particle_container) * sigmaT
 
@@ -291,7 +291,7 @@ def collision(particle_container, mcdc, data):
             reaction = mcdc["neutron_elastic_scattering_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
-            total += reaction_micro_xs(E, reaction_base, nuclide, data)
+            total += reaction_micro_xs(E_in, reaction_base, nuclide, data)
             if xi < total:
                 E_out_weighted = elastic_scattering(
                     reaction, particle_container, nuclide, mcdc, data
@@ -305,7 +305,7 @@ def collision(particle_container, mcdc, data):
 
     # Capture
     if not mcdc["implicit_capture"]["active"]:
-        sigma_capture = total_micro_xs(NEUTRON_REACTION_CAPTURE, E, nuclide, data)
+        sigma_capture = total_micro_xs(NEUTRON_REACTION_CAPTURE, E_in, nuclide, data)
         total += sigma_capture
         if xi < total:
             particle["alive"] = False
@@ -328,7 +328,7 @@ def collision(particle_container, mcdc, data):
             reaction = mcdc["neutron_inelastic_scattering_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
-            xs = reaction_micro_xs(E, reaction_base, nuclide, data)
+            xs = reaction_micro_xs(E_in, reaction_base, nuclide, data)
             total += xs
             if xi < total:
                 E_out_weighted = inelastic_scattering(
@@ -352,7 +352,7 @@ def collision(particle_container, mcdc, data):
             reaction = mcdc["neutron_fission_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
-            total += reaction_micro_xs(E, reaction_base, nuclide, data)
+            total += reaction_micro_xs(E_in, reaction_base, nuclide, data)
             if xi < total:
                 E_out_weighted = fission(
                     reaction, particle_container, nuclide, mcdc, data
