@@ -354,6 +354,7 @@ class TallyTracklength(Tally):
         spatial_shape = None
         if mesh is not None:
             spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
+
         super(Tally, self).__init__(type_)
         super().__init__(
             name,
@@ -419,7 +420,7 @@ class TallyCollision(Tally):
     label: str = "collision_tally"
     non_numba: list[str] = ["spatial_filter"]
 
-    spatial_filter: MeshBase | NoneType
+    spatial_filter: Cell | MeshBase | NoneType
     spatial_filter_type: int
     spatial_filter_ID: int
     spatial_filter_subtype: int
@@ -462,6 +463,17 @@ class TallyCollision(Tally):
                 "Collision tally currently supports only scores=['energy_deposition']."
             )
 
+        # Support check
+        if SCORE_ENERGY_DEPOSITION in self.scores and mesh is None:
+            print_error(
+                "Score 'energy_deposition' is currently only supported with a mesh spatial filter."
+            )
+
+        # ==============================================================================
+        # Set spatial filter
+        # ==============================================================================
+
+        # Default: no filter
         self.spatial_filter = None
         self.spatial_filter_type = SPATIAL_FILTER_NONE
         self.spatial_filter_subtype = -1
@@ -470,17 +482,16 @@ class TallyCollision(Tally):
         self.mesh_stride_y = -1
         self.mesh_stride_x = -1
 
+        # Cell filter
         if cell is not None:
-            print_error(
-                "Collision tally with 'energy_deposition' is currently only supported "
-                "with a mesh spatial filter."
-            )
+            self.spatial_filter = cell
+            self.spatial_filter_type = SPATIAL_FILTER_CELL
+            self.spatial_filter_ID = cell.ID
 
-        if SCORE_ENERGY_DEPOSITION in self.scores and mesh is None:
-            print_error(
-                "Score 'energy_deposition' is currently only supported with a mesh spatial filter."
-            )
+            # Attach tally to the cell
+            cell.tallies.append(self)
 
+        # Mesh filter
         if mesh is not None:
             self.spatial_filter = mesh
             self.spatial_filter_type = SPATIAL_FILTER_MESH
@@ -490,6 +501,7 @@ class TallyCollision(Tally):
                 self.spatial_filter_subtype = MESH_UNIFORM
             self.spatial_filter_ID = mesh.ID
 
+            # Set the strides
             N_score = len(self.scores)
             self.mesh_stride_z = N_score
             self.mesh_stride_y = N_score * mesh.Nz
@@ -497,11 +509,10 @@ class TallyCollision(Tally):
 
     def __repr__(self):
         text = super().__repr__()
-        if self.spatial_filter_type == SPATIAL_FILTER_MESH:
-            text += (
-                f"  - Mesh: {mesh_module.decode_type(self.spatial_filter.type)} "
-                f"(ID {self.spatial_filter.ID})\n"
-            )
+        if self.spatial_filter_type == SPATIAL_FILTER_CELL:
+            text += f"  - Cell: {self.spatial_filter.name}\n"
+        elif self.spatial_filter_type == SPATIAL_FILTER_MESH:
+            text += f"  - Mesh: {mesh_module.decode_type(self.spatial_filter.type)} (ID {self.spatial_filter.ID})\n"
         text += super()._phasespace_filter_text()
         text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
         return text
