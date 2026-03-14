@@ -46,6 +46,6 @@ mesh = mcdc.MeshUniform(
     y=(-pitch / 2, pitch / 8, 8),
 )
 
-mcdc.Tally(name="edep_mesh", mesh=mesh, scores=["edep"])
+mcdc.Tally(name="edep_mesh", mesh=mesh, scores=["energy_deposition"])
 
 mcdc.run()

@@ -290,14 +290,16 @@ def step_particle(particle_container, mcdc, data):
 
     # Collision
     if particle["event"] & EVENT_COLLISION:
-        edep_weighted = physics.collision(particle_container, mcdc, data)
+        energy_deposition_weighted = physics.collision(particle_container, mcdc, data)
 
-        score_edep = mcdc["cycle_active"] and (not mcdc["settings"]["multigroup_mode"])
-        if score_edep and edep_weighted > 0.0:
+        score_energy_deposition = mcdc["cycle_active"] and (
+            not mcdc["settings"]["multigroup_mode"]
+        )
+        if score_energy_deposition and energy_deposition_weighted > 0.0:
             for i in range(mcdc["N_collision_tally"]):
                 tally = mcdc["collision_tallies"][i]
-                tally_module.score.collision_tally_edep(
-                    particle_container, edep_weighted, tally, mcdc, data
+                tally_module.score.collision_tally_energy_deposition(
+                    particle_container, energy_deposition_weighted, tally, mcdc, data
                 )
 
     # Surface and domain crossing

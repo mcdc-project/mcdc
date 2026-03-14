@@ -31,7 +31,7 @@ from mcdc.constant import (
     SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
-    SCORE_EDEP,
+    SCORE_ENERGY_DEPOSITION,
     SPATIAL_FILTER_CELL,
     SPATIAL_FILTER_MESH,
     SPATIAL_FILTER_NONE,
@@ -92,10 +92,10 @@ class Tally(ObjectPolymorphic):
         # spatial filters and scores
         if surface is not None:
             return super().__new__(TallySurface)
-        if "edep" in scores:
+        if "energy_deposition" in scores:
             if len(scores) > 1:
                 print_error(
-                    "Score 'edep' cannot be grouped with other scores yet. "
+                    "Score 'energy_deposition' cannot be grouped with other scores yet. "
                     "Please request it in a separate tally."
                 )
             else:
@@ -138,8 +138,8 @@ class Tally(ObjectPolymorphic):
                 self.scores.append(SCORE_FISSION)
             elif score == "net-current":
                 self.scores.append(SCORE_NET_CURRENT)
-            elif score == "edep":
-                self.scores.append(SCORE_EDEP)
+            elif score == "energy_deposition":
+                self.scores.append(SCORE_ENERGY_DEPOSITION)
             else:
                 print_error(f"Unknown tally score: {score}")
 
@@ -263,8 +263,8 @@ def decode_score_type(type_, lower_case=False):
         return "Fission" if not lower_case else "fission"
     elif type_ == SCORE_NET_CURRENT:
         return "Net current" if not lower_case else "net-current"
-    elif type_ == SCORE_EDEP:
-        return "Energy deposition" if not lower_case else "edep"
+    elif type_ == SCORE_ENERGY_DEPOSITION:
+        return "Energy deposition" if not lower_case else "energy_deposition"
 
 
 # ======================================================================================
@@ -301,9 +301,9 @@ class TallySurface(Tally):
             time=time,
         )
 
-        if SCORE_EDEP in self.scores:
+        if SCORE_ENERGY_DEPOSITION in self.scores:
             print_error(
-                "Score 'edep' uses the collision estimator and is not supported "
+                "Score 'energy_deposition' uses the collision estimator and is not supported "
                 "for this tally type."
             )
 
@@ -433,7 +433,7 @@ class TallyCollision(Tally):
         cell: Cell | NoneType = None,
         mesh: MeshBase | NoneType = None,
         name: str = "",
-        scores: list[str] = ["edep"],
+        scores: list[str] = ["energy_deposition"],
         mu: Iterable[float] | NoneType = None,
         azi: Iterable[float] | NoneType = None,
         polar_reference: Iterable[float] | NoneType = None,
@@ -457,8 +457,10 @@ class TallyCollision(Tally):
             spatial_shape=spatial_shape,
         )
 
-        if len(self.scores) != 1 or SCORE_EDEP not in self.scores:
-            print_error("Collision tally currently supports only scores=['edep'].")
+        if len(self.scores) != 1 or SCORE_ENERGY_DEPOSITION not in self.scores:
+            print_error(
+                "Collision tally currently supports only scores=['energy_deposition']."
+            )
 
         self.spatial_filter = None
         self.spatial_filter_type = SPATIAL_FILTER_NONE
@@ -470,13 +472,13 @@ class TallyCollision(Tally):
 
         if cell is not None:
             print_error(
-                "Collision tally with 'edep' is currently only supported "
+                "Collision tally with 'energy_deposition' is currently only supported "
                 "with a mesh spatial filter."
             )
 
-        if SCORE_EDEP in self.scores and mesh is None:
+        if SCORE_ENERGY_DEPOSITION in self.scores and mesh is None:
             print_error(
-                "Score 'edep' is currently only supported with a mesh spatial filter."
+                "Score 'energy_deposition' is currently only supported with a mesh spatial filter."
             )
 
         if mesh is not None:

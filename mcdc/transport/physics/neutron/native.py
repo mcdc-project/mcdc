@@ -262,7 +262,7 @@ def collision(particle_container, mcdc, data):
     w_transport = particle["w"]
 
     # Energy deposited by implicit capture portion
-    edep_weighted = (w_in - w_transport) * E_in
+    energy_deposition_weighted = (w_in - w_transport) * E_in
 
     # ==================================================================================
     # Sample and perform reaction
@@ -298,10 +298,10 @@ def collision(particle_container, mcdc, data):
                 )
                 dep = E_in * w_transport - E_out_weighted
                 if dep > 0.0:
-                    edep_weighted += dep
-                if edep_weighted < 0.0:
-                    edep_weighted = 0.0
-                return edep_weighted
+                    energy_deposition_weighted += dep
+                if energy_deposition_weighted < 0.0:
+                    energy_deposition_weighted = 0.0
+                return energy_deposition_weighted
 
     # Capture
     if not mcdc["implicit_capture"]["active"]:
@@ -309,10 +309,10 @@ def collision(particle_container, mcdc, data):
         total += sigma_capture
         if xi < total:
             particle["alive"] = False
-            edep_weighted += E_in * w_transport
-            if edep_weighted < 0.0:
-                edep_weighted = 0.0
-            return edep_weighted
+            energy_deposition_weighted += E_in * w_transport
+            if energy_deposition_weighted < 0.0:
+                energy_deposition_weighted = 0.0
+            return energy_deposition_weighted
 
     # Inelastic scattering
     total += sigma_inelastic
@@ -336,10 +336,10 @@ def collision(particle_container, mcdc, data):
                 )
                 dep = E_in * w_transport - E_out_weighted
                 if dep > 0.0:
-                    edep_weighted += dep
-                if edep_weighted < 0.0:
-                    edep_weighted = 0.0
-                return edep_weighted
+                    energy_deposition_weighted += dep
+                if energy_deposition_weighted < 0.0:
+                    energy_deposition_weighted = 0.0
+                return energy_deposition_weighted
 
     # Fission (arive here only if nuclide is fissionable)
     total += sigma_fission
@@ -359,14 +359,14 @@ def collision(particle_container, mcdc, data):
                 )
                 dep = E_in * w_transport - E_out_weighted
                 if dep > 0.0:
-                    edep_weighted += dep
-                if edep_weighted < 0.0:
-                    edep_weighted = 0.0
-                return edep_weighted
+                    energy_deposition_weighted += dep
+                if energy_deposition_weighted < 0.0:
+                    energy_deposition_weighted = 0.0
+                return energy_deposition_weighted
 
-    if edep_weighted < 0.0:
-        edep_weighted = 0.0
-    return edep_weighted
+    if energy_deposition_weighted < 0.0:
+        energy_deposition_weighted = 0.0
+    return energy_deposition_weighted
 
 
 # ======================================================================================

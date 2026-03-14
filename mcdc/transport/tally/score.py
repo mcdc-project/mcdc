@@ -23,7 +23,7 @@ from mcdc.constant import (
     SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
-    SCORE_EDEP,
+    SCORE_ENERGY_DEPOSITION,
     SPATIAL_FILTER_MESH,
 )
 from mcdc.transport.geometry.surface import get_normal_component
@@ -59,7 +59,7 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
             surface = mcdc["surfaces"][particle["surface_ID"]]
             mu = get_normal_component(particle_container, speed, surface, data)
             score = flux * mu
-        elif score_type == SCORE_EDEP:
+        elif score_type == SCORE_ENERGY_DEPOSITION:
             continue
         atomic_add(data, idx_base + i_score, score)
 
@@ -331,7 +331,9 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
 
 
 @njit
-def collision_tally_edep(particle_container, edep_weighted, tally, mcdc, data):
+def collision_tally_energy_deposition(
+    particle_container, energy_deposition_weighted, tally, mcdc, data
+):
     if tally["spatial_filter_type"] != SPATIAL_FILTER_MESH:
         return
 
@@ -381,8 +383,8 @@ def collision_tally_edep(particle_container, edep_weighted, tally, mcdc, data):
 
     for i_score in range(tally_base["scores_length"]):
         score_type = mcdc_get.tally.scores(i_score, tally_base, data)
-        if score_type == SCORE_EDEP:
-            atomic_add(data, idx_base + i_score, edep_weighted)
+        if score_type == SCORE_ENERGY_DEPOSITION:
+            atomic_add(data, idx_base + i_score, energy_deposition_weighted)
             return
 
 
