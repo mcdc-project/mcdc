@@ -55,10 +55,6 @@ def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
             score = flux * physics.macro_xs(
                 NEUTRON_REACTION_FISSION, particle_container, mcdc, data
             )
-        elif score_type == SCORE_NET_CURRENT:
-            surface = mcdc["surfaces"][particle["surface_ID"]]
-            mu = get_normal_component(particle_container, speed, surface, data)
-            score = flux * mu
         elif score_type == SCORE_ENERGY_DEPOSITION:
             continue
         atomic_add(data, idx_base + i_score, score)
@@ -416,7 +412,14 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
     flux = particle["w"] / abs(mu)
 
     # Score
-    make_scores(particle_container, flux, tally_base, idx_base, mcdc, data)
+    for i_score in range(tally_base["scores_length"]):
+        score_type = mcdc_get.tally.scores(i_score, tally_base, data)
+        score = 0.0
+        if score_type == SCORE_NET_CURRENT:
+            surface = mcdc["surfaces"][particle["surface_ID"]]
+            mu = get_normal_component(particle_container, speed, surface, data)
+            score = flux * mu
+        atomic_add(data, idx_base + i_score, score)
 
 
 # =============================================================================
