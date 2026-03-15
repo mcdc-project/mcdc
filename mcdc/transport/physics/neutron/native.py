@@ -218,8 +218,9 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
 
 
 @njit
-def collision(particle_container, mcdc, data):
+def collision(particle_container, collision_data_container, mcdc, data):
     particle = particle_container[0]
+    collision_data = collision_data_container[0]
     material = mcdc["native_materials"][particle["material_ID"]]
 
     # Particle properties
@@ -301,7 +302,8 @@ def collision(particle_container, mcdc, data):
                     energy_deposition_weighted += dep
                 if energy_deposition_weighted < 0.0:
                     energy_deposition_weighted = 0.0
-                return energy_deposition_weighted
+                collision_data["energy_deposition"] = energy_deposition_weighted
+                return
 
     # Capture
     if not mcdc["implicit_capture"]["active"]:
@@ -312,7 +314,8 @@ def collision(particle_container, mcdc, data):
             energy_deposition_weighted += E_in * w_transport
             if energy_deposition_weighted < 0.0:
                 energy_deposition_weighted = 0.0
-            return energy_deposition_weighted
+            collision_data["energy_deposition"] = energy_deposition_weighted
+            return
 
     # Inelastic scattering
     total += sigma_inelastic
@@ -339,7 +342,8 @@ def collision(particle_container, mcdc, data):
                     energy_deposition_weighted += dep
                 if energy_deposition_weighted < 0.0:
                     energy_deposition_weighted = 0.0
-                return energy_deposition_weighted
+                collision_data["energy_deposition"] = energy_deposition_weighted
+                return
 
     # Fission (arive here only if nuclide is fissionable)
     total += sigma_fission
@@ -362,11 +366,12 @@ def collision(particle_container, mcdc, data):
                     energy_deposition_weighted += dep
                 if energy_deposition_weighted < 0.0:
                     energy_deposition_weighted = 0.0
-                return energy_deposition_weighted
+                collision_data["energy_deposition"] = energy_deposition_weighted
+                return
 
     if energy_deposition_weighted < 0.0:
         energy_deposition_weighted = 0.0
-    return energy_deposition_weighted
+    collision_data["energy_deposition"] = energy_deposition_weighted
 
 
 # ======================================================================================

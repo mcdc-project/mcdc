@@ -128,7 +128,6 @@ def collision(particle_container, mcdc, data):
             fission(particle_container, mcdc, data)
         else:
             particle["alive"] = False
-    return 0.0
 
 
 # ======================================================================================
