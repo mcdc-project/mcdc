@@ -301,8 +301,14 @@ def step_particle(particle_container, mcdc, data):
             # Cell tallies
             cell = mcdc["cells"][particle["cell_ID"]]
             for i in range(cell["N_tally"]):
-                tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-                tally = mcdc["collision_tallies"][tally_ID]
+                tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
+                tally_base = mcdc["tallies"][tally_base_ID]
+
+                # Skip non-collision tallies
+                if tally_base["child_type"] != TALLY_COLLISION:
+                    continue
+
+                tally = mcdc["collision_tallies"][tally_base["child_ID"]]
                 tally_module.score.collision_tally(
                     particle_container, collision_data_container, tally, mcdc, data
                 )
@@ -427,8 +433,14 @@ def move_to_event(particle_container, mcdc, data):
         # Cell tallies
         cell = mcdc["cells"][particle["cell_ID"]]
         for i in range(cell["N_tally"]):
-            tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-            tally = mcdc["tracklength_tallies"][tally_ID]
+            tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
+            tally_base = mcdc["tallies"][tally_base_ID]
+
+            # Skip non-tracklength tallies
+            if tally_base["child_type"] != TALLY_TRACKLENGTH:
+                continue
+
+            tally = mcdc["tracklength_tallies"][tally_base["child_ID"]]
             tally_module.score.tracklength_tally(
                 particle_container, distance, tally, mcdc, data
             )

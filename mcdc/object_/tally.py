@@ -320,100 +320,8 @@ class TallySurface(Tally):
 
 
 # ======================================================================================
-# Tracklength tally
+# Collision tally
 # ======================================================================================
-
-
-class TallyTracklength(Tally):
-    # Annotations for Numba mode
-    label: str = "tracklength_tally"
-    non_numba: list[str] = ["spatial_filter"]
-    #
-    spatial_filter: Cell | MeshBase | NoneType
-    spatial_filter_type: int
-    spatial_filter_ID: int
-    spatial_filter_subtype: int
-    #
-    mesh_stride_z: int
-    mesh_stride_y: int
-    mesh_stride_x: int
-
-    def __init__(
-        self,
-        cell: Cell | NoneType = None,
-        mesh: MeshBase | NoneType = None,
-        name: str = "",
-        scores: list[str] = ["flux"],
-        mu: Iterable[float] | NoneType = None,
-        azi: Iterable[float] | NoneType = None,
-        polar_reference: Iterable[float] | NoneType = None,
-        energy: Iterable[float] | str | NoneType = None,
-        time: Iterable[float] | NoneType = None,
-    ):
-        type_ = TALLY_TRACKLENGTH
-        spatial_shape = None
-        if mesh is not None:
-            spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
-
-        super(Tally, self).__init__(type_)
-        super().__init__(
-            name,
-            scores,
-            mu=mu,
-            azi=azi,
-            polar_reference=polar_reference,
-            energy=energy,
-            time=time,
-            spatial_shape=spatial_shape,
-        )
-
-        # ==============================================================================
-        # Set spatial filter
-        # ==============================================================================
-
-        # Default: no filter
-        self.spatial_filter = None
-        self.spatial_filter_type = SPATIAL_FILTER_NONE
-        self.spatial_filter_subtype = -1
-        self.spatial_filter_ID = -1
-        self.mesh_stride_z = -1
-        self.mesh_stride_y = -1
-        self.mesh_stride_x = -1
-
-        # Cell filter
-        if cell is not None:
-            self.spatial_filter = cell
-            self.spatial_filter_type = SPATIAL_FILTER_CELL
-            self.spatial_filter_ID = cell.ID
-
-            # Attach tally to the cell
-            cell.tallies.append(self)
-
-        # Mesh filter
-        elif mesh is not None:
-            self.spatial_filter = mesh
-            self.spatial_filter_type = SPATIAL_FILTER_MESH
-            if isinstance(mesh, MeshStructured):
-                self.spatial_filter_subtype = MESH_STRUCTURED
-            elif isinstance(mesh, MeshUniform):
-                self.spatial_filter_subtype = MESH_UNIFORM
-            self.spatial_filter_ID = mesh.ID
-
-            # Set the strides
-            N_score = len(self.scores)
-            self.mesh_stride_z = N_score
-            self.mesh_stride_y = N_score * mesh.Nz
-            self.mesh_stride_x = N_score * mesh.Nz * mesh.Ny
-
-    def __repr__(self):
-        text = super().__repr__()
-        if self.spatial_filter_type == SPATIAL_FILTER_CELL:
-            text += f"  - Cell: {self.spatial_filter.name}\n"
-        elif self.spatial_filter_type == SPATIAL_FILTER_MESH:
-            text += f"  - Mesh: {mesh_module.decode_type(self.spatial_filter.type)} (ID {self.spatial_filter.ID})\n"
-        text += super()._phasespace_filter_text()
-        text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
-        return text
 
 
 class TallyCollision(Tally):
@@ -493,6 +401,103 @@ class TallyCollision(Tally):
 
         # Mesh filter
         if mesh is not None:
+            self.spatial_filter = mesh
+            self.spatial_filter_type = SPATIAL_FILTER_MESH
+            if isinstance(mesh, MeshStructured):
+                self.spatial_filter_subtype = MESH_STRUCTURED
+            elif isinstance(mesh, MeshUniform):
+                self.spatial_filter_subtype = MESH_UNIFORM
+            self.spatial_filter_ID = mesh.ID
+
+            # Set the strides
+            N_score = len(self.scores)
+            self.mesh_stride_z = N_score
+            self.mesh_stride_y = N_score * mesh.Nz
+            self.mesh_stride_x = N_score * mesh.Nz * mesh.Ny
+
+    def __repr__(self):
+        text = super().__repr__()
+        if self.spatial_filter_type == SPATIAL_FILTER_CELL:
+            text += f"  - Cell: {self.spatial_filter.name}\n"
+        elif self.spatial_filter_type == SPATIAL_FILTER_MESH:
+            text += f"  - Mesh: {mesh_module.decode_type(self.spatial_filter.type)} (ID {self.spatial_filter.ID})\n"
+        text += super()._phasespace_filter_text()
+        text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
+        return text
+
+
+# ======================================================================================
+# Tracklength tally
+# ======================================================================================
+
+
+class TallyTracklength(Tally):
+    # Annotations for Numba mode
+    label: str = "tracklength_tally"
+    non_numba: list[str] = ["spatial_filter"]
+    #
+    spatial_filter: Cell | MeshBase | NoneType
+    spatial_filter_type: int
+    spatial_filter_ID: int
+    spatial_filter_subtype: int
+    #
+    mesh_stride_z: int
+    mesh_stride_y: int
+    mesh_stride_x: int
+
+    def __init__(
+        self,
+        cell: Cell | NoneType = None,
+        mesh: MeshBase | NoneType = None,
+        name: str = "",
+        scores: list[str] = ["flux"],
+        mu: Iterable[float] | NoneType = None,
+        azi: Iterable[float] | NoneType = None,
+        polar_reference: Iterable[float] | NoneType = None,
+        energy: Iterable[float] | str | NoneType = None,
+        time: Iterable[float] | NoneType = None,
+    ):
+        type_ = TALLY_TRACKLENGTH
+        spatial_shape = None
+        if mesh is not None:
+            spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
+
+        super(Tally, self).__init__(type_)
+        super().__init__(
+            name,
+            scores,
+            mu=mu,
+            azi=azi,
+            polar_reference=polar_reference,
+            energy=energy,
+            time=time,
+            spatial_shape=spatial_shape,
+        )
+
+        # ==============================================================================
+        # Set spatial filter
+        # ==============================================================================
+
+        # Default: no filter
+        self.spatial_filter = None
+        self.spatial_filter_type = SPATIAL_FILTER_NONE
+        self.spatial_filter_subtype = -1
+        self.spatial_filter_ID = -1
+        self.mesh_stride_z = -1
+        self.mesh_stride_y = -1
+        self.mesh_stride_x = -1
+
+        # Cell filter
+        if cell is not None:
+            self.spatial_filter = cell
+            self.spatial_filter_type = SPATIAL_FILTER_CELL
+            self.spatial_filter_ID = cell.ID
+
+            # Attach tally to the cell
+            cell.tallies.append(self)
+
+        # Mesh filter
+        elif mesh is not None:
             self.spatial_filter = mesh
             self.spatial_filter_type = SPATIAL_FILTER_MESH
             if isinstance(mesh, MeshStructured):
