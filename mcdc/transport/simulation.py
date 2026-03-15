@@ -298,14 +298,25 @@ def step_particle(particle_container, mcdc, data):
 
         # Score collision tallies
         if mcdc["cycle_active"]:
+            # Cell tallies
+            cell = mcdc["cells"][particle["cell_ID"]]
+            for i in range(cell["N_tally"]):
+                tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
+                tally = mcdc["collision_tallies"][tally_ID]
+                tally_module.score.collision_tally(
+                    particle_container, collision_data_container, tally, mcdc, data
+                )
+
+            # Other collision tallies
             for i in range(mcdc["N_collision_tally"]):
                 tally = mcdc["collision_tallies"][i]
-                tally_module.score.collision_tally_energy_deposition(
-                    particle_container,
-                    collision_data["energy_deposition"],
-                    tally,
-                    mcdc,
-                    data,
+
+                # Skip cell tallies
+                if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
+                    continue
+
+                tally_module.score.collision_tally(
+                    particle_container, collision_data_container, tally, mcdc, data
                 )
 
     # Surface and domain crossing

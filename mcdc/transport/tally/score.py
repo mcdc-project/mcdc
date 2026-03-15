@@ -331,14 +331,12 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
 
 
 @njit
-def collision_tally_energy_deposition(
-    particle_container, energy_deposition_weighted, tally, mcdc, data
-):
-    if tally["spatial_filter_type"] != SPATIAL_FILTER_MESH:
-        return
-
+def collision_tally(particle_container, collision_data_container, tally, mcdc, data):
     particle = particle_container[0]
+    collision_data = collision_data_container[0]
     tally_base = mcdc["tallies"][tally["parent_ID"]]
+
+    energy_deposition_weighted = collision_data["energy_deposition"]
 
     MG_mode = mcdc["settings"]["multigroup_mode"]
     i_mu, i_azi, i_energy, i_time = get_filter_indices(
