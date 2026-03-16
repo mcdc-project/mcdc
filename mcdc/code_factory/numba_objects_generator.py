@@ -400,6 +400,7 @@ def generate_numba_objects(simulation):
     # GPU program setup
     if config.target == "gpu":
         gpu_builder.setup_gpu_program(mcdc_simulation_container, data["array"])
+        gpu_builder.adapt_transport_functions_post_setup()
 
     return mcdc_simulation_container, data["array"]
 

@@ -30,7 +30,6 @@ def adapt_transport_functions():
     transport.particle_bank.report_empty_bank = (
         gpu_transport.particle_bank.report_empty_bank
     )
-    # transport.simulation = gpu_transport.simulation
     transport.util.atomic_add = gpu_transport.util.atomic_add
     transport.util.local_array = gpu_transport.util.local_array
 
@@ -39,6 +38,13 @@ def adapt_transport_functions_post_declare():
     import mcdc.transport as transport
 
     transport.util.access_simulation = access_simulation
+
+
+def adapt_transport_functions_post_setup():
+    import mcdc.code_factory.gpu.transport as gpu_transport
+    import mcdc.transport as transport
+
+    transport.simulation.source_loop = gpu_transport.simulation.source_loop
 
 
 # ======================================================================================
@@ -308,9 +314,9 @@ def setup_gpu_program(simulation_container, data):
     init_program(simulation["gpu_meta"]["program_pointer"], BLOCK_COUNT)
 
 
-def teardown_gpu_program(mcdc):
-    free_program(cast_uintp_to_voidptr(mcdc["gpu_meta"]["program_pointer"]))
-    free_state(cast_uintp_to_voidptr(mcdc["gpu_meta"]["state_pointer"]))
+def teardown_gpu_program(simulation):
+    free_program(cast_uintp_to_voidptr(simulation["gpu_meta"]["program_pointer"]))
+    free_state(cast_uintp_to_voidptr(simulation["gpu_meta"]["state_pointer"]))
 
 
 # ======================================================================================
