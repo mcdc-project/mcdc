@@ -20,7 +20,7 @@ B = 0.0
 C = 0.0
 R = 1
 r = 0.5
-durations = np.array([5.0, 5.0, 5.0])
+durations = np.array([5.0, 5.0, 5.0]) # The X-plane starts at x=10 and has a velocity of -1 for 5 seconds, then 2 for 5 seconds, then -3 for 5 seconds
 velocities = np.zeros((3, 3))
 velocities[:, 0] = np.array([-1.0, 2.0, -3.0])
 
@@ -179,31 +179,57 @@ def test_get_distance():
 
 
 # =====================================================================================
-# Torus-Z integrated transport interface            NOT STARTED CONVERTING FROM PLANE-X
+# Torus-Z integrated transport interface
 # =====================================================================================
 
 
 def test_interface_reflect():
-    def run(ux, answer):
+    def run(x, y, z, ux, uy, uz, answers):
+        particle["x"] = x
+        particle["y"] = y
+        particle["z"] = z
         particle["ux"] = ux
+        particle["uy"] = uy
+        particle["uz"] = uz
+        directions = np.array([particle["ux"], particle["uy"], particle["uz"]])
         interface.reflect(particle_container, static_surface)
-        assert np.isclose(particle["ux"], answer)
+        assert np.allclose(directions, answers)
 
-    # From positive direction
-    run(ux=0.2, answer=-0.2)
-    # From negative direction
-    run(ux=-0.1, answer=0.1)
+    # Particle traveling in through the Top of the torus
+    run(x=R, y=0.0, z=(r+TINY), ux=0.0, uy=0.0, uz=-1.0, answers=np.array([0,0,1]))
+    # Particle traveling out through the Top of the torus
+    run(x=R, y=0.0, z=(r-TINY), ux=0.0, uy=0.0, uz=1.0, answers=np.array([0,0,-1]))
+
+    # Particle traveling in through the Bottom of the torus
+    run(x=0.0, y=R, z=-(r+TINY), ux=0.0, uy=0.0, uz=1.0, answers=np.array([0,0,1]))
+    # Particle traveling out through the Bottom of the torus
+    run(x=0.0, y=R, z=-(r-TINY), ux=0.0, uy=0.0, uz=-1.0, answers=np.array([0,0,-1]))
+
+    root = (math.sqrt(2) / 2) # 45 degree X-Y lengths on the unit circle
+    d = (R + r) * root # X-Y values for a particle at 45 degrees on a torus of given dimensions
+
+    # Particle traveling in head on through the Side of the torus at the 45 degrees from the x-axis
+    run(x=(d+TINY), y=(d+TINY), z=0.0, ux=-root, uy=-root, uz=0.0, answers=np.array([root,root,0]))
+    # Particle traveling out through the Side of the torus as above
+    run(x=(d-TINY), y=(d-TINY), z=0.0, ux=root, uy=root, uz=0.0, answers=np.array([-root,-root,0]))
 
 
 def test_interface_evaluate():
-    def run_static(x, answer):
+
+    def run_static(x, y, z, answer):
         particle["x"] = x
+        particle["y"] = y
+        particle["z"] = z
         result = interface.evaluate(particle_container, static_surface, data)
         assert np.isclose(result, answer)
 
-    def run_moving(x, ux, t, answer):
+    def run_moving(x, y, z, ux, uy, uz, t, answer):
         particle["x"] = x
+        particle["y"] = y
+        particle["z"] = z
         particle["ux"] = ux
+        particle["uy"] = uy
+        particle["uz"] = uz
         particle["t"] = t
         result = interface.evaluate(particle_container, moving_surface, data)
         assert np.isclose(result, answer)
@@ -212,67 +238,87 @@ def test_interface_evaluate():
     # Static
     # =================================================================================
 
-    # Positive side
-    run_static(x=13.0, answer=3.0)
-    # Negative side
-    run_static(x=6.0, answer=-4.0)
+    # Inside
+    run_static(x=1.0, y=0.0, z=0.0, answer=-0.9375)
+    # Outside
+    run_static(x=0.0, y=-1.0, z=5.0, answer=711.6)
 
     # =================================================================================
-    # Moving
+    # Moving                         
     # =================================================================================
 
     # First bin
-    t = 3.0  # Surface x-position = 7.0
+    t = 3.0  # Torus center x-position = -3.0 as the torus has a velocity of -1 and started in the center
     ux = 0.3  # Arbitrary
-    ## Positive side
-    run_moving(x=10.0, ux=ux, t=t, answer=3.0)
-    ## Negative side
-    run_moving(x=1.0, ux=ux, t=t, answer=-6.0)
+    uy = 0.3  # Arbitrary
+    uz = 0.3  # Arbitrary
+    ## Inside side
+    run_moving(x=-3.0, y=1.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, answer=-0.9375)
+    ## Outside side
+    run_moving(x=-3.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.6)
 
     # First bin, at grid
-    t = 5.0  # Surface x-position = 5.0
+    t = 5.0  # Torus center x-position = -5.0
     ux = -0.3  # Arbitrary
-    ## Positive side
-    run_moving(x=10.0, ux=ux, t=t, answer=5.0)
-    ## Negative side
-    run_moving(x=1.0, ux=ux, t=t, answer=-4.0)
+    uy = -0.3  # Arbitrary
+    uz = -0.3  # Arbitrary
+    ## Inside side
+    run_moving(x=-5.0, y=1.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, answer=-0.9375)
+    ## Outside side
+    run_moving(x=-5.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.6)
 
     # Interior bin
-    t = 12.0  # Surface x-position = 9.0
+    t = 12.0  # Torus center x-position = -1.0 due to velocity and duration values
     ux = 0.3  # Arbitrary
-    ## Positive side
-    run_moving(x=10.0, ux=ux, t=t, answer=1.0)
-    ## Negative side
-    run_moving(x=1.0, ux=ux, t=t, answer=-8.0)
+    uy = 0.3  # Arbitrary
+    uz = 0.3  # Arbitrary
+    ## Inside side
+    run_moving(x=-1.0, y=1.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, answer=-0.9375)
+    ## Outside side
+    run_moving(x=-1.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.6)
 
     # Interior bin, at grid
-    t = 15.0  # Surface x-position = 0.0
+    t = 15.0  # Surface x-position = -10.0
     ux = -0.3  # Arbitrary
-    ## Positive side
-    run_moving(x=10.0, ux=ux, t=t, answer=10.0)
-    ## Negative side
-    run_moving(x=-5.0, ux=ux, t=t, answer=-5.0)
+    uy = -0.3  # Arbitrary
+    uz = -0.3  # Arbitrary
+    ## Inside side
+    run_moving(x=-10.0, y=1.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, answer=-0.9375)
+    ## Outside side
+    run_moving(x=-10.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.6)
 
     # Final bin
-    t = 100.0  # Surface x-position = 0.0
+    t = 100.0  # Surface x-position = -10.0
     ux = 0.3  # Arbitrary
-    ## Positive side
-    run_moving(x=10.0, ux=ux, t=t, answer=10.0)
-    ## Negative side
-    run_moving(x=-5.0, ux=ux, t=t, answer=-5.0)
+    uy = 0.3  # Arbitrary
+    uz = 0.3  # Arbitrary
+    ## Inside side
+    run_moving(x=-10.0, y=1.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, answer=-0.9375)
+    ## Outside side
+    run_moving(x=-10.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.6)
 
 
 def test_interface_get_normal_component():
-    def run_static(ux, answer):
+    def run_static(x, y, z, ux, uy, uz, answer):
+        particle["x"] = x
+        particle["y"] = y
+        particle["z"] = z
         particle["ux"] = ux
+        particle["uy"] = uy
+        particle["uz"] = uz
         speed = 2.0  # Arbitrary
         result = interface.get_normal_component(
             particle_container, speed, static_surface, data
         )
         assert np.isclose(result, answer)
 
-    def run_moving(ux, t, speed, answer):
+    def run_moving(x, y, z, ux, uy, uz, t, speed, answer):
+        particle["x"] = x
+        particle["y"] = y
+        particle["z"] = z
         particle["ux"] = ux
+        particle["uy"] = uy
+        particle["uz"] = uz
         particle["t"] = t
         result = interface.get_normal_component(
             particle_container, speed, moving_surface, data
@@ -283,50 +329,52 @@ def test_interface_get_normal_component():
     # Static
     # =================================================================================
 
-    # Positive direction
-    run_static(ux=0.4, answer=0.4)
-    # Negative direction
-    run_static(ux=-0.2, answer=-0.2)
-    # Parallel
-    run_static(ux=0.0, answer=0.0)
+    # Particle traveling in through the Top of the torus
+    run_static(x=R, y=0.0, z=(r+TINY), ux=0.0, uy=0.0, uz=-1.0, answer=-1)
+    # Particle traveling out through the Top of the torus
+    run_static(x=0.0, y=R, z=(r-TINY), ux=0.0, uy=0.0, uz=1.0, answer=1)
+    # Particle moving parallel to the torus
+    run_static(x=0.0, y=R, z=-(0.5+TINY), ux=0.0, uy=1, uz=0.0, answer=0)
 
     # =================================================================================
     # Moving
     # =================================================================================
 
     # Surface moving in the positive direction
-    t = 8.5  # Surface x-velocity = 2.0
+    t = 8.0  # Surface x-velocity = 2.0, center of torus x position at 1
     #
     ## Positive direction
     ux = 0.4
-    ### Faster
-    run_moving(ux, t, speed=6.0, answer=0.4 / 6.0)
+    uy = 0.0
+    uz = 0.0
+    ### Faster (normal component values on the very centerline of the torus should match an x-plane)
+    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=6.0, answer=0.4 / 6.0)
     ### Slower (change sign)
-    run_moving(ux, t, speed=2.0, answer=-1.2 / 2.0)
+    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=2.0, answer=-1.2 / 2.0)
     ### Same speed (cancel out)
-    run_moving(ux, t, speed=5.0, answer=0.0)
+    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=5.0, answer=0.0)
     #
     ## Negative direction
-    run_moving(ux=-0.4, t=t, speed=6.0, answer=-4.4 / 6.0)
+    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=-0.4, uy=0.0, uz=0.0, t=t, speed=6.0, answer=-4.4 / 6.0)
     ## Parallel
-    run_moving(ux=0.0, t=t, speed=6.0, answer=-2.0 / 6.0)
+    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=-0.0, uy=0.0, uz=0.0, t=t, speed=6.0, answer=-2.0 / 6.0)
 
     # Surface moving in the negative direction
-    t = 10.0  # Surface x-velocity = -3.0
+    t = 10.0  # Surface x-velocity = -3.0, center of torus x position at 5
     #
     ## Negative direction
     ux = -0.4
     ### Faster
-    run_moving(ux, t, speed=8.0, answer=-0.2 / 8.0)
+    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=8.0, answer=-0.2 / 8.0)
     ### Slower (change sign)
-    run_moving(ux, t, speed=2.0, answer=2.2 / 2.0)
+    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=2.0, answer=2.2 / 2.0)
     ### Same speed (cancel out)
-    run_moving(ux, t, speed=7.5, answer=0.0)
+    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=7.5, answer=0.0)
     #
     ## Positive direction
-    run_moving(ux=0.4, t=t, speed=8.0, answer=6.2 / 8.0)
+    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=0.4, uy=0.0, uz=0.0, t=t, speed=8.0, answer=6.2 / 8.0)
     ## Parallel
-    run_moving(ux=0.0, t=t, speed=8.0, answer=3.0 / 8.0)
+    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=0.0, uy=0.0, uz=0.0, t=t, speed=8.0, answer=3.0 / 8.0)
 
 
 def test_interface_check_sense():
