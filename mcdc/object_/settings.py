@@ -67,7 +67,9 @@ class Settings(ObjectSingleton):
     neutron_eigenvalue_mode: bool = False
 
     # GPU mode
-    gpu_strategy: int = GPU_STRATEGY_SIMPLE_ASYNC
+    gpu_strategy: int = GPU_STRATEGY_ASYNC
+    gpu_async_type: int = GPU_ASYNC_SIMPLE
+    gpu_storage: int = GPU_STORAGE_SEPARATE
 
     def __post_init__(self):
         super().__init__()

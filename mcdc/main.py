@@ -26,24 +26,15 @@ def run():
     settings = simulationPy.settings
     master = MPI.COMM_WORLD.Get_rank() == 0
 
-    # Override settings with command-line arguments
-    import mcdc.config as config
-
-    if config.args.N_particle is not None:
-        settings.N_particle = config.args.N_particle
-    if config.args.N_batch is not None:
-        settings.N_batch = config.args.N_batch
-    if config.args.output is not None:
-        settings.output_name = config.args.output
-    if config.args.progress_bar is not None:
-        settings.use_progress_bar = config.args.progress_bar
-
     # ==================================================================================
     # Preparation
     # ==================================================================================
 
     # TIMER: preparation
     time_prep_start = MPI.Wtime()
+
+    # Override settings with command-line arguments
+    override_settings()
 
     # Generate the program state:
     #   - `simulation`: the simulation, storing fixed side data and meta data that
@@ -121,11 +112,7 @@ def run():
     # Finalizing
     # ==================================================================================
 
-    # GPU teardowns if needed
-    if config.target == "gpu":
-        from mcdc.code_factory.gpu.program_builder import teardown_gpu_program
-
-        teardown_gpu_program(simulation)
+    finalize(simulation)
 
 
 # ======================================================================================
@@ -304,3 +291,49 @@ def preparation():
     # ==================================================================================
 
     return simulation_container, data
+
+
+# ======================================================================================
+# Misc.
+# ======================================================================================
+
+
+def override_settings():
+    import mcdc.config as config
+    from mcdc.object_.simulation import simulation as simulationPy
+
+    settings = simulationPy.settings
+
+    if config.args.N_particle is not None:
+        settings.N_particle = config.args.N_particle
+    if config.args.N_batch is not None:
+        settings.N_batch = config.args.N_batch
+    if config.args.output is not None:
+        settings.output_name = config.args.output
+    if config.args.progress_bar is not None:
+        settings.use_progress_bar = config.args.progress_bar
+
+    # GPU settings
+    if config.target == "gpu":
+        from mcdc.constant import (
+            GPU_STRATEGY_ASYNC,
+            GPU_STRATEGY_EVENT,
+            GPU_STORAGE_SEPARATE,
+            GPU_STORAGE_MANAGED,
+            GPU_STORAGE_UNITED,
+        )
+
+        if config.args.gpu_strategy == "async":
+            settings.gpu_strategy = GPU_STRATEGY_ASYNC
+        elif config.args.gpu_strategy == "event":
+            settings.gpu_strategy = GPU_STRATEGY_EVENT
+
+
+def finalize(simulation):
+    import mcdc.config as config
+
+    # GPU teardowns if needed
+    if config.target == "gpu":
+        from mcdc.code_factory.gpu.program_builder import teardown_gpu_program
+
+        teardown_gpu_program(simulation)
