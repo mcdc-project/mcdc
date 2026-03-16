@@ -6,7 +6,7 @@ from numba import njit
 ####
 
 import mcdc.mcdc_get as mcdc_get
-import mcdc.transport.literals as literals
+import mcdc.literals as literals
 import mcdc.transport.mesh as mesh
 import mcdc.transport.physics as physics
 import mcdc.transport.tally as tally_module

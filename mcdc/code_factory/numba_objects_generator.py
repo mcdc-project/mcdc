@@ -331,33 +331,20 @@ def generate_numba_objects(simulation):
             f.write(text)
 
     # ==================================================================================
-    # GPU setup: Adapt transport functions, forward declare, and build program
+    # GPU preparation: Adapt transport functions, forward declare, and build program
     # ==================================================================================
 
     if config.target == "gpu":
-        from mcdc.code_factory.gpu.program_builder import (
-            adapt_transport_functions,
-            forward_declare_gpu_program,
-        )
-
-        adapt_transport_functions()
-        forward_declare_gpu_program()
-
-        from mcdc.code_factory.gpu.program_builder import (
-            adapt_transport_functions_post_declare,
-        )
-
-        adapt_transport_functions_post_declare()
-
-        from mcdc.code_factory.gpu.program_builder import build_gpu_program
-
-        build_gpu_program(data["size"])
+        gpu_builder.adapt_transport_functions()
+        gpu_builder.forward_declare_gpu_program()
+        gpu_builder.adapt_transport_functions_post_declare()
+        gpu_builder.build_gpu_program(data["size"])
 
     # ==================================================================================
     # Allocate the flattened data and re-set the objects
     # ==================================================================================
 
-    data["array"], data["pointer"] = create_data_array(data["size"], type_map[float])
+    data["array"], data["pointer"] = create_data_array(data["size"])
 
     data["size"] = 0
     for object_ in objects:
@@ -409,6 +396,10 @@ def generate_numba_objects(simulation):
     # Manually set particle bank attributes
     for name in bank_names:
         mcdc_simulation[name]["tag"] = getattr(simulation, name).tag
+
+    # GPU program setup
+    if config.target == "gpu":
+        gpu_builder.setup_gpu_program(mcdc_simulation_container, data["array"])
 
     return mcdc_simulation_container, data["array"]
 
@@ -667,22 +658,22 @@ def set_object(
 # =============================================================================
 
 
-def create_data_array(size, dtype):
+def create_data_array(size):
     if not config.target == "gpu":
-        data = np.zeros(size, dtype=dtype)
+        data = np.zeros(size, dtype=np.float64)
         return data, 0
     else:
-        create_data_array_on_gpu(size, dtype)
+        return create_data_array_on_gpu(size)
 
 
 @njit
-def create_data_array_on_gpu(size, dtype):
+def create_data_array_on_gpu(size):
     if config.gpu_state_storage == "managed":
         data_ptr = gpu_builder.alloc_managed_bytes(size)
     else:
         data_ptr = gpu_builder.alloc_device_bytes(size)
     data_uint = voidptr_to_uintp(data_ptr)
-    data = nb.carray(data_ptr, (size,), dtype)
+    data = nb.carray(data_ptr, (size,), dtype=np.float64)
     return data, data_uint
 
 
@@ -691,18 +682,17 @@ def create_simulation_container(dtype):
         simulation_container = np.zeros((1,), dtype=dtype)
         return simulation_container, 0
     else:
-        create_simulation_container_on_gpu(dtype)
+        return create_simulation_container_on_gpu(dtype, dtype.itemsize)
 
 
 @njit
-def create_simulation_container_on_gpu(dtype):
-    size = dtype.itemsize
+def create_simulation_container_on_gpu(dtype, size):
     if config.gpu_state_storage == "managed":
         simulation_ptr = gpu_builder.alloc_managed_bytes(size)
     else:
         simulation_ptr = gpu_builder.alloc_device_bytes(size)
     simulation_uint = voidptr_to_uintp(simulation_ptr)
-    simulation = nb.carray(simulation_ptr, (size,), dtype)
+    simulation = nb.carray(simulation_ptr, (1,), dtype)
     return simulation, simulation_uint
 
 

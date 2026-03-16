@@ -298,16 +298,6 @@ def preparation():
         MPI.COMM_WORLD.Barrier()
 
     # ==================================================================================
-    # Platform targeting, adapters, and toggles for portability
-    # ==================================================================================
-
-    # Set up GPU if needed
-    if config.target == "gpu":
-        from mcdc.code_factory.gpu.program_builder import setup_gpu
-
-        setup_gpu(mcdc_container, data)
-
-    # ==================================================================================
     # Finalize
     # ==================================================================================
 

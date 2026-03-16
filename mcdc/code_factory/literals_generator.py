@@ -10,7 +10,7 @@ def _literalize(value):
 
 
 def make_literals(simulation):
-    import mcdc.transport as transport
+    import mcdc.literals as literals
 
     # RPN evaluation buffer size
     if len(simulation.cells) == 0:
@@ -21,6 +21,4 @@ def make_literals(simulation):
                 [np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in simulation.cells]
             )
         )
-    transport.literals.rpn_evaluation_buffer_size = _literalize(
-        rpn_evaluation_buffer_size
-    )
+    literals.rpn_evaluation_buffer_size = _literalize(rpn_evaluation_buffer_size)

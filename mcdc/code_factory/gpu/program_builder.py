@@ -136,8 +136,28 @@ def forward_declare_gpu_program():
 # Program builder
 # ======================================================================================
 
-src_free_program = lambda pointer: None
-free_state = lambda pointer: None
+alloc_state = None
+free_state = None
+
+alloc_program = None
+free_program = None
+
+load_state_device_simulation = None
+store_state_device_simulation = None
+store_pointer_state_device_simulation = None
+
+load_state_device_data = None
+store_state_device_data = None
+store_pointer_state_device_data = None
+
+init_program = None
+exec_program = None
+complete = None
+clear_flags = None
+set_device = None
+
+ARENA_SIZE = 0
+BLOCK_COUNT = 0
 
 
 def build_gpu_program(data_size):
@@ -147,7 +167,16 @@ def build_gpu_program(data_size):
 
     from mcdc.transport.simulation import generate_source_particle, step_particle
 
-    global src_free_program, free_state
+    global alloc_state, free_state
+
+    global alloc_program, free_program
+
+    global load_state_device_simulation, store_state_device_simulation, store_pointer_state_device_simulation
+
+    global load_state_device_data, store_state_device_data, store_pointer_state_device_data
+
+    global init_program, exec_program, complete, clear_flags, set_device
+    global ARENA_SIZE, BLOCK_COUNT
 
     shape = eval(f"{(data_size,)}")
 
@@ -205,17 +234,8 @@ def build_gpu_program(data_size):
     async_fns = [step]
     src_spec = harmonize.RuntimeSpec("mcdc_source", state_spec, base_fns, async_fns)
     harmonize.RuntimeSpec.bind_specs()
-    print("PASS")
-    exit()
 
-    # ==================================================================================
-    #
-    # ==================================================================================
-
-    rank = MPI.COMM_WORLD.Get_rank()
-
-    MPI.COMM_WORLD.Barrier()
-
+    # Load the specs
     harmonize.RuntimeSpec.load_specs()
 
     if config.args.gpu_strategy == "async":
@@ -224,68 +244,72 @@ def build_gpu_program(data_size):
     else:
         src_fns = src_spec.event_functions()
 
-    arena_size = config.args.gpu_arena_size
-    block_count = config.args.gpu_block_count
+    ARENA_SIZE = config.args.gpu_arena_size
+    BLOCK_COUNT = config.args.gpu_block_count
 
     alloc_state = src_fns["alloc_state"]
     free_state = src_fns["free_state"]
 
-    src_alloc_program = src_fns["alloc_program"]
-    src_free_program = src_fns["free_program"]
-    src_load_global = src_fns["load_state_device_global"]
-    src_store_global = src_fns["store_state_device_global"]
-    src_store_pointer_global = src_fns["store_pointer_state_device_global"]
-    src_load_data = src_fns["load_state_device_data"]
-    src_store_data = src_fns["store_state_device_data"]
-    src_store_pointer_data = src_fns["store_pointer_state_device_data"]
-    src_init_program = src_fns["init_program"]
-    src_exec_program = src_fns["exec_program"]
-    src_complete = src_fns["complete"]
-    src_clear_flags = src_fns["clear_flags"]
-    src_set_device = src_fns["set_device"]
+    alloc_program = src_fns["alloc_program"]
+    free_program = src_fns["free_program"]
 
-    # ==================================================================================
-    #
-    # ==================================================================================
+    load_state_device_simulation = src_fns["load_state_device_simulation"]
+    store_state_device_simulation = src_fns["store_state_device_simulation"]
+    store_pointer_state_device_simulation = src_fns[
+        "store_pointer_state_device_simulation"
+    ]
 
-    """
-    global loop_source
-    loop_source = gpu_loop_source
-    #
-    # Overwrite function
-    for impl in target_rosters["cpu"].values():
-        overwrite_func(impl, impl)
-    """
+    load_state_device_data = src_fns["load_state_device_data"]
+    store_state_device_data = src_fns["store_state_device_data"]
+    store_pointer_state_device_data = src_fns["store_pointer_state_device_data"]
 
-    # ==================================================================================
-    # Setup
-    # ==================================================================================
+    init_program = src_fns["init_program"]
+    exec_program = src_fns["exec_program"]
+    complete = src_fns["complete"]
+    clear_flags = src_fns["clear_flags"]
+    set_device = src_fns["set_device"]
 
-    device_id = rank % config.args.gpu_share_stride
 
-    mcdc = mcdc_container[0]
-    src_set_device(device_id)
-    mcdc["gpu_meta"]["state_pointer"] = cast_voidptr_to_uintp(alloc_state())
+# ======================================================================================
+# Setup GPU
+# ======================================================================================
+
+from numba import njit
+
+rank = MPI.COMM_WORLD.Get_rank()
+device_id = rank % config.args.gpu_share_stride
+
+
+@njit
+def setup_gpu_program(simulation_container, data):
+    simulation = simulation_container[0]
+
+    set_device(device_id)
+    simulation["gpu_meta"]["state_pointer"] = cast_voidptr_to_uintp(alloc_state())
+
     if config.gpu_state_storage == "separate":
-        src_store_pointer_global(
-            mcdc["gpu_meta"]["state_pointer"], mcdc["gpu_meta"]["global_pointer"]
+        store_pointer_state_device_simulation(
+            simulation["gpu_meta"]["state_pointer"],
+            simulation["gpu_meta"]["simulation_pointer"],
         )
-        src_store_pointer_data(
-            mcdc["gpu_meta"]["state_pointer"], mcdc["gpu_meta"]["tally_pointer"]
+        store_pointer_state_device_data(
+            simulation["gpu_meta"]["state_pointer"],
+            simulation["gpu_meta"]["data_pointer"],
         )
     else:
-        src_store_pointer_global(mcdc["gpu_meta"]["state_pointer"], mcdc_container)
-        src_store_pointer_data(mcdc["gpu_meta"]["state_pointer"], data)
+        store_pointer_state_device_simulation(
+            simulation["gpu_meta"]["state_pointer"], simulation_container
+        )
+        store_pointer_state_device_data(simulation["gpu_meta"]["state_pointer"], data)
 
-    mcdc["gpu_meta"]["source_program_pointer"] = cast_voidptr_to_uintp(
-        src_alloc_program(mcdc["gpu_meta"]["state_pointer"], arena_size)
+    simulation["gpu_meta"]["program_pointer"] = cast_voidptr_to_uintp(
+        alloc_program(simulation["gpu_meta"]["state_pointer"], ARENA_SIZE)
     )
-    src_init_program(mcdc["gpu_meta"]["source_program_pointer"], block_count)
-    return
+    init_program(simulation["gpu_meta"]["program_pointer"], BLOCK_COUNT)
 
 
 def teardown_gpu_program(mcdc):
-    src_free_program(cast_uintp_to_voidptr(mcdc["gpu_meta"]["source_program_pointer"]))
+    free_program(cast_uintp_to_voidptr(mcdc["gpu_meta"]["program_pointer"]))
     free_state(cast_uintp_to_voidptr(mcdc["gpu_meta"]["state_pointer"]))
 
 

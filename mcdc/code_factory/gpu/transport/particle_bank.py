@@ -22,8 +22,10 @@ def bank_active_particle(particle_container, program):
     particle_module.copy(active_particle_container, particle_container)
     if simulation["settings"]["gpu_strategy"] == GPU_STRATEGY_SIMPLE_ASYNC:
         gpu_program.step_async(program, active_particle_container[0])
+    """
     else:
         gpu_program.find_cell_async(program, active_particle_container[0])
+    """
 
 
 @njit
