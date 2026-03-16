@@ -18,13 +18,13 @@ from mcdc.transport.util import find_bin_with_rules
 
 
 @njit
-def source_particle(P_rec_arr, seed, simulation, data):
-    P_rec = P_rec_arr[0]
-    P_rec["rng_seed"] = seed
+def source_particle(particle_container, seed, simulation, data):
+    particle = particle_container[0]
+    particle["rng_seed"] = seed
 
     # Sample source
     # TODO: use cdf and binary search instead
-    xi = rng.lcg(P_rec_arr)
+    xi = rng.lcg(particle_container)
     tot = 0.0
     for source in simulation["sources"]:
         tot += source["probability"]
@@ -37,25 +37,28 @@ def source_particle(P_rec_arr, seed, simulation, data):
         y = source["point"][1]
         z = source["point"][2]
     else:
-        x = sample_uniform(source["x"][0], source["x"][1], P_rec_arr)
-        y = sample_uniform(source["y"][0], source["y"][1], P_rec_arr)
-        z = sample_uniform(source["z"][0], source["z"][1], P_rec_arr)
+        x = sample_uniform(source["x"][0], source["x"][1], particle_container)
+        y = sample_uniform(source["y"][0], source["y"][1], particle_container)
+        z = sample_uniform(source["z"][0], source["z"][1], particle_container)
 
     # Direction
     if source["isotropic_direction"]:
-        ux, uy, uz = sample_isotropic_direction(P_rec_arr)
+        ux, uy, uz = sample_isotropic_direction(particle_container)
     elif source["white_direction"]:
         rx = source["direction"][0]
         ry = source["direction"][1]
         rz = source["direction"][2]
-        ux, uy, uz = sample_white_direction(rx, ry, rz, P_rec_arr)
+        ux, uy, uz = sample_white_direction(rx, ry, rz, particle_container)
     elif source["mono_direction"]:
         ux = source["direction"][0]
         uy = source["direction"][1]
         uz = source["direction"][2]
     else:
         ux, uy, uz = sample_direction(
-            source["polar_cosine"], source["azimuthal"], source["direction"], P_rec_arr
+            source["polar_cosine"],
+            source["azimuthal"],
+            source["direction"],
+            particle_container,
         )
 
     # Energy
@@ -66,7 +69,7 @@ def source_particle(P_rec_arr, seed, simulation, data):
         else:
             ID = source["energy_group_pmf_ID"]
             pmf = simulation["pmf_distributions"][ID]
-            g = sample_pmf(pmf, P_rec_arr, data)
+            g = sample_pmf(pmf, particle_container, data)
     else:
         g = 0
         if source["mono_energetic"]:
@@ -74,13 +77,15 @@ def source_particle(P_rec_arr, seed, simulation, data):
         else:
             ID = source["energy_pdf_ID"]
             table = simulation["tabulated_distributions"][ID]
-            E = sample_tabulated(table, P_rec_arr, data)
+            E = sample_tabulated(table, particle_container, data)
 
     # Time
     if source["discrete_time"]:
         t = source["time"]
     else:
-        t = sample_uniform(source["time_range"][0], source["time_range"][1], P_rec_arr)
+        t = sample_uniform(
+            source["time_range"][0], source["time_range"][1], particle_container
+        )
 
     # Motion translation
     if source["moving"]:
@@ -120,14 +125,14 @@ def source_particle(P_rec_arr, seed, simulation, data):
         z += trans_0[2] + V[2] * t_local
 
     # Make and return particle
-    P_rec["x"] = x
-    P_rec["y"] = y
-    P_rec["z"] = z
-    P_rec["t"] = t
-    P_rec["ux"] = ux
-    P_rec["uy"] = uy
-    P_rec["uz"] = uz
-    P_rec["g"] = g
-    P_rec["E"] = E
-    P_rec["w"] = 1.0
-    P_rec["particle_type"] = source["particle_type"]
+    particle["x"] = x
+    particle["y"] = y
+    particle["z"] = z
+    particle["t"] = t
+    particle["ux"] = ux
+    particle["uy"] = uy
+    particle["uz"] = uz
+    particle["g"] = g
+    particle["E"] = E
+    particle["w"] = 1.0
+    particle["particle_type"] = source["particle_type"]
