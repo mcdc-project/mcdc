@@ -374,15 +374,17 @@ def collision(particle_container, collision_data_container, mcdc, data):
 def elastic_scattering(
     reaction, particle_container, collision_data_container, nuclide, mcdc, data
 ):
-    # Particle attributes
     particle = particle_container[0]
+    collision_data = collision_data_container[0]
+
+    # Particle attributes
     E = particle["E"]
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
 
-    collision_data = collision_data_container[0]
-    w_in = particle["w"]
+    # Energy deposition
+    collision_data["energy_deposition"] += E * particle["w"]
 
     # Sample nucleus thermal velocity
     A = nuclide["atomic_weight_ratio"]
@@ -455,10 +457,8 @@ def elastic_scattering(
     particle["uy"] = vy / speed
     particle["uz"] = vz / speed
 
-    E_out_weighted = particle["E"] * particle["w"]
-    energy_deposition = E * w_in - E_out_weighted
-    if energy_deposition > 0.0:
-        collision_data["energy_deposition"] += energy_deposition
+    # Subtract outgoing energy from energy deposition
+    collision_data["energy_deposition"] -= particle["E"] * particle["w"]
 
 
 @njit
@@ -518,15 +518,17 @@ def sample_nucleus_velocity(A, particle_container):
 def inelastic_scattering(
     reaction, particle_container, collision_data_container, nuclide, mcdc, data
 ):
-    # Particle attributes
     particle = particle_container[0]
+    collision_data = collision_data_container[0]
+
+    # Particle attributes
     E = particle["E"]
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
 
-    collision_data = collision_data_container[0]
-    w_in = particle["w"]
+    # Energy deposition
+    collision_data["energy_deposition"] += E * particle["w"]
 
     # Kill the current particle
     particle["alive"] = False
@@ -539,7 +541,6 @@ def inelastic_scattering(
     # Set up secondary partice container
     particle_container_new = np.zeros(1, type_.particle_data)
     particle_new = particle_container_new[0]
-    E_out_weighted = 0.0
 
     # Create the secondaries
     for n in range(N):
@@ -632,7 +633,8 @@ def inelastic_scattering(
         particle_new["uz"] = uz_new
         particle_new["E"] = E_new
 
-        E_out_weighted += particle_new["E"] * particle_new["w"]
+        # Subtract outgoing energy from energy deposition
+        collision_data["energy_deposition"] -= particle_new["E"] * particle_new["w"]
 
         # ==============================================================================
         # Bank the new particle
@@ -648,10 +650,6 @@ def inelastic_scattering(
         else:
             particle_bank_module.bank_active_particle(particle_container_new, mcdc)
 
-    energy_deposition = E * w_in - E_out_weighted
-    if energy_deposition > 0.0:
-        collision_data["energy_deposition"] += energy_deposition
-
 
 # ======================================================================================
 # Fission
@@ -662,16 +660,16 @@ def inelastic_scattering(
 def fission(
     reaction, particle_container, collision_data_container, nuclide, mcdc, data
 ):
+    particle = particle_container[0]
+    collision_data = collision_data_container[0]
     settings = mcdc["settings"]
 
     # Particle properties
-    particle = particle_container[0]
     E = particle["E"]
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
 
-    collision_data = collision_data_container[0]
     w_in = particle["w"]
 
     # Kill the current particle
