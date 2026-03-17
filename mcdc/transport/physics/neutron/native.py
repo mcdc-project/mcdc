@@ -224,7 +224,7 @@ def collision(particle_container, collision_data_container, mcdc, data):
     material = mcdc["native_materials"][particle["material_ID"]]
 
     # Particle properties
-    E_in = particle["E"]
+    E = particle["E"]
     w_in = particle["w"]
 
     # ==================================================================================
@@ -246,10 +246,10 @@ def collision(particle_container, collision_data_container, mcdc, data):
         nuclide = mcdc["nuclides"][nuclide_ID]
 
         nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
-        sigmaT = total_micro_xs(NEUTRON_REACTION_TOTAL, E_in, nuclide, data)
+        sigmaT = total_micro_xs(NEUTRON_REACTION_TOTAL, E, nuclide, data)
 
         if mcdc["implicit_capture"]["active"]:
-            sigmaC = total_micro_xs(NEUTRON_REACTION_CAPTURE, E_in, nuclide, data)
+            sigmaC = total_micro_xs(NEUTRON_REACTION_CAPTURE, E, nuclide, data)
             particle["w"] *= (sigmaT - sigmaC) / sigmaT
             sigmaT -= sigmaC
 
@@ -262,20 +262,25 @@ def collision(particle_container, collision_data_container, mcdc, data):
     # Transported weight after implicit-capture adjustment
     w_transport = particle["w"]
 
-    # Energy deposited by implicit capture portion
-    energy_deposition_weighted = (w_in - w_transport) * E_in
+    # Reset this collision's record
+    collision_data["energy_deposition"] = 0.0
+
+    # Implicit capture removes weight without an outgoing neutron
+    energy_deposition = (w_in - w_transport) * E
+    if energy_deposition > 0.0:
+        collision_data["energy_deposition"] += energy_deposition
 
     # ==================================================================================
     # Sample and perform reaction
     # ==================================================================================
 
     sigma_elastic = total_micro_xs(
-        NEUTRON_REACTION_ELASTIC_SCATTERING, E_in, nuclide, data
+        NEUTRON_REACTION_ELASTIC_SCATTERING, E, nuclide, data
     )
     sigma_inelastic = total_micro_xs(
-        NEUTRON_REACTION_INELASTIC_SCATTERING, E_in, nuclide, data
+        NEUTRON_REACTION_INELASTIC_SCATTERING, E, nuclide, data
     )
-    sigma_fission = total_micro_xs(NEUTRON_REACTION_FISSION, E_in, nuclide, data)
+    sigma_fission = total_micro_xs(NEUTRON_REACTION_FISSION, E, nuclide, data)
 
     xi = rng.lcg(particle_container) * sigmaT
 
@@ -292,29 +297,27 @@ def collision(particle_container, collision_data_container, mcdc, data):
             reaction = mcdc["neutron_elastic_scattering_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
-            total += reaction_micro_xs(E_in, reaction_base, nuclide, data)
+            total += reaction_micro_xs(E, reaction_base, nuclide, data)
             if xi < total:
-                E_out_weighted = elastic_scattering(
-                    reaction, particle_container, nuclide, mcdc, data
+                elastic_scattering(
+                    reaction,
+                    particle_container,
+                    collision_data_container,
+                    nuclide,
+                    mcdc,
+                    data,
                 )
-                dep = E_in * w_transport - E_out_weighted
-                if dep > 0.0:
-                    energy_deposition_weighted += dep
-                if energy_deposition_weighted < 0.0:
-                    energy_deposition_weighted = 0.0
-                collision_data["energy_deposition"] = energy_deposition_weighted
                 return
 
     # Capture
     if not mcdc["implicit_capture"]["active"]:
-        sigma_capture = total_micro_xs(NEUTRON_REACTION_CAPTURE, E_in, nuclide, data)
+        sigma_capture = total_micro_xs(NEUTRON_REACTION_CAPTURE, E, nuclide, data)
         total += sigma_capture
         if xi < total:
             particle["alive"] = False
-            energy_deposition_weighted += E_in * w_transport
-            if energy_deposition_weighted < 0.0:
-                energy_deposition_weighted = 0.0
-            collision_data["energy_deposition"] = energy_deposition_weighted
+            energy_deposition = E * w_transport
+            if energy_deposition > 0.0:
+                collision_data["energy_deposition"] += energy_deposition
             return
 
     # Inelastic scattering
@@ -331,18 +334,17 @@ def collision(particle_container, collision_data_container, mcdc, data):
             reaction = mcdc["neutron_inelastic_scattering_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
-            xs = reaction_micro_xs(E_in, reaction_base, nuclide, data)
+            xs = reaction_micro_xs(E, reaction_base, nuclide, data)
             total += xs
             if xi < total:
-                E_out_weighted = inelastic_scattering(
-                    reaction, particle_container, nuclide, mcdc, data
+                inelastic_scattering(
+                    reaction,
+                    particle_container,
+                    collision_data_container,
+                    nuclide,
+                    mcdc,
+                    data,
                 )
-                dep = E_in * w_transport - E_out_weighted
-                if dep > 0.0:
-                    energy_deposition_weighted += dep
-                if energy_deposition_weighted < 0.0:
-                    energy_deposition_weighted = 0.0
-                collision_data["energy_deposition"] = energy_deposition_weighted
                 return
 
     # Fission (arive here only if nuclide is fissionable)
@@ -356,22 +358,17 @@ def collision(particle_container, collision_data_container, mcdc, data):
             reaction = mcdc["neutron_fission_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
-            total += reaction_micro_xs(E_in, reaction_base, nuclide, data)
+            total += reaction_micro_xs(E, reaction_base, nuclide, data)
             if xi < total:
-                E_out_weighted = fission(
-                    reaction, particle_container, nuclide, mcdc, data
+                fission(
+                    reaction,
+                    particle_container,
+                    collision_data_container,
+                    nuclide,
+                    mcdc,
+                    data,
                 )
-                dep = E_in * w_transport - E_out_weighted
-                if dep > 0.0:
-                    energy_deposition_weighted += dep
-                if energy_deposition_weighted < 0.0:
-                    energy_deposition_weighted = 0.0
-                collision_data["energy_deposition"] = energy_deposition_weighted
                 return
-
-    if energy_deposition_weighted < 0.0:
-        energy_deposition_weighted = 0.0
-    collision_data["energy_deposition"] = energy_deposition_weighted
 
 
 # ======================================================================================
@@ -380,13 +377,18 @@ def collision(particle_container, collision_data_container, mcdc, data):
 
 
 @njit
-def elastic_scattering(reaction, particle_container, nuclide, mcdc, data):
+def elastic_scattering(
+    reaction, particle_container, collision_data_container, nuclide, mcdc, data
+):
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
+
+    collision_data = collision_data_container[0]
+    w_in = particle["w"]
 
     # Sample nucleus thermal velocity
     A = nuclide["atomic_weight_ratio"]
@@ -459,7 +461,10 @@ def elastic_scattering(reaction, particle_container, nuclide, mcdc, data):
     particle["uy"] = vy / speed
     particle["uz"] = vz / speed
 
-    return particle["E"] * particle["w"]
+    E_out_weighted = particle["E"] * particle["w"]
+    energy_deposition = E * w_in - E_out_weighted
+    if energy_deposition > 0.0:
+        collision_data["energy_deposition"] += energy_deposition
 
 
 @njit
@@ -516,13 +521,18 @@ def sample_nucleus_velocity(A, particle_container):
 
 
 @njit
-def inelastic_scattering(reaction, particle_container, nuclide, mcdc, data):
+def inelastic_scattering(
+    reaction, particle_container, collision_data_container, nuclide, mcdc, data
+):
     # Particle attributes
     particle = particle_container[0]
     E = particle["E"]
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
+
+    collision_data = collision_data_container[0]
+    w_in = particle["w"]
 
     # Kill the current particle
     particle["alive"] = False
@@ -644,7 +654,9 @@ def inelastic_scattering(reaction, particle_container, nuclide, mcdc, data):
         else:
             particle_bank_module.bank_active_particle(particle_container_new, mcdc)
 
-    return E_out_weighted
+    energy_deposition = E * w_in - E_out_weighted
+    if energy_deposition > 0.0:
+        collision_data["energy_deposition"] += energy_deposition
 
 
 # ======================================================================================
@@ -653,7 +665,9 @@ def inelastic_scattering(reaction, particle_container, nuclide, mcdc, data):
 
 
 @njit
-def fission(reaction, particle_container, nuclide, mcdc, data):
+def fission(
+    reaction, particle_container, collision_data_container, nuclide, mcdc, data
+):
     settings = mcdc["settings"]
 
     # Particle properties
@@ -662,6 +676,9 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
+
+    collision_data = collision_data_container[0]
+    w_in = particle["w"]
 
     # Kill the current particle
     particle["alive"] = False
@@ -834,7 +851,9 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
             # Particle will participate after the current census is completed
             particle_bank_module.bank_census_particle(particle_container_new, mcdc)
 
-    return E_out_weighted
+    energy_deposition = E * w_in - E_out_weighted
+    if energy_deposition > 0.0:
+        collision_data["energy_deposition"] += energy_deposition
 
 
 @njit
