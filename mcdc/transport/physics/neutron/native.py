@@ -225,7 +225,6 @@ def collision(particle_container, collision_data_container, mcdc, data):
 
     # Particle properties
     E = particle["E"]
-    w_in = particle["w"]
 
     # ==================================================================================
     # Sample colliding nuclide
@@ -235,8 +234,17 @@ def collision(particle_container, collision_data_container, mcdc, data):
 
     # Implicit capture
     if mcdc["implicit_capture"]["active"]:
+        # Calculate capture fraction
         SigmaC = macro_xs(NEUTRON_REACTION_CAPTURE, particle_container, mcdc, data)
-        particle["w"] *= (SigmaT - SigmaC) / SigmaT
+        capture_fraction = SigmaC / SigmaT
+
+        # Deposit energy captured
+        collision_data["energy_deposition"] += E * particle["w"] * capture_fraction
+
+        # Capture particle weight
+        particle["w"] *= 1.0 - capture_fraction
+
+        # Adjust total XS
         SigmaT -= SigmaC
 
     xi = rng.lcg(particle_container) * SigmaT
@@ -257,17 +265,6 @@ def collision(particle_container, collision_data_container, mcdc, data):
 
         if total > xi:
             break
-
-    # Transported weight after implicit-capture adjustment
-    w_transport = particle["w"]
-
-    # Reset this collision's record
-    collision_data["energy_deposition"] = 0.0
-
-    # Implicit capture removes weight without an outgoing neutron
-    energy_deposition = (w_in - w_transport) * E
-    if energy_deposition > 0.0:
-        collision_data["energy_deposition"] += energy_deposition
 
     # ==================================================================================
     # Sample and perform reaction
@@ -314,9 +311,7 @@ def collision(particle_container, collision_data_container, mcdc, data):
         total += sigma_capture
         if xi < total:
             particle["alive"] = False
-            energy_deposition = E * w_transport
-            if energy_deposition > 0.0:
-                collision_data["energy_deposition"] += energy_deposition
+            collision_data["energy_deposition"] += E * particle["w"]
             return
 
     # Inelastic scattering

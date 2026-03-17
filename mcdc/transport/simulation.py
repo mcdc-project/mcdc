@@ -291,7 +291,6 @@ def step_particle(particle_container, mcdc, data):
     # Collision
     if particle["event"] & EVENT_COLLISION:
         collision_data_container = np.zeros(1, type_.collision_data)
-        collision_data = collision_data_container[0]
 
         # Execute the physics
         physics.collision(particle_container, collision_data_container, mcdc, data)
