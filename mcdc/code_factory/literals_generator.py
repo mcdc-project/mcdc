@@ -4,9 +4,10 @@ from numba import njit
 
 
 def _literalize(value):
+    namespace = {}
     jit_str = f"@njit\ndef impl():\n    return {value}\n"
-    exec(jit_str, globals(), locals())
-    return eval("impl")
+    exec(jit_str, globals(), namespace)
+    return namespace["impl"]
 
 
 def make_literals(simulation):
