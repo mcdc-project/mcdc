@@ -420,7 +420,6 @@ def elastic_scattering(reaction, particle_container, nuclide, simulation, data):
     # Sample the scattering cosine from the multi-PDF distribution
     multi_table = simulation["multi_table_distributions"][reaction["mu_table_ID"]]
     mu0 = sample_multi_table(E, particle_container, multi_table, data)
-    return
 
     # Scatter the direction in COM
     azi = 2.0 * PI * rng.lcg(particle_container)

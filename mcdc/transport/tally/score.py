@@ -378,7 +378,6 @@ def eigenvalue_tally(particle_container, distance, simulation, data):
     )
 
     # Fission production (needed even during inactive cycle)
-    return
     util.atomic_add(simulation["eigenvalue_tally_nuSigmaF"], 0, flux * nuSigmaF)
 
     # Done, if inactive

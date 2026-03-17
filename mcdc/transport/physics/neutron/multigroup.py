@@ -142,7 +142,6 @@ def collision(particle_container, program, data):
     else:
         total += SigmaF
         if total > xi:
-            return
             fission(particle_container, program, data)
         else:
             particle["alive"] = False
@@ -262,7 +261,7 @@ def fission(particle_container, program, data):
     nu = mcdc_get.multigroup_material.mgxs_nu_f(g, material, data)
     nu_p = mcdc_get.multigroup_material.mgxs_nu_p(g, material, data)
     if J > 0:
-        stride = material["G"]
+        stride = material["J"]
         start = material["mgxs_nu_d_offset"] + g * stride
         nu_d = data[start : start + stride]
         # Above is equivalent to: nu_d = mcdc_get.multigroup_material.mgxs_nu_d_vector(g, material, data)
@@ -298,7 +297,7 @@ def fission(particle_container, program, data):
         if xi < total:
             prompt = True
             stride = material["G"]
-            start = material["mgxs_chi_p"] + g * stride
+            start = material["mgxs_chi_p_offset"] + g * stride
             spectrum = data[start : start + stride]
             # Above is equivalent to: spectrum = mcdc_get.multigroup_material.mgxs_chi_p_vector(g, material, data)
         else:
