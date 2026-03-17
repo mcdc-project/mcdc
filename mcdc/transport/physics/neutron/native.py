@@ -250,7 +250,6 @@ def collision(particle_container, collision_data_container, mcdc, data):
 
         if mcdc["implicit_capture"]["active"]:
             sigmaC = total_micro_xs(NEUTRON_REACTION_CAPTURE, E, nuclide, data)
-            particle["w"] *= (sigmaT - sigmaC) / sigmaT
             sigmaT -= sigmaC
 
         SigmaT_nuclide = nuclide_density * sigmaT
