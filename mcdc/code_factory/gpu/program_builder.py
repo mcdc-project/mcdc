@@ -314,6 +314,7 @@ def setup_gpu_program(simulation_container, data):
     init_program(simulation["gpu_meta"]["program_pointer"], BLOCK_COUNT)
 
 
+@njit
 def teardown_gpu_program(simulation):
     free_program(cast_uintp_to_voidptr(simulation["gpu_meta"]["program_pointer"]))
     free_state(cast_uintp_to_voidptr(simulation["gpu_meta"]["state_pointer"]))

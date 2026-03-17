@@ -4,16 +4,11 @@ from numba import njit
 
 ###
 
+import mcdc.code_factory.gpu.program_builder as gpu_module
 import mcdc.config as config
 import mcdc.transport.particle_bank as particle_bank_module
 
 from mcdc.constant import GPU_STORAGE_SEPARATE, GPU_STRATEGY_ASYNC
-from mcdc.code_factory.gpu.program_builder import (
-    BLOCK_COUNT,
-    clear_flags,
-    complete,
-    exec_program,
-)
 from mcdc.transport.simulation import source_closeout
 
 caching = config.caching
@@ -52,23 +47,25 @@ def source_loop(seed, simulation, data):
             )
 
         # Execute the program, and continue to do so until it is done
+        block_count = gpu_module.BLOCK_COUNT
+
         if settings["gpu_strategy"] == GPU_STRATEGY_ASYNC:
-            exec_program(
-                simulation["gpu_meta"]["program_pointer"], BLOCK_COUNT, iter_count
+            gpu_module.exec_program(
+                simulation["gpu_meta"]["program_pointer"], block_count, iter_count
             )
-            while not complete(simulation["gpu_meta"]["program_pointer"]):
-                exec_program(
-                    simulation["gpu_meta"]["program_pointer"], BLOCK_COUNT, iter_count
+            while not gpu_module.complete(simulation["gpu_meta"]["program_pointer"]):
+                gpu_module.exec_program(
+                    simulation["gpu_meta"]["program_pointer"], block_count, iter_count
                 )
         else:
-            exec_program(
-                simulation["gpu_meta"]["program_pointer"], BLOCK_COUNT, batch_size
+            gpu_module.exec_program(
+                simulation["gpu_meta"]["program_pointer"], block_count, batch_size
             )
-            while not complete(simulation["gpu_meta"]["program_pointer"]):
-                exec_program(
-                    simulation["gpu_meta"]["program_pointer"], BLOCK_COUNT, batch_size
+            while not gpu_module.complete(simulation["gpu_meta"]["program_pointer"]):
+                gpu_module.exec_program(
+                    simulation["gpu_meta"]["program_pointer"], block_count, batch_size
                 )
-        clear_flags(simulation["gpu_meta"]["program_pointer"])
+        gpu_module.clear_flags(simulation["gpu_meta"]["program_pointer"])
 
         # Recover the original program state
         if config.gpu_state_storage == "separate":
@@ -79,7 +76,7 @@ def source_loop(seed, simulation, data):
                 data, simulation["gpu_meta"]["state_pointer"]
             )
 
-        clear_flags(simulation["gpu_meta"]["program_pointer"])
+        gpu_module.clear_flags(simulation["gpu_meta"]["program_pointer"])
 
     simulation["mpi_work_size"] = full_work_size
 

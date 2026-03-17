@@ -68,8 +68,6 @@ def run():
     # Run simulation
     import mcdc.transport.simulation as simulation_module
 
-    print("PASS")
-    exit()
     if settings.neutron_eigenvalue_mode:
         simulation_module.eigenvalue_simulation(simulation_container, data)
     else:
@@ -327,6 +325,13 @@ def override_settings():
             settings.gpu_strategy = GPU_STRATEGY_ASYNC
         elif config.args.gpu_strategy == "event":
             settings.gpu_strategy = GPU_STRATEGY_EVENT
+
+        if config.args.gpu_state_storage == "separate":
+            settings.gpu_storage = GPU_STORAGE_SEPARATE
+        elif config.args.gpu_state_storage == "managed":
+            settings.gpu_storage = GPU_STORAGE_MANAGED
+        elif config.args.gpu_state_storage == "united":
+            settings.gpu_storage = GPU_STORAGE_UNITED
 
 
 def finalize(simulation):
