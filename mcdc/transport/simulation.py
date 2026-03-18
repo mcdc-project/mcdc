@@ -74,6 +74,7 @@ def fixed_source_simulation(simulation_container, data):
 
             # Manage particle banks: population control and work rebalance
             particle_bank_module.manage_particle_banks(simulation)
+            return
 
             # Time census-based tally closeout
             if use_census_based_tally:

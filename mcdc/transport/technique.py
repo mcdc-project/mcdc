@@ -41,6 +41,7 @@ def population_control(simulation):
     M = simulation["settings"]["N_particle"]
     bank_source = simulation["bank_source"]
 
+    return
     # Scan the bank
     idx_start, N_local, N = particle_bank_module.bank_scanning(bank_census, simulation)
     idx_end = idx_start + N_local

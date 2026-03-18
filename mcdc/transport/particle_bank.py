@@ -163,9 +163,11 @@ def manage_particle_banks(simulation):
     serial = simulation["mpi_size"] == 1
 
     # TIMER: bank management
+    time_start = 0.0
     if master:
         with objmode(time_start="float64"):
             time_start = MPI.Wtime()
+    time_spent = -time_start
 
     # Reset source bank
     set_bank_size(simulation["bank_source"], 0)
@@ -191,6 +193,7 @@ def manage_particle_banks(simulation):
         # TODO: better alternative?
         source_bank["particle_data"][:size] = census_bank["particle_data"][:size]
         set_bank_size(source_bank, size)
+    return
 
     # Redistribute work and rebalance bank size across MPI ranks
     if serial:
@@ -202,10 +205,13 @@ def manage_particle_banks(simulation):
     set_bank_size(simulation["bank_census"], 0)
 
     # TIMER: bank management
+    time_end = 0.0
     if master:
         with objmode(time_end="float64"):
             time_end = MPI.Wtime()
-        simulation["runtime_bank_management"] += time_end - time_start
+    time_spent += time_end
+    if master:
+        simulation["runtime_bank_management"] += time_spent
 
 
 # ======================================================================================
