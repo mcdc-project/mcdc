@@ -67,6 +67,24 @@ class Nuclide(ObjectNonSingleton):
         self.excitation_level = int(file["excitation_level"][()])
         file.close()
 
+        # Set default neutron data in case neutron transport is disabled
+        self.neutron_xs_energy_grid = np.zeros(0)
+        self.neutron_total_xs = np.zeros(0)
+        self.neutron_elastic_xs = np.zeros(0)
+        self.neutron_capture_xs = np.zeros(0)
+        self.neutron_inelastic_xs = np.zeros(0)
+        self.neutron_fission_xs = np.zeros(0)
+        self.neutron_elastic_scattering_reactions = []
+        self.neutron_capture_reactions = []
+        self.neutron_inelastic_scattering_reactions = []
+        self.neutron_fission_reactions = []
+        self.neutron_fission_prompt_multiplicity = simulation.data[0]
+        self.neutron_fission_delayed_multiplicity = simulation.data[0]
+        self.N_neutron_fission_delayed_precursor = 0
+        self.neutron_fission_delayed_fractions = np.zeros(0)
+        self.neutron_fission_delayed_decay_rates = np.zeros(0)
+        self.neutron_fission_delayed_spectra = []
+
     def set_neutron_data(self):
         nuclide_name = self.name
         temperature = self.temperature

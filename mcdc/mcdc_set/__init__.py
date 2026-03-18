@@ -44,6 +44,18 @@ import mcdc.mcdc_set.tabulated_distribution as tabulated_distribution
 
 import mcdc.mcdc_set.tabulated_energy_angle_distribution as tabulated_energy_angle_distribution
 
+import mcdc.mcdc_set.electron_reaction as electron_reaction
+
+import mcdc.mcdc_set.electron_bremsstrahlung_reaction as electron_bremsstrahlung_reaction
+
+import mcdc.mcdc_set.electron_elastic_scattering_reaction as electron_elastic_scattering_reaction
+
+import mcdc.mcdc_set.electron_excitation_reaction as electron_excitation_reaction
+
+import mcdc.mcdc_set.electron_ionization_reaction as electron_ionization_reaction
+
+import mcdc.mcdc_set.element as element
+
 import mcdc.mcdc_set.gpu_meta as gpu_meta
 
 import mcdc.mcdc_set.native_material as native_material

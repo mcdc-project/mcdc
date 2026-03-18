@@ -19,6 +19,15 @@ def evaluate_neutron_xs_energy_grid(e, nuclide, data):
 
 
 @njit
+def evaluate_electron_xs_energy_grid(e, element, data):
+    energy_grid = mcdc_get.element.electron_xs_energy_grid_all(element, data)
+    idx = find_bin(e, energy_grid)
+    e0 = energy_grid[idx]
+    e1 = energy_grid[idx + 1]
+    return idx, e0, e1
+
+
+@njit
 def scatter_direction(ux, uy, uz, mu0, azi):
     cos_azi = math.cos(azi)
     sin_azi = math.sin(azi)

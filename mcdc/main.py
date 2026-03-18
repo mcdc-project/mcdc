@@ -149,6 +149,9 @@ def preparation():
     if settings.neutron_transport:
         for nuclide in simulation.nuclides:
             nuclide.set_neutron_data()
+    if settings.electron_transport:
+        for element in simulation.elements:
+            element.set_electron_data()
 
     # Set physics mode
     if len(simulation.materials) == 0:
