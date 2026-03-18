@@ -527,11 +527,11 @@ def inelastic_scattering(
     uy = particle["uy"]
     uz = particle["uz"]
 
-    # Energy deposition
-    collision_data["energy_deposition"] += E * particle["w"]
-
     # Kill the current particle
     particle["alive"] = False
+
+    # Energy deposition
+    collision_data["energy_deposition"] += E * particle["w"]
 
     # Number of secondaries and spectra
     N = reaction["multiplicity"]
@@ -670,10 +670,12 @@ def fission(
     uy = particle["uy"]
     uz = particle["uz"]
 
-    w_in = particle["w"]
-
     # Kill the current particle
     particle["alive"] = False
+
+    # Energy deposition
+    collision_data["energy_deposition"] += E * particle["w"]
+    # TODO: Also deposit Q-value
 
     # Adjust production and product weights if weighted emission
     weight_production = 1.0
@@ -697,7 +699,6 @@ def fission(
     # Set up secondary partice container
     particle_container_new = np.zeros(1, type_.particle_data)
     particle_new = particle_container_new[0]
-    E_out_weighted = 0.0
 
     # Create the secondaries
     for n in range(N):
@@ -792,7 +793,12 @@ def fission(
                 xi = rng.lcg(particle_container_new)
                 particle_new["t"] -= math.log(xi) / decay_rate
 
-        E_out_weighted += particle_new["E"] * particle_new["w"]
+        # Subtract outgoing energy from energy deposition
+        collision_data["energy_deposition"] -= particle_new["E"] * particle_new["w"]
+
+        # ==============================================================================
+        # Bank the new particle
+        # ==============================================================================
 
         # Eigenvalue mode: bank right away
         if settings["eigenvalue_mode"]:
@@ -842,10 +848,6 @@ def fission(
         else:
             # Particle will participate after the current census is completed
             particle_bank_module.bank_census_particle(particle_container_new, mcdc)
-
-    energy_deposition = E * w_in - E_out_weighted
-    if energy_deposition > 0.0:
-        collision_data["energy_deposition"] += energy_deposition
 
 
 @njit
