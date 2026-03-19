@@ -140,20 +140,10 @@ class Material(MaterialBase):
                 "Must specify either nuclide_composition or element_composition"
             )
 
-        # Check if library directory is set
-        lib_dir = os.getenv("MCDC_LIB")
-        if lib_dir is None:
-            print_error("Environment variable MCDC_LIB is not set")
-
         # Loop over the items in the elemental composition
         for i, (key, value) in enumerate(element_composition.items()):
             element_name = key
             element_density = value
-
-            # Check if element is available in the library
-            file_name = f"{element_name}.h5"
-            if file_name not in os.listdir(lib_dir):
-                print_error(f"Element {element_name} is not available in the library")
 
             # Check if element is already created
             found = False
@@ -179,13 +169,6 @@ class Material(MaterialBase):
             # Get supported temperature
             nearest_temperature = min(TEMPERATURES, key=lambda x: abs(x - temperature))
 
-            # Check if nuclide-temperature is available in the library
-            file_name = f"{nuclide_name}-{nearest_temperature}K.h5"
-            if not file_name in os.listdir(lib_dir):
-                print_error(
-                    f"Nuclide {nuclide_name} at temperature {nearest_temperature} K is not available in the library"
-                )
-
             # Check if nuclide is already created
             found = False
             for nuclide in simulation.nuclides:
@@ -204,10 +187,6 @@ class Material(MaterialBase):
             self.nuclides.append(nuclide)
             self.nuclide_densities[i] = nuclide_density
             self.nuclide_composition[nuclide] = nuclide_density
-
-            # Some flags
-            if nuclide.fissionable:
-                self.fissionable = True
 
         # Create the missing composition
         if self.nuclides == []:
@@ -457,11 +436,6 @@ def set_nuclides_from_elements(material):
     material.nuclide_composition = {}
     nuclide_densities = []
 
-    # Check if library directory is set
-    lib_dir = os.getenv("MCDC_LIB")
-    if lib_dir is None:
-        print_error("Environment variable MCDC_LIB is not set")
-
     # Get supported temperature
     nearest_temperature = min(TEMPERATURES, key=lambda x: abs(x - material.temperature))
 
@@ -473,13 +447,6 @@ def set_nuclides_from_elements(material):
 
         # Loop over the nuclide composition
         for nuclide_name, abundance in ISOTOPIC_ABUNDANCE[element.name].items():
-            # Check if nuclide-temperature is available in the library
-            file_name = f"{nuclide_name}-{nearest_temperature}K.h5"
-            if file_name not in os.listdir(lib_dir):
-                print_error(
-                    f"Nuclide {nuclide_name} at temperature {nearest_temperature} K is not available in the library"
-                )
-
             # Check if nuclide is already created
             found = False
             for nuclide in simulation.nuclides:
@@ -501,10 +468,6 @@ def set_nuclides_from_elements(material):
             material.nuclides.append(nuclide)
             nuclide_densities.append(nuclide_density)
             material.nuclide_composition[nuclide] = nuclide_density
-
-            # Some flags
-            if nuclide.fissionable:
-                material.fissionable = True
 
     material.nuclide_densities = np.array(nuclide_densities)
 
@@ -552,3 +515,11 @@ def set_elements_from_nuclides(material):
         material.element_composition[element] = density
 
     material.element_densities = element_densities
+
+
+def update_fissionable_from_nuclides(material):
+    material.fissionable = False
+    for nuclide in material.nuclides:
+        if nuclide.fissionable:
+            material.fissionable = True
+            break

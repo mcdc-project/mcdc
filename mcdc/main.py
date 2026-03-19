@@ -136,7 +136,11 @@ def preparation():
     from mpi4py import MPI
 
     from mcdc.object_.simulation import simulation
-    from mcdc.object_.material import MaterialMG
+    from mcdc.object_.material import (
+        Material,
+        MaterialMG,
+        update_fissionable_from_nuclides,
+                                    )
 
     # ==================================================================================
     # Adjust simulation settings as needed
@@ -149,6 +153,11 @@ def preparation():
     if settings.neutron_transport:
         for nuclide in simulation.nuclides:
             nuclide.set_neutron_data()
+    
+        for material in simulation.materials:
+            if isinstance(material, Material):
+                update_fissionable_from_nuclides(material)
+    
     if settings.electron_transport:
         for element in simulation.elements:
             element.set_electron_data()

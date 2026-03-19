@@ -58,14 +58,9 @@ class Nuclide(ObjectNonSingleton):
         self.name = nuclide_name
         self.temperature = temperature
 
-        # Basic properties
-        dir_name = os.getenv("MCDC_LIB")
-        file_name = f"{nuclide_name}-{temperature}K.h5"
-        file = h5py.File(f"{dir_name}/{file_name}", "r")
-        self.atomic_weight_ratio = file["atomic_weight_ratio"][()]
-        self.fissionable = bool(file["fissionable"][()])
-        self.excitation_level = int(file["excitation_level"][()])
-        file.close()
+        self.atomic_weight_ratio = 0.0
+        self.fissionable = False
+        self.excitation_level = 0
 
         # Set default neutron data in case neutron transport is disabled
         self.neutron_xs_energy_grid = np.zeros(0)
@@ -93,6 +88,10 @@ class Nuclide(ObjectNonSingleton):
         dir_name = os.getenv("MCDC_LIB")
         file_name = f"{nuclide_name}-{temperature}K.h5"
         file = h5py.File(f"{dir_name}/{file_name}", "r")
+
+        self.atomic_weight_ratio = float(file["atomic_weight_ratio"][()])
+        self.fissionable = bool(file["fissionable"][()])
+        self.excitation_level = int(file["excitation_level"][()])
 
         # The reactions
         rx_names = [
