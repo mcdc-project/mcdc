@@ -188,12 +188,6 @@ class Material(MaterialBase):
             self.nuclide_densities[i] = nuclide_density
             self.nuclide_composition[nuclide] = nuclide_density
 
-        # Create the missing composition
-        if self.nuclides == []:
-            set_nuclides_from_elements(self)
-        if self.elements == []:
-            set_elements_from_nuclides(self)
-
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Temperature: {self.temperature} K\n"
