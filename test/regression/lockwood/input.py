@@ -13,7 +13,7 @@ os.environ["MCDC_LIB"] = "../MCDC-regression_test_data/"
 # Energy and Angle Parameters
 MATERIAL_SYMBOL = "Al"
 ENERGY = 1e6  # eV
-CSDA_RANGE = 0.569 # g/cm2
+CSDA_RANGE = 0.569  # g/cm2
 ANGLE = 0.0
 
 # MCDC Simulation Parameters
@@ -21,16 +21,18 @@ N_PARTICLES = 10
 z0 = 0.0  # Starting source position
 
 # Material Properties
-RHO_G_CM3 = 2.70   # g/cm3
-ATOMIC_WEIGHT_G_MOL = 26.7497084 # g/mol
-AREAL_DENSITY_G_CM2 = 5.05e-3 #g/cm2
+RHO_G_CM3 = 2.70  # g/cm3
+ATOMIC_WEIGHT_G_MOL = 26.7497084  # g/mol
+AREAL_DENSITY_G_CM2 = 5.05e-3  # g/cm2
 
 # Standard Calculations
 dz = AREAL_DENSITY_G_CM2 / RHO_G_CM3
 AVAGADRO_NUMBER = 6.02214076e23  # atoms/mol
-MAT_DENSITY_ATOMS_PER_BARN_CM = AVAGADRO_NUMBER / ATOMIC_WEIGHT_G_MOL * RHO_G_CM3 / 1e24  # atoms/barn-cm
+MAT_DENSITY_ATOMS_PER_BARN_CM = (
+    AVAGADRO_NUMBER / ATOMIC_WEIGHT_G_MOL * RHO_G_CM3 / 1e24
+)  # atoms/barn-cm
 TINY = 1e-30
-L = CSDA_RANGE / RHO_G_CM3 # cm
+L = CSDA_RANGE / RHO_G_CM3  # cm
 N_LAYERS = int(L / dz)
 THETA = math.radians(ANGLE)
 
@@ -63,9 +65,9 @@ mcdc.Cell(region=+s1 & -s2, fill=mat)
 
 mcdc.Source(
     z=[z0 + TINY, z0 + TINY],
-    particle_type='electron',
+    particle_type="electron",
     energy=np.array([[ENERGY - 1, ENERGY + 1], [0.5, 0.5]]),
-    direction=[math.sin(THETA), 0.0+TINY, math.cos(THETA)]
+    direction=[math.sin(THETA), 0.0 + TINY, math.cos(THETA)],
 )
 
 # =============================================================================
@@ -88,8 +90,8 @@ mcdc.Tally(name="s2_current", surface=s2, scores=["net-current"])
 # =============================================================================
 mcdc.settings.neutron_transport = False
 mcdc.settings.electron_transport = True
-mcdc.settings.N_particle=N_PARTICLES
-mcdc.settings.active_bank_buffer = N_PARTICLES*1000
+mcdc.settings.N_particle = N_PARTICLES
+mcdc.settings.active_bank_buffer = N_PARTICLES * 1000
 
 mcdc.settings.save_input_deck = True
 mcdc.settings.output_name = f"o_{MATERIAL_SYMBOL}_{e_name}eV_1e{np_name}p_{int(ANGLE)}a_{datetime.now():%m%d%y_%H%M%S}"
