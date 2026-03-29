@@ -458,7 +458,7 @@ def ionization(
     )
     dist_base = mcdc["distributions"][dist_ID]
     T_delta = sample_distribution(
-        E, dist_base, particle_container, mcdc, data, scale=True
+        E, dist_base, particle_container, mcdc, data, scale=False
     )
 
     # Primary outgoing energy
