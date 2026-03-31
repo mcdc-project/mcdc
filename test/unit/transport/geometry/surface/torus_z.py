@@ -20,7 +20,7 @@ B = 0.0
 C = 0.0
 R = 1
 r = 0.5
-durations = np.array([5.0, 5.0, 5.0]) # The X-plane starts at x=10 and has a velocity of -1 for 5 seconds, then 2 for 5 seconds, then -3 for 5 seconds
+durations = np.array([5.0, 5.0, 5.0])
 velocities = np.zeros((3, 3))
 velocities[:, 0] = np.array([-1.0, 2.0, -3.0])
 
@@ -348,46 +348,57 @@ def test_interface_get_normal_component():
     uy = 0.0
     uz = 0.0
     ### Faster (normal component values on the very centerline of the torus should match an x-plane)
-    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=6.0, answer=0.4 / 6.0)
+    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, speed=6.0, answer=0.4 / 6.0)
     ### Slower (change sign)
-    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=2.0, answer=-1.2 / 2.0)
+    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, speed=2.0, answer=-1.2 / 2.0)
     ### Same speed (cancel out)
-    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=5.0, answer=0.0)
+    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, speed=5.0, answer=0.0)
     #
     ## Negative direction
-    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=-0.4, uy=0.0, uz=0.0, t=t, speed=6.0, answer=-4.4 / 6.0)
+    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=-0.4, uy=uy, uz=uz, t=t, speed=6.0, answer=-4.4 / 6.0)
     ## Parallel
-    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=-0.0, uy=0.0, uz=0.0, t=t, speed=6.0, answer=-2.0 / 6.0)
+    run_moving(x=(1+R+r), y=0.0, z=0.0, ux=-0.0, uy=uy, uz=uz, t=t, speed=6.0, answer=-2.0 / 6.0)
 
     # Surface moving in the negative direction
     t = 10.0  # Surface x-velocity = -3.0, center of torus x position at 5
     #
     ## Negative direction
     ux = -0.4
+    uy = 0.0
+    uz = 0.0
     ### Faster
-    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=8.0, answer=-0.2 / 8.0)
+    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, speed=8.0, answer=-0.2 / 8.0)
     ### Slower (change sign)
-    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=2.0, answer=2.2 / 2.0)
+    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, speed=2.0, answer=2.2 / 2.0)
     ### Same speed (cancel out)
-    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=ux, uy=0.0, uz=0.0, t=t, speed=7.5, answer=0.0)
+    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, speed=7.5, answer=0.0)
     #
     ## Positive direction
-    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=0.4, uy=0.0, uz=0.0, t=t, speed=8.0, answer=6.2 / 8.0)
+    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=0.4, uy=uy, uz=uz, t=t, speed=8.0, answer=6.2 / 8.0)
     ## Parallel
-    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=0.0, uy=0.0, uz=0.0, t=t, speed=8.0, answer=3.0 / 8.0)
+    run_moving(x=(5+R+r), y=0.0, z=0.0, ux=0.0, uy=uy, uz=uz, t=t, speed=8.0, answer=3.0 / 8.0)
 
 
-def test_interface_check_sense():
-    def run_static(x, ux, answer):
+def test_interface_check_sense(): # Returns true if the particle is on the outside of the torus, and false if it's on the inside (particle direction and speed tiebreak)
+    def run_static(x, y, z, ux, uy, uz, answer):
         particle["x"] = x
+        particle["y"] = y
+        particle["z"] = z
         particle["ux"] = ux
+        particle["uy"] = uy
+        particle["uz"] = uz
+        particle["t"] = t
         speed = 2.0  # Arbitrary
         result = interface.check_sense(particle_container, speed, static_surface, data)
         assert np.isclose(result, answer)
 
-    def run_moving(x, ux, t, speed, answer):
+    def run_moving(x, y, z, ux, uy, uz, t, speed, answer):
         particle["x"] = x
+        particle["y"] = y
+        particle["z"] = z
         particle["ux"] = ux
+        particle["uy"] = uy
+        particle["uz"] = uz
         particle["t"] = t
         result = interface.check_sense(particle_container, speed, moving_surface, data)
         assert np.isclose(result, answer)
@@ -397,123 +408,164 @@ def test_interface_check_sense():
     # =================================================================================
 
     # Not at surface
+    y = 0.0
+    z = 0.0
     ux = 0.3  # Arbitrary
+    uy = 0.0
+    uz = 0.0
     ## Positive side
-    run_static(x=12.0, ux=ux, answer=True)
+    run_static(x=3.0, y=y, z=z, ux=ux, uy=uy, uz=uz, answer=False)
     ## Negative side
-    run_static(x=4.0, ux=ux, answer=False)
+    run_static(x=-4.0, y=y, z=z, ux=ux, uy=uy, uz=uz, answer=False)
 
-    # At surface, positive side
-    x = 10.0 + TINY
-    ## Positive direction
-    run_static(x, ux=0.4, answer=True)
-    ## Negative direction
-    run_static(x, ux=-0.4, answer=False)
+    # At surface, outside
+    x = R + r + TINY
+    y = 0.0
+    z = 0.0
+    uy = 0.0
+    uz = 0.0
+    ## Outward direction
+    run_static(x=x,  y=y, z=z, ux=0.4, uy=uy, uz=uz, answer=True)
+    ## Inward direction
+    run_static(x=x,  y=y, z=z, ux=-0.4, uy=uy, uz=uz, answer=False)
 
-    # At surface, negative side
-    x = 10.0 - TINY
-    ## Positive direction
-    run_static(x, ux=0.2, answer=True)
-    ## Negative direction
-    run_static(x, ux=-0.2, answer=False)
+    # At surface, inside
+    x = R + r - TINY
+    y = 0.0
+    z = 0.0
+    uy = 0.0
+    uz = 0.0
+    ## Outward direction
+    run_static(x=x,  y=y, z=z, ux=0.2, uy=uy, uz=uz, answer=True)
+    ## Inward direction
+    run_static(x=x,  y=y, z=z, ux=-0.2, uy=uy, uz=uz, answer=False)
 
     # =================================================================================
-    # Moving: Surface moving in the positive direction
+    # Moving: Surface moving in the positive X direction
     # =================================================================================
-    t = 8.5  # Surface x-position = 12.0; surface x-velocity = 2.0
+    t = 8.5  # Surface x-center = 2.0; surface x-velocity = 2.0
 
     # Not at surface
+    y = 0.0
+    z = 0.0
     ux = 0.3  # Arbitrary
+    uy = 0.0
+    uz = 0.0
     speed = 3.0  # Arbitrary
-    ## Positive side
-    run_moving(x=13.0, ux=ux, t=t, speed=speed, answer=True)
-    ## Negative side
-    run_moving(x=5.0, ux=ux, t=t, speed=speed, answer=False)
+    ## Outside
+    run_moving(x=13.0, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=speed, answer=True)
+    ## Inside
+    run_moving(x=3.0, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=speed, answer=False)
 
-    # At surface, positive side
-    x = 12.0 + TINY
-    #
+    # At surface, outside
+    x = 3.5 + TINY
+    y = 0.0
+    z = 0.0
     ## Positive direction (same direction)
     ux = 0.4
+    uy = 0.0
+    uz = 0.0
     ### Faster
-    run_moving(x, ux, t, speed=6.0, answer=True)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=6.0, answer=True)
     ### Slower (passed by the surface)
-    run_moving(x, ux, t, speed=4.0, answer=False)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=4.0, answer=False)
     ### Same speed (undefined, but False is returned)
-    run_moving(x, ux, t, speed=5.0, answer=False)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=5.0, answer=False)
     #
     ## Negative direction (opposite direction)
-    run_moving(x, ux=-0.4, t=t, speed=6.0, answer=False)
+    run_moving(x=x, y=y, z=z, ux=-0.4, uy=uy, uz=uz, t=t, speed=6.0, answer=False)
 
-    # At surface, negative side
-    x = 12.0 - TINY
+    # At surface, inside
+    x = 3.5 - TINY
+    y = 0.0
+    z = 0.0
     ## Positive direction (same direction)
     ux = 0.4
+    uy = 0.0
+    uz = 0.0
     ### Faster
-    run_moving(x, ux, t, speed=6.0, answer=True)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=6.0, answer=True)
     ### Slower (passed by the surface)
-    run_moving(x, ux, t, speed=4.0, answer=False)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=4.0, answer=False)
     ### Same speed (undefined, but False is returned)
-    run_moving(x, ux, t, speed=5.0, answer=False)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=5.0, answer=False)
     #
     ## Negative direction (opposite direction)
-    run_moving(x, ux=-0.4, t=t, speed=6.0, answer=False)
+    run_moving(x=x, y=y, z=z, ux=-0.4, uy=uy, uz=uz, t=t, speed=6.0, answer=False)
 
     # =================================================================================
     # Moving: Surface moving in the negative direction
     # =================================================================================
-    t = 13.0  # Surface x-position = 6.0; surface x-velocity = -3.0
+    t = 13.0  # Surface x-center = -4.0; surface x-velocity = -3.0
 
     # Not at surface
+    y = 0.0
+    z = 0.0
     ux = 0.3  # Arbitrary
+    uy = 0.0
+    uz = 0.0
     speed = 3.0  # Arbitrary
-    ## Positive side
-    run_moving(x=13.0, ux=ux, t=t, speed=speed, answer=True)
-    ## Negative side
-    run_moving(x=5.0, ux=ux, t=t, speed=speed, answer=False)
+    ## Outside
+    run_moving(x=0.0, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=speed, answer=True)
+    ## Inside
+    run_moving(x=-5.0, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=speed, answer=False)
 
-    # At surface, positive side
-    x = 6.0 + TINY
-    #
+    # At surface, outside
+    x = -2.5 + TINY
+    y = 0.0
+    z = 0.0
     ## Positive direction (opposite direction)
-    run_moving(x, ux=0.6, t=t, speed=6.0, answer=True)
+    uy = 0.0
+    uz = 0.0
+    run_moving(x=x, y=y, z=z, ux=0.6, uy=uy, uz=uz, t=t, speed=6.0, answer=True)
     #
     ## Negative direction (same direction)
     ux = -0.6
     ### Faster
-    run_moving(x, ux, t, speed=6.0, answer=False)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=6.0, answer=False)
     ### Slower (passed by surface)
-    run_moving(x, ux, t, speed=4.0, answer=True)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=4.0, answer=True)
     ### Same speed (undefined, but False is returned)
-    run_moving(x, ux, t, speed=5.0, answer=False)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=5.0, answer=False)
 
-    # At surface, negative side
-    x = 6.0 - TINY
-    #
+    # At surface, inside
+    x = -2.5 - TINY
+    y = 0.0
+    z = 0.0
     ## Positive direction (opposite direction)
-    run_moving(x, ux=0.6, t=t, speed=6.0, answer=True)
+    uy = 0.0
+    uz = 0.0
+    run_moving(x=x, y=y, z=z, ux=0.6, uy=uy, uz=uz, t=t, speed=6.0, answer=True)
     #
     ## Negative direction (same direction)
     ux = -0.6
     ### Faster
-    run_moving(x, ux, t, speed=6.0, answer=False)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=6.0, answer=False)
     ### Slower (passed by surface)
-    run_moving(x, ux, t, speed=4.0, answer=True)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=4.0, answer=True)
     ### Same speed (undefined, but False is returned)
-    run_moving(x, ux, t, speed=5.0, answer=False)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=5.0, answer=False)
 
 
 def test_interface_get_distance():
-    def run_static(x, ux, answer):
+    def run_static(x, y, z, ux, uy, uz, answer):
         particle["x"] = x
+        particle["y"] = y
+        particle["z"] = z
         particle["ux"] = ux
+        particle["uy"] = uy
+        particle["uz"] = uz
         speed = 2.0  # Arbitrary
         result = interface.get_distance(particle_container, speed, static_surface, data)
         assert np.isclose(result, answer)
 
-    def run_moving(x, ux, t, speed, answer):
+    def run_moving(x, y, z, ux, uy, uz, t, speed, answer):
         particle["x"] = x
+        particle["y"] = y
+        particle["z"] = z
         particle["ux"] = ux
+        particle["uy"] = uy
+        particle["uz"] = uz
         particle["t"] = t
         result = interface.get_distance(particle_container, speed, moving_surface, data)
         assert np.isclose(result, answer)
@@ -523,95 +575,135 @@ def test_interface_get_distance():
     # =================================================================================
 
     # Positive side
-    x = 12.0
+    x = 6.5 # Arbitrary
+    y = 0.0
+    z = 0.0
+    uy = 0.0
+    uz = 0.0
     ## Positive direction (moving away)
-    run_static(x, ux=0.3, answer=INF)
+    run_static(x=x, y=y, z=z, ux=0.3, uy=uy, uz=uz, answer=INF)
     ## Negative direction (moving closer)
-    run_static(x, ux=-0.4, answer=5.0)
+    run_static(x=x, y=y, z=z, ux=-0.3, uy=uy, uz=uz, answer=5.0)
     ## Parallel
-    run_static(x, ux=0.0, answer=INF)
+    run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=INF)
 
     # Negative side
-    x = 6.0
+    x = -5.5 # Arbitrary
+    y = 0.0
+    z = 0.0
+    uy = 0.0
+    uz = 0.0
     ## Positive direction (moving closer)
-    run_static(x, ux=0.4, answer=10.0)
+    run_static(x=x, y=y, z=z, ux=0.3, uy=uy, uz=uz, answer=4.0)
     ## Negative direction (moving away)
-    run_static(x, ux=-0.3, answer=INF)
+    run_static(x=x, y=y, z=z, ux=-0.3, uy=uy, uz=uz, answer=INF)
     ## Parallel
-    run_static(x, ux=0.0, answer=INF)
+    run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=INF)
 
-    # At surface, on the positive side
-    x = 10.0 + TINY
+    # At surface, on the outside
+    x = 1.5 + TINY
+    y = 0.0
+    z = 0.0
+    uy = 0.0
+    uz = 0.0
     ## Positive direction
-    run_static(x, ux=0.4, answer=INF)
+    run_static(x=x, y=y, z=z, ux=0.4, uy=uy, uz=uz, answer=INF)
     ## Negative direction
-    run_static(x, ux=-0.4, answer=INF)
+    run_static(x=x, y=y, z=z, ux=-0.4, uy=uy, uz=uz, answer=INF)
     ## Parallel
-    run_static(x, ux=0.0, answer=INF)
+    run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=INF)
 
-    # At surface, on the negative side
-    x = 10.0 - TINY
+    # At surface, on the inside
+    x = 1.5 - TINY
+    y = 0.0
+    z = 0.0
+    uy = 0.0
+    uz = 0.0
     ## Positive direction
-    run_static(x, ux=0.4, answer=INF)
+    run_static(x=x, y=y, z=z, ux=0.4, uy=uy, uz=uz, answer=INF)
     ## Negative direction
-    run_static(x, ux=-0.4, answer=INF)
+    run_static(x=x, y=y, z=z, ux=-0.4, uy=uy, uz=uz, answer=INF)
     ## Parallel
-    run_static(x, ux=0.0, answer=INF)
+    run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=INF)
 
-    # =================================================================================
-    # Moving
-    # =================================================================================
-    # Bin 0: t = [ 0.0,  5.0]; surface_x = [5.0, 10.0]; surface_speed = -1.0
-    # Bin 1: t = [ 5.0, 10.0]; surface_x = [5.0, 15.0]; surface_speed =  2.0
-    # Bin 2: t = [10.0, 15.0]; surface_x = [0.0, 15.0]; surface_speed = -3.0
-    # Bin 3: t = [15.0,  INF]; surface_x = [0.0,  0.0]; surface_speed =  0.0
+    # ============================================================================================
+    # Moving (Only testing a hit on the midline of the torus in positve and negative x directions)
+    # ============================================================================================
+    # Bin 0: t = [ 0.0,  5.0]; surface_x_center = [-5.0,    0.0]; surface_speed = -1.0
+    # Bin 1: t = [ 5.0, 10.0]; surface_x_center = [-5.0,    5.0]; surface_speed =  2.0
+    # Bin 2: t = [10.0, 15.0]; surface_x_center = [-10.0,   5.0]; surface_speed = -3.0
+    # Bin 3: t = [15.0,  INF]; surface_x_center = [-10.0, -10.0]; surface_speed =  0.0
 
-    def distance(x, ux, speed, bin_idx):
+    # surface_x_center (0.0   --->  -5.0)
+    # surface_x_center (-5.0  --->   5.0)
+    # surface_x_center (5.0,  ---> -10.0)
+    # surface_x_center (-10.0 ---> -10.0)
+
+    # This is the distance from the particle to the center of the torus, not counting the inner or outer radii
+    def center_distance(x, ux, speed, bin_idx):
+        # Time when the surface enters the final bin to be evaluated (0 when evaluating bin 0, and 5 when evaluating bin 1)
         t0 = 0.0 + np.sum(durations[:bin_idx])
-        surface_x = X + np.sum(durations[:bin_idx] * velocities[:bin_idx, 0])
+
+        # Starting position of the surface at the begining of the last bin to be evaluated (0 for bin 0, and -5 for bin 1)
+        surface_x = A + np.sum(durations[:bin_idx] * velocities[:bin_idx, 0])
+        
+        # Speed of the surface in the final bin to be evaluated (-1 for bin 0)
         surface_speed = velocities[bin_idx, 0]
+
         return ((surface_speed * -t0) - (x - surface_x)) / (ux - surface_speed / speed)
 
     # Start from the beginning
     t = 0.0
 
-    # Positive side
-    x = 11.0
+    # Positive x side of the torus
+    x = 2.0
+    y = 0.0
+    z = 0.0
     #
     ## Positive direction (moving away)
     ux = 0.4
+    uy = 0.0
+    uz = 0.0
     ### No hit
-    run_moving(x, ux, t, speed=1.0, answer=INF)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=1.0, answer=INF)
     ### Hit (rear-ended by the surface)
-    answer = distance(x, ux, speed=0.9, bin_idx=1)
-    run_moving(x, ux, t, speed=0.9, answer=answer)
+    answer = center_distance(x, ux, speed=0.9, bin_idx=1) - R - r # Collision in bin 1 where the surface catches up to the particle
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=0.9, answer=answer)
     #
     ## Negative direction (moving closer)
     ux = -0.4
+    uy = 0.0
+    uz = 0.0
     ### Hit (rear-end the surface)
-    answer = distance(x, ux, speed=3.0, bin_idx=0)
-    run_moving(x, ux, t, speed=3.0, answer=answer)
-    ### Hit (head-on)
-    answer = distance(x, ux, speed=0.1, bin_idx=1)
-    run_moving(x, ux, t, speed=0.1, answer=answer)
+    answer = center_distance(x, ux, speed=3.0, bin_idx=0) - R - r # Collision in bin 0 where the surface is running away from particle
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=3.0, answer=answer)
+    ### Hit (head-on opposite directions)
+    answer = center_distance(x, ux, speed=0.1, bin_idx=1) - R - r # Collision in bin 1
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=0.1, answer=answer)
 
-    # Negative side
-    x = 7.0
+    # Negative x side of the torus
+    x = -2.0
+    y = 0.0
+    z = 0.0
     #
     ## Negative direction (moving away)
     ux = -0.4
+    uy = 0.0
+    uz = 0.0
     ### No hit
-    run_moving(x, ux, t, speed=2.0, answer=INF)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=2.0, answer=INF)
     ### Hit (rear-ended by the surface)
-    answer = distance(x, ux, speed=0.4, bin_idx=0)
-    run_moving(x, ux, t, speed=0.4, answer=answer)
+    answer = center_distance(x, ux, speed=0.4, bin_idx=0) - R - r # Collision in bin 0
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=0.4, answer=answer)
     #
     ## Positive direction (moving closer)
     ux = 0.4
+    uy = 0.0
+    uz = 0.0
     ### Hit (head-on)
-    answer = distance(x, ux, speed=0.1, bin_idx=0)
-    run_moving(x, ux, t, speed=0.1, answer=answer)
+    answer = center_distance(x, ux, speed=0.1, bin_idx=0) - R - r # Collision in bin 0
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=0.1, answer=answer)
     ### Hit (rear-end the surface)
-    x = -10.0
-    answer = distance(x, ux, speed=20.0 / 3.0, bin_idx=1)
-    run_moving(x, ux, t, speed=20.0 / 3.0, answer=answer)
+    x = -20.0
+    answer = center_distance(x, ux, speed=(20.0 / 3.0), bin_idx=1) - R - r # Collision in bin 1
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=(20.0 / 3.0), answer=answer)
