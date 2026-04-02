@@ -83,9 +83,13 @@ class WeightWindow(ObjectBase):
 class WeightWindows(ObjectSingleton):
     label: str = "weight_windows"
 
+    active: bool
     mesh: MeshBase
     # 3d array of datatype WeightWindow
     weight_windows: NDArray[tuple[int, int, int], WeightWindow]
+
+    def __init__(self):
+        self.active = False
 
     def __call__(self, mesh, weight_windows):
         ww_shape = weight_windows.shape
@@ -94,6 +98,7 @@ class WeightWindows(ObjectSingleton):
             print_error(
                 f"Weight window array has shape {ww_shape}, but expected {mesh_shape}"
             )
+        self.active = True
         self.mesh = mesh
         self.weight_windows = weight_windows
 

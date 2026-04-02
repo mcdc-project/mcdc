@@ -306,8 +306,9 @@ def step_particle(particle_container, mcdc, data):
         particle["alive"] = False
 
     # Weight splitting / rouletting
-    if particle["alive"]:
-        technique.weight_split(particle_container, mcdc)
+    if particle["alive"] & mcdc.weight_windows["active"]:
+        technique.weight_windows(particle_container, mcdc, data)
+    elif particle["alive"]:
         technique.weight_roulette(particle_container, mcdc)
 
 
