@@ -6,25 +6,10 @@ from numba import njit
 ####
 
 import mcdc.numba_types as type_
+from mcdc.transport.mesh import get_indices as get_mesh_indices
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
-
-# ======================================================================================
-# Weight Splitting
-# ======================================================================================
-
-
-@njit
-def weight_split(particle_container, mcdc):
-    particle = particle_container[0]
-    weight = particle["w"]
-    threshold = mcdc["weight_split"]["weight_threshold"]
-    if weight > threshold:
-        num_split = math.ceil(weight / threshold)
-        particle["w"] = weight / num_split
-        for _ in range(num_split - 1):
-            particle_bank_module.bank_active_particle(particle_container, mcdc)
 
 
 # ======================================================================================
@@ -37,6 +22,48 @@ def weight_roulette(particle_container, mcdc):
     particle = particle_container[0]
     if particle["w"] < mcdc["weight_roulette"]["weight_threshold"]:
         w_target = mcdc["weight_roulette"]["weight_target"]
+        survival_probability = particle["w"] / w_target
+        if rng.lcg(particle_container) < survival_probability:
+            particle["w"] = w_target
+        else:
+            particle["alive"] = False
+
+
+# ======================================================================================
+# Weight Windows
+# ======================================================================================
+
+
+@njit
+def weight_windows(particle_container, mcdc, data):
+    weight_window = query_weight_window(particle_container, mcdc, data)
+    split_from_weight_window(particle_container, weight_window["upper_bound"], mcdc)
+    roulette_from_weight_window(particle_container, weight_window["lower_bound"], weight_window["target_weight"])
+
+
+@njit
+def query_weight_window(particle_container, mcdc, data):
+    mesh = mcdc["weight_windows"]["mesh"]
+    ww_array = mcdc["weight_windows"]["weight_windows"]
+    idx, idy, idz = get_mesh_indices(particle_container, mesh, mcdc, data)
+    return ww_array[idx, idy, idz]
+
+
+@njit
+def split_from_weight_window(particle_container, threshold_weight, mcdc):
+    particle = particle_container[0]
+    weight = particle["w"]
+    if weight > threshold_weight:
+        num_split = math.ceil(weight / threshold_weight)
+        particle["w"] = weight / num_split
+        for _ in range(num_split - 1):
+            particle_bank_module.bank_active_particle(particle_container, mcdc)
+
+
+@njit
+def roulette_from_weight_window(particle_container, w_threshold, w_target):
+    particle = particle_container[0]
+    if particle["w"] < w_threshold:
         survival_probability = particle["w"] / w_target
         if rng.lcg(particle_container) < survival_probability:
             particle["w"] = w_target

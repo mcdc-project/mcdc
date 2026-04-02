@@ -1,4 +1,7 @@
-from mcdc.object_.base import ObjectSingleton
+from dataclasses import dataclass
+from numpy.typing import NDArray
+from mcdc.object_.base import ObjectBase, ObjectSingleton
+from mcdc.object_.mesh import MeshBase
 from mcdc.print_ import print_error
 
 # ======================================================================================
@@ -40,24 +43,6 @@ class WeightedEmission(ObjectSingleton):
 
 
 # ======================================================================================
-# Weight split 
-# ======================================================================================
-
-
-class WeightSplit(ObjectSingleton):
-    # Annotations for Numba mode
-    label: str = "weight_split"
-
-    weight_threshold: float
-
-    def __init__(self):
-        self.weight_threshold = 1.0
-
-    def __call__(self, weight_threshold: float = 1.0):
-        self.weight_threshold = weight_threshold
-
-
-# ======================================================================================
 # Weight roulette
 # ======================================================================================
 
@@ -80,6 +65,37 @@ class WeightRoulette(ObjectSingleton):
             )
         self.weight_threshold = weight_threshold
         self.weight_target = weight_target
+
+
+# ======================================================================================
+# Weight Windows
+# ======================================================================================
+
+
+@dataclass
+class WeightWindow(ObjectBase):
+    label: str = "weight_window"
+    upper_bound: float = 1.0
+    lower_bound: float = 0.0
+    target_weight: float = 1.0
+
+
+class WeightWindows(ObjectSingleton):
+    label: str = "weight_windows"
+
+    mesh: MeshBase
+    # 3d array of datatype WeightWindow
+    weight_windows: NDArray[tuple[int, int, int], WeightWindow]
+
+    def __call__(self, mesh, weight_windows):
+        ww_shape = weight_windows.shape
+        mesh_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
+        if ww_shape != mesh_shape:
+            print_error(
+                f"Weight window array has shape {ww_shape}, but expected {mesh_shape}"
+            )
+        self.mesh = mesh
+        self.weight_windows = weight_windows
 
 
 # ======================================================================================
