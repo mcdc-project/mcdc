@@ -40,6 +40,24 @@ class WeightedEmission(ObjectSingleton):
 
 
 # ======================================================================================
+# Weight split 
+# ======================================================================================
+
+
+class WeightSplit(ObjectSingleton):
+    # Annotations for Numba mode
+    label: str = "weight_split"
+
+    weight_threshold: float
+
+    def __init__(self):
+        self.weight_threshold = 1.0
+
+    def __call__(self, weight_threshold: float = 1.0):
+        self.weight_threshold = weight_threshold
+
+
+# ======================================================================================
 # Weight roulette
 # ======================================================================================
 
