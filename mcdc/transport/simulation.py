@@ -305,8 +305,9 @@ def step_particle(particle_container, mcdc, data):
     if particle["event"] & EVENT_TIME_BOUNDARY:
         particle["alive"] = False
 
-    # Weight roulette
+    # Weight splitting / rouletting
     if particle["alive"]:
+        technique.weight_split(particle_container, mcdc)
         technique.weight_roulette(particle_container, mcdc)
 
 

@@ -11,6 +11,23 @@ import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
 
 # ======================================================================================
+# Weight Splitting
+# ======================================================================================
+
+
+@njit
+def weight_split(particle_container, mcdc):
+    particle = particle_container[0]
+    weight = particle["w"]
+    threshold = mcdc["weight_split"]["weight_threshold"]
+    if weight > threshold:
+        num_split = math.ceil(weight / threshold)
+        particle["w"] = weight / num_split
+        for _ in range(num_split - 1):
+            particle_bank_module.bank_active_particle(particle_container, mcdc)
+
+
+# ======================================================================================
 # Weight Roulette
 # ======================================================================================
 
