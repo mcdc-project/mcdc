@@ -663,6 +663,8 @@ def fission(
     particle = particle_container[0]
     collision_data = collision_data_container[0]
     settings = mcdc["settings"]
+    reaction_base_ID = reaction["parent_ID"]
+    reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
 
     # Particle properties
     E = particle["E"]
@@ -675,7 +677,7 @@ def fission(
 
     # Energy deposition
     collision_data["energy_deposition"] += E * particle["w"]
-    # TODO: Also deposit Q-value
+    collision_data["energy_deposition"] += reaction_base["q_value"] * 1e6
 
     # Adjust production and product weights if weighted emission
     weight_production = 1.0
