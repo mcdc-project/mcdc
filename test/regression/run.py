@@ -22,7 +22,7 @@ name = args.name
 skip = args.skip
 include_native_physics = args.include_native_physics
 
-non_test_files = ["__pycache__", "MCDC-regression_test_data", "tmp"]
+non_test_files = ["__pycache__", "mcdc-regression_test_data", "tmp"]
 
 # Get test names
 if name == "ALL":
