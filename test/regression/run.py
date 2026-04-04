@@ -42,7 +42,7 @@ if skip != "NONE":
         names.remove(name)
 
 # Remove native physics if not incuded
-native_physics_tests = ["pincell", "pincell-k_eigenvalue", "pincell-edep"]
+native_physics_tests = ["pincell", "pincell-k_eigenvalue", "pincell-energy_deposition"]
 if not include_native_physics:
     for name in native_physics_tests:
         print(Fore.YELLOW + "Note: Skipping %s" % name + Style.RESET_ALL)
