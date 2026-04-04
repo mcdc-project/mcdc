@@ -241,6 +241,26 @@ def collision(particle_container, collision_data_container, mcdc, data):
         # Deposit energy captured
         collision_data["energy_deposition"] += E * particle["w"] * capture_fraction
 
+        # Q-value: xs-weighted average over all nuclides and capture reactions
+        for i in range(material["N_nuclide"]):
+            nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
+            nuclide = mcdc["nuclides"][nuclide_ID]
+            nuclide_density = mcdc_get.native_material.nuclide_densities(
+                i, material, data
+            )
+            for j in range(nuclide["N_neutron_capture_reaction"]):
+                reaction_ID = int(
+                    mcdc_get.nuclide.neutron_capture_reaction_IDs(j, nuclide, data)
+                )
+                reaction = mcdc["neutron_capture_reactions"][reaction_ID]
+                reaction_base_ID = reaction["parent_ID"]
+                reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
+                xs = reaction_micro_xs(E, reaction_base, nuclide, data)
+                Sigma_rx = nuclide_density * xs
+                collision_data["energy_deposition"] += (
+                    reaction_base["q_value"] * 1e6 * particle["w"] * Sigma_rx / SigmaT
+                )
+
         # Capture particle weight
         particle["w"] *= 1.0 - capture_fraction
 
@@ -312,6 +332,18 @@ def collision(particle_container, collision_data_container, mcdc, data):
         if xi < total:
             particle["alive"] = False
             collision_data["energy_deposition"] += E * particle["w"]
+            # Q-value: xs-weighted average over capture reactions
+            for i in range(nuclide["N_neutron_capture_reaction"]):
+                reaction_ID = int(
+                    mcdc_get.nuclide.neutron_capture_reaction_IDs(i, nuclide, data)
+                )
+                reaction = mcdc["neutron_capture_reactions"][reaction_ID]
+                reaction_base_ID = reaction["parent_ID"]
+                reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
+                xs = reaction_micro_xs(E, reaction_base, nuclide, data)
+                collision_data["energy_deposition"] += (
+                    reaction_base["q_value"] * 1e6 * particle["w"] * xs / sigma_capture
+                )
             return
 
     # Inelastic scattering
@@ -677,7 +709,9 @@ def fission(
 
     # Energy deposition
     collision_data["energy_deposition"] += E * particle["w"]
-    collision_data["energy_deposition"] += reaction_base["q_value"] * 1e6 * particle["w"]
+    collision_data["energy_deposition"] += (
+        reaction_base["q_value"] * 1e6 * particle["w"]
+    )
 
     # Adjust production and product weights if weighted emission
     weight_production = 1.0
