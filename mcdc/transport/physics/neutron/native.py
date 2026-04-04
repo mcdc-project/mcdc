@@ -677,7 +677,7 @@ def fission(
 
     # Energy deposition
     collision_data["energy_deposition"] += E * particle["w"]
-    collision_data["energy_deposition"] += reaction_base["q_value"] * 1e6
+    collision_data["energy_deposition"] += reaction_base["q_value"] * 1e6 * particle["w"]
 
     # Adjust production and product weights if weighted emission
     weight_production = 1.0
