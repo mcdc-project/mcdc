@@ -2,7 +2,7 @@ import mcdc
 import numpy as np
 import os
 
-os.environ["MCDC_LIB"] = "../MCDC-regression_test_data/"
+os.environ["MCDC_LIB"] = "../mcdc-regression_test_data/"
 
 # Material
 fuel = mcdc.Material(
@@ -35,7 +35,7 @@ mcdc.Cell(+x0 & -x1 & +y0 & -y1 & +cylinder, fill=moderator)
 mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True, time=0.0, energy=14.1e6)
 
 # Settings
-mcdc.settings.N_particle = 10
+mcdc.settings.N_particle = 20
 mcdc.settings.N_batch = 2
 mcdc.settings.time_boundary = 1.0
 mcdc.settings.active_bank_buffer = 1000

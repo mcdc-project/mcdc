@@ -46,13 +46,15 @@ class NeutronReactionBase(ObjectPolymorphic):
     xs: NDArray[float64]
     xs_offset_: int  # "xs_offset" ir reserved for "xs"
     reference_frame: int
+    q_value: float64
 
-    def __init__(self, type_, MT, xs, xs_offset, reference_frame):
+    def __init__(self, type_, MT, xs, xs_offset, reference_frame, q_value):
         super().__init__(type_)
         self.MT = MT
         self.xs = xs
         self.xs_offset_ = xs_offset
         self.reference_frame = reference_frame
+        self.q_value = q_value
 
     def __repr__(self):
         text = "\n"
@@ -61,6 +63,7 @@ class NeutronReactionBase(ObjectPolymorphic):
         text += f"  - MT: {self.MT}\n"
         text += f"  - XS {print_1d_array(self.xs)} barn\n"
         text += f"  - Reference frame: {decode_reference_frame(self.reference_frame)}\n"
+        text += f"  - Q-value: {self.q_value}\n"
         return text
 
 
@@ -95,12 +98,12 @@ class NeutronReactionElasticScattering(NeutronReactionBase):
 
     def __init__(self, MT, xs, xs_offset, reference_frame, mu):
         type_ = NEUTRON_REACTION_ELASTIC_SCATTERING
-        super().__init__(type_, MT, xs, xs_offset, reference_frame)
+        super().__init__(type_, MT, xs, xs_offset, reference_frame, 0.0)
         self.mu_table = mu
 
     @classmethod
     def from_h5_group(cls, h5_group):
-        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
+        MT, xs, xs_offset, reference_frame, _ = set_basic_properties(h5_group)
         _, mu = set_angular_distribution(h5_group["angular_cosine_distribution"])
         return cls(MT, xs, xs_offset, reference_frame, mu)
 
@@ -119,14 +122,14 @@ class NeutronReactionCapture(NeutronReactionBase):
     # Annotations for Numba mode
     label: str = "neutron_capture_reaction"
 
-    def __init__(self, MT, xs, xs_offset, reference_frame):
+    def __init__(self, MT, xs, xs_offset, reference_frame, q_value):
         type_ = NEUTRON_REACTION_CAPTURE
-        super().__init__(type_, MT, xs, xs_offset, reference_frame)
+        super().__init__(type_, MT, xs, xs_offset, reference_frame, q_value)
 
     @classmethod
     def from_h5_group(cls, h5_group):
-        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
-        return cls(MT, xs, xs_offset, reference_frame)
+        MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
+        return cls(MT, xs, xs_offset, reference_frame, q_value)
 
 
 # ======================================================================================
@@ -155,6 +158,7 @@ class NeutronReactionInelasticScattering(NeutronReactionBase):
         xs,
         xs_offset,
         reference_frame,
+        q_value,
         multiplicity,
         angle_type,
         mu,
@@ -163,9 +167,8 @@ class NeutronReactionInelasticScattering(NeutronReactionBase):
         energy_spectra,
     ):
         type_ = NEUTRON_REACTION_INELASTIC_SCATTERING
-        super().__init__(type_, MT, xs, xs_offset, reference_frame)
+        super().__init__(type_, MT, xs, xs_offset, reference_frame, q_value)
 
-        self.reference_frame = reference_frame
         self.multiplicity = multiplicity
         self.angle_type = angle_type
         self.mu = mu
@@ -177,7 +180,7 @@ class NeutronReactionInelasticScattering(NeutronReactionBase):
 
     @classmethod
     def from_h5_group(cls, h5_group):
-        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
+        MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
         multiplicity = int(h5_group["multiplicity"][()])
 
         angle_type, mu = set_angular_distribution(
@@ -199,6 +202,7 @@ class NeutronReactionInelasticScattering(NeutronReactionBase):
             xs,
             xs_offset,
             reference_frame,
+            q_value,
             multiplicity,
             angle_type,
             mu,
@@ -241,19 +245,20 @@ class NeutronReactionFission(NeutronReactionBase):
         xs,
         xs_offset,
         reference_frame,
+        q_value,
         angle_type,
         mu,
         spectrum,
     ):
         type_ = NEUTRON_REACTION_FISSION
-        super().__init__(type_, MT, xs, xs_offset, reference_frame)
+        super().__init__(type_, MT, xs, xs_offset, reference_frame, q_value)
         self.angle_type = angle_type
         self.mu = mu
         self.spectrum = spectrum
 
     @classmethod
     def from_h5_group(cls, h5_group):
-        MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
+        MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
 
         # Prompt angular distribution
         angle_type, mu = set_angular_distribution(
@@ -266,7 +271,9 @@ class NeutronReactionFission(NeutronReactionBase):
             print_error("Unsupported multi-distribution prompt fission spectrum")
         spectrum = set_energy_distribution(h5_group[f"energy_spectrum-1"])
 
-        return cls(MT, xs, xs_offset, reference_frame, angle_type, mu, spectrum)
+        return cls(
+            MT, xs, xs_offset, reference_frame, q_value, angle_type, mu, spectrum
+        )
 
     def __repr__(self):
         text = super().__repr__()
@@ -296,7 +303,8 @@ def set_basic_properties(h5_group):
         reference_frame = REFERENCE_FRAME_LAB
     elif reference_frame == "COM":
         reference_frame = REFERENCE_FRAME_COM
-    return MT, xs, xs_offset, reference_frame
+    q_value = h5_group["Q-value"][()]
+    return MT, xs, xs_offset, reference_frame, q_value
 
 
 def set_angular_distribution(h5_group):

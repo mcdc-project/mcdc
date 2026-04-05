@@ -241,6 +241,26 @@ def collision(particle_container, collision_data_container, mcdc, data):
         # Deposit energy captured
         collision_data["energy_deposition"] += E * particle["w"] * capture_fraction
 
+        # Q-value: xs-weighted average over all nuclides and capture reactions
+        for i in range(material["N_nuclide"]):
+            nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
+            nuclide = mcdc["nuclides"][nuclide_ID]
+            nuclide_density = mcdc_get.native_material.nuclide_densities(
+                i, material, data
+            )
+            for j in range(nuclide["N_neutron_capture_reaction"]):
+                reaction_ID = int(
+                    mcdc_get.nuclide.neutron_capture_reaction_IDs(j, nuclide, data)
+                )
+                reaction = mcdc["neutron_capture_reactions"][reaction_ID]
+                reaction_base_ID = reaction["parent_ID"]
+                reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
+                xs = reaction_micro_xs(E, reaction_base, nuclide, data)
+                Sigma_rx = nuclide_density * xs
+                collision_data["energy_deposition"] += (
+                    reaction_base["q_value"] * 1e6 * particle["w"] * Sigma_rx / SigmaT
+                )
+
         # Capture particle weight
         particle["w"] *= 1.0 - capture_fraction
 
@@ -283,6 +303,7 @@ def collision(particle_container, collision_data_container, mcdc, data):
     # Elastic scattering
     total = sigma_elastic
     if xi < total:
+        # Sample the actual reaction from the group
         total -= sigma_elastic
         for i in range(nuclide["N_neutron_elastic_scattering_reaction"]):
             reaction_ID = int(
@@ -294,6 +315,8 @@ def collision(particle_container, collision_data_container, mcdc, data):
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, nuclide, data)
+
+            # Execute the reaction
             if xi < total:
                 elastic_scattering(
                     reaction,
@@ -310,15 +333,35 @@ def collision(particle_container, collision_data_container, mcdc, data):
         sigma_capture = total_micro_xs(NEUTRON_REACTION_CAPTURE, E, nuclide, data)
         total += sigma_capture
         if xi < total:
-            particle["alive"] = False
-            collision_data["energy_deposition"] += E * particle["w"]
-            return
+            # Sample the actual reaction from the group
+            total -= sigma_capture
+            for i in range(nuclide["N_neutron_capture_reaction"]):
+                reaction_ID = int(
+                    mcdc_get.nuclide.neutron_capture_reaction_IDs(i, nuclide, data)
+                )
+                reaction = mcdc["neutron_capture_reactions"][reaction_ID]
+                reaction_base_ID = reaction["parent_ID"]
+                reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
+                xs = reaction_micro_xs(E, reaction_base, nuclide, data)
+                total += xs
+
+                # Execute the reaction
+                if xi < total:
+                    capture(
+                        reaction,
+                        particle_container,
+                        collision_data_container,
+                        nuclide,
+                        mcdc,
+                        data,
+                    )
+                    return
 
     # Inelastic scattering
     total += sigma_inelastic
     if xi < total:
+        # Sample the actual reaction from the group
         total -= sigma_inelastic
-
         for i in range(nuclide["N_neutron_inelastic_scattering_reaction"]):
             reaction_ID = int(
                 mcdc_get.nuclide.neutron_inelastic_scattering_reaction_IDs(
@@ -330,6 +373,8 @@ def collision(particle_container, collision_data_container, mcdc, data):
             reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
             xs = reaction_micro_xs(E, reaction_base, nuclide, data)
             total += xs
+
+            # Execute the reaction
             if xi < total:
                 inelastic_scattering(
                     reaction,
@@ -344,6 +389,7 @@ def collision(particle_container, collision_data_container, mcdc, data):
     # Fission (arive here only if nuclide is fissionable)
     total += sigma_fission
     if xi < total:
+        # Sample the actual reaction from the group
         total -= sigma_fission
         for i in range(nuclide["N_neutron_fission_reaction"]):
             reaction_ID = int(
@@ -353,6 +399,8 @@ def collision(particle_container, collision_data_container, mcdc, data):
             reaction_base_ID = reaction["parent_ID"]
             reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, nuclide, data)
+
+            # Execute the reaction
             if xi < total:
                 fission(
                     reaction,
@@ -363,6 +411,30 @@ def collision(particle_container, collision_data_container, mcdc, data):
                     data,
                 )
                 return
+
+
+# ======================================================================================
+# Capture
+# ======================================================================================
+
+
+@njit
+def capture(
+    reaction, particle_container, collision_data_container, nuclide, mcdc, data
+):
+    particle = particle_container[0]
+    collision_data = collision_data_container[0]
+
+    reaction_base_ID = reaction["parent_ID"]
+    reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
+
+    # Terminate the particle
+    particle["alive"] = False
+
+    # Energy deposition
+    E = particle["E"]
+    q_value = reaction_base["q_value"] * 1e6
+    collision_data["energy_deposition"] += (E + q_value) * particle["w"]
 
 
 # ======================================================================================
@@ -385,6 +457,7 @@ def elastic_scattering(
 
     # Energy deposition
     collision_data["energy_deposition"] += E * particle["w"]
+    # Note: Q-value is zero in elastic scattering
 
     # Sample nucleus thermal velocity
     A = nuclide["atomic_weight_ratio"]
@@ -521,6 +594,9 @@ def inelastic_scattering(
     particle = particle_container[0]
     collision_data = collision_data_container[0]
 
+    reaction_base_ID = reaction["parent_ID"]
+    reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
+
     # Particle attributes
     E = particle["E"]
     ux = particle["ux"]
@@ -531,7 +607,8 @@ def inelastic_scattering(
     particle["alive"] = False
 
     # Energy deposition
-    collision_data["energy_deposition"] += E * particle["w"]
+    q_value = reaction_base["q_value"] * 1e6
+    collision_data["energy_deposition"] += (E + q_value) * particle["w"]
 
     # Number of secondaries and spectra
     N = reaction["multiplicity"]
@@ -662,7 +739,11 @@ def fission(
 ):
     particle = particle_container[0]
     collision_data = collision_data_container[0]
+
     settings = mcdc["settings"]
+
+    reaction_base_ID = reaction["parent_ID"]
+    reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
 
     # Particle properties
     E = particle["E"]
@@ -674,8 +755,9 @@ def fission(
     particle["alive"] = False
 
     # Energy deposition
-    collision_data["energy_deposition"] += E * particle["w"]
-    # TODO: Also deposit Q-value
+    #   TODO: Use energy-dependent Q-value
+    q_value = reaction_base["q_value"] * 1e6
+    collision_data["energy_deposition"] += (E + q_value) * particle["w"]
 
     # Adjust production and product weights if weighted emission
     weight_production = 1.0
