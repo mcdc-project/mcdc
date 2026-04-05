@@ -5,7 +5,7 @@ import mcdc
 from datetime import datetime
 
 # Set the XS library directory
-os.environ["MCDC_LIB"] = "../MCDC-regression_test_data/"
+os.environ["MCDC_LIB"] = "../mcdc-regression_test_data/"
 
 # =============================================================================
 # Set problem parameters
