@@ -68,6 +68,8 @@ import mcdc.mcdc_set.neutron_fission_reaction as neutron_fission_reaction
 
 import mcdc.mcdc_set.neutron_inelastic_scattering_reaction as neutron_inelastic_scattering_reaction
 
+import mcdc.mcdc_set.collision_data as collision_data
+
 import mcdc.mcdc_set.particle_bank as particle_bank
 
 import mcdc.mcdc_set.settings as settings
@@ -85,6 +87,8 @@ import mcdc.mcdc_set.source as source
 import mcdc.mcdc_set.surface as surface
 
 import mcdc.mcdc_set.surface_tally as surface_tally
+
+import mcdc.mcdc_set.collision_tally as collision_tally
 
 import mcdc.mcdc_set.tracklength_tally as tracklength_tally
 

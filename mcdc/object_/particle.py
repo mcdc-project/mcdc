@@ -29,6 +29,12 @@ class ParticleData(ObjectBase):
 
 
 @dataclass
+class CollisionData(ObjectBase):
+    label: str = "collision_data"
+    energy_deposition: float = 0.0
+
+
+@dataclass
 class Particle(ParticleData):
     label: str = "particle"
     cell_ID: int = -1

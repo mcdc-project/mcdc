@@ -23,41 +23,111 @@ from mcdc.constant import (
     SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_NET_CURRENT,
+    SCORE_ENERGY_DEPOSITION,
     SPATIAL_FILTER_MESH,
 )
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import get_filter_indices
 from mcdc.transport.util import atomic_add
 
+# ======================================================================================
+# Surface tally
+# ======================================================================================
+
 
 @njit
-def make_scores(particle_container, flux, tally, idx_base, mcdc, data):
+def surface_tally(particle_container, surface, tally, mcdc, data):
     particle = particle_container[0]
-    speed = physics.particle_speed(particle_container, mcdc, data)
+    tally_base = mcdc["tallies"][tally["parent_ID"]]
 
-    for i_score in range(tally["scores_length"]):
-        score_type = mcdc_get.tally.scores(i_score, tally, data)
+    # Get filter indices
+    MG_mode = mcdc["settings"]["multigroup_mode"]
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(
+        particle_container, tally_base, data, MG_mode
+    )
+
+    # No score if outside non-changing phase-space bins
+    if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
+        return
+
+    # Tally index
+    idx_base = (
+        tally_base["bin_offset"]
+        + i_mu * tally_base["stride_mu"]
+        + i_azi * tally_base["stride_azi"]
+        + i_energy * tally_base["stride_energy"]
+        + i_time * tally_base["stride_time"]
+    )
+
+    # Flux
+    speed = physics.particle_speed(particle_container, mcdc, data)
+    mu = get_normal_component(particle_container, speed, surface, data)
+    flux = particle["w"] / abs(mu)
+
+    # Score
+    for i_score in range(tally_base["scores_length"]):
+        score_type = mcdc_get.tally.scores(i_score, tally_base, data)
         score = 0.0
-        if score_type == SCORE_FLUX:
-            score = flux
-        elif score_type == SCORE_DENSITY:
-            score = flux / speed
-        elif score_type == SCORE_COLLISION:
-            score = flux * physics.macro_xs(
-                NEUTRON_REACTION_TOTAL, particle_container, mcdc, data
-            )
-        elif score_type == SCORE_CAPTURE:
-            score = flux * physics.macro_xs(
-                NEUTRON_REACTION_CAPTURE, particle_container, mcdc, data
-            )
-        elif score_type == SCORE_FISSION:
-            score = flux * physics.macro_xs(
-                NEUTRON_REACTION_FISSION, particle_container, mcdc, data
-            )
-        elif score_type == SCORE_NET_CURRENT:
+        if score_type == SCORE_NET_CURRENT:
             surface = mcdc["surfaces"][particle["surface_ID"]]
             mu = get_normal_component(particle_container, speed, surface, data)
             score = flux * mu
+        atomic_add(data, idx_base + i_score, score)
+
+
+# ======================================================================================
+# Collision tally
+# ======================================================================================
+
+
+@njit
+def collision_tally(particle_container, collision_data_container, tally, mcdc, data):
+    particle = particle_container[0]
+    collision_data = collision_data_container[0]
+    tally_base = mcdc["tallies"][tally["parent_ID"]]
+
+    # Get filter indices
+    MG_mode = mcdc["settings"]["multigroup_mode"]
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(
+        particle_container, tally_base, data, MG_mode
+    )
+
+    # No score if outside non-changing phase-space bins
+    if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
+        return
+
+    # Mesh tally indices if needed
+    i_x, i_y, i_z = 0, 0, 0
+    mesh_tally = tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
+    if mesh_tally:
+        mesh = mcdc["meshes"][tally["spatial_filter_ID"]]
+        i_x, i_y, i_z = mesh_module.get_indices(particle_container, mesh, mcdc, data)
+
+        # No score outside mesh bins
+        if i_x == -1 or i_y == -1 or i_z == -1:
+            return
+
+    # Tally index
+    idx_base = (
+        tally_base["bin_offset"]
+        + i_mu * tally_base["stride_mu"]
+        + i_azi * tally_base["stride_azi"]
+        + i_energy * tally_base["stride_energy"]
+        + i_time * tally_base["stride_time"]
+    )
+    if mesh_tally:
+        idx_base += (
+            +i_x * tally["mesh_stride_x"]
+            + i_y * tally["mesh_stride_y"]
+            + i_z * tally["mesh_stride_z"]
+        )
+
+    # Score
+    for i_score in range(tally_base["scores_length"]):
+        score_type = mcdc_get.tally.scores(i_score, tally_base, data)
+        score = 0.0
+        if score_type == SCORE_ENERGY_DEPOSITION:
+            score = collision_data["energy_deposition"]
         atomic_add(data, idx_base + i_score, score)
 
 
@@ -272,7 +342,27 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
 
         # Score
         flux = distance_scored * particle["w"]
-        make_scores(particle_container, flux, tally_base, idx_base, mcdc, data)
+        for i_score in range(tally_base["scores_length"]):
+            score_type = mcdc_get.tally.scores(i_score, tally_base, data)
+            score = 0.0
+            if score_type == SCORE_FLUX:
+                score = flux
+            elif score_type == SCORE_DENSITY:
+                speed = physics.particle_speed(particle_container, mcdc, data)
+                score = flux / speed
+            elif score_type == SCORE_COLLISION:
+                score = flux * physics.macro_xs(
+                    NEUTRON_REACTION_TOTAL, particle_container, mcdc, data
+                )
+            elif score_type == SCORE_CAPTURE:
+                score = flux * physics.macro_xs(
+                    NEUTRON_REACTION_CAPTURE, particle_container, mcdc, data
+                )
+            elif score_type == SCORE_FISSION:
+                score = flux * physics.macro_xs(
+                    NEUTRON_REACTION_FISSION, particle_container, mcdc, data
+                )
+            atomic_add(data, idx_base + i_score, score)
 
         # Accumulate distance swept
         distance_swept += distance_scored
@@ -325,39 +415,6 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
                     if i_z == -1:
                         return
                     idx_base -= tally["mesh_stride_z"]
-
-
-@njit
-def surface_tally(particle_container, surface, tally, mcdc, data):
-    particle = particle_container[0]
-    tally_base = mcdc["tallies"][tally["parent_ID"]]
-
-    # Get filter indices
-    MG_mode = mcdc["settings"]["multigroup_mode"]
-    i_mu, i_azi, i_energy, i_time = get_filter_indices(
-        particle_container, tally_base, data, MG_mode
-    )
-
-    # No score if outside non-changing phase-space bins
-    if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
-        return
-
-    # Tally index
-    idx_base = (
-        tally_base["bin_offset"]
-        + i_mu * tally_base["stride_mu"]
-        + i_azi * tally_base["stride_azi"]
-        + i_energy * tally_base["stride_energy"]
-        + i_time * tally_base["stride_time"]
-    )
-
-    # Flux
-    speed = physics.particle_speed(particle_container, mcdc, data)
-    mu = get_normal_component(particle_container, speed, surface, data)
-    flux = particle["w"] / abs(mu)
-
-    # Score
-    make_scores(particle_container, flux, tally_base, idx_base, mcdc, data)
 
 
 # =============================================================================

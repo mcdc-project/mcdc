@@ -101,7 +101,7 @@ def neutron_production_xs(reaction_type, particle_container, mcdc, data):
 
 
 @njit
-def collision(particle_container, mcdc, data):
+def collision(particle_container, collision_data_container, mcdc, data):
     particle = particle_container[0]
 
     # Get the reaction cross-sections

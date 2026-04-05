@@ -22,7 +22,7 @@ name = args.name
 skip = args.skip
 include_native_physics = args.include_native_physics
 
-non_test_files = ["__pycache__", "MCDC-regression_test_data", "tmp"]
+non_test_files = ["__pycache__", "mcdc-regression_test_data", "tmp"]
 
 # Get test names
 if name == "ALL":
@@ -42,7 +42,7 @@ if skip != "NONE":
         names.remove(name)
 
 # Remove native physics if not incuded
-native_physics_tests = ["pincell", "pincell-k_eigenvalue"]
+native_physics_tests = ["pincell", "pincell-k_eigenvalue", "pincell-energy_deposition"]
 if not include_native_physics:
     for name in native_physics_tests:
         print(Fore.YELLOW + "Note: Skipping %s" % name + Style.RESET_ALL)
