@@ -31,7 +31,7 @@ class Nuclide(ObjectNonSingleton):
     #
     name: str
     temperature: float
-    atomic_number: float
+    atomic_number: int
     atomic_weight_ratio: float
     fissionable: bool
     excitation_level: int
@@ -63,7 +63,7 @@ class Nuclide(ObjectNonSingleton):
         dir_name = os.getenv("MCDC_LIB")
         file_name = f"{nuclide_name}-{temperature}K.h5"
         file = h5py.File(f"{dir_name}/{file_name}", "r")
-        self.atomic_number = file["atomic_number"][()]
+        self.atomic_number = int(file["atomic_number"][()])
         self.atomic_weight_ratio = file["atomic_weight_ratio"][()]
         self.fissionable = bool(file["fissionable"][()])
         self.excitation_level = int(file["excitation_level"][()])
