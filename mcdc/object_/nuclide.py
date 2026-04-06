@@ -31,6 +31,7 @@ class Nuclide(ObjectNonSingleton):
     #
     name: str
     temperature: float
+    atomic_number: float
     atomic_weight_ratio: float
     fissionable: bool
     excitation_level: int
@@ -62,6 +63,7 @@ class Nuclide(ObjectNonSingleton):
         dir_name = os.getenv("MCDC_LIB")
         file_name = f"{nuclide_name}-{temperature}K.h5"
         file = h5py.File(f"{dir_name}/{file_name}", "r")
+        self.atomic_number = file["atomic_number"][()]
         self.atomic_weight_ratio = file["atomic_weight_ratio"][()]
         self.fissionable = bool(file["fissionable"][()])
         self.excitation_level = int(file["excitation_level"][()])
@@ -211,6 +213,7 @@ class Nuclide(ObjectNonSingleton):
         text += f"Nuclide\n"
         text += f"  - ID: {self.ID}\n"
         text += f"  - Name: {self.name}\n"
+        text += f"  - Atomic number: {self.atomic_number}\n"
         text += f"  - Atomic weight ratio: {self.atomic_weight_ratio}\n"
         text += f"  - Reaction MTs\n"
         text += f"    - Elastic scattering: {[int(x.MT) for x in self.neutron_elastic_scattering_reactions]}\n"
