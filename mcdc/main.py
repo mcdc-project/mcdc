@@ -72,7 +72,6 @@ def run():
         simulation_module.eigenvalue_simulation(simulation_container, data)
     else:
         simulation_module.fixed_source_simulation(simulation_container, data)
-    return
 
     # TIMER: simulation
     time_simulation_end = MPI.Wtime()

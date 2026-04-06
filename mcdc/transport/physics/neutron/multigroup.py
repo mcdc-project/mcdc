@@ -335,9 +335,7 @@ def fission(particle_container, program, data):
 
         # Eigenvalue mode: bank right away
         if settings["neutron_eigenvalue_mode"]:
-            particle_bank_module.bank_census_particle(
-                particle_container_new, simulation
-            )
+            particle_bank_module.bank_census_particle(particle_container_new, program)
             continue
         # Below is only relevant for fixed-source problem
 
@@ -379,13 +377,9 @@ def fission(particle_container, program, data):
         # Hit future census --> add to future bank
         elif hit_future_census:
             # Particle will participate in the future
-            particle_bank_module.bank_future_particle(
-                particle_container_new, simulation
-            )
+            particle_bank_module.bank_future_particle(particle_container_new, program)
 
         # Hit current census --> add to census bank
         else:
             # Particle will participate after the current census is completed
-            particle_bank_module.bank_census_particle(
-                particle_container_new, simulation
-            )
+            particle_bank_module.bank_census_particle(particle_container_new, program)

@@ -74,7 +74,6 @@ def fixed_source_simulation(simulation_container, data):
 
             # Manage particle banks: population control and work rebalance
             particle_bank_module.manage_particle_banks(simulation)
-            return
 
             # Time census-based tally closeout
             if use_census_based_tally:
@@ -227,10 +226,10 @@ def generate_source_particle(work_start, idx_work, seed, program, data):
         particle_bank_module.bank_active_particle(particle_container, program)
     elif not hit_next_census:
         # Particle will participate after the current census
-        particle_bank_module.bank_census_particle(particle_container, simulation)
+        particle_bank_module.bank_census_particle(particle_container, program)
     else:
         # Particle will participate in the future
-        particle_bank_module.bank_future_particle(particle_container, simulation)
+        particle_bank_module.bank_future_particle(particle_container, program)
 
 
 @njit
@@ -300,7 +299,7 @@ def step_particle(particle_container, program, data):
 
     # Census time crossing
     if particle["event"] & EVENT_TIME_CENSUS:
-        particle_bank_module.bank_census_particle(particle_container, simulation)
+        particle_bank_module.bank_census_particle(particle_container, program)
         particle["alive"] = False
 
     # Time boundary crossing

@@ -58,22 +58,26 @@ def _bank_particle(particle_container, bank):
 
 
 @njit
-def bank_active_particle(particle_container, simulation):
+def bank_active_particle(particle_container, program):
+    simulation = util.access_simulation(program)
     _bank_particle(particle_container, simulation["bank_active"])
 
 
 @njit
-def bank_source_particle(particle_container, simulation):
+def bank_source_particle(particle_container, program):
+    simulation = util.access_simulation(program)
     _bank_particle(particle_container, simulation["bank_source"])
 
 
 @njit
-def bank_census_particle(particle_container, simulation):
+def bank_census_particle(particle_container, program):
+    simulation = util.access_simulation(program)
     _bank_particle(particle_container, simulation["bank_census"])
 
 
 @njit
-def bank_future_particle(particle_container, simulation):
+def bank_future_particle(particle_container, program):
+    simulation = util.access_simulation(program)
     _bank_particle(particle_container, simulation["bank_future"])
 
 
@@ -117,7 +121,9 @@ def report_empty_bank(bank):
 
 
 @njit
-def promote_future_particles(simulation, data):
+def promote_future_particles(program, data):
+    simulation = util.access_simulation(program)
+
     # Get the banks
     future_bank = simulation["bank_future"]
 
@@ -141,7 +147,8 @@ def promote_future_particles(simulation, data):
 
         # Promote the future particle to census bank
         if particle["t"] < next_census_time:
-            bank_census_particle(particle_container, simulation)
+
+            bank_census_particle(particle_container, program)
             add_bank_size(future_bank, -1)
 
             # Consolidate the emptied space in the future bank
@@ -193,7 +200,6 @@ def manage_particle_banks(simulation):
         # TODO: better alternative?
         source_bank["particle_data"][:size] = census_bank["particle_data"][:size]
         set_bank_size(source_bank, size)
-    return
 
     # Redistribute work and rebalance bank size across MPI ranks
     if serial:

@@ -34,14 +34,15 @@ def weight_roulette(particle_container, simulation):
 
 
 @njit
-def population_control(simulation):
+def population_control(program):
     """Uniform Splitting-Roulette technique"""
+
+    simulation = util.access_simulation(program)
 
     bank_census = simulation["bank_census"]
     M = simulation["settings"]["N_particle"]
     bank_source = simulation["bank_source"]
 
-    return
     # Scan the bank
     idx_start, N_local, N = particle_bank_module.bank_scanning(bank_census, simulation)
     idx_end = idx_start + N_local
@@ -81,4 +82,4 @@ def population_control(simulation):
             )
             # Set weight
             P_rec["w"] = w_survive
-            particle_bank_module.bank_source_particle(P_rec_arr, simulation)
+            particle_bank_module.bank_source_particle(P_rec_arr, program)
