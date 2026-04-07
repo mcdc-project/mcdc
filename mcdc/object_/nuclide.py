@@ -31,6 +31,7 @@ class Nuclide(ObjectNonSingleton):
     #
     name: str
     temperature: float
+    atomic_number: int
     atomic_weight_ratio: float
     fissionable: bool
     excitation_level: int
@@ -58,27 +59,15 @@ class Nuclide(ObjectNonSingleton):
         self.name = nuclide_name
         self.temperature = temperature
 
-        self.atomic_weight_ratio = 0.0
-        self.fissionable = False
-        self.excitation_level = 0
-
-        # Set default neutron data in case neutron transport is disabled
-        self.neutron_xs_energy_grid = np.zeros(0)
-        self.neutron_total_xs = np.zeros(0)
-        self.neutron_elastic_xs = np.zeros(0)
-        self.neutron_capture_xs = np.zeros(0)
-        self.neutron_inelastic_xs = np.zeros(0)
-        self.neutron_fission_xs = np.zeros(0)
-        self.neutron_elastic_scattering_reactions = []
-        self.neutron_capture_reactions = []
-        self.neutron_inelastic_scattering_reactions = []
-        self.neutron_fission_reactions = []
-        self.neutron_fission_prompt_multiplicity = simulation.data[0]
-        self.neutron_fission_delayed_multiplicity = simulation.data[0]
-        self.N_neutron_fission_delayed_precursor = 0
-        self.neutron_fission_delayed_fractions = np.zeros(0)
-        self.neutron_fission_delayed_decay_rates = np.zeros(0)
-        self.neutron_fission_delayed_spectra = []
+        # Basic properties
+        dir_name = os.getenv("MCDC_LIB")
+        file_name = f"{nuclide_name}-{temperature}K.h5"
+        file = h5py.File(f"{dir_name}/{file_name}", "r")
+        self.atomic_number = int(file["atomic_number"][()])
+        self.atomic_weight_ratio = file["atomic_weight_ratio"][()]
+        self.fissionable = bool(file["fissionable"][()])
+        self.excitation_level = int(file["excitation_level"][()])
+        file.close()
 
     def set_neutron_data(self):
         nuclide_name = self.name
@@ -228,6 +217,7 @@ class Nuclide(ObjectNonSingleton):
         text += f"Nuclide\n"
         text += f"  - ID: {self.ID}\n"
         text += f"  - Name: {self.name}\n"
+        text += f"  - Atomic number: {self.atomic_number}\n"
         text += f"  - Atomic weight ratio: {self.atomic_weight_ratio}\n"
         text += f"  - Reaction MTs\n"
         text += f"    - Elastic scattering: {[int(x.MT) for x in self.neutron_elastic_scattering_reactions]}\n"
