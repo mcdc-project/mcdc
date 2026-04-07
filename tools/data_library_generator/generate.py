@@ -101,7 +101,7 @@ for ace_name in pbar:
     temperature = file.create_dataset("temperature", data=T)
     temperature.attrs["unit"] = "K"
 
-    # Atomic weight ratio
+    # Atomic number and weight ratio
     atomic_weight_ratio = ace_table.atomic_weight_ratio
     file.create_dataset("atomic_weight_ratio", data=atomic_weight_ratio)
 
