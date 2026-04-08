@@ -53,32 +53,46 @@ def _bank_particle(particle_container, bank):
     idx = get_bank_size(bank)
     particle_module.copy(bank["particle_data"][idx : idx + 1], particle_container)
 
+
+@njit
+def bank_active_particle(particle_container, program):
+    simulation = util.access_simulation(program)
+    bank = simulation["bank_active"]
+    _bank_particle(particle_container, bank)
+
     # Increment bank size
     add_bank_size(bank, 1)
 
 
 @njit
-def bank_active_particle(particle_container, program):
-    simulation = util.access_simulation(program)
-    _bank_particle(particle_container, simulation["bank_active"])
-
-
-@njit
-def bank_source_particle(particle_container, program):
-    simulation = util.access_simulation(program)
-    _bank_particle(particle_container, simulation["bank_source"])
-
-
-@njit
 def bank_census_particle(particle_container, program):
     simulation = util.access_simulation(program)
-    _bank_particle(particle_container, simulation["bank_census"])
+    bank = simulation["bank_census"]
+    _bank_particle(particle_container, bank)
+
+    # Increment bank size
+    add_bank_size(bank, 1)
 
 
 @njit
 def bank_future_particle(particle_container, program):
     simulation = util.access_simulation(program)
-    _bank_particle(particle_container, simulation["bank_future"])
+    bank = simulation["bank_future"]
+    _bank_particle(particle_container, bank)
+
+    # Increment bank size
+    add_bank_size(bank, 1)
+
+
+@njit
+def bank_source_particle(particle_container, simulation):
+    bank = simulation["bank_source"]
+    _bank_particle(particle_container, bank)
+
+    # Increment bank size
+    #   Note that we don't use the atomic operation in add_bank_size function
+    #   as source particle banking is not thread-parallelized
+    bank["size"][0] += 1
 
 
 @njit
