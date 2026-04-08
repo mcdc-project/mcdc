@@ -8,7 +8,7 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
     INF,
 )
-from mcdc.main import preparation, run
+from mcdc.main import preparation
 
 # ======================================================================================
 # Setup
@@ -155,12 +155,12 @@ def test_get_distance():
         result = torus_z.get_distance(particle_container, static_surface)
         assert np.isclose(result, answer)
 
-    # Outisde Tours
+    # Outside Tours
     x = R
     y = 0.0
     z = r + 1
     ## Moving closer
-    run(x, y, z, ux=0.0, uy=0.0, uz=-1.0, answer=0.0)
+    run(x, y, z, ux=0.0, uy=0.0, uz=-1.0, answer=1.0)
     ## Moving away
     run(x, y, z, ux=0.0, uy=0.0, uz=1.0, answer=INF)
     ## Parallel
@@ -173,7 +173,7 @@ def test_get_distance():
     ## Moving Up
     run(x, y, z, ux=0.0, uy=0.0, uz=1, answer=(r / 2))
     ## Moving Down
-    run(x, y, z, ux=0.0, uy=0.0, uz=0.0, answer=(3 * (r / 2)))
+    run(x, y, z, ux=0.0, uy=0.0, uz=-1.0, answer=(3 * (r / 2)))
 
     # At surface, within tolerance, on the outside
     x = R
@@ -182,7 +182,7 @@ def test_get_distance():
     ## Moving away
     run(x, y, z, ux=0.0, uy=0.0, uz=1.0, answer=INF)
     ## Moving closer
-    run(x, y, z, ux=0.0, uy=0.0, uz=-1.0, answer=INF)
+    run(x, y, z, ux=0.0, uy=0.0, uz=-1.0, answer=(2 * r))
     ## Parallel
     run(x, y, z, ux=1.0, uy=0.0, uz=0.0, answer=INF)
 
@@ -191,7 +191,7 @@ def test_get_distance():
     y = R
     z = r - TINY
     ## Moving up
-    run(x, y, z, ux=0.0, uy=0.0, uz=1.0, answer=(2 * r))
+    run(x, y, z, ux=0.0, uy=0.0, uz=1.0, answer=INF)
     ## Moving down
     run(x, y, z, ux=0.0, uy=0.0, uz=-1.0, answer=(2 * r))
 
@@ -213,42 +213,10 @@ def test_interface_reflect():
         directions = np.array([particle["ux"], particle["uy"], particle["uz"]])
         assert np.allclose(directions, answers)
 
-        run(
-            x=R,
-            y=0.0,
-            z=(r + TINY),
-            ux=0.0,
-            uy=0.0,
-            uz=-1.0,
-            answers=np.array([0, 0, 1]),
-        )
-        run(
-            x=R,
-            y=0.0,
-            z=(r - TINY),
-            ux=0.0,
-            uy=0.0,
-            uz=1.0,
-            answers=np.array([0, 0, -1]),
-        )
-        run(
-            x=0.0,
-            y=R,
-            z=-(r + TINY),
-            ux=0.0,
-            uy=0.0,
-            uz=1.0,
-            answers=np.array([0, 0, -1]),
-        )
-        run(
-            x=0.0,
-            y=R,
-            z=-(r - TINY),
-            ux=0.0,
-            uy=0.0,
-            uz=-1.0,
-            answers=np.array([0, 0, 1]),
-        )
+    run(x=R, y=0.0, z=(r + TINY), ux=0.0, uy=0.0, uz=-1.0, answers=np.array([0, 0, 1]))
+    run(x=R, y=0.0, z=(r - TINY), ux=0.0, uy=0.0, uz=1.0, answers=np.array([0, 0, -1]))
+    run(x=0.0, y=R, z=-(r + TINY), ux=0.0, uy=0.0, uz=1.0, answers=np.array([0, 0, -1]))
+    run(x=0.0, y=R, z=-(r - TINY), ux=0.0, uy=0.0, uz=-1.0, answers=np.array([0, 0, 1]))
 
     root = math.sqrt(2) / 2  # 45 degree X-Y lengths on the unit circle
     d = (
@@ -757,7 +725,7 @@ def test_interface_get_distance():
     ## Negative direction
     run_static(x=x, y=y, z=z, ux=-0.4, uy=uy, uz=uz, answer=1.0 / 0.4)
     ## Parallel
-    run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=1.0 / 0.4)
+    run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=INF)
 
     # At surface, on the inside
     x = 1.5 - TINY
@@ -768,12 +736,12 @@ def test_interface_get_distance():
     ## Positive direction
     run_static(x=x, y=y, z=z, ux=0.4, uy=uy, uz=uz, answer=INF)
     ## Negative direction
-    run_static(x=x, y=y, z=z, ux=-0.4, uy=uy, uz=uz, answer=INF)
+    run_static(x=x, y=y, z=z, ux=-0.4, uy=uy, uz=uz, answer=1.0 / 0.4)
     ## Parallel
     run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=INF)
 
     # ============================================================================================
-    # Moving (Only testing a hit on the midline of the torus in positve and negative x directions)
+    # Moving (Only testing a hit on the midline of the torus in positive and negative x directions)
     # ============================================================================================
     # Bin 0: t = [ 0.0,  5.0]; surface_x_center = [-5.0,    0.0]; surface_speed = -1.0
     # Bin 1: t = [ 5.0, 10.0]; surface_x_center = [-5.0,    5.0]; surface_speed =  2.0
@@ -790,13 +758,18 @@ def test_interface_get_distance():
         # Time when the surface enters the final bin to be evaluated (0 when evaluating bin 0, and 5 when evaluating bin 1)
         t0 = 0.0 + np.sum(durations[:bin_idx])
 
-        # Starting position of the surface at the begining of the last bin to be evaluated (0 for bin 0, and -5 for bin 1)
+        # Starting position of the surface at the beginning of the last bin to be evaluated (0 for bin 0, and -5 for bin 1)
         surface_x = A + np.sum(durations[:bin_idx] * velocities[:bin_idx, 0])
 
         # Speed of the surface in the final bin to be evaluated (-1 for bin 0)
         surface_speed = velocities[bin_idx, 0]
 
         return ((surface_speed * -t0) - (x - surface_x)) / (ux - surface_speed / speed)
+
+    def outer_surface_distance(x, ux, speed, bin_idx):
+        surface_speed = velocities[bin_idx, 0]
+        relative_ux = ux - surface_speed / speed
+        return center_distance(x, ux, speed, bin_idx) - (R + r) / abs(relative_ux)
 
     # Start from the beginning
     t = 0.0
@@ -810,11 +783,12 @@ def test_interface_get_distance():
     ux = 0.4
     uy = 0.0
     uz = 0.0
-    ### No hit
-    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=1.0, answer=INF)
+    ### Surface catches up after reversing direction in bin 1
+    answer = outer_surface_distance(x, ux, speed=1.0, bin_idx=1)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=1.0, answer=answer)
     ### Hit (rear-ended by the surface)
-    answer = (
-        center_distance(x, ux, speed=0.9, bin_idx=1) - R - r
+    answer = outer_surface_distance(
+        x, ux, speed=0.9, bin_idx=1
     )  # Collision in bin 1 where the surface catches up to the particle
     run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=0.9, answer=answer)
     #
@@ -823,12 +797,12 @@ def test_interface_get_distance():
     uy = 0.0
     uz = 0.0
     ### Hit (rear-end the surface)
-    answer = (
-        center_distance(x, ux, speed=3.0, bin_idx=0) - R - r
+    answer = outer_surface_distance(
+        x, ux, speed=3.0, bin_idx=0
     )  # Collision in bin 0 where the surface is running away from particle
     run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=3.0, answer=answer)
     ### Hit (head-on opposite directions)
-    answer = center_distance(x, ux, speed=0.1, bin_idx=1) - R - r  # Collision in bin 1
+    answer = outer_surface_distance(x, ux, speed=0.1, bin_idx=1)  # Collision in bin 1
     run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=0.1, answer=answer)
 
     # Negative x side of the torus
@@ -840,10 +814,11 @@ def test_interface_get_distance():
     ux = -0.4
     uy = 0.0
     uz = 0.0
-    ### No hit
-    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=2.0, answer=INF)
+    ### Surface catches up in bin 0
+    answer = outer_surface_distance(x, ux, speed=2.0, bin_idx=0)
+    run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=2.0, answer=answer)
     ### Hit (rear-ended by the surface)
-    answer = center_distance(x, ux, speed=0.4, bin_idx=0) - R - r  # Collision in bin 0
+    answer = outer_surface_distance(x, ux, speed=0.4, bin_idx=0)  # Collision in bin 0
     run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=0.4, answer=answer)
     #
     ## Positive direction (moving closer)
@@ -851,12 +826,12 @@ def test_interface_get_distance():
     uy = 0.0
     uz = 0.0
     ### Hit (head-on)
-    answer = center_distance(x, ux, speed=0.1, bin_idx=0) - R - r  # Collision in bin 0
+    answer = outer_surface_distance(x, ux, speed=0.1, bin_idx=0)  # Collision in bin 0
     run_moving(x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=0.1, answer=answer)
     ### Hit (rear-end the surface)
     x = -20.0
-    answer = (
-        center_distance(x, ux, speed=(20.0 / 3.0), bin_idx=1) - R - r
+    answer = outer_surface_distance(
+        x, ux, speed=(20.0 / 3.0), bin_idx=1
     )  # Collision in bin 1
     run_moving(
         x=x, y=y, z=z, ux=ux, uy=uy, uz=uz, t=t, speed=(20.0 / 3.0), answer=answer

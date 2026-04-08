@@ -213,10 +213,3 @@ def get_distance(particle_container, surface):
         return INF
 
     return min_t
-
-    # Using the smallest root to get the value of t at the first point of intersection
-    # If the direction vector is normalized, the distance to intersection is just the value of t
-    min_t = min(real_roots)
-    ray_length = math.sqrt(G)
-
-    return min_t * ray_length
