@@ -160,7 +160,7 @@ class Surface(ObjectNonSingleton):
 
         # Helpers
         self.linear = True
-        
+
         # Surface normal direction (if linear)
         self.nx = 0.0
         self.ny = 0.0
@@ -856,7 +856,7 @@ class Surface(ObjectNonSingleton):
         Surface
             Torus surface.
         """
-        type_ = SURFACE_TORUS_X
+        type_ = SURFACE_TORUS_Z
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = False

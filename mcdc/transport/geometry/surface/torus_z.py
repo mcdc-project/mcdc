@@ -22,6 +22,7 @@ from mcdc.constant import (
     INF,
 )
 
+
 @njit
 def evaluate(particle_container, surface):
     """
@@ -33,7 +34,7 @@ def evaluate(particle_container, surface):
     - If the return is positive, the particle is outside the torus
     - If the return is negative, the particle is inside the torus
     """
-  
+
     # Particle parameters
     particle = particle_container[0]
     x = particle["x"]
@@ -52,9 +53,8 @@ def evaluate(particle_container, surface):
     y -= B
     z -= C
 
-    return(
-        ( (x*x + y*y + z*z + R*R - r*r)**2 )
-        - (4*R*R * (x*x + y*y))
+    return ((x * x + y * y + z * z + R * R - r * r) ** 2) - (
+        4 * R * R * (x * x + y * y)
     )
 
 
@@ -82,9 +82,9 @@ def reflect(particle_container, surface):
     z -= C
 
     # Taking the partial derivitives of the expanded form of the implicit torus equation
-    dx = 4 * x * (-(r**2) -(R**2) +(x**2) +(y**2) +(z**2))
-    dy = 4 * y * (-(r**2) -(R**2) +(x**2) +(y**2) +(z**2))
-    dz = 4 * z * (-(r**2) +(R**2) +(x**2) +(y**2) +(z**2))
+    dx = 4 * x * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
+    dy = 4 * y * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
+    dz = 4 * z * (-(r**2) + (R**2) + (x**2) + (y**2) + (z**2))
 
     # Surface Normal
     norm = math.sqrt(dx**2 + dy**2 + dz**2)
@@ -93,7 +93,9 @@ def reflect(particle_container, surface):
     nz = dz / norm
 
     # Reflect
-    c = 2.0 * (nx * ux + ny * uy + nz * uz) # Magnitutde component of the projection of the particle onto the surface normal
+    c = 2.0 * (
+        nx * ux + ny * uy + nz * uz
+    )  # Magnitutde component of the projection of the particle onto the surface normal
     particle["ux"] -= c * nx
     particle["uy"] -= c * ny
     particle["uz"] -= c * nz
@@ -123,9 +125,9 @@ def get_normal_component(particle_container, surface):
     z -= C
 
     # Taking the partial derivitives of the expanded form of the implicit torus equation
-    dx = 4 * x * (-(r**2) -(R**2) +(x**2) +(y**2) +(z**2))
-    dy = 4 * y * (-(r**2) -(R**2) +(x**2) +(y**2) +(z**2))
-    dz = 4 * z * (-(r**2) +(R**2) +(x**2) +(y**2) +(z**2))
+    dx = 4 * x * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
+    dy = 4 * y * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
+    dz = 4 * z * (-(r**2) + (R**2) + (x**2) + (y**2) + (z**2))
 
     # Surface Normal
     norm = math.sqrt(dx**2 + dy**2 + dz**2)
@@ -139,7 +141,7 @@ def get_normal_component(particle_container, surface):
 @njit
 def get_distance(particle_container, surface):
     particle = particle_container[0]
-    
+
     # Particle coordinate
     x = particle["x"]
     y = particle["y"]
@@ -165,27 +167,27 @@ def get_distance(particle_container, surface):
             >= 0.0 - COINCIDENCE_TOLERANCE
         ):
             return INF
-    
+
     # Shifting the origin point of the particle into the torus space, and treating the torus as centered on (0,0,0)
     x -= A
     y -= B
     z -= C
 
     # Dot products that come up frequently in the torus-ray intersection equation
-    G = ux*ux + uy*uy + uz*uz
-    H = 2.0 * (x*ux + y*uy + z*uz)
-    I = x*x + y*y + z*z
+    G = ux * ux + uy * uy + uz * uz
+    H = 2.0 * (x * ux + y * uy + z * uz)
+    I = x * x + y * y + z * z
 
-    J = ux*ux + uy*uy
-    K = 2.0 * (x*ux + y*uy)
-    L = x*x + y*y
+    J = ux * ux + uy * uy
+    K = 2.0 * (x * ux + y * uy)
+    L = x * x + y * y
 
     # Quartic coefficients from substituting (i = origin_i + direction_i * t) into each axis for i (x,y,z)
     a4 = G * G
     a3 = 2.0 * G * H
-    a2 = H*H + 2.0*G*(I + R*R - r*r) - 4.0*R*R*J
-    a1 = 2.0*H*(I + R*R - r*r) - 4.0*R*R*K
-    a0 = (I + R*R - r*r)**2 - 4.0*R*R*L
+    a2 = H * H + 2.0 * G * (I + R * R - r * r) - 4.0 * R * R * J
+    a1 = 2.0 * H * (I + R * R - r * r) - 4.0 * R * R * K
+    a0 = (I + R * R - r * r) ** 2 - 4.0 * R * R * L
 
     # Use the numpy polynomial library to solve the quartic above for t
     coefficients = [a0, a1, a2, a3, a4]
@@ -199,7 +201,7 @@ def get_distance(particle_container, surface):
         elif solution >= 0:
             real_roots.append(solution)
 
-    if len(real_roots) == 0: # Ending the calculation if there are no valid solutions
+    if len(real_roots) == 0:  # Ending the calculation if there are no valid solutions
         return INF
 
     # Using the smallest root to get the value of t at the first point of intersection
