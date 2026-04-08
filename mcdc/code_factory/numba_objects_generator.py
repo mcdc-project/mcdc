@@ -364,9 +364,8 @@ def generate_numba_objects(simulation):
     # ==================================================================================
 
     if config.target == "gpu":
-        gpu_builder.adapt_transport_functions()
         gpu_builder.forward_declare_gpu_program()
-        gpu_builder.adapt_transport_functions_post_declare()
+        gpu_builder.adapt_transport_functions()
         gpu_builder.build_gpu_program(data["size"])
 
     # ==================================================================================

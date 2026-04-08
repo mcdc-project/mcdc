@@ -14,8 +14,12 @@ import mcdc.config as config
 
 
 def adapt_transport_functions():
+    global access_simulation
+
     import mcdc.code_factory.gpu.transport as gpu_transport
     import mcdc.transport as transport
+
+    transport.util.access_simulation = access_simulation
 
     # TODO: Make the following automatic
     transport.geometry.interface.report_lost_particle = (
@@ -32,12 +36,6 @@ def adapt_transport_functions():
     )
     transport.util.atomic_add = gpu_transport.util.atomic_add
     transport.util.local_array = gpu_transport.util.local_array
-
-
-def adapt_transport_functions_post_declare():
-    import mcdc.transport as transport
-
-    transport.util.access_simulation = access_simulation
 
 
 def adapt_transport_functions_post_setup():
