@@ -192,17 +192,27 @@ def get_distance(particle_container, surface):
     # Use the numpy polynomial library to solve the quartic above for t
     coefficients = [a0, a1, a2, a3, a4]
     roots = np.ndarray.tolist(poly.polyroots(coefficients))
-    real_roots = []
+    min_t = INF
 
     # Filtering the roots for real solutions
     for solution in roots:
-        if isinstance(solution, complex):
-            pass
-        elif solution >= 0:
-            real_roots.append(solution)
+        if abs(solution.imag) >= COINCIDENCE_TOLERANCE:
+            continue
 
-    if len(real_roots) == 0:  # Ending the calculation if there are no valid solutions
+        root = solution.real
+        if coincident:
+            if root <= COINCIDENCE_TOLERANCE:
+                continue
+        elif root < 0.0:
+            continue
+
+        if root < min_t:
+            min_t = root
+
+    if min_t == INF:
         return INF
+
+    return min_t
 
     # Using the smallest root to get the value of t at the first point of intersection
     # If the direction vector is normalized, the distance to intersection is just the value of t

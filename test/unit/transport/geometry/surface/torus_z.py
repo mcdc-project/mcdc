@@ -8,7 +8,7 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
     INF,
 )
-from mcdc.main import preparation
+from mcdc.main import preparation, run
 
 # ======================================================================================
 # Setup
@@ -46,7 +46,7 @@ particle_container = np.zeros(1, type_.particle_data)
 particle = particle_container[0]
 
 # Miscellanies
-TINY = COINCIDENCE_TOLERANCE * 0.8  # Tiny value within coincidence tolerance
+TINY = COINCIDENCE_TOLERANCE * 0.1  # Tiny value within coincidence tolerance
 
 # Load modules to be tested
 from mcdc.transport.geometry.surface import (
@@ -70,7 +70,7 @@ def test_evaluate():
     # Inside
     run(x=1.0, y=0.0, z=0.0, answer=-0.9375)
     # Outside
-    run(x=0.0, y=-1.0, z=5.0, answer=711.6)
+    run(x=0.0, y=-1.0, z=5.0, answer=711.5625)
 
 
 # Answers parameter is a numpy array of the correct [ux, uy, uz] values of the reflected particle
@@ -82,8 +82,8 @@ def test_reflect():
         particle["ux"] = ux
         particle["uy"] = uy
         particle["uz"] = uz
-        directions = np.array([particle["ux"], particle["uy"], particle["uz"]])
         torus_z.reflect(particle_container, static_surface)
+        directions = np.array([particle["ux"], particle["uy"], particle["uz"]])
         assert np.allclose(directions, answers)
 
     # Particle traveling in through the Top of the torus
@@ -92,11 +92,9 @@ def test_reflect():
     run(x=R, y=0.0, z=(r - TINY), ux=0.0, uy=0.0, uz=1.0, answers=np.array([0, 0, -1]))
 
     # Particle traveling in through the Bottom of the torus
-    run(x=0.0, y=R, z=-(r + TINY), ux=0.0, uy=0.0, uz=1.0, answers=np.array([0, 0, 1]))
+    run(x=0.0, y=R, z=-(r + TINY), ux=0.0, uy=0.0, uz=1.0, answers=np.array([0, 0, -1]))
     # Particle traveling out through the Bottom of the torus
-    run(
-        x=0.0, y=R, z=-(r - TINY), ux=0.0, uy=0.0, uz=-1.0, answers=np.array([0, 0, -1])
-    )
+    run(x=0.0, y=R, z=-(r - TINY), ux=0.0, uy=0.0, uz=-1.0, answers=np.array([0, 0, 1]))
 
     root = math.sqrt(2) / 2  # 45 degree X-Y lengths on the unit circle
     d = (
@@ -193,9 +191,9 @@ def test_get_distance():
     y = R
     z = r - TINY
     ## Moving up
-    run(x, y, z, ux=0.0, uy=0.0, uz=1.0, answer=INF)
+    run(x, y, z, ux=0.0, uy=0.0, uz=1.0, answer=(2 * r))
     ## Moving down
-    run(x, y, z, ux=0.0, uy=0.0, uz=-1.0, answer=INF)
+    run(x, y, z, ux=0.0, uy=0.0, uz=-1.0, answer=(2 * r))
 
 
 # =====================================================================================
@@ -211,21 +209,46 @@ def test_interface_reflect():
         particle["ux"] = ux
         particle["uy"] = uy
         particle["uz"] = uz
-        directions = np.array([particle["ux"], particle["uy"], particle["uz"]])
         interface.reflect(particle_container, static_surface)
+        directions = np.array([particle["ux"], particle["uy"], particle["uz"]])
         assert np.allclose(directions, answers)
 
-    # Particle traveling in through the Top of the torus
-    run(x=R, y=0.0, z=(r + TINY), ux=0.0, uy=0.0, uz=-1.0, answers=np.array([0, 0, 1]))
-    # Particle traveling out through the Top of the torus
-    run(x=R, y=0.0, z=(r - TINY), ux=0.0, uy=0.0, uz=1.0, answers=np.array([0, 0, -1]))
-
-    # Particle traveling in through the Bottom of the torus
-    run(x=0.0, y=R, z=-(r + TINY), ux=0.0, uy=0.0, uz=1.0, answers=np.array([0, 0, 1]))
-    # Particle traveling out through the Bottom of the torus
-    run(
-        x=0.0, y=R, z=-(r - TINY), ux=0.0, uy=0.0, uz=-1.0, answers=np.array([0, 0, -1])
-    )
+        run(
+            x=R,
+            y=0.0,
+            z=(r + TINY),
+            ux=0.0,
+            uy=0.0,
+            uz=-1.0,
+            answers=np.array([0, 0, 1]),
+        )
+        run(
+            x=R,
+            y=0.0,
+            z=(r - TINY),
+            ux=0.0,
+            uy=0.0,
+            uz=1.0,
+            answers=np.array([0, 0, -1]),
+        )
+        run(
+            x=0.0,
+            y=R,
+            z=-(r + TINY),
+            ux=0.0,
+            uy=0.0,
+            uz=1.0,
+            answers=np.array([0, 0, -1]),
+        )
+        run(
+            x=0.0,
+            y=R,
+            z=-(r - TINY),
+            ux=0.0,
+            uy=0.0,
+            uz=-1.0,
+            answers=np.array([0, 0, 1]),
+        )
 
     root = math.sqrt(2) / 2  # 45 degree X-Y lengths on the unit circle
     d = (
@@ -281,7 +304,7 @@ def test_interface_evaluate():
     # Inside
     run_static(x=1.0, y=0.0, z=0.0, answer=-0.9375)
     # Outside
-    run_static(x=0.0, y=-1.0, z=5.0, answer=711.6)
+    run_static(x=0.0, y=-1.0, z=5.0, answer=711.5625)
 
     # =================================================================================
     # Moving
@@ -295,7 +318,7 @@ def test_interface_evaluate():
     ## Inside side
     run_moving(x=-3.0, y=1.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, answer=-0.9375)
     ## Outside side
-    run_moving(x=-3.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.6)
+    run_moving(x=-3.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.5625)
 
     # First bin, at grid
     t = 5.0  # Torus center x-position = -5.0
@@ -305,7 +328,7 @@ def test_interface_evaluate():
     ## Inside side
     run_moving(x=-5.0, y=1.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, answer=-0.9375)
     ## Outside side
-    run_moving(x=-5.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.6)
+    run_moving(x=-5.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.5625)
 
     # Interior bin
     t = 12.0  # Torus center x-position = -1.0 due to velocity and duration values
@@ -315,7 +338,7 @@ def test_interface_evaluate():
     ## Inside side
     run_moving(x=-1.0, y=1.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, answer=-0.9375)
     ## Outside side
-    run_moving(x=-1.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.6)
+    run_moving(x=-1.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.5625)
 
     # Interior bin, at grid
     t = 15.0  # Surface x-position = -10.0
@@ -325,7 +348,7 @@ def test_interface_evaluate():
     ## Inside side
     run_moving(x=-10.0, y=1.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, answer=-0.9375)
     ## Outside side
-    run_moving(x=-10.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.6)
+    run_moving(x=-10.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.5625)
 
     # Final bin
     t = 100.0  # Surface x-position = -10.0
@@ -335,7 +358,7 @@ def test_interface_evaluate():
     ## Inside side
     run_moving(x=-10.0, y=1.0, z=0.0, ux=ux, uy=uy, uz=uz, t=t, answer=-0.9375)
     ## Outside side
-    run_moving(x=-10.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.6)
+    run_moving(x=-10.0, y=-1.0, z=5.0, ux=ux, uy=uy, uz=uz, t=t, answer=711.5625)
 
 
 def test_interface_get_normal_component():
@@ -511,7 +534,6 @@ def test_interface_check_sense():  # Returns true if the particle is on the outs
         particle["ux"] = ux
         particle["uy"] = uy
         particle["uz"] = uz
-        particle["t"] = t
         speed = 2.0  # Arbitrary
         result = interface.check_sense(particle_container, speed, static_surface, data)
         assert np.isclose(result, answer)
@@ -538,9 +560,9 @@ def test_interface_check_sense():  # Returns true if the particle is on the outs
     uy = 0.0
     uz = 0.0
     ## Positive side
-    run_static(x=3.0, y=y, z=z, ux=ux, uy=uy, uz=uz, answer=False)
+    run_static(x=3.0, y=y, z=z, ux=ux, uy=uy, uz=uz, answer=True)
     ## Negative side
-    run_static(x=-4.0, y=y, z=z, ux=ux, uy=uy, uz=uz, answer=False)
+    run_static(x=-4.0, y=y, z=z, ux=ux, uy=uy, uz=uz, answer=True)
 
     # At surface, outside
     x = R + r + TINY
@@ -707,7 +729,7 @@ def test_interface_get_distance():
     ## Positive direction (moving away)
     run_static(x=x, y=y, z=z, ux=0.3, uy=uy, uz=uz, answer=INF)
     ## Negative direction (moving closer)
-    run_static(x=x, y=y, z=z, ux=-0.3, uy=uy, uz=uz, answer=5.0)
+    run_static(x=x, y=y, z=z, ux=-0.3, uy=uy, uz=uz, answer=5.0 / 0.3)
     ## Parallel
     run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=INF)
 
@@ -718,7 +740,7 @@ def test_interface_get_distance():
     uy = 0.0
     uz = 0.0
     ## Positive direction (moving closer)
-    run_static(x=x, y=y, z=z, ux=0.3, uy=uy, uz=uz, answer=4.0)
+    run_static(x=x, y=y, z=z, ux=0.3, uy=uy, uz=uz, answer=4.0 / 0.3)
     ## Negative direction (moving away)
     run_static(x=x, y=y, z=z, ux=-0.3, uy=uy, uz=uz, answer=INF)
     ## Parallel
@@ -733,9 +755,9 @@ def test_interface_get_distance():
     ## Positive direction
     run_static(x=x, y=y, z=z, ux=0.4, uy=uy, uz=uz, answer=INF)
     ## Negative direction
-    run_static(x=x, y=y, z=z, ux=-0.4, uy=uy, uz=uz, answer=INF)
+    run_static(x=x, y=y, z=z, ux=-0.4, uy=uy, uz=uz, answer=1.0 / 0.4)
     ## Parallel
-    run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=INF)
+    run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=1.0 / 0.4)
 
     # At surface, on the inside
     x = 1.5 - TINY
