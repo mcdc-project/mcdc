@@ -15,9 +15,7 @@ def test_maxwellian_sample(rng_sequence, rng_state):
     xi1, xi2, xi3 = 0.9, 0.9, 0.0
     rng_sequence([xi1, xi2, xi3])
 
-    sampled_E = dist.sample_maxwellian(
-        2.0, rng_state, maxwellian, mcdc, data
-    )
+    sampled_E = dist.sample_maxwellian(2.0, rng_state, maxwellian, mcdc, data)
     # MCNP Eq. (2.73):
     #   E_out = -T(E_in) * [xi_1^2 / (xi_1^2 + xi_2^2) * ln(xi_3) + ln(xi_4)]
     # MCDC uses the equivalent polar-form reduction

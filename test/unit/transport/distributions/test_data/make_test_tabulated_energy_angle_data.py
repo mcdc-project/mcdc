@@ -15,15 +15,7 @@ def make_test_tabulated_energy_angle_data():
     c_mu_i_j = [0.0, 0.5, 1.0, 0.0, 0.3, 1.0]
 
     data = np.array(
-        Ei
-        + L_i
-        + E_i_k
-        + p_i_k
-        + c_i_k
-        + L_i_k
-        + mu_i_j
-        + p_mu_i_j
-        + c_mu_i_j,
+        Ei + L_i + E_i_k + p_i_k + c_i_k + L_i_k + mu_i_j + p_mu_i_j + c_mu_i_j,
         dtype=np.float64,
     )
 

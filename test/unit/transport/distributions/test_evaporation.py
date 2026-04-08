@@ -14,9 +14,7 @@ def test_evaporation_sample(rng_sequence, rng_state):
     xi1, xi2 = 0.1, 0.2
     rng_sequence([xi1, xi2])
 
-    sampled_E = dist.sample_evaporation(
-        2.0, rng_state, evaporation, mcdc, data
-    )
+    sampled_E = dist.sample_evaporation(2.0, rng_state, evaporation, mcdc, data)
     # The constant temperature table gives T(E_in) = 1.0 for this test.
     # With U = 0, the MCNP notation E_in - U becomes 2.0, so
     #   w = (E_in - U) / T(E_in) = 2.0.
