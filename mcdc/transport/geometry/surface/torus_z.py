@@ -13,8 +13,6 @@ import math
 
 import numpy as np
 
-import numpy.polynomial.polynomial as poly
-
 from numba import njit
 
 from mcdc.constant import (
@@ -189,9 +187,14 @@ def get_distance(particle_container, surface):
     a1 = 2.0 * H * (I + R * R - r * r) - 4.0 * R * R * K
     a0 = (I + R * R - r * r) ** 2 - 4.0 * R * R * L
 
-    # Use the numpy polynomial library to solve the quartic above for t
-    coefficients = [a0, a1, a2, a3, a4]
-    roots = np.ndarray.tolist(poly.polyroots(coefficients))
+    # TODO: May replace with a fully numba-native quartic solver if torus performance becomes important;
+    # np.roots is sufficient for now.
+    coefficients = np.array(
+        [a4 + 0.0j, a3 + 0.0j, a2 + 0.0j, a1 + 0.0j, a0 + 0.0j],
+        dtype=np.complex128,
+    )
+    roots = np.roots(coefficients)
+
     min_t = INF
 
     # TODO: Add stricter coverage/handling for near-tangent and off-axis torus intersections.
