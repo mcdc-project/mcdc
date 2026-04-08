@@ -194,7 +194,8 @@ def get_distance(particle_container, surface):
     roots = np.ndarray.tolist(poly.polyroots(coefficients))
     min_t = INF
 
-    # Filtering the roots for real solutions
+    # TODO: Add stricter coverage/handling for near-tangent and off-axis torus intersections.
+    # Current root filtering relies on COINCIDENCE_TOLERANCE for near-real and near-zero roots.
     for solution in roots:
         if abs(solution.imag) >= COINCIDENCE_TOLERANCE:
             continue

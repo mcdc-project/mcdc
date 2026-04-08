@@ -740,6 +740,7 @@ def test_interface_get_distance():
     ## Parallel
     run_static(x=x, y=y, z=z, ux=0.0, uy=1.0, uz=uz, answer=INF)
 
+    # TODO: Numerical Risk - Add off-midplane and near-tangent moving-distance cases.
     # ============================================================================================
     # Moving (Only testing a hit on the midline of the torus in positive and negative x directions)
     # ============================================================================================
