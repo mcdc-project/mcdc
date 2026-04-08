@@ -18,7 +18,7 @@ from mcdc.main import preparation
 A = 0.0
 B = 0.0
 C = 0.0
-R = 1
+R = 1.0
 r = 0.5
 durations = np.array([5.0, 5.0, 5.0])
 velocities = np.zeros((3, 3))
