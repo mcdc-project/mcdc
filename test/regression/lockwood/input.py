@@ -93,8 +93,4 @@ mcdc.settings.set_transported_particles(["electron"])
 mcdc.settings.N_particle = N_PARTICLES
 mcdc.settings.active_bank_buffer = N_PARTICLES * 1000
 
-mcdc.settings.save_input_deck = True
-mcdc.settings.output_name = f"o_{MATERIAL_SYMBOL}_{e_name}eV_1e{np_name}p_{int(ANGLE)}a_{datetime.now():%m%d%y_%H%M%S}"
-mcdc.settings.use_progress_bar = True
-
 mcdc.run()
