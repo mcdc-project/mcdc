@@ -174,6 +174,13 @@ class Material(MaterialBase):
             # Get supported temperature
             nearest_temperature = min(TEMPERATURES, key=lambda x: abs(x - temperature))
 
+            # Check if nuclide-temperature is available in the library
+            file_name = f"{nuclide_name}-{nearest_temperature}K.h5"
+            if not file_name in os.listdir(lib_dir):
+                print_error(
+                    f"Nuclide {nuclide_name} at temperature {nearest_temperature} K is not available in the library"
+                )
+
             # Check if nuclide is already created
             found = False
             for nuclide in simulation.nuclides:
@@ -192,6 +199,10 @@ class Material(MaterialBase):
             self.nuclides.append(nuclide)
             self.nuclide_densities[i] = nuclide_density
             self.nuclide_composition[nuclide] = nuclide_density
+
+            # Promote nuclide flags to material
+            if nuclide.fissionable:
+                self.fissionable = True
 
     def __repr__(self):
         text = super().__repr__()
