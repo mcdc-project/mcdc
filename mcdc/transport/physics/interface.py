@@ -60,10 +60,11 @@ def collision_distance(particle_container, mcdc, data):
     particle = particle_container[0]
 
     # Get total cross-section
-    reaction_type = NEUTRON_REACTION_TOTAL
-    if particle["particle_type"] == PARTICLE_ELECTRON:
-        reaction_type = ELECTRON_REACTION_TOTAL
-    SigmaT = macro_xs(reaction_type, particle_container, mcdc, data)
+    SigmaT = 0.0
+    if particle["particle_type"] == PARTICLE_NEUTRON:
+        SigmaT = macro_xs(NEUTRON_REACTION_TOTAL, particle_container, mcdc, data)
+    elif particle["particle_type"] == PARTICLE_ELECTRON:
+        SigmaT = macro_xs(ELECTRON_REACTION_TOTAL, particle_container, mcdc, data)
 
     # Vacuum material?
     if SigmaT == 0.0:
