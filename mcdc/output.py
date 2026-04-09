@@ -18,13 +18,6 @@ from mcdc.constant import (
 # ======================================================================================
 
 
-def get_version():
-    try:
-        return importlib.metadata.version("mcdc")
-    except importlib.metadata.PackageNotFoundError:
-        return "source"
-
-
 def generate_output(mcdc, data):
     from mcdc import simulation
 
@@ -42,7 +35,7 @@ def generate_output(mcdc, data):
     file = h5py.File(settings["output_name"] + ".h5", "w")
 
     # Version
-    file["version"] = get_version()
+    file["version"] = importlib.metadata.version("mcdc")
 
     # Settings
     create_object_dataset(file, "settings", simulation.settings)
