@@ -78,10 +78,6 @@ class Nuclide(ObjectNonSingleton):
         file_name = f"{nuclide_name}-{temperature}K.h5"
         file = h5py.File(f"{dir_name}/{file_name}", "r")
 
-        self.atomic_weight_ratio = float(file["atomic_weight_ratio"][()])
-        self.fissionable = bool(file["fissionable"][()])
-        self.excitation_level = int(file["excitation_level"][()])
-
         # The reactions
         rx_names = [
             "elastic_scattering",
