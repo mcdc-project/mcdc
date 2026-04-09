@@ -166,7 +166,7 @@ class Material(MaterialBase):
             self.element_densities[i] = element_density
             self.element_composition[element] = element_density
 
-        # Loop over the items in the composition
+        # Loop over the items in the nuclide composition
         for i, (key, value) in enumerate(nuclide_composition.items()):
             nuclide_name = key
             nuclide_density = value
@@ -196,12 +196,18 @@ class Material(MaterialBase):
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Temperature: {self.temperature} K\n"
-        text += f"  - Nuclide composition [atoms/barn-cm]\n"
-        for nuclide in self.nuclide_composition.keys():
-            text += f"    - {nuclide.name:<5} | {self.nuclide_composition[nuclide]}\n"
-        text += f"  - Element composition [atoms/barn-cm]\n"
-        for element in self.element_composition.keys():
-            text += f"    - {element.name:<5} | {self.element_composition[element]}\n"
+        if len(self.nuclide_composition) > 0:
+            text += f"  - Nuclide composition [atoms/barn-cm]\n"
+            for nuclide in self.nuclide_composition.keys():
+                text += (
+                    f"    - {nuclide.name:<5} | {self.nuclide_composition[nuclide]}\n"
+                )
+        if len(self.element_composition) > 0:
+            text += f"  - Element composition [atoms/barn-cm]\n"
+            for element in self.element_composition.keys():
+                text += (
+                    f"    - {element.name:<5} | {self.element_composition[element]}\n"
+                )
         return text
 
 
