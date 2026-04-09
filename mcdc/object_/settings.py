@@ -1,3 +1,4 @@
+from typing import List
 import h5py
 from h5py._hl.dataset import sel
 import numpy as np
@@ -141,7 +142,7 @@ class Settings(ObjectSingleton):
         with h5py.File(source_file_name, "r") as f:
             self.N_particle = int(f["particles_size"][()])
 
-    def set_transported_particles(self, transported_particles):
+    def set_transported_particles(self, transported_particles: List[str]):
         # Reset the flags
         self.neutron_transport = False
         self.electron_transport = False

@@ -5,4 +5,5 @@ from .interface import (
     collision_distance,
     collision,
 )
+import mcdc.transport.physics.electron as electron
 import mcdc.transport.physics.neutron as neutron

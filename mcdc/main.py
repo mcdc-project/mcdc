@@ -136,7 +136,13 @@ def preparation():
     from mpi4py import MPI
 
     from mcdc.object_.simulation import simulation
-    from mcdc.object_.material import MaterialMG
+    from mcdc.object_.material import (
+        Material,
+        MaterialMG,
+        set_elements_from_nuclides,
+        set_nuclides_from_elements,
+        update_fissionable_from_nuclides,
+    )
 
     # ==================================================================================
     # Adjust simulation settings as needed
@@ -145,10 +151,29 @@ def preparation():
     # Get settings
     settings = simulation.settings
 
+    # Set material compositions based on transported particles
+    for material in simulation.materials:
+        if not isinstance(material, Material):
+            continue
+
+        if settings.neutron_transport and len(material.nuclides) == 0:
+            set_nuclides_from_elements(material)
+
+        if settings.electron_transport and len(material.elements) == 0:
+            set_elements_from_nuclides(material)
+
     # Set nuclear and atomic data for transported particles
     if settings.neutron_transport:
         for nuclide in simulation.nuclides:
             nuclide.set_neutron_data()
+
+        for material in simulation.materials:
+            if isinstance(material, Material):
+                update_fissionable_from_nuclides(material)
+
+    if settings.electron_transport:
+        for element in simulation.elements:
+            element.set_electron_data()
 
     # Set physics mode
     if len(simulation.materials) == 0:

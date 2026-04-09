@@ -42,10 +42,12 @@ class Nuclide(ObjectNonSingleton):
     neutron_capture_xs: NDArray[float64]
     neutron_inelastic_xs: NDArray[float64]
     neutron_fission_xs: NDArray[float64]
+    #
     neutron_elastic_scattering_reactions: list[NeutronReactionElasticScattering]
     neutron_capture_reactions: list[NeutronReactionCapture]
     neutron_inelastic_scattering_reactions: list[NeutronReactionInelasticScattering]
     neutron_fission_reactions: list[NeutronReactionFission]
+    #
     neutron_fission_prompt_multiplicity: DataBase
     neutron_fission_delayed_multiplicity: DataBase
     N_neutron_fission_delayed_precursor: int

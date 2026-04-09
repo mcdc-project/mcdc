@@ -251,7 +251,7 @@ class Source(ObjectNonSingleton):
         elif particle_type == "proton":
             self.particle_type = PARTICLE_PROTON
         else:
-            print_error(r"Unsupported particle types: {particle_typ}")
+            print_error(rf"Unsupported particle types: {particle_type}")
 
         # Moving source parameters
         self.moving = False
