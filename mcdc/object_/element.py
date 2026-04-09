@@ -42,21 +42,14 @@ class Element(ObjectNonSingleton):
         super().__init__()
 
         self.name = element_name
-        self.atomic_weight_ratio = 0.0
-        self.atomic_number = 0
 
-        # Set default electron data in case electron transport is disabled
-        self.electron_xs_energy_grid = np.zeros(0)
-        self.electron_total_xs = np.zeros(0)
-        self.electron_ionization_xs = np.zeros(0)
-        self.electron_elastic_xs = np.zeros(0)
-        self.electron_excitation_xs = np.zeros(0)
-        self.electron_bremsstrahlung_xs = np.zeros(0)
-        self.electron_ionization_reactions = []
-        self.electron_elastic_scattering_reactions = []
-        self.electron_excitation_reactions = []
-        self.electron_bremsstrahlung_reactions = []
-        self.electron_ionization_subshell_binding_energy = np.zeros(0)
+        # Basic properties
+        dir_name = os.getenv("MCDC_LIB")
+        file_name = f"{element_name}.h5"
+        file = h5py.File(f"{dir_name}/{file_name}", "r")
+        self.atomic_weight_ratio = float(file["atomic_weight_ratio"][()])
+        self.atomic_number = int(file["atomic_number"][()])
+        file.close()
 
     def set_electron_data(self):
         element_name = self.name
@@ -65,8 +58,6 @@ class Element(ObjectNonSingleton):
         dir_name = os.getenv("MCDC_LIB")
         file_name = f"{element_name}.h5"
         file = h5py.File(f"{dir_name}/{file_name}", "r")
-        self.atomic_weight_ratio = float(file["atomic_weight_ratio"][()])
-        self.atomic_number = int(file["atomic_number"][()])
 
         # The reactions
         rx_names = [
