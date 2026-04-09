@@ -12,7 +12,7 @@ os.environ["MCDC_LIB"] = "../mcdc-regression_test_data/"
 # =============================================================================
 # Energy and Angle Parameters
 MATERIAL_SYMBOL = "Al"
-ENERGY = 1e6  # eV
+ENERGY = 1e4  # eV
 CSDA_RANGE = 0.569  # g/cm2
 ANGLE = 0.0
 
@@ -30,10 +30,10 @@ dz = AREAL_DENSITY_G_CM2 / RHO_G_CM3
 AVAGADRO_NUMBER = 6.02214076e23  # atoms/mol
 MAT_DENSITY_ATOMS_PER_BARN_CM = (
     AVAGADRO_NUMBER / ATOMIC_WEIGHT_G_MOL * RHO_G_CM3 / 1e24
-)  # atoms/barn-cm
+) * 1e-2  # atoms/barn-cm
 TINY = 1e-30
 L = CSDA_RANGE / RHO_G_CM3  # cm
-N_LAYERS = int(L / dz)
+N_LAYERS = 1
 THETA = math.radians(ANGLE)
 
 # Output variables for naming
@@ -91,6 +91,6 @@ mcdc.Tally(name="s2_current", surface=s2, scores=["net-current"])
 
 mcdc.settings.set_transported_particles(["electron"])
 mcdc.settings.N_particle = N_PARTICLES
-mcdc.settings.active_bank_buffer = N_PARTICLES * 1000
+mcdc.settings.active_bank_buffer = N_PARTICLES * 10
 
 mcdc.run()
