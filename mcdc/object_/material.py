@@ -129,6 +129,11 @@ class Material(MaterialBase):
         self.elements = []
         self.element_densities = np.zeros(len(element_composition))
 
+        # Check if library directory is set
+        lib_dir = os.getenv("MCDC_LIB")
+        if lib_dir is None:
+            print_error("Environment variable MCDC_LIB is not set")
+
         # Check that only one composition is supplied
         if len(nuclide_composition) > 0 and len(element_composition) > 0:
             print_error(
