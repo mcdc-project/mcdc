@@ -88,8 +88,8 @@ mcdc.Tally(name="s2_current", surface=s2, scores=["net-current"])
 # =============================================================================
 # Settings and run
 # =============================================================================
-mcdc.settings.neutron_transport = False
-mcdc.settings.electron_transport = True
+
+mcdc.settings.set_transported_particles(["electron"])
 mcdc.settings.N_particle = N_PARTICLES
 mcdc.settings.active_bank_buffer = N_PARTICLES * 1000
 
