@@ -25,7 +25,7 @@ from mcdc.constant import (
 )
 from mcdc.transport.data import evaluate_data
 from mcdc.transport.distribution import (
-    sample_distribution_with_scale,
+    sample_distribution,
     sample_multi_table,
 )
 from mcdc.transport.physics.util import (
@@ -477,9 +477,7 @@ def ionization(
         )
     )
     dist_base = simulation["distributions"][dist_ID]
-    T_delta = sample_distribution_with_scale(
-        E, dist_base, particle_container, simulation, data
-    )
+    T_delta = sample_distribution(E, dist_base, particle_container, simulation, data)
 
     # Primary outgoing energy
     E_out = E - B - T_delta
