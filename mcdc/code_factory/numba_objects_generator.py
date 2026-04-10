@@ -692,7 +692,7 @@ def create_data_array(size):
         data = np.zeros(size, dtype=np.float64)
         return data, 0
     else:
-        return create_data_array_on_gpu(size)
+        return create_data_array_on_gpu(size * 8)
 
 
 @njit
