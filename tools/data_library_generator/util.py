@@ -45,7 +45,12 @@ def decode_ace_name(name: str):
         S = offset // 100
         A = offset % 100
 
-    T = ACE_TEMPERATURE_LIB81[extension]
+    # Proton data: ENDF70PROT
+    if extension == "70h":
+        T = 293.6
+
+    else:
+        T = ACE_TEMPERATURE_LIB81[extension]
 
     return Z, A, S, T
 
