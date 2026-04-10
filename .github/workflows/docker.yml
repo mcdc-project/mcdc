@@ -21,7 +21,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: cement-psaap/mcdc
+  IMAGE_NAME: mcdc-project/mcdc
 
 jobs:
 
