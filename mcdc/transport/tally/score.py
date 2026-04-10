@@ -41,7 +41,7 @@ def surface_tally(particle_container, surface, tally, simulation, data):
     tally_base = simulation["tallies"][tally["parent_ID"]]
 
     # Get filter indices
-    MG_mode = simulation["settings"]["multigroup_mode"]
+    MG_mode = simulation["settings"]["neutron_multigroup_mode"]
     i_mu, i_azi, i_energy, i_time = get_filter_indices(
         particle_container, tally_base, data, MG_mode
     )
@@ -89,7 +89,7 @@ def collision_tally(
     tally_base = simulation["tallies"][tally["parent_ID"]]
 
     # Get filter indices
-    MG_mode = simulation["settings"]["multigroup_mode"]
+    MG_mode = simulation["settings"]["neutron_multigroup_mode"]
     i_mu, i_azi, i_energy, i_time = get_filter_indices(
         particle_container, tally_base, data, MG_mode
     )

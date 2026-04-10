@@ -208,16 +208,16 @@ def print_progress_eigenvalue(simulation, data):
 
 
 def print_runtime(simulation):
-    total = simulation["runtime_total"]
-    preparation = simulation["runtime_preparation"]
-    simulation = simulation["runtime_simulation"]
-    output = simulation["runtime_output"]
+    t_total = simulation["runtime_total"]
+    t_preparation = simulation["runtime_preparation"]
+    t_simulation = simulation["runtime_simulation"]
+    t_output = simulation["runtime_output"]
     if master:
         print("\n Runtime report:")
-        print_time("Total      ", total, 100)
-        print_time("Preparation", preparation, preparation / total * 100)
-        print_time("Simulation ", simulation, simulation / total * 100)
-        print_time("Output     ", output, output / total * 100)
+        print_time("Total      ", t_total, 100)
+        print_time("Preparation", t_preparation, t_preparation / t_total * 100)
+        print_time("Simulation ", t_simulation, t_simulation / t_total * 100)
+        print_time("Output     ", t_output, t_output / t_total * 100)
         print("\n")
         sys.stdout.flush()
 
