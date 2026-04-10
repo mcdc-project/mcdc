@@ -258,7 +258,9 @@ def collision(particle_container, collision_data_container, program, data):
     # Implicit capture
     if simulation["implicit_capture"]["active"]:
         # Calculate capture fraction
-        SigmaC = macro_xs(NEUTRON_REACTION_CAPTURE, particle_container, simulation, data)
+        SigmaC = macro_xs(
+            NEUTRON_REACTION_CAPTURE, particle_container, simulation, data
+        )
         capture_fraction = SigmaC / SigmaT
 
         # Deposit energy captured

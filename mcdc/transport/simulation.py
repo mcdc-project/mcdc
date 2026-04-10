@@ -310,7 +310,11 @@ def step_particle(particle_container, program, data):
 
                 tally = simulation["collision_tallies"][tally_base["child_ID"]]
                 tally_module.score.collision_tally(
-                    particle_container, collision_data_container, tally, simulation, data
+                    particle_container,
+                    collision_data_container,
+                    tally,
+                    simulation,
+                    data,
                 )
 
             # Other collision tallies
@@ -322,7 +326,11 @@ def step_particle(particle_container, program, data):
                     continue
 
                 tally_module.score.collision_tally(
-                    particle_container, collision_data_container, tally, simulation, data
+                    particle_container,
+                    collision_data_container,
+                    tally,
+                    simulation,
+                    data,
                 )
 
     # Surface and domain crossing

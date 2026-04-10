@@ -81,7 +81,9 @@ def surface_tally(particle_container, surface, tally, simulation, data):
 
 
 @njit
-def collision_tally(particle_container, collision_data_container, tally, simulation, data):
+def collision_tally(
+    particle_container, collision_data_container, tally, simulation, data
+):
     particle = particle_container[0]
     collision_data = collision_data_container[0]
     tally_base = simulation["tallies"][tally["parent_ID"]]
@@ -101,7 +103,9 @@ def collision_tally(particle_container, collision_data_container, tally, simulat
     mesh_tally = tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
     if mesh_tally:
         mesh = simulation["meshes"][tally["spatial_filter_ID"]]
-        i_x, i_y, i_z = mesh_module.get_indices(particle_container, mesh, simulation, data)
+        i_x, i_y, i_z = mesh_module.get_indices(
+            particle_container, mesh, simulation, data
+        )
 
         # No score outside mesh bins
         if i_x == -1 or i_y == -1 or i_z == -1:
