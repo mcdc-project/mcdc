@@ -64,6 +64,8 @@ def register_object(object_):
     from mcdc.object_.universe import Universe, Lattice
     from mcdc.object_.data import DataBase
     from mcdc.object_.distribution import DistributionBase
+    from mcdc.object_.element import Element
+    from mcdc.object_.electron_reaction import ElectronReactionBase
     from mcdc.object_.material import MaterialBase
     from mcdc.object_.mesh import MeshBase
     from mcdc.object_.nuclide import Nuclide
@@ -85,6 +87,10 @@ def register_object(object_):
         object_list = simulation.materials
     elif isinstance(object_, MeshBase):
         object_list = simulation.meshes
+    elif isinstance(object_, Element):
+        object_list = simulation.elements
+    elif isinstance(object_, ElectronReactionBase):
+        object_list = simulation.electron_reactions
     elif isinstance(object_, Nuclide):
         object_list = simulation.nuclides
     elif isinstance(object_, NeutronReactionBase):

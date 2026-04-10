@@ -124,7 +124,13 @@ def preparation():
     from mpi4py import MPI
 
     from mcdc.object_.simulation import simulation as simulationPy
-    from mcdc.object_.material import MaterialMG
+    from mcdc.object_.material import (
+        Material,
+        MaterialMG,
+        set_elements_from_nuclides,
+        set_nuclides_from_elements,
+        update_fissionable_from_nuclides,
+    )
 
     # ==================================================================================
     # Adjust simulation settings as needed
@@ -133,10 +139,38 @@ def preparation():
     # Get settings
     settings = simulationPy.settings
 
+    # Set appropriate time boundary
+    settings.time_boundary = min(
+        [settings.time_boundary] + [tally.time[-1] for tally in simulationPy.tallies]
+    )
+
+    # ==================================================================================
+    # Set material data as needed
+    # ==================================================================================
+
+    # Set material compositions based on transported particles
+    for material in simulationPy.materials:
+        if not isinstance(material, Material):
+            continue
+
+        if settings.neutron_transport and len(material.nuclides) == 0:
+            set_nuclides_from_elements(material)
+
+        if settings.electron_transport and len(material.elements) == 0:
+            set_elements_from_nuclides(material)
+
     # Set nuclear and atomic data for transported particles
     if settings.neutron_transport:
         for nuclide in simulationPy.nuclides:
             nuclide.set_neutron_data()
+
+        for material in simulationPy.materials:
+            if isinstance(material, Material):
+                update_fissionable_from_nuclides(material)
+
+    if settings.electron_transport:
+        for element in simulationPy.elements:
+            element.set_electron_data()
 
     # Set physics mode
     if len(simulationPy.materials) == 0:
@@ -146,11 +180,6 @@ def preparation():
         settings.neutron_multigroup_mode = isinstance(
             simulationPy.materials[0], MaterialMG
         )
-
-    # Set appropriate time boundary
-    settings.time_boundary = min(
-        [settings.time_boundary] + [tally.time[-1] for tally in simulationPy.tallies]
-    )
 
     # ==================================================================================
     # Adjust simulation parameters as needed

@@ -33,6 +33,35 @@ def nuclide_IDs_chunk(start, length, native_material, data, value):
 
 
 @njit
+def element_IDs(index, native_material, data, value):
+    offset = native_material["element_IDs_offset"]
+    data[offset + index] = value
+
+
+@njit
+def element_IDs_all(native_material, data, value):
+    start = native_material["element_IDs_offset"]
+    size = native_material["N_element"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def element_IDs_last(native_material, data, value):
+    start = native_material["element_IDs_offset"]
+    size = native_material["N_element"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def element_IDs_chunk(start, length, native_material, data, value):
+    start += native_material["element_IDs_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
 def nuclide_densities(index, native_material, data, value):
     offset = native_material["nuclide_densities_offset"]
     data[offset + index] = value
@@ -57,5 +86,34 @@ def nuclide_densities_last(native_material, data, value):
 @njit
 def nuclide_densities_chunk(start, length, native_material, data, value):
     start += native_material["nuclide_densities_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def element_densities(index, native_material, data, value):
+    offset = native_material["element_densities_offset"]
+    data[offset + index] = value
+
+
+@njit
+def element_densities_all(native_material, data, value):
+    start = native_material["element_densities_offset"]
+    size = native_material["element_densities_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def element_densities_last(native_material, data, value):
+    start = native_material["element_densities_offset"]
+    size = native_material["element_densities_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def element_densities_chunk(start, length, native_material, data, value):
+    start += native_material["element_densities_offset"]
     end = start + length
     data[start:end] = value

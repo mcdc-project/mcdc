@@ -364,9 +364,9 @@ def collision(particle_container, collision_data_container, program, data):
                 reaction_ID = int(
                     mcdc_get.nuclide.neutron_capture_reaction_IDs(i, nuclide, data)
                 )
-                reaction = mcdc["neutron_capture_reactions"][reaction_ID]
+                reaction = simulation["neutron_capture_reactions"][reaction_ID]
                 reaction_base_ID = reaction["parent_ID"]
-                reaction_base = mcdc["neutron_reactions"][reaction_base_ID]
+                reaction_base = simulation["neutron_reactions"][reaction_base_ID]
                 xs = reaction_micro_xs(E, reaction_base, nuclide, data)
                 total += xs
 
