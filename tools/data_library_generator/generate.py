@@ -101,8 +101,10 @@ for ace_name in pbar:
     temperature = file.create_dataset("temperature", data=T)
     temperature.attrs["unit"] = "K"
 
-    # Atomic weight ratio
+    # Atomic number and weight ratio
+    atomic_number = ace_table.atom_number
     atomic_weight_ratio = ace_table.atomic_weight_ratio
+    file.create_dataset("atomic_number", data=atomic_number)
     file.create_dataset("atomic_weight_ratio", data=atomic_weight_ratio)
 
     # Fissionable?
@@ -236,6 +238,29 @@ for ace_name in pbar:
             xs = group.create_dataset(f"MT-{MT:03}/xs", data=cross_sections(idx))
             xs.attrs["offset"] = offsets(idx) - 1
             xs.attrs["unit"] = "barns"
+
+    # ==================================================================================
+    # Q-value
+    # ==================================================================================
+
+    q_value_block = ace_table.reaction_qvalue_block
+
+    # Elastic scattering: zero Q-value
+    for MT in elastic_MTs:
+        dataset = elastic_group.create_dataset(f"MT-{MT:03}/Q-value", data=0.0)
+        dataset.attrs["unit"] = "MeV"
+
+    for MTs, group in [
+        (capture_MTs, capture_group),
+        (inelastic_MTs, inelastic_group),
+        (fission_MTs, fission_group),
+    ]:
+        for MT in MTs:
+            idx = rx_block.index(MT)
+            dataset = group.create_dataset(
+                f"MT-{MT:03}/Q-value", data=q_value_block.q_value(idx)
+            )
+            dataset.attrs["unit"] = "MeV"
 
     # ==================================================================================
     # Reference frames and inelastic scattering multiplicities

@@ -152,7 +152,7 @@ jobs:
       - name: Fetch regression test data
         working-directory: test/regression
         run: |
-          git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
+          git clone https://github.com/mcdc-project/mcdc-regression_test_data.git
 
       - name: Run regression tests (${{ matrix.mode }})
         run: |

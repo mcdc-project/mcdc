@@ -66,7 +66,8 @@ def collision_distance(particle_container, simulation, data):
 
 
 @njit
-def collision(particle_container, program, data):
+def collision(particle_container, collision_data_container, program, data):
     particle = particle_container[0]
+
     if particle["particle_type"] == PARTICLE_NEUTRON:
-        neutron.collision(particle_container, program, data)
+        neutron.collision(particle_container, collision_data_container, program, data)

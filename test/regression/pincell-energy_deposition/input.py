@@ -27,25 +27,25 @@ x0 = mcdc.Surface.PlaneX(x=-pitch / 2, boundary_condition="reflective")
 x1 = mcdc.Surface.PlaneX(x=pitch / 2, boundary_condition="reflective")
 y0 = mcdc.Surface.PlaneY(y=-pitch / 2, boundary_condition="reflective")
 y1 = mcdc.Surface.PlaneY(y=pitch / 2, boundary_condition="reflective")
-#
+
 mcdc.Cell(-cylinder, fill=fuel)
 mcdc.Cell(+x0 & -x1 & +y0 & -y1 & +cylinder, fill=moderator)
 
 # Source
 mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True, time=0.0, energy=14.1e6)
 
-# Setting
+# Settings
 mcdc.settings.N_particle = 20
 mcdc.settings.N_batch = 2
 mcdc.settings.time_boundary = 1.0
 mcdc.settings.active_bank_buffer = 1000
 
-# Tally
-t_grid = np.insert(np.logspace(-9, -4, 200), 0, 0.0)
-e_min, e_max = 1e-5, 20.0e6
-groups = 500
-energies = np.logspace(np.log10(e_min), np.log10(e_max), groups + 1)
+# Edep tally
+mesh = mcdc.MeshUniform(
+    x=(-pitch / 2, pitch / 8, 8),
+    y=(-pitch / 2, pitch / 8, 8),
+)
 
-mcdc.Tally(scores=["flux"], time=t_grid, energy=energies)
+mcdc.Tally(name="edep_mesh", mesh=mesh, scores=["energy_deposition"])
 
 mcdc.run()

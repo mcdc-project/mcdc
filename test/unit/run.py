@@ -5,12 +5,20 @@ from pathlib import Path
 root = Path(".")
 paths = root.rglob("*.py")
 
-EXCLUDE = {"run.py", "__pycache__", ".git"}
+EXCLUDE = {"run.py", "__pycache__", ".git", "conftest.py", "__init__.py"}
+EXCLUDE_PREFIX = {"make_test_"}
 
 start = time.perf_counter()
 for path in paths:
+    # Skip exact matches
     if any(part in EXCLUDE for part in path.parts):
         continue
+
+    # Skip if any part starts with any prefix in EXCLUDE_PREFIX
+    PREFIX_TUPLE = tuple(EXCLUDE_PREFIX)
+    if any(part.startswith(PREFIX_TUPLE) for part in path.parts):
+        continue
+
     print(f"\nRunning {str(path)}")
     sys.stdout.flush()
     os.system(f"pytest -q {str(path)}")

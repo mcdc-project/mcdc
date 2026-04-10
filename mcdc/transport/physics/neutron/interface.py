@@ -50,10 +50,10 @@ def neutron_production_xs(reaction_type, particle_container, simulation, data):
 
 
 @njit
-def collision(particle_container, program, data):
+def collision(particle_container, collision_data_container, program, data):
     simulation = util.access_simulation(program)
 
     if simulation["settings"]["neutron_multigroup_mode"]:
-        multigroup.collision(particle_container, program, data)
+        multigroup.collision(particle_container, collision_data_container, program, data)
     else:
-        native.collision(particle_container, program, data)
+        native.collision(particle_container, collision_data_container, program, data)
