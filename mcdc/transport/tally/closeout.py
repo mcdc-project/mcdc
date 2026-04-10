@@ -27,38 +27,26 @@ from mcdc.print_ import print_structure
 
 @njit
 def reduce(simulation, data):
-    print("  #A", simulation["mpi_size"])
     for tally in simulation["tallies"]:
-        print("  #B", simulation["mpi_size"])
         _reduce(tally, simulation, data)
-        print("  #C", simulation["mpi_size"])
 
 
 @njit
 def _reduce(tally, simulation, data):
-    print("      *#A", simulation["mpi_size"])
     N = tally["bin_length"]
     start = tally["bin_offset"]
     end = start + N
-    print("      *#B", simulation["mpi_size"])
 
     # Normalize
     N_particle = simulation["settings"]["N_particle"]
-    print("      *#C", simulation["mpi_size"])
     for i in range(N):
-        i = 3751
-        print("      *#C-", i, "before", data[start + i], simulation["mpi_size"])
         data[start + i] /= N_particle
-        print("      *#C-", i, "after", data[start + i], simulation["mpi_size"])
-        return
-    print("      *#D", simulation["mpi_size"])
 
     # MPI Reduce
     buff = np.zeros(N)
     with objmode():
         MPI.COMM_WORLD.Reduce(data[start:end], buff, MPI.SUM, 0)
     data[start:end] = buff
-    print("      *#E", simulation["mpi_size"])
 
 
 # ======================================================================================

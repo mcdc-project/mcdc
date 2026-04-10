@@ -44,13 +44,11 @@ def fixed_source_simulation(simulation_container, data):
 
     # Loop over batches
     for idx_batch in range(N_batch):
-        print("A", simulation["mpi_size"])
         simulation["idx_batch"] = idx_batch
         seed_batch = rng.split_seed(uint64(idx_batch), settings["rng_seed"])
 
         # Distribute work
         mpi.distribute_work(N_particle, simulation)
-        print("B", simulation["mpi_size"])
 
         # Print multi-batch header
         if N_batch > 1:
@@ -95,7 +93,6 @@ def fixed_source_simulation(simulation_container, data):
             ):
                 break
 
-        print("C", simulation["mpi_size"])
         # Multi-batch closeout
         if N_batch > 1:
             # Reset banks
@@ -103,17 +100,12 @@ def fixed_source_simulation(simulation_container, data):
             particle_bank_module.set_bank_size(simulation["bank_census"], 0)
             particle_bank_module.set_bank_size(simulation["bank_source"], 0)
             particle_bank_module.set_bank_size(simulation["bank_future"], 0)
-            print("D", simulation["mpi_size"])
 
             if not use_census_based_tally:
                 # Tally history closeout
                 tally_module.closeout.reduce(simulation, data)
-                print("E", simulation["mpi_size"])
                 tally_module.closeout.accumulate(simulation, data)
-                print("F", simulation["mpi_size"])
 
-        print("G", simulation["mpi_size"])
-        exit()
     # Tally closeout
     if not use_census_based_tally:
         tally_module.closeout.finalize(simulation, data)
