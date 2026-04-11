@@ -243,11 +243,10 @@ def preparation():
     # ==================================================================================
 
     from mcdc.code_factory.numba_objects_generator import generate_numba_objects
+    from mcdc.code_factory.literals_generator import make_literals
 
-    if MPI.COMM_WORLD.Get_rank() == 0:
-        from mcdc.code_factory.literals_generator import make_literals
+    make_literals(simulationPy)
 
-        make_literals(simulationPy)
     simulation_container, data = generate_numba_objects(simulationPy)
     simulation = simulation_container[0]
 
