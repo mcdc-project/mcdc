@@ -149,11 +149,6 @@ jobs:
       - name: Load Docker image
         run: docker load -i /tmp/mcdc-image.tar
 
-      - name: Fetch regression test data
-        working-directory: test/regression
-        run: |
-          git clone https://github.com/mcdc-project/mcdc-regression_test_data.git
-
       - name: Run regression tests (${{ matrix.mode }})
         run: |
           docker run --rm \
