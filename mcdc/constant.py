@@ -195,3 +195,20 @@ WW_PREVIOUS = 1
 # Weight Windows Modifications
 WW_MIN = 0
 WW_WOLLABER = 1
+
+# ======================================================================================
+# GPU settings
+# ======================================================================================
+
+# GPU strategies
+GPU_STRATEGY_SIMPLE_ASYNC = 0
+GPU_STRATEGY_ASYNC = 0
+GPU_STRATEGY_EVENT = 1
+
+# GPU async. types
+GPU_ASYNC_SIMPLE = 0
+
+# GPU storage types
+GPU_STORAGE_SEPARATE = 0
+GPU_STORAGE_MANAGED = 1
+GPU_STORAGE_UNITED = 2

@@ -130,6 +130,7 @@ class Simulation(ObjectSingleton):
 
     # GPU metadata
     gpu_meta: GPUMeta
+    source_seed: int
 
     def __init__(self):
         super().__init__()
@@ -229,6 +230,7 @@ class Simulation(ObjectSingleton):
 
         # GPU metadata
         self.gpu_meta = GPUMeta()
+        self.source_seed = 0
 
     def set_root_universe(self, cells=[]):
         self.universes[0].cells = cells

@@ -10,6 +10,7 @@ import mcdc.numba_types as type_
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
+import mcdc.transport.util as util
 
 from mcdc.constant import (
     ELECTRON_CUTOFF_ENERGY,
@@ -23,7 +24,10 @@ from mcdc.constant import (
     PI,
 )
 from mcdc.transport.data import evaluate_data
-from mcdc.transport.distribution import sample_distribution, sample_multi_table
+from mcdc.transport.distribution import (
+    sample_distribution,
+    sample_multi_table,
+)
 from mcdc.transport.physics.util import (
     evaluate_electron_xs_energy_grid,
     scatter_direction,
@@ -49,15 +53,15 @@ def particle_speed(particle_container):
 
 
 @njit
-def macro_xs(reaction_type, particle_container, mcdc, data):
+def macro_xs(reaction_type, particle_container, simulation, data):
     particle = particle_container[0]
-    material = mcdc["native_materials"][particle["material_ID"]]
+    material = simulation["native_materials"][particle["material_ID"]]
     E = particle["E"]
 
     total = 0.0
     for i in range(material["N_element"]):
         element_ID = int(mcdc_get.native_material.element_IDs(i, material, data))
-        element = mcdc["elements"][element_ID]
+        element = simulation["elements"][element_ID]
 
         element_density = mcdc_get.native_material.element_densities(i, material, data)
         xs = total_micro_xs(reaction_type, E, element, data)
@@ -109,10 +113,11 @@ def reaction_micro_xs(E, reaction_base, element, data):
 
 
 @njit
-def collision(particle_container, collision_data_container, mcdc, data):
+def collision(particle_container, collision_data_container, program, data):
+    simulation = util.access_simulation(program)
     particle = particle_container[0]
     collision_data = collision_data_container[0]
-    material = mcdc["native_materials"][particle["material_ID"]]
+    material = simulation["native_materials"][particle["material_ID"]]
 
     # Particle properties
     E = particle["E"]
@@ -128,13 +133,13 @@ def collision(particle_container, collision_data_container, mcdc, data):
     # Sample colliding element
     # ==================================================================================
 
-    SigmaT = macro_xs(ELECTRON_REACTION_TOTAL, particle_container, mcdc, data)
+    SigmaT = macro_xs(ELECTRON_REACTION_TOTAL, particle_container, simulation, data)
 
     xi = rng.lcg(particle_container) * SigmaT
     total = 0.0
     for i in range(material["N_element"]):
         element_ID = int(mcdc_get.native_material.element_IDs(i, material, data))
-        element = mcdc["elements"][element_ID]
+        element = simulation["elements"][element_ID]
 
         element_density = mcdc_get.native_material.element_densities(i, material, data)
         sigmaT = total_micro_xs(ELECTRON_REACTION_TOTAL, E, element, data)
@@ -168,9 +173,9 @@ def collision(particle_container, collision_data_container, mcdc, data):
             reaction_ID = int(
                 mcdc_get.element.electron_ionization_reaction_IDs(i, element, data)
             )
-            reaction = mcdc["electron_ionization_reactions"][reaction_ID]
+            reaction = simulation["electron_ionization_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
-            reaction_base = mcdc["electron_reactions"][reaction_base_ID]
+            reaction_base = simulation["electron_reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, element, data)
 
             if xi < total:
@@ -179,7 +184,7 @@ def collision(particle_container, collision_data_container, mcdc, data):
                     particle_container,
                     collision_data_container,
                     element,
-                    mcdc,
+                    program,
                     data,
                 )
                 return
@@ -194,13 +199,15 @@ def collision(particle_container, collision_data_container, mcdc, data):
                     i, element, data
                 )
             )
-            reaction = mcdc["electron_elastic_scattering_reactions"][reaction_ID]
+            reaction = simulation["electron_elastic_scattering_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
-            reaction_base = mcdc["electron_reactions"][reaction_base_ID]
+            reaction_base = simulation["electron_reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, element, data)
 
             if xi < total:
-                elastic_scattering(reaction, particle_container, element, mcdc, data)
+                elastic_scattering(
+                    reaction, particle_container, element, simulation, data
+                )
                 return
 
     # Bremsstrahlung
@@ -211,14 +218,18 @@ def collision(particle_container, collision_data_container, mcdc, data):
             reaction_ID = int(
                 mcdc_get.element.electron_bremsstrahlung_reaction_IDs(i, element, data)
             )
-            reaction = mcdc["electron_bremsstrahlung_reactions"][reaction_ID]
+            reaction = simulation["electron_bremsstrahlung_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
-            reaction_base = mcdc["electron_reactions"][reaction_base_ID]
+            reaction_base = simulation["electron_reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, element, data)
 
             if xi < total:
                 bremsstrahlung(
-                    reaction, particle_container, collision_data_container, mcdc, data
+                    reaction,
+                    particle_container,
+                    collision_data_container,
+                    simulation,
+                    data,
                 )
                 return
 
@@ -230,14 +241,18 @@ def collision(particle_container, collision_data_container, mcdc, data):
             reaction_ID = int(
                 mcdc_get.element.electron_excitation_reaction_IDs(i, element, data)
             )
-            reaction = mcdc["electron_excitation_reactions"][reaction_ID]
+            reaction = simulation["electron_excitation_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
-            reaction_base = mcdc["electron_reactions"][reaction_base_ID]
+            reaction_base = simulation["electron_reactions"][reaction_base_ID]
             total += reaction_micro_xs(E, reaction_base, element, data)
 
             if xi < total:
                 excitation(
-                    reaction, particle_container, collision_data_container, mcdc, data
+                    reaction,
+                    particle_container,
+                    collision_data_container,
+                    simulation,
+                    data,
                 )
                 return
 
@@ -248,7 +263,7 @@ def collision(particle_container, collision_data_container, mcdc, data):
 
 
 @njit
-def elastic_scattering(reaction, particle_container, element, mcdc, data):
+def elastic_scattering(reaction, particle_container, element, simulation, data):
     particle = particle_container[0]
 
     # Current energy
@@ -259,11 +274,11 @@ def elastic_scattering(reaction, particle_container, element, mcdc, data):
     # -------------------------------------------------------------------------
 
     reaction_base_ID = int(reaction["parent_ID"])
-    reaction_base = mcdc["electron_reactions"][reaction_base_ID]
+    reaction_base = simulation["electron_reactions"][reaction_base_ID]
     xs_total = reaction_micro_xs(E, reaction_base, element, data)
 
     # If large-angle, xs from data table
-    xs_large = elastic_large_xs(E, reaction, mcdc, data)
+    xs_large = elastic_large_xs(E, reaction, simulation, data)
 
     # Important to check because of numerical issues
     if xs_large < 0.0:
@@ -281,7 +296,7 @@ def elastic_scattering(reaction, particle_container, element, mcdc, data):
         # Large-angle elastic scattering
         # ---------------------------------------------------------------------
 
-        multi_table = mcdc["multi_table_distributions"][reaction["mu_ID"]]
+        multi_table = simulation["multi_table_distributions"][reaction["mu_ID"]]
         mu0 = sample_multi_table(E, particle_container, multi_table, data)
 
     else:
@@ -334,9 +349,9 @@ def sample_small_angle_mu_coulomb(E, Z, rng_state, mu_cut):
 
 
 @njit
-def elastic_large_xs(E, reaction, mcdc, data):
-    data_base = mcdc["data"][int(reaction["xs_large_ID"])]
-    return evaluate_data(E, data_base, mcdc, data)
+def elastic_large_xs(E, reaction, simulation, data):
+    data_base = simulation["data"][int(reaction["xs_large_ID"])]
+    return evaluate_data(E, data_base, simulation, data)
 
 
 # ======================================================================================
@@ -345,14 +360,16 @@ def elastic_large_xs(E, reaction, mcdc, data):
 
 
 @njit
-def excitation(reaction, particle_container, collision_data_container, mcdc, data):
+def excitation(
+    reaction, particle_container, collision_data_container, simulation, data
+):
     particle = particle_container[0]
     collision_data = collision_data_container[0]
 
     # Current energy
     E = particle["E"]
 
-    dE = evaluate_eloss(E, reaction, mcdc, data)
+    dE = evaluate_eloss(E, reaction, simulation, data)
 
     # Calculate outgoing energy
     E_out = E - dE
@@ -370,9 +387,9 @@ def excitation(reaction, particle_container, collision_data_container, mcdc, dat
 
 
 @njit
-def evaluate_eloss(E, reaction, mcdc, data):
-    data_base = mcdc["data"][int(reaction["eloss_ID"])]
-    return evaluate_data(E, data_base, mcdc, data)
+def evaluate_eloss(E, reaction, simulation, data):
+    data_base = simulation["data"][int(reaction["eloss_ID"])]
+    return evaluate_data(E, data_base, simulation, data)
 
 
 # ======================================================================================
@@ -381,14 +398,16 @@ def evaluate_eloss(E, reaction, mcdc, data):
 
 
 @njit
-def bremsstrahlung(reaction, particle_container, collision_data_container, mcdc, data):
+def bremsstrahlung(
+    reaction, particle_container, collision_data_container, simulation, data
+):
     particle = particle_container[0]
     collision_data = collision_data_container[0]
 
     # Current energy
     E = particle["E"]
 
-    dE = evaluate_eloss(E, reaction, mcdc, data)
+    dE = evaluate_eloss(E, reaction, simulation, data)
     E_out = E - dE
 
     # Check for cutoff
@@ -409,8 +428,9 @@ def bremsstrahlung(reaction, particle_container, collision_data_container, mcdc,
 
 @njit
 def ionization(
-    reaction, particle_container, collision_data_container, element, mcdc, data
+    reaction, particle_container, collision_data_container, element, program, data
 ):
+    simulation = util.access_simulation(program)
     particle = particle_container[0]
     collision_data = collision_data_container[0]
 
@@ -426,8 +446,8 @@ def ionization(
         xs_sub_ID = int(
             mcdc_get.electron_ionization_reaction.subshell_x_IDs(i, reaction, data)
         )
-        xs_sub_table = mcdc["data"][xs_sub_ID]
-        xs_sub_i = evaluate_data(E, xs_sub_table, mcdc, data)
+        xs_sub_table = simulation["data"][xs_sub_ID]
+        xs_sub_i = evaluate_data(E, xs_sub_table, simulation, data)
         xs_vals[i] = xs_sub_i
         total += xs_sub_i
 
@@ -456,10 +476,8 @@ def ionization(
             chosen, reaction, data
         )
     )
-    dist_base = mcdc["distributions"][dist_ID]
-    T_delta = sample_distribution(
-        E, dist_base, particle_container, mcdc, data, scale=False
-    )
+    dist_base = simulation["distributions"][dist_ID]
+    T_delta = sample_distribution(E, dist_base, particle_container, simulation, data)
 
     # Primary outgoing energy
     E_out = E - B - T_delta
@@ -516,7 +534,7 @@ def ionization(
     particle_new["uz"] = uz_delta
     particle_new["w"] = particle["w"]
 
-    particle_bank_module.bank_active_particle(particle_container_new, mcdc)
+    particle_bank_module.bank_active_particle(particle_container_new, program)
 
 
 @njit

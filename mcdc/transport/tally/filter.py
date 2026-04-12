@@ -12,7 +12,7 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE_ENERGY,
     COINCIDENCE_TOLERANCE_TIME,
 )
-from mcdc.transport.util import find_bin
+from mcdc.transport.util import find_bin_with_tolerance, find_bin_with_rules
 
 
 @njit
@@ -55,22 +55,33 @@ def get_direction_index(particle_container, tally, data):
         azi *= -1
 
     tolerance = COINCIDENCE_TOLERANCE_DIRECTION
-    i_mu = find_bin(mu, mcdc_get.tally.mu_all(tally, data), tolerance)
-    i_azi = find_bin(azi, mcdc_get.tally.azi_all(tally, data), tolerance)
+
+    grid_mu = data[tally["mu_offset"] : (tally["mu_offset"] + tally["mu_length"])]
+    # Above is equivalent to: grid_mu = mcdc_get.tally.mu_all(tally, data)
+    grid_azi = data[tally["azi_offset"] : (tally["azi_offset"] + tally["azi_length"])]
+    # Above is equivalent to: grid_azi = mcdc_get.tally.azi_all(tally, data)
+
+    i_mu = find_bin_with_tolerance(mu, grid_mu, tolerance)
+    i_azi = find_bin_with_tolerance(azi, grid_azi, tolerance)
     return i_mu, i_azi
 
 
 @njit
-def get_energy_index(particle_container, tally, data, multigroup_mode):
+def get_energy_index(particle_container, tally, data, neutron_multigroup_mode):
     particle = particle_container[0]
 
-    if multigroup_mode:
+    if neutron_multigroup_mode:
         E = particle["g"]
     else:
         E = particle["E"]
 
     tolerance = COINCIDENCE_TOLERANCE_ENERGY
-    return find_bin(E, mcdc_get.tally.energy_all(tally, data), tolerance)
+    grid_energy = data[
+        tally["energy_offset"] : (tally["energy_offset"] + tally["energy_length"])
+    ]
+    # Above is equivalent to: grid_energy = mcdc_get.tally.energy_all(tally, data)
+
+    return find_bin_with_tolerance(E, grid_energy, tolerance)
 
 
 @njit
@@ -80,17 +91,21 @@ def get_time_index(particle_container, tally, data):
     # Particle properties
     time = particle["t"]
 
+    grid_time = data[
+        tally["time_offset"] : (tally["time_offset"] + tally["time_length"])
+    ]
+    # Above is equivalent to: grid_time = mcdc_get.tally.time_all(tally, data)
+
     tolerance = COINCIDENCE_TOLERANCE_TIME
-    return find_bin(
-        time, mcdc_get.tally.time_all(tally, data), tolerance, go_lower=False
-    )
+    go_lower = False
+    return find_bin_with_rules(time, grid_time, tolerance, go_lower)
 
 
 @njit
-def set_census_based_time_grid(mcdc, data):
-    settings = mcdc["settings"]
+def set_census_based_time_grid(simulation, data):
+    settings = simulation["settings"]
     tally_frequency = settings["census_tally_frequency"]
-    idx_census = mcdc["idx_census"]
+    idx_census = simulation["idx_census"]
 
     # Starting time
     if idx_census == 0:
@@ -105,7 +120,7 @@ def set_census_based_time_grid(mcdc, data):
     dt = (t_end - t_start) / tally_frequency
 
     # Set the time grid to all tallies
-    for tally in mcdc["tallies"]:
+    for tally in simulation["tallies"]:
         mcdc_set.tally.time(0, tally, data, t_start)
         for j in range(tally_frequency):
             t_next = mcdc_get.tally.time(j, tally, data) + dt

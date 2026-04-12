@@ -11,7 +11,11 @@ from mcdc.transport.util import find_bin
 
 @njit
 def evaluate_neutron_xs_energy_grid(e, nuclide, data):
-    energy_grid = mcdc_get.nuclide.neutron_xs_energy_grid_all(nuclide, data)
+    offset = nuclide["neutron_xs_energy_grid_offset"]
+    length = nuclide["neutron_xs_energy_grid_length"]
+    energy_grid = data[offset : offset + length]
+    # Above is equivalent to: energy_grid = mcdc_get.nuclide.neutron_xs_energy_grid_all(nuclide, data)
+
     idx = find_bin(e, energy_grid)
     e0 = energy_grid[idx]
     e1 = energy_grid[idx + 1]

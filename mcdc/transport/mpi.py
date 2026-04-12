@@ -4,9 +4,9 @@ from numba import njit
 
 
 @njit
-def distribute_work(N_work, mcdc):
-    size = mcdc["mpi_size"]
-    rank = mcdc["mpi_rank"]
+def distribute_work(N_work, simulation):
+    size = simulation["mpi_size"]
+    rank = simulation["mpi_rank"]
 
     # Total number of work
     work_size_total = N_work
@@ -28,6 +28,6 @@ def distribute_work(N_work, mcdc):
         work_start += rem
 
     # Store the workload specification
-    mcdc["mpi_work_start"] = work_start
-    mcdc["mpi_work_size"] = work_size
-    mcdc["mpi_work_size_total"] = work_size_total
+    simulation["mpi_work_start"] = work_start
+    simulation["mpi_work_size"] = work_size
+    simulation["mpi_work_size_total"] = work_size_total
