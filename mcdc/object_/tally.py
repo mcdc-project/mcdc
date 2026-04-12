@@ -44,6 +44,10 @@ from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
 
+SURFACE_SCORES = set(["net-current"])
+TRACKLENGTH_SCORES = set(["flux", "density", "collision", "capture", "fission"])
+COLLISION_SCORES = set(["energy_deposition"])
+
 
 class Tally(ObjectPolymorphic):
     """
@@ -90,18 +94,37 @@ class Tally(ObjectPolymorphic):
     ) -> TallySurface | TallyTracklength | TallyCollision:
         # Determine type and create the tally self based on the provided
         # spatial filters and scores
+
+        # Surface tally
         if surface is not None:
+            for score in scores:
+                print(score, SURFACE_SCORES)
+                if not score in SURFACE_SCORES:
+                    print_error(
+                        f"Scoring '{score}' with surface tally is not supported. "
+                        f"Supported surface tally scores: {SURFACE_SCORES}."
+                    )
             return super().__new__(TallySurface)
-        if "energy_deposition" in scores:
-            if len(scores) > 1:
-                print_error(
-                    "Score 'energy_deposition' cannot be grouped with other scores yet. "
-                    "Please request it in a separate tally."
-                )
-            else:
-                return super().__new__(TallyCollision)
-        else:
+
+        # Collision tally
+        if set(scores) <= COLLISION_SCORES:
+            return super().__new__(TallyCollision)
+
+        # Tracklength tally
+        if set(scores) <= TRACKLENGTH_SCORES:
             return super().__new__(TallyTracklength)
+
+        # Error: Missing surface for surface score
+        for score in scores:
+            if score in SURFACE_SCORES and surface is None:
+                print_error(f"Scoring '{score}' needs a surface tally.")
+
+        # Error: Unsupported score combination
+        print_error(
+            "Cannot mix tracklength scores with collision ones."
+            f"\n  Tracklength scores: {TRACKLENGTH_SCORES}"
+            f"\n  Collision scores: {COLLISION_SCORES}"
+        )
 
     def __init__(
         self,
