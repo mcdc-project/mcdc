@@ -126,11 +126,11 @@ class WeightWindows(ObjectSingleton):
             )
         if (self.lower_weights > self.target_weights).any():
             print_error(
-                f"Lower bound weight can not be greater than the target weight for any weight window"
+                "Lower bound weight can not be greater than the target weight for any weight window"
             )
         if (self.target_weights > self.upper_weights).any():
             print_error(
-                f"Target weight can not be greater than the upper bound weight for any weight window"
+                "Target weight can not be greater than the upper bound weight for any weight window"
             )
 
 
