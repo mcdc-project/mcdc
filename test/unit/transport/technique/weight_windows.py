@@ -12,6 +12,7 @@ from mcdc.transport.technique import (
   weight_windows,
   particle_bank_module
 )
+from mcdc.transport.mesh.interface import get_indices
 from mcdc.constant import (
   TINY
 )
@@ -20,53 +21,82 @@ from mcdc.constant import (
 # Helper method for creating a dummy model
 # =========================================================================== #
 
+def make_base_model():
 
-def make_ww_model(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
-  # Geometry
-  # surfaces
-  cylinder = mcdc.Surface.CylinderZ(radius=0.5)
-  pitch = 2.0
-  height = 10.0
-  x0 = mcdc.Surface.PlaneX(x=-pitch / 2, boundary_condition="reflective")
-  x1 = mcdc.Surface.PlaneX(x=pitch / 2, boundary_condition="reflective")
-  y0 = mcdc.Surface.PlaneY(y=-pitch / 2, boundary_condition="reflective")
-  y1 = mcdc.Surface.PlaneY(y=pitch / 2, boundary_condition="reflective")
-  z0 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition="reflective")
-  z1 = mcdc.Surface.PlaneZ(z=height, boundary_condition="reflective")
+    # Geometry
+    cylinder = mcdc.Surface.CylinderZ(radius=0.5)
+    pitch = 2.0
+    height = 10.0
 
-  # cells
-  mcdc.Cell(-cylinder)
-  mcdc.Cell(+x0 & -x1 & +y0 & -y1 & +z0 & -z1 & +cylinder)
+    x0 = mcdc.Surface.PlaneX(x=-pitch / 2, boundary_condition="reflective")
+    x1 = mcdc.Surface.PlaneX(x=pitch / 2, boundary_condition="reflective")
+    y0 = mcdc.Surface.PlaneY(y=-pitch / 2, boundary_condition="reflective")
+    y1 = mcdc.Surface.PlaneY(y=pitch / 2, boundary_condition="reflective")
+    z0 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition="reflective")
+    z1 = mcdc.Surface.PlaneZ(z=height, boundary_condition="reflective")
 
-  # Source
-  mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True, time=0.0, energy=14.1e6)
+    mcdc.Cell(-cylinder)
+    mcdc.Cell(+x0 & -x1 & +y0 & -y1 & +z0 & -z1 & +cylinder)
 
-  # Setting
-  mcdc.settings.N_particle = 20
-  mcdc.settings.N_batch = 2
-  mcdc.settings.time_boundary = 1.0
-  mcdc.settings.active_bank_buffer = 1000
+    # Source
+    mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True, time=0.0, energy=14.1e6)
 
-  # weight windows
-  N = 3
-  mesh = mcdc.MeshUniform(
-    "mesh",
-    x=(-pitch/2, pitch/2, N),
-    y=(-pitch/2, pitch/2, N),
-    z=(0.0, height, N)
-  )
-  if mess_up_size:
-    shape = (N, N, 4, 3)
-  else:
-    shape = (N, N, N, 3)
-  ww_array = np.ones(shape)
-  ww_array[:, :, :, 0] = lower
-  ww_array[:, :, :, 1] = target
-  ww_array[:, :, :, 2] = upper
-  mcdc.simulation.weight_windows(mesh, ww_array)
+    # Settings
+    mcdc.settings.N_particle = 20
+    mcdc.settings.N_batch = 2
+    mcdc.settings.time_boundary = 1.0
+    mcdc.settings.active_bank_buffer = 1000
 
-  mcdc_container, data = preparation()
-  return mcdc_container[0], data
+    # Mesh
+    N = 3
+    mesh = mcdc.MeshUniform(
+        "mesh",
+        x=(-pitch/2, pitch/N, N),
+        y=(-pitch/2, pitch/N, N),
+        z=(0.0, height/N, N)
+    )
+
+    return mesh, N
+
+
+def make_ww_model_params(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
+    import mcdc
+
+    mesh, N = make_base_model()
+
+    if mess_up_size:
+        ww_array = np.ones((N, N, 4, 3))
+    else:
+        ww_array = np.ones((N, N, N, 3))
+        ww_array[..., 0] = lower
+        ww_array[..., 1] = target
+        ww_array[..., 2] = upper
+
+    mcdc.simulation.weight_windows(mesh, ww_array)
+
+    mcdc_container, data = preparation()
+    return mcdc_container[0], data
+
+
+def make_ww_model_distinct():
+    import mcdc
+
+    mesh, N = make_base_model()
+
+    ww_array = np.empty((N, N, N, 3))
+
+    for i in range(N):
+        for j in range(N):
+            for k in range(N):
+                val = 100*i + 10*j + k + 1
+                ww_array[i, j, k, 0] = val
+                ww_array[i, j, k, 1] = 1000 + val
+                ww_array[i, j, k, 2] = 2000 + val
+
+    mcdc.simulation.weight_windows(mesh, ww_array)
+
+    mcdc_container, data = preparation()
+    return mcdc_container[0], data
 
 
 # =========================================================================== #
@@ -101,7 +131,7 @@ def make_ww_model(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
 )
 def test_error_throw(capsys, kwargs, expected_msg):
   with pytest.raises(SystemExit):
-    make_ww_model(**kwargs)
+    make_ww_model_params(**kwargs)
 
   out = capsys.readouterr().out
   assert expected_msg in out
@@ -130,7 +160,7 @@ def test_split_from_weight_window():
   init_weight = 2.0 + TINY
   particles[0]["w"] = init_weight
   threshold = 1.0
-  mcdc_obj, data = make_ww_model()
+  mcdc_obj, data = make_ww_model_distinct()
 
   # get bank and init size
   bank = mcdc_obj["bank_active"]
@@ -149,4 +179,37 @@ def test_split_from_weight_window():
   for i in range(2):
     pnew = bank["particles"][init_bank_size + i]
     assert pnew["w"] == p1["w"]
+
+
+def test_query_weight_window():
+  p = np.zeros(1, type_.particle_data)
+
+  mcdc_obj, data = make_ww_model_distinct()
+  ww_obj = mcdc_obj["weight_windows"]
+
+  mesh = mcdc_obj["meshes"][ww_obj["mesh_ID"]]
+  # hardcode mesh params
+  nx, ny, nz = 3, 3, 3
+  xmin, ymin, zmin = -1.0, -1.0, 0.0
+  dx, dy, dz = 2/3, 2/3, 10/3
+
+
+  # loop over all bins, check query against expected ww
+  for ix in range(nx):
+    for iy in range(ny):
+      for iz in range(nz):
+        p[0]["x"] = xmin + dx * (ix + 0.5)
+        p[0]["y"] = ymin + dy * (iy + 0.5)
+        p[0]["z"] = zmin + dz * (iz + 0.5)
+
+        lower, target, upper = query_weight_window(
+          p, mcdc_obj, data
+        )
+        exp_lower = 100*ix + 10*iy + iz + 1
+        exp_target = 1000 + exp_lower
+        exp_upper = 2000 + exp_lower
+
+        assert lower == exp_lower
+        assert target == exp_target
+        assert upper == exp_upper
 
