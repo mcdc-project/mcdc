@@ -21,34 +21,12 @@ from mcdc.constant import (
 # Helper method for creating a dummy model
 # =========================================================================== #
 
-def make_base_model():
-
-    # Geometry
-    cylinder = mcdc.Surface.CylinderZ(radius=0.5)
+def make_mesh():
+    # constants
     pitch = 2.0
     height = 10.0
-
-    x0 = mcdc.Surface.PlaneX(x=-pitch / 2, boundary_condition="reflective")
-    x1 = mcdc.Surface.PlaneX(x=pitch / 2, boundary_condition="reflective")
-    y0 = mcdc.Surface.PlaneY(y=-pitch / 2, boundary_condition="reflective")
-    y1 = mcdc.Surface.PlaneY(y=pitch / 2, boundary_condition="reflective")
-    z0 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition="reflective")
-    z1 = mcdc.Surface.PlaneZ(z=height, boundary_condition="reflective")
-
-    mcdc.Cell(-cylinder)
-    mcdc.Cell(+x0 & -x1 & +y0 & -y1 & +z0 & -z1 & +cylinder)
-
-    # Source
-    mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True, time=0.0, energy=14.1e6)
-
-    # Settings
-    mcdc.settings.N_particle = 20
-    mcdc.settings.N_batch = 2
-    mcdc.settings.time_boundary = 1.0
-    mcdc.settings.active_bank_buffer = 1000
-
-    # Mesh
     N = 3
+
     mesh = mcdc.MeshUniform(
         "mesh",
         x=(-pitch/2, pitch/N, N),
@@ -62,7 +40,7 @@ def make_base_model():
 def make_ww_model_params(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
     import mcdc
 
-    mesh, N = make_base_model()
+    mesh, N = make_mesh()
 
     if mess_up_size:
         ww_array = np.ones((N, N, 4, 3))
@@ -81,7 +59,7 @@ def make_ww_model_params(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
 def make_ww_model_distinct():
     import mcdc
 
-    mesh, N = make_base_model()
+    mesh, N = make_mesh()
 
     ww_array = np.empty((N, N, N, 3))
 
@@ -185,13 +163,12 @@ def test_query_weight_window():
   p = np.zeros(1, type_.particle_data)
 
   mcdc_obj, data = make_ww_model_distinct()
-  ww_obj = mcdc_obj["weight_windows"]
 
-  mesh = mcdc_obj["meshes"][ww_obj["mesh_ID"]]
   # hardcode mesh params
-  nx, ny, nz = 3, 3, 3
-  xmin, ymin, zmin = -1.0, -1.0, 0.0
-  dx, dy, dz = 2/3, 2/3, 10/3
+  pitch, height, N = 2.0, 10.0, 3
+  nx, ny, nz = N, N, N
+  xmin, ymin, zmin = -pitch/2, -pitch/2, 0.0
+  dx, dy, dz = pitch/N, pitch/N, height/N
 
 
   # loop over all bins, check query against expected ww
