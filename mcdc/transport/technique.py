@@ -35,18 +35,55 @@ def weight_roulette(particle_container, simulation):
 
 
 @njit
-def weight_windows(particle_container, mcdc, data):
-    [lower, target, upper] = query_weight_window(particle_container, mcdc, data)
-    split_from_weight_window(particle_container, upper, mcdc)
+def weight_windows(particle_container, simulation, data):
+    """
+    Apply weight window splitting and rouletting to a particle.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    simulation : object
+        Simulation state containing weight window and mesh data.
+    data : object
+        Simulation data for array access.
+    """
+    [lower, target, upper] = query_weight_window(particle_container, simulation, data)
+    split_from_weight_window(particle_container, upper, simulation)
     roulette_from_weight_window(particle_container, lower, target)
 
 
 @njit
-def query_weight_window(particle_container, mcdc, data):
-    ww_obj = mcdc["weight_windows"]
-    mesh = mcdc["meshes"][ww_obj["mesh_ID"]]
-    idx, idy, idz = get_mesh_indices(particle_container, mesh, mcdc, data)
+def query_weight_window(particle_container, simulation, data):
+    """
+    Query weight window bounds for the particle.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    simulation : object
+        Simulation state containing weight window and mesh data.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    lower : float
+        Lower weight bound.
+    target : float
+        Target weight.
+    upper : float
+        Upper weight bound.
+    """
+    # grab objects
+    ww_obj = simulation["weight_windows"]
+    mesh = simulation["meshes"][ww_obj["mesh_ID"]]
+    # find spatial indices from mesh
+    idx, idy, idz = get_mesh_indices(particle_container, mesh, simulation, data)
+    # get index of ww in ww arrays
     index = ((idx * ww_obj["Ny"]) + idy) * ww_obj["Nz"] + idz
+    # grab the actual ww parameters
     lower = ww_get.lower_weights(index, ww_obj, data)
     target = ww_get.target_weights(index, ww_obj, data)
     upper = ww_get.upper_weights(index, ww_obj, data)
@@ -54,21 +91,49 @@ def query_weight_window(particle_container, mcdc, data):
 
 
 @njit
-def split_from_weight_window(particle_container, threshold_weight, mcdc):
+def split_from_weight_window(particle_container, threshold_weight, simulation):
+    """
+    Split a particle if its weight exceeds the threshold.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    threshold_weight : float
+        Upper weight bound triggering splitting.
+    simulation : object
+        Simulation state used for banking split particles.
+    """
     particle = particle_container[0]
     weight = particle["w"]
     if weight > threshold_weight:
+        # determine how many to split into
         num_split = math.ceil(weight / threshold_weight)
+        # distribute weight
         particle["w"] = weight / num_split
         for _ in range(num_split - 1):
-            particle_bank_module.bank_active_particle(particle_container, mcdc)
+            # bank split particles into the active bank
+            particle_bank_module.bank_active_particle(particle_container, simulation)
 
 
 @njit
 def roulette_from_weight_window(particle_container, w_threshold, w_target):
+    """
+    Russian roulette particle if weight is below threshold.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    w_threshold : float
+        Lower weight bound triggering roulette.
+    w_target : float
+        Target weight assigned upon survival.
+    """
     particle = particle_container[0]
     if particle["w"] < w_threshold:
         survival_probability = particle["w"] / w_target
+        # sample random number to determine survival
         if rng.lcg(particle_container) < survival_probability:
             particle["w"] = w_target
         else:
