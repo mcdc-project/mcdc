@@ -44,6 +44,7 @@ def make_ww_model_params(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
     if mess_up_size:
         ww_array = np.ones((N, N, 4, 3))
     else:
+        # global assign for simplicity
         ww_array = np.ones((N, N, N, 3))
         ww_array[..., 0] = lower
         ww_array[..., 1] = target
@@ -62,6 +63,7 @@ def make_ww_model_distinct():
 
     ww_array = np.empty((N, N, N, 3))
 
+    # value at index is related to index, easy to predict during later test
     for i in range(N):
         for j in range(N):
             for k in range(N):
@@ -121,7 +123,7 @@ def test_error_throw(capsys, kwargs, expected_msg):
 
 def test_roullete_from_weight_window():
     # because of rng, want to loop over to hit both branches
-    for i in range(10):
+    for _ in range(10):
         particles = np.zeros(1, type_.particle_data)
         particles[0]["w"] = 0.1
         target = 0.2
@@ -152,6 +154,7 @@ def test_split_from_weight_window():
 
     # check weight of original particle
     assert p1["w"] == init_weight / num_split
+    # check particles were created and check their weights
     assert particle_bank_module.get_bank_size(bank) == init_bank_size + num_new
     for i in range(2):
         pnew = bank["particle_data"][init_bank_size + i]
@@ -173,10 +176,12 @@ def test_query_weight_window():
     for ix in range(nx):
         for iy in range(ny):
             for iz in range(nz):
+                # put particle in center of current mesh bin
                 p[0]["x"] = xmin + dx * (ix + 0.5)
                 p[0]["y"] = ymin + dy * (iy + 0.5)
                 p[0]["z"] = zmin + dz * (iz + 0.5)
 
+                # query and predict
                 lower, target, upper = query_weight_window(p, mcdc_obj, data)
                 exp_lower = 100 * ix + 10 * iy + iz + 1
                 exp_target = 1000 + exp_lower

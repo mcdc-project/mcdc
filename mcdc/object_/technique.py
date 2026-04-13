@@ -1,8 +1,6 @@
-from dataclasses import dataclass
 from numpy.typing import NDArray
 from numpy import float64
-import numpy as np
-from mcdc.object_.base import ObjectBase, ObjectSingleton
+from mcdc.object_.base import ObjectSingleton
 from mcdc.object_.mesh import MeshBase
 from mcdc.print_ import print_error
 
