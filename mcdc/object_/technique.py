@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from numpy.typing import NDArray
 from numpy import float64
+import numpy as np
 from mcdc.object_.base import ObjectBase, ObjectSingleton
 from mcdc.object_.mesh import MeshBase
 from mcdc.print_ import print_error
@@ -102,6 +103,7 @@ class WeightWindows(ObjectSingleton):
                     f"{type(mesh).__name__} is not supported for weight windows"
                 )
         
+        # check correct shape
         mesh_shape = (nx, ny, nz)
         ww_shape = weight_windows.shape
         expected_shape = (*mesh_shape, 3)
@@ -116,6 +118,21 @@ class WeightWindows(ObjectSingleton):
         self.lower_weights = weight_windows[..., 0].reshape(-1)
         self.target_weights = weight_windows[..., 1].reshape(-1)
         self.upper_weights = weight_windows[..., 2].reshape(-1)
+
+        # check weight windows are valid
+        if (self.lower_weights <= 0.0).any():
+            print_error(
+                "Lower bound weights must be strictly positive to avoid invalid roulette behavior"
+            )
+        if (self.lower_weights > self.target_weights).any():
+            print_error(
+                f"Lower bound weight can not be greater than the target weight for any weight window"
+            )
+        if (self.target_weights > self.upper_weights).any():
+            print_error(
+                f"Target weight can not be greater than the upper bound weight for any weight window"
+            )
+
 
 
 # ======================================================================================
