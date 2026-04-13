@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from numpy.typing import NDArray
+from numpy import float64
 from mcdc.object_.base import ObjectBase, ObjectSingleton
 from mcdc.object_.mesh import MeshBase
 from mcdc.print_ import print_error
@@ -72,35 +73,47 @@ class WeightRoulette(ObjectSingleton):
 # ======================================================================================
 
 
-@dataclass
-class WeightWindow(ObjectBase):
-    label: str = "weight_window"
-    upper_bound: float = 1.0
-    lower_bound: float = 0.0
-    target_weight: float = 1.0
-
-
 class WeightWindows(ObjectSingleton):
     label: str = "weight_windows"
 
     active: bool
     mesh: MeshBase
-    # 3d array of datatype WeightWindow
-    weight_windows: NDArray[tuple[int, int, int], WeightWindow]
+    Nx: int
+    Ny: int
+    Nz: int
+
+    # flattened array of ww
+    weight_windows: NDArray[float64]
 
     def __init__(self):
         self.active = False
 
     def __call__(self, mesh, weight_windows):
+        # get mesh size
+        match mesh.label:
+            case "uniform_mesh":
+                nx, ny, nz = mesh.Nx, mesh.Ny, mesh.Nz
+            case "structured_mesh":
+                nx, ny, nz = mesh.x.shape[0], mesh.y.shape[0], mesh.z.shape[0]
+            case _:
+                print_error(
+                    f"{type(mesh).__name__} is not supported for weight windows"
+                )
+        
+        mesh_shape = (nx, ny, nz)
         ww_shape = weight_windows.shape
-        mesh_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
-        if ww_shape != mesh_shape:
+        expected_shape = (*mesh_shape, 3)
+        if ww_shape != expected_shape:
             print_error(
-                f"Weight window array has shape {ww_shape}, but expected {mesh_shape}"
+                f"Weight window array has shape {ww_shape}, but expected {expected_shape}"
             )
+
         self.active = True
         self.mesh = mesh
-        self.weight_windows = weight_windows
+        self.Nx = nx
+        self.Ny = ny
+        self.Nz = nz
+        self.weight_windows = weight_windows.reshape(-1)
 
 
 # ======================================================================================

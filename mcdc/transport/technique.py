@@ -4,7 +4,7 @@ import math
 from numba import njit
 
 ####
-
+from mcdc.mcdc_get.weight_windows import weight_windows_all, weight_windows_chunk
 import mcdc.numba_types as type_
 from mcdc.transport.mesh import get_indices as get_mesh_indices
 import mcdc.transport.particle as particle_module
@@ -36,17 +36,18 @@ def weight_roulette(particle_container, mcdc):
 
 @njit
 def weight_windows(particle_container, mcdc, data):
-    weight_window = query_weight_window(particle_container, mcdc, data)
-    split_from_weight_window(particle_container, weight_window["upper_bound"], mcdc)
-    roulette_from_weight_window(particle_container, weight_window["lower_bound"], weight_window["target_weight"])
+    [lower, target, upper] = query_weight_window(particle_container, mcdc, data)
+    split_from_weight_window(particle_container, upper, mcdc)
+    roulette_from_weight_window(particle_container, lower, target)
 
 
 @njit
 def query_weight_window(particle_container, mcdc, data):
-    mesh = mcdc["weight_windows"]["mesh"]
-    ww_array = mcdc["weight_windows"]["weight_windows"]
+    ww_obj = mcdc["weight_windows"]
+    mesh = mcdc["meshes"][ww_obj["mesh_ID"]]
     idx, idy, idz = get_mesh_indices(particle_container, mesh, mcdc, data)
-    return ww_array[idx, idy, idz]
+    start = 3*(idx * mesh["Nx"] + idy * mesh["Ny"] + idz * mesh["Nz"])
+    return weight_windows_chunk(start, 3, ww_obj, data)
 
 
 @njit
