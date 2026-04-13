@@ -4,29 +4,87 @@ from numba import njit
 
 
 @njit
-def weight_windows(index, weight_windows, data, value):
-    offset = weight_windows["weight_windows_offset"]
+def lower_weights(index, weight_windows, data, value):
+    offset = weight_windows["lower_weights_offset"]
     data[offset + index] = value
 
 
 @njit
-def weight_windows_all(weight_windows, data, value):
-    start = weight_windows["weight_windows_offset"]
-    size = weight_windows["weight_windows_length"]
+def lower_weights_all(weight_windows, data, value):
+    start = weight_windows["lower_weights_offset"]
+    size = weight_windows["lower_weights_length"]
     end = start + size
     data[start:end] = value
 
 
 @njit
-def weight_windows_last(weight_windows, data, value):
-    start = weight_windows["weight_windows_offset"]
-    size = weight_windows["weight_windows_length"]
+def lower_weights_last(weight_windows, data, value):
+    start = weight_windows["lower_weights_offset"]
+    size = weight_windows["lower_weights_length"]
     end = start + size
     data[end - 1] = value
 
 
 @njit
-def weight_windows_chunk(start, length, weight_windows, data, value):
-    start += weight_windows["weight_windows_offset"]
+def lower_weights_chunk(start, length, weight_windows, data, value):
+    start += weight_windows["lower_weights_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def target_weights(index, weight_windows, data, value):
+    offset = weight_windows["target_weights_offset"]
+    data[offset + index] = value
+
+
+@njit
+def target_weights_all(weight_windows, data, value):
+    start = weight_windows["target_weights_offset"]
+    size = weight_windows["target_weights_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def target_weights_last(weight_windows, data, value):
+    start = weight_windows["target_weights_offset"]
+    size = weight_windows["target_weights_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def target_weights_chunk(start, length, weight_windows, data, value):
+    start += weight_windows["target_weights_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def upper_weights(index, weight_windows, data, value):
+    offset = weight_windows["upper_weights_offset"]
+    data[offset + index] = value
+
+
+@njit
+def upper_weights_all(weight_windows, data, value):
+    start = weight_windows["upper_weights_offset"]
+    size = weight_windows["upper_weights_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def upper_weights_last(weight_windows, data, value):
+    start = weight_windows["upper_weights_offset"]
+    size = weight_windows["upper_weights_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def upper_weights_chunk(start, length, weight_windows, data, value):
+    start += weight_windows["upper_weights_offset"]
     end = start + length
     data[start:end] = value

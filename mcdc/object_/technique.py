@@ -82,8 +82,10 @@ class WeightWindows(ObjectSingleton):
     Ny: int
     Nz: int
 
-    # flattened array of ww
-    weight_windows: NDArray[float64]
+    # flattened arrays of ww params
+    lower_weights: NDArray[float64]
+    target_weights: NDArray[float64]
+    upper_weights: NDArray[float64]
 
     def __init__(self):
         self.active = False
@@ -94,7 +96,7 @@ class WeightWindows(ObjectSingleton):
             case "uniform_mesh":
                 nx, ny, nz = mesh.Nx, mesh.Ny, mesh.Nz
             case "structured_mesh":
-                nx, ny, nz = mesh.x.shape[0], mesh.y.shape[0], mesh.z.shape[0]
+                nx, ny, nz = mesh.x.shape[0]-1, mesh.y.shape[0]-1, mesh.z.shape[0]-1
             case _:
                 print_error(
                     f"{type(mesh).__name__} is not supported for weight windows"
@@ -110,10 +112,10 @@ class WeightWindows(ObjectSingleton):
 
         self.active = True
         self.mesh = mesh
-        self.Nx = nx
-        self.Ny = ny
-        self.Nz = nz
-        self.weight_windows = weight_windows.reshape(-1)
+        self.Nx, self.Ny, self.Nz = mesh_shape
+        self.lower_weights = weight_windows[..., 0].reshape(-1)
+        self.target_weights = weight_windows[..., 1].reshape(-1)
+        self.upper_weights = weight_windows[..., 2].reshape(-1)
 
 
 # ======================================================================================

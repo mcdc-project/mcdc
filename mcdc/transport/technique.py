@@ -4,7 +4,7 @@ import math
 from numba import njit
 
 ####
-from mcdc.mcdc_get.weight_windows import weight_windows_all, weight_windows_chunk
+import mcdc.mcdc_get.weight_windows as ww_get
 import mcdc.numba_types as type_
 from mcdc.transport.mesh import get_indices as get_mesh_indices
 import mcdc.transport.particle as particle_module
@@ -46,8 +46,11 @@ def query_weight_window(particle_container, mcdc, data):
     ww_obj = mcdc["weight_windows"]
     mesh = mcdc["meshes"][ww_obj["mesh_ID"]]
     idx, idy, idz = get_mesh_indices(particle_container, mesh, mcdc, data)
-    start = 3*(idx * mesh["Nx"] + idy * mesh["Ny"] + idz * mesh["Nz"])
-    return weight_windows_chunk(start, 3, ww_obj, data)
+    index = ((idx * ww_obj["Ny"]) + idy) * ww_obj["Nz"] + idz
+    lower = ww_get.lower_weights(index, ww_obj, data)
+    target = ww_get.target_weights(index, ww_obj, data)
+    upper = ww_get.upper_weights(index, ww_obj, data) 
+    return lower, target, upper
 
 
 @njit
