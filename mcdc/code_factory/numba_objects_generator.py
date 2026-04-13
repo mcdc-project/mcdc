@@ -353,7 +353,9 @@ def generate_numba_objects(simulation):
                 text += f"    {label} = into_dtype([\n"
                 for item in structure:
                     if item[0] == "particle_data":
-                        text += f"        ('{item[0]}', {item[0]}, (N['{item[0]}'],)),\n"
+                        text += (
+                            f"        ('{item[0]}', {item[0]}, (N['{item[0]}'],)),\n"
+                        )
                     else:
                         text += decode_structure_item(item, "    ")
                 text += "    ])\n\n"
@@ -363,7 +365,7 @@ def generate_numba_objects(simulation):
             text += f"def set_simulation(N: dict):\n"
             text += f"    global simulation\n"
             text += f"    simulation = into_dtype([\n"
-            for item in structures['simulation']:
+            for item in structures["simulation"]:
                 if type(item[1]) == np.dtypes.VoidDType and len(item) == 3:
                     singular_field = plural_to_singular(item[0])
                     text += f"        ('{item[0]}', {singular_field}, (N['{singular_field}'])),\n"
@@ -378,16 +380,16 @@ def generate_numba_objects(simulation):
     # ==================================================================================
 
     import mcdc.numba_types as type_
-   
-    # Particle banks 
-    type_.set_bank_active({'particle_data': simulation.bank_active.size[0]})
-    type_.set_bank_census({'particle_data': simulation.bank_census.size[0]})
-    type_.set_bank_source({'particle_data': simulation.bank_source.size[0]})
-    type_.set_bank_future({'particle_data': simulation.bank_future.size[0]})
+
+    # Particle banks
+    type_.set_bank_active({"particle_data": simulation.bank_active.size[0]})
+    type_.set_bank_census({"particle_data": simulation.bank_census.size[0]})
+    type_.set_bank_source({"particle_data": simulation.bank_source.size[0]})
+    type_.set_bank_future({"particle_data": simulation.bank_future.size[0]})
 
     # Simulation
     N = {}
-    for item in structures['simulation']:
+    for item in structures["simulation"]:
         if type(item[1]) == np.dtypes.VoidDType and len(item) == 3:
             singular_field = plural_to_singular(item[0])
             N[singular_field] = item[2]
