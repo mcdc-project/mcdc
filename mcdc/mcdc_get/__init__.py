@@ -44,6 +44,18 @@ import mcdc.mcdc_get.tabulated_distribution as tabulated_distribution
 
 import mcdc.mcdc_get.tabulated_energy_angle_distribution as tabulated_energy_angle_distribution
 
+import mcdc.mcdc_get.electron_reaction as electron_reaction
+
+import mcdc.mcdc_get.electron_bremsstrahlung_reaction as electron_bremsstrahlung_reaction
+
+import mcdc.mcdc_get.electron_elastic_scattering_reaction as electron_elastic_scattering_reaction
+
+import mcdc.mcdc_get.electron_excitation_reaction as electron_excitation_reaction
+
+import mcdc.mcdc_get.electron_ionization_reaction as electron_ionization_reaction
+
+import mcdc.mcdc_get.element as element
+
 import mcdc.mcdc_get.gpu_meta as gpu_meta
 
 import mcdc.mcdc_get.native_material as native_material
@@ -68,6 +80,8 @@ import mcdc.mcdc_get.neutron_fission_reaction as neutron_fission_reaction
 
 import mcdc.mcdc_get.neutron_inelastic_scattering_reaction as neutron_inelastic_scattering_reaction
 
+import mcdc.mcdc_get.collision_data as collision_data
+
 import mcdc.mcdc_get.particle_bank as particle_bank
 
 import mcdc.mcdc_get.settings as settings
@@ -87,6 +101,8 @@ import mcdc.mcdc_get.source as source
 import mcdc.mcdc_get.surface as surface
 
 import mcdc.mcdc_get.surface_tally as surface_tally
+
+import mcdc.mcdc_get.collision_tally as collision_tally
 
 import mcdc.mcdc_get.tracklength_tally as tracklength_tally
 

@@ -48,7 +48,7 @@ def generate_output(mcdc, data):
     create_tally_dataset(file, mcdc, data)
 
     # Eigenvalues
-    if mcdc["settings"]["eigenvalue_mode"]:
+    if mcdc["settings"]["neutron_eigenvalue_mode"]:
         N_cycle = mcdc["settings"]["N_cycle"]
         file.create_dataset(
             "k_cycle", data=mcdc_get.simulation.k_cycle_chunk(0, N_cycle, mcdc, data)
@@ -141,7 +141,7 @@ def create_runtime_dataset(file, mcdc):
 
 
 def create_tally_dataset(file, mcdc, data):
-    from mcdc.constant import TALLY_TRACKLENGTH
+    from mcdc.constant import TALLY_TRACKLENGTH, TALLY_COLLISION
     from mcdc.object_.tally import decode_score_type
 
     # Loop over all tally types
@@ -166,31 +166,38 @@ def create_tally_dataset(file, mcdc, data):
         )
 
         # Mesh grid (TODO: Make mesh dataset in a separate group)
+        mesh_filtered_tally = None
         if tally["child_type"] == TALLY_TRACKLENGTH:
-            tracklength_tally = mcdc["tracklength_tallies"][tally["child_ID"]]
-            if tracklength_tally["spatial_filter_type"] == SPATIAL_FILTER_MESH:
-                mesh_base = mcdc["meshes"][tracklength_tally["spatial_filter_ID"]]
-                mesh_type = mesh_base["child_type"]
-                mesh_ID = mesh_base["child_ID"]
-                if mesh_type == MESH_UNIFORM:
-                    mesh = mcdc["uniform_meshes"][mesh_ID]
-                    x = np.linspace(
-                        mesh["x0"], mesh["x0"] + mesh["dx"] * mesh["Nx"], mesh["Nx"] + 1
-                    )
-                    y = np.linspace(
-                        mesh["y0"], mesh["y0"] + mesh["dy"] * mesh["Ny"], mesh["Ny"] + 1
-                    )
-                    z = np.linspace(
-                        mesh["z0"], mesh["z0"] + mesh["dz"] * mesh["Nz"], mesh["Nz"] + 1
-                    )
-                elif mesh_type == MESH_STRUCTURED:
-                    mesh = mcdc["structured_meshes"][mesh_ID]
-                    x = mcdc_get.structured_mesh.x_all(mesh, data)
-                    y = mcdc_get.structured_mesh.y_all(mesh, data)
-                    z = mcdc_get.structured_mesh.z_all(mesh, data)
-                file.create_dataset(f"tallies/{tally_name}/grid/x", data=x)
-                file.create_dataset(f"tallies/{tally_name}/grid/y", data=y)
-                file.create_dataset(f"tallies/{tally_name}/grid/z", data=z)
+            mesh_filtered_tally = mcdc["tracklength_tallies"][tally["child_ID"]]
+        elif tally["child_type"] == TALLY_COLLISION:
+            mesh_filtered_tally = mcdc["collision_tallies"][tally["child_ID"]]
+
+        if (
+            mesh_filtered_tally is not None
+            and mesh_filtered_tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
+        ):
+            mesh_base = mcdc["meshes"][mesh_filtered_tally["spatial_filter_ID"]]
+            mesh_type = mesh_base["child_type"]
+            mesh_ID = mesh_base["child_ID"]
+            if mesh_type == MESH_UNIFORM:
+                mesh = mcdc["uniform_meshes"][mesh_ID]
+                x = np.linspace(
+                    mesh["x0"], mesh["x0"] + mesh["dx"] * mesh["Nx"], mesh["Nx"] + 1
+                )
+                y = np.linspace(
+                    mesh["y0"], mesh["y0"] + mesh["dy"] * mesh["Ny"], mesh["Ny"] + 1
+                )
+                z = np.linspace(
+                    mesh["z0"], mesh["z0"] + mesh["dz"] * mesh["Nz"], mesh["Nz"] + 1
+                )
+            elif mesh_type == MESH_STRUCTURED:
+                mesh = mcdc["structured_meshes"][mesh_ID]
+                x = mcdc_get.structured_mesh.x_all(mesh, data)
+                y = mcdc_get.structured_mesh.y_all(mesh, data)
+                z = mcdc_get.structured_mesh.z_all(mesh, data)
+            file.create_dataset(f"tallies/{tally_name}/grid/x", data=x)
+            file.create_dataset(f"tallies/{tally_name}/grid/y", data=y)
+            file.create_dataset(f"tallies/{tally_name}/grid/z", data=z)
 
         # Get and reshape tally
         N_bin = tally["bin_length"]
@@ -204,10 +211,11 @@ def create_tally_dataset(file, mcdc, data):
 
         # Roll tally so that score is in the front
         roll_reference = 4
-        if tally["child_type"] == TALLY_TRACKLENGTH:
-            tracklength_tally = mcdc["tracklength_tallies"][tally["child_ID"]]
-            if tracklength_tally["spatial_filter_type"] == SPATIAL_FILTER_MESH:
-                roll_reference = 7
+        if (
+            mesh_filtered_tally is not None
+            and mesh_filtered_tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
+        ):
+            roll_reference = 7
         mean = np.rollaxis(mean, roll_reference, 0)
         sdev = np.rollaxis(sdev, roll_reference, 0)
 

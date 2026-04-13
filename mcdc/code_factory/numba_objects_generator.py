@@ -2,14 +2,19 @@ from __future__ import annotations
 
 ####
 
+import importlib
+import numba as nb
 import numpy as np
 
-from pathlib import Path
 from mpi4py import MPI
+from numba import njit
+from numba.extending import intrinsic
+from pathlib import Path
 
 ####
 
 import mcdc
+import mcdc.code_factory.gpu.program_builder as gpu_builder
 import mcdc.config as config
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
@@ -26,15 +31,16 @@ from mcdc.print_ import print_error
 from mcdc.util import flatten
 
 type_map = {
-    bool: "?",
-    float: "f8",
-    int: "i8",
+    bool: np.bool_,
+    float: np.float64,
+    int: np.int64,
     str: "U32",
-    np.bool_: "?",
-    np.float64: "f8",
-    np.int64: "i8",
-    np.uint64: "u8",
+    np.bool_: np.bool_,
+    np.float64: np.float64,
+    np.int64: np.int64,
+    np.uint64: np.uint64,
     np.str_: "U32",
+    np.uintp: np.uintp,
 }
 
 bank_names = ["bank_active", "bank_census", "bank_source", "bank_future"]
@@ -200,21 +206,21 @@ def generate_numba_objects(simulation):
     # Add ID for non-singleton
     for class_ in mcdc_classes:
         if issubclass(class_, ObjectNonSingleton):
-            structures[class_.label].append(("ID", "i8"))
+            structures[class_.label].append(("ID", type_map[int]))
         # Set parent and child ID and type if polymorphic
         if issubclass(class_, ObjectPolymorphic):
             if class_.__name__[-4:] == "Base" or class_.__name__ == "Tally":
-                structures[class_.label].append(("child_type", "i8"))
-                structures[class_.label].append(("child_ID", "i8"))
+                structures[class_.label].append(("child_type", type_map[int]))
+                structures[class_.label].append(("child_ID", type_map[int]))
             else:
-                structures[class_.label].append(("parent_ID", "i8"))
+                structures[class_.label].append(("parent_ID", type_map[int]))
 
-    # Add particles to particle banks and add particle banks to the simulation
+    # Add particle data to particle banks and add particle banks to the simulation
     for name in bank_names:
         bank = getattr(simulation, name)
         size = int(bank.size[0])
         structures[name] += [
-            ("particles", into_dtype(structures["particle_data"]), (size,))
+            ("particle_data", into_dtype(structures["particle_data"]), (size,))
         ]
         #
         structures["simulation"] = [(name, into_dtype(structures[name]))] + structures[
@@ -222,7 +228,7 @@ def generate_numba_objects(simulation):
         ]
 
     # ==================================================================================
-    # Set records and data based on the simulation structures and objects
+    # Set records and data size based on the simulation structures and objects
     # ==================================================================================
 
     # Allocate object containers
@@ -250,26 +256,10 @@ def generate_numba_objects(simulation):
                 if type(item) in mcdc_classes:
                     objects.append(item)
 
-    # Set the objects
+    # Set the records and the data size
     for object_ in objects:
         set_object(object_, annotations, structures, records, data)
     set_object(simulation, annotations, structures, records, data)
-
-    # Allocate the flattened data and re-set the objects
-    data["array"], data["pointer"] = create_data_array(data["size"], type_map[float])
-
-    data["size"] = 0
-    records = {}
-    for mcdc_class in mcdc_classes:
-        if issubclass(mcdc_class, ObjectNonSingleton):
-            records[mcdc_class.label] = []
-        else:
-            records[mcdc_class.label] = {}
-    records["simulation"] = records.pop("simulation")
-
-    for object_ in objects:
-        set_object(object_, annotations, structures, records, data, set_data=True)
-    set_object(simulation, annotations, structures, records, data, set_data=True)
 
     # ==================================================================================
     # Finalize the simulation object structure and set record
@@ -291,7 +281,7 @@ def generate_numba_objects(simulation):
                 new_structure.append(
                     (field, into_dtype(structures[item[2].label]), (N,))
                 )
-                new_structure.append((f"N_{plural_to_singular(field)}", "i8"))
+                new_structure.append((f"N_{plural_to_singular(field)}", type_map[int]))
                 record[f"N_{plural_to_singular(field)}"] = N
 
             # List of polymorphics
@@ -306,7 +296,7 @@ def generate_numba_objects(simulation):
                                 (N,),
                             )
                         )
-                        new_structure.append((f"N_{class_.label}", "i8"))
+                        new_structure.append((f"N_{class_.label}", type_map[int]))
                         record[f"N_{class_.label}"] = N
 
         # Singleton
@@ -322,6 +312,12 @@ def generate_numba_objects(simulation):
     if MPI.COMM_WORLD.Get_rank() == 0:
         with open(f"{Path(mcdc.__file__).parent}/numba_types.py", "w") as f:
             text = "# The following is automatically generated by code_factory.py\n\n"
+            text += "from numpy import bool_\n"
+            text += "from numpy import float64\n"
+            text += "from numpy import int64\n"
+            text += "from numpy import uint64\n"
+            text += "from numpy import uintp\n"
+            text += "\n###\n\n"
             text += (
                 "from mcdc.code_factory.numba_objects_generator import into_dtype\n\n"
             )
@@ -329,9 +325,31 @@ def generate_numba_objects(simulation):
             for label in structures.keys():
                 text += f"{label} = into_dtype([\n"
                 structure = structures[label]
+
+                # GPU meta override
+                if label == "gpu_meta":
+                    for item in structure:
+                        if type(item[1]) != np.dtypes.VoidDType:
+                            if isinstance(item[1], str):
+                                dtype = f"'{item[1]}'"
+                            elif item[1].__name__ == "uint64":
+                                dtype = "uintp"
+                            else:
+                                dtype = item[1].__name__
+                            text += f"    ('{item[0]}', {dtype}),\n"
+                    text += "])\n\n"
+                    continue
+
                 for item in structure:
                     if type(item[1]) != np.dtypes.VoidDType:
-                        text += f"    {item},\n"
+                        if isinstance(item[1], str):
+                            dtype = f"'{item[1]}'"
+                        else:
+                            dtype = item[1].__name__
+                        if len(item) == 3:
+                            text += f"    ('{item[0]}', {dtype}, {item[2]}),\n"
+                        else:
+                            text += f"    ('{item[0]}', {dtype}),\n"
                     else:
                         if len(item) == 3:
                             text += f"    ('{item[0]}', {plural_to_singular(item[0])}, {item[2]}),\n"
@@ -342,14 +360,34 @@ def generate_numba_objects(simulation):
             f.write(text)
 
     # ==================================================================================
+    # GPU preparation: Adapt transport functions, forward declare, and build program
+    # ==================================================================================
+
+    if config.target == "gpu":
+        gpu_builder.forward_declare_gpu_program()
+        gpu_builder.adapt_transport_functions()
+        gpu_builder.build_gpu_program(data["size"])
+
+    # ==================================================================================
+    # Allocate the flattened data and re-set the objects
+    # ==================================================================================
+
+    data["array"], data["pointer"] = create_data_array(data["size"])
+
+    data["size"] = 0
+    for object_ in objects:
+        set_object(object_, annotations, structures, records, data, set_data=True)
+    set_object(simulation, annotations, structures, records, data, set_data=True)
+
+    # ==================================================================================
     # Set with records
     # ==================================================================================
 
     # The global structure/variable container
-    mcdc_simulation_arr, mcdc_simulation_pointer = create_mcdc_array(
+    mcdc_simulation_container, mcdc_simulation_pointer = create_simulation_container(
         into_dtype(structures["simulation"])
     )
-    mcdc_simulation = mcdc_simulation_arr[0]
+    mcdc_simulation = mcdc_simulation_container[0]
 
     record = records["simulation"]
     structure = structures["simulation"]
@@ -387,7 +425,12 @@ def generate_numba_objects(simulation):
     for name in bank_names:
         mcdc_simulation[name]["tag"] = getattr(simulation, name).tag
 
-    return mcdc_simulation_arr, data["array"]
+    # GPU program setup
+    if config.target == "gpu":
+        gpu_builder.setup_gpu_program(mcdc_simulation_container, data["array"])
+        gpu_builder.adapt_transport_functions_post_setup()
+
+    return mcdc_simulation_container, data["array"]
 
 
 def set_structure(label, structures, accessor_targets, annotations):
@@ -463,8 +506,8 @@ def set_structure(label, structures, accessor_targets, annotations):
         elif simple_scalar:
             structure.append((field, type_map[hint]))
         elif simple_list or numpy_array:
-            structure.append((f"{field}_offset", "i8"))
-            structure.append((f"{field}_length", "i8"))
+            structure.append((f"{field}_offset", type_map[int]))
+            structure.append((f"{field}_length", type_map[int]))
             if hint_origin_shape is not None:
                 accessor_target.append((f"{field}", hint_origin_shape))
             else:
@@ -472,13 +515,13 @@ def set_structure(label, structures, accessor_targets, annotations):
 
         # MC/DC classes
         elif non_polymorphic(hint) or polymorphic_base(hint):
-            structure.append((f"{field}_ID", "i8"))
+            structure.append((f"{field}_ID", type_map[int]))
 
         # List of MC/DC classes
         elif list_of_non_polymorphics or list_of_polymorphic_bases:
             singular = plural_to_singular(field)
-            structure.append((f"N_{singular}", "i8"))
-            structure.append((f"{singular}_IDs_offset", "i8"))
+            structure.append((f"N_{singular}", type_map[int]))
+            structure.append((f"{singular}_IDs_offset", type_map[int]))
             if hint_origin_shape is not None:
                 accessor_target.append((f"{singular}_IDs", hint_origin_shape))
             else:
@@ -640,42 +683,75 @@ def set_object(
 
 
 # =============================================================================
-# Global GPU/CPU Array Variable Constructors
+# Global GPU/CPU variable array constructors
 # =============================================================================
 
 
-def create_data_array(size, dtype):
-    if config.target == "gpu":
-        import mcdc.code_factory.gpu.adapt as adapt
-        import harmonize, numba
-
-        if config.gpu_state_storage == "managed":
-            data_tally_ptr = harmonize.alloc_managed_bytes(size)
-        else:
-            data_tally_ptr = harmonize.alloc_device_bytes(size)
-        data_tally_uint = adapt.voidptr_to_uintp(data_tally_ptr)
-        data_tally = numba.carray(data_tally_ptr, (size,), dtype)
-        return data_tally, data_tally_uint
+def create_data_array(size):
+    if not config.target == "gpu":
+        data = np.zeros(size, dtype=np.float64)
+        return data, 0
     else:
-        data_tally = np.zeros(size, dtype=dtype)
-        return data_tally, 0
+        return create_data_array_on_gpu(size * 8)
 
 
-def create_mcdc_array(dtype):
-    if config.target == "gpu":
-        import mcdc.code_factory.gpu.adapt as adapt
-        import harmonize, numba
-
-        if config.gpu_state_storage == "managed":
-            mcdc_ptr = harmonize.alloc_managed_bytes(dtype.itemsize)
-        else:
-            mcdc_ptr = harmonize.alloc_device_bytes(dtype.itemsize)
-        mcdc_uint = adapt.voidptr_to_uintp(mcdc_ptr)
-        mcdc_array = numba.carray(mcdc_ptr, (1,), dtype)
-        return mcdc_array, mcdc_uint
+@njit
+def create_data_array_on_gpu(size):
+    if config.gpu_state_storage == "managed":
+        data_ptr = gpu_builder.alloc_managed_bytes(size)
     else:
-        mcdc_array = np.zeros((1,), dtype=dtype)
-        return mcdc_array, 0
+        data_ptr = gpu_builder.alloc_device_bytes(size)
+    data_uint = voidptr_to_uintp(data_ptr)
+    data = nb.carray(data_ptr, (size,), dtype=np.float64)
+    return data, data_uint
+
+
+def create_simulation_container(dtype):
+    if not config.target == "gpu":
+        simulation_container = np.zeros((1,), dtype=dtype)
+        return simulation_container, 0
+    else:
+        return create_simulation_container_on_gpu(dtype, dtype.itemsize)
+
+
+@njit
+def create_simulation_container_on_gpu(dtype, size):
+    if config.gpu_state_storage == "managed":
+        simulation_ptr = gpu_builder.alloc_managed_bytes(size)
+    else:
+        simulation_ptr = gpu_builder.alloc_device_bytes(size)
+    simulation_uint = voidptr_to_uintp(simulation_ptr)
+    simulation = nb.carray(simulation_ptr, (1,), dtype)
+    return simulation, simulation_uint
+
+
+# =============================================================================
+# Type casters
+# =============================================================================
+
+
+@intrinsic
+def cast_voidptr_to_uintp(typingctx, src):
+    # check for accepted types
+    if isinstance(src, nb.types.RawPointer):
+        # create the expected type signature
+        result_type = nb.types.uintp
+        sig = result_type(nb.types.voidptr)
+
+        # defines the custom code generation
+        def codegen(context, builder, signature, args):
+            # llvm IRBuilder code here
+            [src] = args
+            rtype = signature.return_type
+            llrtype = context.get_value_type(rtype)
+            return builder.ptrtoint(src, llrtype)
+
+        return sig, codegen
+
+
+@njit()
+def voidptr_to_uintp(value):
+    return cast_voidptr_to_uintp(value)
 
 
 # ======================================================================================
@@ -1130,49 +1206,3 @@ def singular_to_plural(word: str) -> str:
         parts[-1] = w + "s"
 
     return "_".join(parts)
-
-
-# ==============================================================================
-# MC/DC Member Array Sizes
-# ==============================================================================
-
-
-def literalize(value):
-    jit_str = f"@njit\ndef impl():\n    return {value}\n"
-    exec(jit_str, globals(), locals())
-    return eval("impl")
-
-
-def rpn_buffer_size():
-    pass
-
-
-def make_size_rpn(cells):
-    global rpn_buffer_size
-    size = max([np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in cells])
-    rpn_buffer_size = literalize(size)
-
-
-# ======================================================================================
-# Make literals
-# ======================================================================================
-
-
-def make_literals(simulation):
-    # Sizes
-    if len(simulation.cells) == 0:
-        rpn_evaluation_buffer_size = 1
-    else:
-        rpn_evaluation_buffer_size = int(
-            max(
-                [np.sum(np.array(x.region_RPN_tokens) >= 0.0) for x in simulation.cells]
-            )
-        )
-
-    path = f"{Path(mcdc.__file__).parent}"
-    with open(f"{path}/transport/literals.py", "w") as f:
-        text = "# The following is automatically generated by code_factory.py\n\n"
-
-        text += f"rpn_evaluation_buffer_size = {rpn_evaluation_buffer_size}\n"
-
-        f.write(text)

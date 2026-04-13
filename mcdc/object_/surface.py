@@ -24,10 +24,11 @@ from mcdc.constant import (
     SURFACE_CONE_X,
     SURFACE_CONE_Y,
     SURFACE_CONE_Z,
+    SURFACE_TORUS_Z,
 )
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.cell import Region
-from mcdc.object_.tally import Tally
+from mcdc.object_.tally import TallySurface
 from mcdc.object_.util import move_object
 
 # ======================================================================================
@@ -108,6 +109,8 @@ class Surface(ObjectNonSingleton):
     H: float
     I: float
     J: float
+    R: float
+    r: float
     linear: bool
     nx: float
     ny: float
@@ -119,7 +122,7 @@ class Surface(ObjectNonSingleton):
     move_durations: Annotated[NDArray[float64], ("N_move",)]
     move_time_grid: Annotated[NDArray[float64], ("N_move_grid",)]
     move_translations: Annotated[NDArray[float64], ("N_move_grid", 3)]
-    tallies: list[Tally]
+    tallies: list[TallySurface]
 
     def __init__(self, type_, name, boundary_condition):
         super().__init__()
@@ -151,8 +154,13 @@ class Surface(ObjectNonSingleton):
         self.I = 0.0
         self.J = 0.0
 
+        # Torus surface parameters
+        self.R = 0.0
+        self.r = 0.0
+
         # Helpers
         self.linear = True
+
         # Surface normal direction (if linear)
         self.nx = 0.0
         self.ny = 0.0
@@ -819,6 +827,49 @@ class Surface(ObjectNonSingleton):
         surface.J = J
         return surface
 
+    @classmethod
+    def TorusZ(
+        cls,
+        name: str = "",
+        A: float = 0.0,
+        B: float = 0.0,
+        C: float = 0.0,
+        R: float = 0.0,
+        r: float = 0.0,
+        boundary_condition: str = "none",
+    ):
+        """
+        Create a torus on the x-y plane radially symetric around the z axis:
+            f(x, y, z) = ( sqrt[(x - A)^2 + (y - B)^2] - R )^2 + (z - C)^2 - r^2
+
+        Parameters
+        ----------
+        name : str, optional
+        A,B,C,R,r : float
+            A, B, C are displacement values for the torus in the x, y, z directions respectfully
+            R is the radius around which a circle is revolved about the axis of revolution (parallel with the z-axis)
+            r is the radius of the circle that is being revolved
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Torus surface.
+        """
+        type_ = SURFACE_TORUS_Z
+        surface = cls(type_, name, boundary_condition)
+
+        surface.linear = False
+
+        # Coefficients
+        surface.A = A
+        surface.B = B
+        surface.C = C
+        surface.R = R
+        surface.r = r
+
+        return surface
+
     # ==================================================================================
     # Region building
     # ==================================================================================
@@ -901,16 +952,18 @@ def decode_type(type_):
         return "Infinite cylinder-Z surface"
     elif type_ == SURFACE_CYLINDER:
         return "General cylinder surface"
+    elif type_ == SURFACE_SPHERE:
+        return "Sphere surface"
+    elif type_ == SURFACE_QUADRIC:
+        return "Quadric surface"
     elif type_ == SURFACE_CONE_X:
         return "Infinite cone-X surface"
     elif type_ == SURFACE_CONE_Y:
         return "Infinite cone-Y surface"
     elif type_ == SURFACE_CONE_Z:
         return "Infinite cone-Z surface"
-    elif type_ == SURFACE_SPHERE:
-        return "Sphere surface"
-    elif type_ == SURFACE_QUADRIC:
-        return "Quadric surface"
+    elif type_ == SURFACE_TORUS_Z:
+        return "Torus-Z surface"
 
 
 def decode_BC_type(type_):

@@ -7,9 +7,9 @@ import mcdc.transport.rng as rng
 
 
 @njit
-def move(particle_container, distance, mcdc, data):
+def move(particle_container, distance, simulation, data):
     particle = particle_container[0]
-    ut = 1.0 / physics.particle_speed(particle_container, mcdc, data)
+    ut = 1.0 / physics.particle_speed(particle_container, simulation, data)
 
     particle["x"] += particle["ux"] * distance
     particle["y"] += particle["uy"] * distance

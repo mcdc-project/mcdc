@@ -10,7 +10,6 @@ parser.add_argument("--mpiexec", type=int, default=0)
 parser.add_argument("--srun", type=int, default=0)
 parser.add_argument("--name", type=str, default="ALL")
 parser.add_argument("--skip", type=str, default="NONE")
-parser.add_argument("--include_native_physics", default=False, action="store_true")
 args, unargs = parser.parse_known_args()
 
 # Parse
@@ -20,9 +19,17 @@ mpiexec = args.mpiexec
 srun = args.srun
 name = args.name
 skip = args.skip
-include_native_physics = args.include_native_physics
 
-non_test_files = ["__pycache__", "MCDC-regression_test_data", "tmp"]
+regtest_data_name = "mcdc-regression_test_data"
+non_test_files = ["__pycache__", regtest_data_name, "tmp"]
+
+# Clone and update regression test data if needed
+if not os.path.isdir(regtest_data_name):
+    os.system(f"git clone https://github.com/mcdc-project/{regtest_data_name}.git")
+else:
+    os.chdir(regtest_data_name)
+    os.system("git pull")
+    os.chdir("..")
 
 # Get test names
 if name == "ALL":
@@ -40,14 +47,6 @@ if skip != "NONE":
     for name in skips:
         print(Fore.YELLOW + "Note: Skipping %s" % name + Style.RESET_ALL)
         names.remove(name)
-
-# Remove native physics if not incuded
-native_physics_tests = ["pincell", "pincell-k_eigenvalue"]
-if not include_native_physics:
-    for name in native_physics_tests:
-        print(Fore.YELLOW + "Note: Skipping %s" % name + Style.RESET_ALL)
-        if name in names:
-            names.remove(name)
 
 # Skip domain decomp tests unless there are 4 MPI processes
 temp = names.copy()

@@ -1,3 +1,4 @@
+from typing import List
 import h5py
 from h5py._hl.dataset import sel
 import numpy as np
@@ -26,10 +27,6 @@ class Settings(ObjectSingleton):
     N_particle: int = 0
     N_batch: int = 1
     rng_seed: int = 1
-
-    # Simulation mode
-    multigroup_mode: bool = False
-    eigenvalue_mode: bool = False
 
     # k-eigenvalue
     N_inactive: int = 0
@@ -65,6 +62,15 @@ class Settings(ObjectSingleton):
     neutron_transport: bool = True
     electron_transport: bool = False
     proton_transport: bool = False
+
+    # Neutron transport modes
+    neutron_multigroup_mode: bool = False
+    neutron_eigenvalue_mode: bool = False
+
+    # GPU mode
+    gpu_strategy: int = GPU_STRATEGY_ASYNC
+    gpu_async_type: int = GPU_ASYNC_SIMPLE
+    gpu_storage: int = GPU_STORAGE_SEPARATE
 
     def __post_init__(self):
         super().__init__()
@@ -103,7 +109,7 @@ class Settings(ObjectSingleton):
         self.N_inactive = N_inactive
         self.N_active = N_active
         self.N_cycle = self.N_inactive + self.N_active
-        self.eigenvalue_mode = True
+        self.neutron_eigenvalue_mode = True
         self.k_init = k_init
         self.save_particle = save_particle
 
@@ -141,7 +147,7 @@ class Settings(ObjectSingleton):
         with h5py.File(source_file_name, "r") as f:
             self.N_particle = int(f["particles_size"][()])
 
-    def set_transported_particles(self, transported_particles):
+    def set_transported_particles(self, transported_particles: List[str]):
         # Reset the flags
         self.neutron_transport = False
         self.electron_transport = False
