@@ -4,6 +4,21 @@ import pytest
 import os
 
 from mcdc.main import preparation
+import mcdc.numba_types as type_
+from mcdc.transport.technique import (
+  roulette_from_weight_window,
+  split_from_weight_window,
+  query_weight_window,
+  weight_windows
+)
+from mcdc.constant import (
+  TINY
+)
+
+# =========================================================================== #
+# Helper method for creating a dummy model
+# =========================================================================== #
+
 
 def make_ww_model(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
   # Geometry
@@ -51,6 +66,12 @@ def make_ww_model(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
 
   return preparation()
 
+
+# =========================================================================== #
+# Test error throwing in object creation
+# =========================================================================== #
+
+
 @pytest.mark.parametrize(
     "kwargs, expected_msg",
     [
@@ -82,3 +103,21 @@ def test_error_throw(capsys, kwargs, expected_msg):
 
   out = capsys.readouterr().out
   assert expected_msg in out
+
+
+# =========================================================================== #
+# Tests for helper methods 
+# =========================================================================== #
+
+
+def test_roullete_from_weight_window():
+  # because of rng, want to loop over to hit both branches
+  for i in range(10):
+    particles = np.zeros(1, type_.particle_data)
+    particles[0]["w"] = 0.1
+    target = 0.2
+    threshold = 0.1 + TINY
+    
+    roulette_from_weight_window(particles, threshold, target)
+    p = particles[0]
+    assert (p["w"] == target or not p["alive"])
