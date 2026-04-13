@@ -12,7 +12,6 @@ import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
 import mcdc.transport.util as util
 
-
 # ======================================================================================
 # Weight Roulette
 # ======================================================================================
@@ -50,7 +49,7 @@ def query_weight_window(particle_container, mcdc, data):
     index = ((idx * ww_obj["Ny"]) + idy) * ww_obj["Nz"] + idz
     lower = ww_get.lower_weights(index, ww_obj, data)
     target = ww_get.target_weights(index, ww_obj, data)
-    upper = ww_get.upper_weights(index, ww_obj, data) 
+    upper = ww_get.upper_weights(index, ww_obj, data)
     return lower, target, upper
 
 

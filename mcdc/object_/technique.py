@@ -97,12 +97,16 @@ class WeightWindows(ObjectSingleton):
             case "uniform_mesh":
                 nx, ny, nz = mesh.Nx, mesh.Ny, mesh.Nz
             case "structured_mesh":
-                nx, ny, nz = mesh.x.shape[0]-1, mesh.y.shape[0]-1, mesh.z.shape[0]-1
+                nx, ny, nz = (
+                    mesh.x.shape[0] - 1,
+                    mesh.y.shape[0] - 1,
+                    mesh.z.shape[0] - 1,
+                )
             case _:
                 print_error(
                     f"{type(mesh).__name__} is not supported for weight windows"
                 )
-        
+
         # check correct shape
         mesh_shape = (nx, ny, nz)
         ww_shape = weight_windows.shape
@@ -132,7 +136,6 @@ class WeightWindows(ObjectSingleton):
             print_error(
                 "Target weight can not be greater than the upper bound weight for any weight window"
             )
-
 
 
 # ======================================================================================
