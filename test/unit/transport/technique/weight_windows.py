@@ -155,7 +155,7 @@ def test_split_from_weight_window():
   assert p1["w"] == init_weight / num_split
   assert particle_bank_module.get_bank_size(bank) == init_bank_size + num_new
   for i in range(2):
-    pnew = bank["particles"][init_bank_size + i]
+    pnew = bank["particle_data"][init_bank_size + i]
     assert pnew["w"] == p1["w"]
 
 
