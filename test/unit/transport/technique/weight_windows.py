@@ -9,7 +9,8 @@ from mcdc.transport.technique import (
   roulette_from_weight_window,
   split_from_weight_window,
   query_weight_window,
-  weight_windows
+  weight_windows,
+  particle_bank_module
 )
 from mcdc.constant import (
   TINY
@@ -64,7 +65,8 @@ def make_ww_model(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
   ww_array[:, :, :, 2] = upper
   mcdc.simulation.weight_windows(mesh, ww_array)
 
-  return preparation()
+  mcdc_container, data = preparation()
+  return mcdc_container[0], data
 
 
 # =========================================================================== #
@@ -121,3 +123,30 @@ def test_roullete_from_weight_window():
     roulette_from_weight_window(particles, threshold, target)
     p = particles[0]
     assert (p["w"] == target or not p["alive"])
+
+
+def test_split_from_weight_window():
+  particles = np.zeros(1, type_.particle_data)
+  init_weight = 2.0 + TINY
+  particles[0]["w"] = init_weight
+  threshold = 1.0
+  mcdc_obj, data = make_ww_model()
+
+  # get bank and init size
+  bank = mcdc_obj["bank_active"]
+  init_bank_size = particle_bank_module.get_bank_size(bank)
+
+  # split
+  split_from_weight_window(particles, threshold, mcdc_obj)
+
+  p1 = particles[0]
+  num_split = np.ceil(init_weight / threshold)
+  num_new = num_split - 1
+
+  # check weight of original particle
+  assert p1["w"] == init_weight / num_split
+  assert particle_bank_module.get_bank_size(bank) == init_bank_size + num_new
+  for i in range(2):
+    pnew = bank["particles"][init_bank_size + i]
+    assert pnew["w"] == p1["w"]
+
