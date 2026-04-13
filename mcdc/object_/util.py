@@ -554,3 +554,7 @@ def move_object(object_, velocities, durations):
         object_.move_translations[n + 1] = (
             trans_start + object_.move_velocities[n] * object_.move_durations[n]
         )
+
+
+def subtype_size(main_list, subtype: str):
+    return len([x for x in main_list if x.label == subtype])

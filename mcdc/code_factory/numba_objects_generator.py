@@ -323,41 +323,75 @@ def generate_numba_objects(simulation):
             )
 
             for label in structures.keys():
+                # Skip special types
+                if label in ["gpu_meta"] + bank_names + ["simulation"]:
+                    continue
+
                 text += f"{label} = into_dtype([\n"
                 structure = structures[label]
 
-                # GPU meta override
-                if label == "gpu_meta":
-                    for item in structure:
-                        if type(item[1]) != np.dtypes.VoidDType:
-                            if isinstance(item[1], str):
-                                dtype = f"'{item[1]}'"
-                            elif item[1].__name__ == "uint64":
-                                dtype = "uintp"
-                            else:
-                                dtype = item[1].__name__
-                            text += f"    ('{item[0]}', {dtype}),\n"
-                    text += "])\n\n"
-                    continue
-
                 for item in structure:
-                    if type(item[1]) != np.dtypes.VoidDType:
-                        if isinstance(item[1], str):
-                            dtype = f"'{item[1]}'"
-                        else:
-                            dtype = item[1].__name__
-                        if len(item) == 3:
-                            text += f"    ('{item[0]}', {dtype}, {item[2]}),\n"
-                        else:
-                            text += f"    ('{item[0]}', {dtype}),\n"
-                    else:
-                        if len(item) == 3:
-                            text += f"    ('{item[0]}', {plural_to_singular(item[0])}, {item[2]}),\n"
-                        else:
-                            text += f"    ('{item[0]}', {item[0]}),\n"
+                    text += decode_structure_item(item)
                 text += "])\n\n"
 
+            # GPU meta
+            text += "gpu_meta = into_dtype([\n"
+            for item in structures["gpu_meta"]:
+                if item[0].endswith("pointer"):
+                    text += f"    ('{item[0]}', uintp),\n"
+                else:
+                    text += decode_structure_item(item)
+            text += "])\n\n"
+
+            # Particle banks
+            for label in bank_names:
+                structure = structures[label]
+
+                text += f"{label} = None\n"
+                text += f"def set_{label}(N: dict):\n"
+                text += f"    global {label}\n"
+                text += f"    {label} = into_dtype([\n"
+                for item in structure:
+                    if item[0] == "particle_data":
+                        text += f"        ('{item[0]}', {item[0]}, (N['{item[0]}'],)),\n"
+                    else:
+                        text += decode_structure_item(item, "    ")
+                text += "    ])\n\n"
+
+            # Simulation
+            text += f"simulation = None\n"
+            text += f"def set_simulation(N: dict):\n"
+            text += f"    global simulation\n"
+            text += f"    simulation = into_dtype([\n"
+            for item in structures['simulation']:
+                if type(item[1]) == np.dtypes.VoidDType and len(item) == 3:
+                    singular_field = plural_to_singular(item[0])
+                    text += f"        ('{item[0]}', {singular_field}, (N['{singular_field}'])),\n"
+                else:
+                    text += decode_structure_item(item, "    ")
+            text += "    ])\n\n"
+
             f.write(text)
+
+    # ==================================================================================
+    # Set numba_types.py
+    # ==================================================================================
+
+    import mcdc.numba_types as type_
+   
+    # Particle banks 
+    type_.set_bank_active({'particle_data': simulation.bank_active.size[0]})
+    type_.set_bank_census({'particle_data': simulation.bank_census.size[0]})
+    type_.set_bank_source({'particle_data': simulation.bank_source.size[0]})
+    type_.set_bank_future({'particle_data': simulation.bank_future.size[0]})
+
+    # Simulation
+    N = {}
+    for item in structures['simulation']:
+        if type(item[1]) == np.dtypes.VoidDType and len(item) == 3:
+            singular_field = plural_to_singular(item[0])
+            N[singular_field] = item[2]
+    type_.set_simulation(N)
 
     # ==================================================================================
     # GPU preparation: Adapt transport functions, forward declare, and build program
@@ -1206,3 +1240,20 @@ def singular_to_plural(word: str) -> str:
         parts[-1] = w + "s"
 
     return "_".join(parts)
+
+
+def decode_structure_item(item, prefix=""):
+    if type(item[1]) != np.dtypes.VoidDType:
+        if isinstance(item[1], str):
+            dtype = f"'{item[1]}'"
+        else:
+            dtype = item[1].__name__
+        if len(item) == 3:
+            return f"{prefix}    ('{item[0]}', {dtype}, {item[2]}),\n"
+        else:
+            return f"{prefix}    ('{item[0]}', {dtype}),\n"
+    else:
+        if len(item) == 3:
+            return f"{prefix}    ('{item[0]}', {plural_to_singular(item[0])}, {item[2]}),\n"
+        else:
+            return f"{prefix}    ('{item[0]}', {item[0]}),\n"

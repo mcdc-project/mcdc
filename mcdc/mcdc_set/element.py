@@ -316,9 +316,7 @@ def electron_ionization_subshell_binding_energy_last(element, data, value):
 
 
 @njit
-def electron_ionization_subshell_binding_energy_chunk(
-    start, length, element, data, value
-):
+def electron_ionization_subshell_binding_energy_chunk(start, length, element, data, value):
     start += element["electron_ionization_subshell_binding_energy_offset"]
     end = start + length
     data[start:end] = value

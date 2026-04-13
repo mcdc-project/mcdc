@@ -171,9 +171,7 @@ def cosine_offset__last(tabulated_energy_angle_distribution, data, value):
 
 
 @njit
-def cosine_offset__chunk(
-    start, length, tabulated_energy_angle_distribution, data, value
-):
+def cosine_offset__chunk(start, length, tabulated_energy_angle_distribution, data, value):
     start += tabulated_energy_angle_distribution["cosine_offset__offset"]
     end = start + length
     data[start:end] = value
