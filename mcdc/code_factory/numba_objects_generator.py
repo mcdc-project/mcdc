@@ -1245,6 +1245,10 @@ def singular_to_plural(word: str) -> str:
 
 
 def decode_structure_item(item, prefix=""):
+    """
+    A structure item is a list describing a member field in the structure.
+    The list contains [field name, field type, size].
+    """
     if type(item[1]) != np.dtypes.VoidDType:
         if isinstance(item[1], str):
             dtype = f"'{item[1]}'"
