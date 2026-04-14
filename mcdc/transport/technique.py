@@ -101,7 +101,7 @@ def get_ww_index(particle_container, ww_obj, simulation, data):
     simulation : object
         Simulation state containing weight window and mesh data.
     data : object
-        Simulation data for array access. 
+        Simulation data for array access.
 
     Returns
     -------
