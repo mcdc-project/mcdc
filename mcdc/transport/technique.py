@@ -89,6 +89,25 @@ def query_weight_window(particle_container, simulation, data):
 
 @njit
 def get_ww_index(particle_container, ww_obj, simulation, data):
+    """
+    Get flattened weight window index from particle information
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    weight_window_object : object
+        The weight window object containing index information
+    simulation : object
+        Simulation state containing weight window and mesh data.
+    data : object
+        Simulation data for array access. 
+
+    Returns
+    -------
+    index: int
+        the flattened index in the weight window array
+    """
     particle = particle_container[0]
 
     # get energy index
