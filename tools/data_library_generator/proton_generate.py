@@ -120,7 +120,7 @@ for ace_name in pbar:
     # Inelastic: Non-fission reactions with non-zero multiplicity
     # Ignored: MT=(1, 3, 4, 10) and MT>117
 
-    reactions = file.create_group("neutron_reactions")
+    proton_reactions = file.create_group("proton_reactions")
 
     # ACE blocks
     nu_block = ace_table.frame_and_multiplicity_block
@@ -131,10 +131,10 @@ for ace_name in pbar:
         print_error("Non-equal reaction number in reaction and multiplicity blocks")
 
     # The groups
-    elastic_group = reactions.create_group("elastic_scattering")
-    capture_group = reactions.create_group("capture")
-    inelastic_group = reactions.create_group("inelastic_scattering")
-    fission_group = reactions.create_group("fission")
+    elastic_group = proton_reactions.create_group("elastic_scattering")
+    capture_group = proton_reactions.create_group("capture")
+    inelastic_group = proton_reactions.create_group("inelastic_scattering")
+    fission_group = proton_reactions.create_group("fission")
 
     # MT groups
     elastic_MTs = [2]
@@ -201,9 +201,9 @@ for ace_name in pbar:
 
     # Delete empty groups
     if not fissionable:
-        del file["neutron_reactions/fission"]
+        del file["proton_reactions/fission"]
     if len(inelastic_MTs) == 0:
-        del file["neutron_reactions/inelastic_scattering"]
+        del file["proton_reactions/inelastic_scattering"]
 
     # ==================================================================================
     # Cross-sections
@@ -219,7 +219,7 @@ for ace_name in pbar:
 
     # Energy grid
     xs_energy = np.array(xs_energy)
-    dataset = reactions.create_dataset("xs_energy_grid", data=xs_energy)
+    dataset = proton_reactions.create_dataset("xs_energy_grid", data=xs_energy)
     dataset.attrs["unit"] = "MeV"
 
     # Elastic scattering
@@ -234,6 +234,7 @@ for ace_name in pbar:
         (fission_MTs, fission_group),
     ]:
         for MT in MTs:
+            print(f'MT = {MT}')
             idx = rx_block.index(MT)
             xs = group.create_dataset(f"MT-{MT:03}/xs", data=cross_sections(idx))
             xs.attrs["offset"] = offsets(idx) - 1
