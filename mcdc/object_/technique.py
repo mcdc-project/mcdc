@@ -1,5 +1,6 @@
 from numpy.typing import NDArray
-from numpy import float64, array
+import numpy as np
+from mcdc.constant import INF
 from mcdc.object_.base import ObjectSingleton
 from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.print_ import print_error
@@ -76,25 +77,32 @@ class WeightWindows(ObjectSingleton):
     label: str = "weight_windows"
 
     active: bool
+
+    # energy
+    energy_bounds: NDArray[np.float64]
+    Ne: int
+    # space
     mesh: MeshBase
     Nx: int
     Ny: int
     Nz: int
 
     # flattened arrays of ww params
-    lower_weights: NDArray[float64]
-    target_weights: NDArray[float64]
-    upper_weights: NDArray[float64]
+    lower_weights: NDArray[np.float64]
+    target_weights: NDArray[np.float64]
+    upper_weights: NDArray[np.float64]
 
     def __init__(self):
         self.active = False
+        self.energy_bounds = np.array([0.0, 1.0])
+        self.Ne = 1
         self.mesh_ID = -1  # skirt around having to create a MeshBase instance
         self.Nx, self.Ny, self.Nz = 1, 1, 1
-        self.lower_weights = array([1.0])
-        self.target_weights = array([1.0])
-        self.upper_weights = array([1.0])
+        self.lower_weights = np.array([1.0])
+        self.target_weights = np.array([1.0])
+        self.upper_weights = np.array([1.0])
 
-    def __call__(self, mesh, weight_windows):
+    def __call__(self, mesh, weight_windows, energy=np.array([-0.5, INF])):
         # get mesh size
         match mesh.label:
             case "uniform_mesh":
@@ -109,17 +117,30 @@ class WeightWindows(ObjectSingleton):
                 print_error(
                     f"{type(mesh).__name__} is not supported for weight windows"
                 )
+        # validate energy as strictly increasing
+        if not (np.diff(energy) > 0).all():
+            print_error(
+                "Energy bounds must be strictly increasing"
+            )
+        # get energy size
+        if len(energy.shape) != 1:
+            print_error(
+                f"Invalid shape for energy; expected 1D got {len(energy.shape)}D"
+            )
+        ne = energy.shape[0] - 1
 
         # check correct shape
         mesh_shape = (nx, ny, nz)
         ww_shape = weight_windows.shape
-        expected_shape = (*mesh_shape, 3)
+        expected_shape = (ne, *mesh_shape, 3)
         if ww_shape != expected_shape:
             print_error(
                 f"Weight window array has shape {ww_shape}, but expected {expected_shape}"
             )
 
         self.active = True
+        self.energy_bounds = energy
+        self.Ne = ne
         self.mesh = mesh
         self.Nx, self.Ny, self.Nz = mesh_shape
         self.lower_weights = weight_windows[..., 0].reshape(-1)

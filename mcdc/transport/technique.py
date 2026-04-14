@@ -79,17 +79,31 @@ def query_weight_window(particle_container, simulation, data):
     """
     # grab objects
     ww_obj = simulation["weight_windows"]
-    mesh = simulation["meshes"][ww_obj["mesh_ID"]]
-    # find spatial indices from mesh
-    idx, idy, idz = get_mesh_indices(particle_container, mesh, simulation, data)
-    # get index of ww in ww arrays
-    index = ((idx * ww_obj["Ny"]) + idy) * ww_obj["Nz"] + idz
+    index = get_ww_index(particle_container, ww_obj, simulation, data) 
     # grab the actual ww parameters
     lower = ww_get.lower_weights(index, ww_obj, data)
     target = ww_get.target_weights(index, ww_obj, data)
     upper = ww_get.upper_weights(index, ww_obj, data)
     return lower, target, upper
 
+@njit
+def get_ww_index(particle_container, ww_obj, simulation, data):
+    particle = particle_container[0]
+
+    # get energy index
+    energy_bounds = ww_obj["energy_bounds"]
+    if simulation["settings"]["neutron_multigroup_mode"]:
+        energy = particle["g"]
+    else:
+        energy = particle["E"]
+    ie = util.find_bin(energy, energy_bounds)
+
+    # get spatial index
+    mesh = simulation["meshes"][ww_obj["mesh_ID"]]
+    idx, idy, idz = get_mesh_indices(particle_container, mesh, simulation, data)
+
+    index = (((ie * ww_obj["Nx"]) + idx) * ww_obj["Ny"] + idy) * ww_obj["Nz"] + idz
+    return index
 
 @njit
 def split_from_weight_window(particle_container, threshold_weight, simulation):
