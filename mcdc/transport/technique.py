@@ -91,7 +91,7 @@ def get_ww_index(particle_container, ww_obj, simulation, data):
     particle = particle_container[0]
 
     # get energy index
-    energy_bounds = ww_obj["energy_bounds"]
+    energy_bounds = ww_get.energy_bounds_all(ww_obj, data) 
     if simulation["settings"]["neutron_multigroup_mode"]:
         energy = particle["g"]
     else:

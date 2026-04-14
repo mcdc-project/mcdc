@@ -40,12 +40,13 @@ def make_ww_model_params(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
     import mcdc
 
     mesh, N = make_mesh()
+    Ne = 1
 
     if mess_up_size:
-        ww_array = np.ones((N, N, 4, 3))
+        ww_array = np.ones((Ne, N, N, 4, 3))
     else:
         # global assign for simplicity
-        ww_array = np.ones((N, N, N, 3))
+        ww_array = np.ones((Ne, N, N, N, 3))
         ww_array[..., 0] = lower
         ww_array[..., 1] = target
         ww_array[..., 2] = upper
@@ -60,19 +61,22 @@ def make_ww_model_distinct():
     import mcdc
 
     mesh, N = make_mesh()
+    energy = np.linspace(0.0, 6.0, 7)
+    Ne = 6
 
-    ww_array = np.empty((N, N, N, 3))
+    ww_array = np.empty((Ne, N, N, N, 3))
 
     # value at index is related to index, easy to predict during later test
-    for i in range(N):
-        for j in range(N):
-            for k in range(N):
-                val = 100 * i + 10 * j + k + 1
-                ww_array[i, j, k, 0] = val
-                ww_array[i, j, k, 1] = 1000 + val
-                ww_array[i, j, k, 2] = 2000 + val
+    for e in range(Ne):
+        for i in range(N):
+            for j in range(N):
+                for k in range(N):
+                    val = 1000 * e + 100 * i + 10 * j + k + 1
+                    ww_array[e, i, j, k, 0] = val
+                    ww_array[e, i, j, k, 1] = 10000 + val
+                    ww_array[e, i, j, k, 2] = 20000 + val
 
-    mcdc.simulation.weight_windows(mesh, ww_array)
+    mcdc.simulation.weight_windows(mesh, ww_array, energy)
 
     mcdc_container, data = preparation()
     return mcdc_container[0], data
@@ -89,7 +93,7 @@ def make_ww_model_distinct():
         # incorrect size
         (
             {"mess_up_size": True},
-            "Weight window array has shape (3, 3, 4, 3), but expected (3, 3, 3, 3)",
+            "Weight window array has shape (1, 3, 3, 4, 3), but expected (1, 3, 3, 3, 3)",
         ),
         # negative lower
         (
@@ -165,6 +169,7 @@ def test_query_weight_window():
     p = np.zeros(1, type_.particle_data)
 
     mcdc_obj, data = make_ww_model_distinct()
+    mcdc_obj["settings"]["neutron_multigroup_mode"] = False
 
     # hardcode mesh params
     pitch, height, N = 2.0, 10.0, 3
@@ -172,21 +177,27 @@ def test_query_weight_window():
     xmin, ymin, zmin = -pitch / 2, -pitch / 2, 0.0
     dx, dy, dz = pitch / N, pitch / N, height / N
 
+    # hardcode energy params
+    energies = np.linspace(0.5, 5.5, 6)
+
     # loop over all bins, check query against expected ww
-    for ix in range(nx):
-        for iy in range(ny):
-            for iz in range(nz):
-                # put particle in center of current mesh bin
-                p[0]["x"] = xmin + dx * (ix + 0.5)
-                p[0]["y"] = ymin + dy * (iy + 0.5)
-                p[0]["z"] = zmin + dz * (iz + 0.5)
+    for ne, energy in enumerate(energies):
+        for ix in range(nx):
+            for iy in range(ny):
+                for iz in range(nz):
+                    # put particle in center of current mesh bin
+                    p[0]["x"] = xmin + dx * (ix + 0.5)
+                    p[0]["y"] = ymin + dy * (iy + 0.5)
+                    p[0]["z"] = zmin + dz * (iz + 0.5)
+                    # assign energy to be in center of bins
+                    p[0]["E"] = energy
 
-                # query and predict
-                lower, target, upper = query_weight_window(p, mcdc_obj, data)
-                exp_lower = 100 * ix + 10 * iy + iz + 1
-                exp_target = 1000 + exp_lower
-                exp_upper = 2000 + exp_lower
+                    # query and predict
+                    lower, target, upper = query_weight_window(p, mcdc_obj, data)
+                    exp_lower = 1000* ne + 100 * ix + 10 * iy + iz + 1
+                    exp_target = 10000 + exp_lower
+                    exp_upper = 20000 + exp_lower
 
-                assert lower == exp_lower
-                assert target == exp_target
-                assert upper == exp_upper
+                    assert lower == exp_lower
+                    assert target == exp_target
+                    assert upper == exp_upper
