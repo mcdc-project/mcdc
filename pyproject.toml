@@ -88,3 +88,12 @@ Homepage = "https://cement-psaap.github.io/"
 Repository = "https://github.com/CEMeNT-PSAAP/MCDC"
 Documentation = "https://mcdc.readthedocs.io/en/latest/"
 Issues = "https://github.com/CEMeNT-PSAAP/MCDC/issues"
+
+[tool.black]
+force-exclude = '''
+(
+  mcdc/numba_types\.py
+  | mcdc/mcdc_get/
+  | mcdc/mcdc_set/
+)
+'''
