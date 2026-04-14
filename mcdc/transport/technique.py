@@ -79,19 +79,20 @@ def query_weight_window(particle_container, simulation, data):
     """
     # grab objects
     ww_obj = simulation["weight_windows"]
-    index = get_ww_index(particle_container, ww_obj, simulation, data) 
+    index = get_ww_index(particle_container, ww_obj, simulation, data)
     # grab the actual ww parameters
     lower = ww_get.lower_weights(index, ww_obj, data)
     target = ww_get.target_weights(index, ww_obj, data)
     upper = ww_get.upper_weights(index, ww_obj, data)
     return lower, target, upper
 
+
 @njit
 def get_ww_index(particle_container, ww_obj, simulation, data):
     particle = particle_container[0]
 
     # get energy index
-    energy_bounds = ww_get.energy_bounds_all(ww_obj, data) 
+    energy_bounds = ww_get.energy_bounds_all(ww_obj, data)
     if simulation["settings"]["neutron_multigroup_mode"]:
         energy = particle["g"]
     else:
@@ -104,6 +105,7 @@ def get_ww_index(particle_container, ww_obj, simulation, data):
 
     index = (((ie * ww_obj["Nx"]) + idx) * ww_obj["Ny"] + idy) * ww_obj["Nz"] + idz
     return index
+
 
 @njit
 def split_from_weight_window(particle_container, threshold_weight, simulation):

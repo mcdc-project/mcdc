@@ -119,9 +119,7 @@ class WeightWindows(ObjectSingleton):
                 )
         # validate energy as strictly increasing
         if not (np.diff(energy) > 0).all():
-            print_error(
-                "Energy bounds must be strictly increasing"
-            )
+            print_error("Energy bounds must be strictly increasing")
         # get energy size
         if len(energy.shape) != 1:
             print_error(

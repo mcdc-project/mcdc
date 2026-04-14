@@ -194,7 +194,7 @@ def test_query_weight_window():
 
                     # query and predict
                     lower, target, upper = query_weight_window(p, mcdc_obj, data)
-                    exp_lower = 1000* ne + 100 * ix + 10 * iy + iz + 1
+                    exp_lower = 1000 * ne + 100 * ix + 10 * iy + iz + 1
                     exp_target = 10000 + exp_lower
                     exp_upper = 20000 + exp_lower
 
