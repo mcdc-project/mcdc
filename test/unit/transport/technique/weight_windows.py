@@ -51,7 +51,7 @@ def make_ww_model_params(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
         ww_array[..., 1] = target
         ww_array[..., 2] = upper
 
-    mcdc.simulation.weight_windows(mesh, ww_array)
+    mcdc.simulation.weight_windows(ww_array, mesh=mesh)
 
     mcdc_container, data = preparation()
     return mcdc_container[0], data
@@ -76,7 +76,7 @@ def make_ww_model_distinct():
                     ww_array[e, i, j, k, 1] = 10000 + val
                     ww_array[e, i, j, k, 2] = 20000 + val
 
-    mcdc.simulation.weight_windows(mesh, ww_array, energy)
+    mcdc.simulation.weight_windows(ww_array, mesh=mesh, energy=energy)
 
     mcdc_container, data = preparation()
     return mcdc_container[0], data

@@ -102,7 +102,14 @@ class WeightWindows(ObjectSingleton):
         self.target_weights = np.array([1.0])
         self.upper_weights = np.array([1.0])
 
-    def __call__(self, mesh, weight_windows, energy=np.array([-0.5, INF])):
+    def __call__(self, weight_windows, mesh=None, energy=None):
+        # fill in defaults
+        if mesh is None:
+            mesh = MeshUniform()
+        if energy is None:
+            # usable for both groups and max energy
+            energy = np.array([-0.5, INF])
+
         # get mesh size
         match mesh.label:
             case "uniform_mesh":
