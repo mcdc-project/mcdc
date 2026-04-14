@@ -10,6 +10,8 @@ from mcdc.object_.technique import (
 
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell, Region
+    from mcdc.object_.element import Element
+    from mcdc.object_.electron_reaction import ElectronReactionBase
     from mcdc.object_.material import MaterialBase
     from mcdc.object_.nuclide import Nuclide
     from mcdc.object_.neutron_reaction import NeutronReactionBase
@@ -56,6 +58,8 @@ class Simulation(ObjectSingleton):
     data: list[DataBase]
     distributions: list[DistributionBase]
     materials: list[MaterialBase]
+    elements: list[Element]
+    electron_reactions: list[ElectronReactionBase]
     nuclides: list[Nuclide]
     neutron_reactions: list[NeutronReactionBase]
     sources: list[Source]
@@ -126,6 +130,7 @@ class Simulation(ObjectSingleton):
 
     # GPU metadata
     gpu_meta: GPUMeta
+    source_seed: int
 
     def __init__(self):
         super().__init__()
@@ -138,6 +143,8 @@ class Simulation(ObjectSingleton):
         self.data = [DataNone()]
         self.distributions = [DistributionNone()]
         self.materials = []
+        self.elements = []
+        self.electron_reactions = []
         self.nuclides = []
         self.neutron_reactions = []
         self.sources = []
@@ -223,6 +230,7 @@ class Simulation(ObjectSingleton):
 
         # GPU metadata
         self.gpu_meta = GPUMeta()
+        self.source_seed = 0
 
     def set_root_universe(self, cells=[]):
         self.universes[0].cells = cells

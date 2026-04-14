@@ -1,8 +1,3 @@
----
-name: General
-about: General pull request template
----
-
 ## Summary of changes
 <!--
     In at least one sentence, describe the PR you are submitting.

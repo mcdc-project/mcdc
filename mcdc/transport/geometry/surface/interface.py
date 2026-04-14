@@ -38,7 +38,7 @@ from mcdc.constant import (
     SURFACE_CONE_Z,
     SURFACE_TORUS_Z,
 )
-from mcdc.transport.util import find_bin
+from mcdc.transport.util import find_bin_with_rules
 
 
 @njit
@@ -360,8 +360,15 @@ def _get_move_idx(t, surface, data):
     """
     Get moving interval index wrt the given time
     """
-    time_grid = mcdc_get.surface.move_time_grid_all(surface, data)
-    idx = find_bin(t, time_grid, epsilon=COINCIDENCE_TOLERANCE_TIME, go_lower=False)
+    time_grid = data[
+        surface["move_time_grid_offset"] : (
+            surface["move_time_grid_offset"] + surface["N_move_grid"]
+        )
+    ]
+    # Above is equivalent to: time_grid = mcdc_get.surface.move_time_grid_all(surface, data)
+    tolerance = COINCIDENCE_TOLERANCE_TIME
+    go_lower = False
+    idx = find_bin_with_rules(t, time_grid, tolerance, go_lower)
 
     # Coinciding cases
     if abs(time_grid[idx + 1] - t) < COINCIDENCE_TOLERANCE:
@@ -377,10 +384,18 @@ def _translate_particle_position(particle_container, surface, idx, data):
     """
     particle = particle_container[0]
 
-    # Surface move translations, velocities, and time grid
-    trans_0 = mcdc_get.surface.move_translations_vector(idx, surface, data)
+    # Surface move translations
+    start = surface["move_translations_offset"] + idx * 3
+    trans_0 = data[start : start + 3]
+    # Above is equivalent to: trans_0 = mcdc_get.surface.move_translations_vector(idx, surface, data)
+
+    # Surface move velocities
+    start = surface["move_velocities_offset"] + idx * 3
+    V = data[start : start + 3]
+    # Above is equivalent to: V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
+
+    # Surface move time grid
     time_0 = mcdc_get.surface.move_time_grid(idx, surface, data)
-    V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
 
     # Translate the particle
     t_local = particle["t"] - time_0
@@ -396,8 +411,10 @@ def _translate_particle_direction(particle_container, speed, surface, idx, data)
     """
     particle = particle_container[0]
 
-    # Surface move translations, velocities, and time grid
-    V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
+    # Surface move velocities
+    start = surface["move_velocities_offset"] + idx * 3
+    V = data[start : start + 3]
+    # Above is equivalent to: V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
 
     # Translate the particle
     particle["ux"] -= V[0] / speed

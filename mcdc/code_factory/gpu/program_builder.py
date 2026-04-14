@@ -1,4 +1,3 @@
-import harmonize
 import numba as nb
 import numba.extending as nbxt
 import numpy as np
@@ -8,19 +7,80 @@ from mpi4py import MPI
 ####
 
 import mcdc.config as config
-import mcdc.numba_types as type_
 
 # ======================================================================================
-# Build GPU program
+# Transport function adapter
 # ======================================================================================
 
-# For teardown
-src_free_program = lambda pointer: None
-free_state = lambda pointer: None
+
+def adapt_transport_functions():
+    global access_simulation
+
+    import mcdc.code_factory.gpu.transport as gpu_transport
+    import mcdc.transport as transport
+
+    transport.util.access_simulation = access_simulation
+
+    # TODO: Make the following automatic
+    transport.geometry.interface.report_lost_particle = (
+        gpu_transport.geometry.interface.report_lost_particle
+    )
+    transport.particle_bank.bank_active_particle = (
+        gpu_transport.particle_bank.bank_active_particle
+    )
+    transport.particle_bank.report_full_bank = (
+        gpu_transport.particle_bank.report_full_bank
+    )
+    transport.particle_bank.report_empty_bank = (
+        gpu_transport.particle_bank.report_empty_bank
+    )
+    transport.util.atomic_add = gpu_transport.util.atomic_add
+    transport.util.local_array = gpu_transport.util.local_array
 
 
-def build_gpu_program(mcdc_container, data):
-    global src_free_program, free_state
+def adapt_transport_functions_post_setup():
+    import mcdc.code_factory.gpu.transport as gpu_transport
+    import mcdc.transport as transport
+
+    transport.simulation.source_loop = gpu_transport.simulation.source_loop
+
+
+# ======================================================================================
+# Forward declaration
+# ======================================================================================
+
+# Main types
+none_type = None
+simulation_type = None
+data_type = None
+
+# Access functions
+state_spec = None
+access_simulation = None
+access_data_ptr = None
+access_group = None
+access_thread = None
+particle_gpu = None
+particle_record_gpu = None
+
+# Asynchronous transport kernels
+step_async = None
+find_cell_async = None
+
+# Memory allocations
+alloc_managed_bytes = None
+alloc_device_bytes = None
+
+
+def forward_declare_gpu_program():
+    import harmonize
+    import mcdc.numba_types as type_
+
+    # Get to set the globals
+    global none_type, simulation_type, data_type
+    global state_spec, access_simulation, access_data_ptr, access_group, access_thread, particle_gpu, particle_record_gpu
+    global step_async, find_cell_async
+    global alloc_managed_bytes, alloc_device_bytes
 
     # Compilation check
     if MPI.COMM_WORLD.Get_rank() == 0:
@@ -28,10 +88,6 @@ def build_gpu_program(mcdc_container, data):
             harmonize.config.should_compile(harmonize.config.ShouldCompile.ALWAYS)
     else:
         harmonize.config.should_compile(harmonize.config.ShouldCompile.NEVER)
-
-    # ==================================================================================
-    # Forward declaration
-    # ==================================================================================
 
     # ROCm and CUDA paths
     if config.args.gpu_cuda_path != None:
@@ -47,25 +103,25 @@ def build_gpu_program(mcdc_container, data):
     # Set access functions
     state_spec = (
         {
-            "global": simulation_type,
+            "simulation": simulation_type,
             "data": data_type,
         },
         none_type,
         none_type,
     )
     access_fns = harmonize.RuntimeSpec.access_fns(state_spec)
-    simulation_gpu = access_fns["device"]["global"]["indirect"]
-    data_gpu = access_fns["device"]["data"]["direct"]
-    group_gpu = access_fns["group"]
-    thread_gpu = access_fns["thread"]
+    access_simulation = access_fns["device"]["simulation"]["indirect"]
+    access_data_ptr = access_fns["device"]["data"]["direct"]
+    access_group = access_fns["group"]
+    access_thread = access_fns["thread"]
     particle_gpu = nb.from_dtype(type_.particle)
     particle_record_gpu = nb.from_dtype(type_.particle_data)
 
     # Functions, and their signatures
-    def step(prog: nb.uintp, P: particle_gpu):
+    def step(program: nb.uintp, particle: particle_gpu):
         pass
 
-    def find_cell(prog: nb.uintp, P: particle_gpu):
+    def find_cell(program: nb.uintp, particle: particle_gpu):
         pass
 
     # Asynchronous versions
@@ -75,52 +131,107 @@ def build_gpu_program(mcdc_container, data):
     interface = harmonize.RuntimeSpec.program_interface()
     halt_early = interface["halt_early"]
 
-    # ==================================================================================
-    # TODO: "gpu_sources_spec"
-    # ==================================================================================
+    # Byte allocators
+    alloc_managed_bytes = harmonize.alloc_managed_bytes
+    alloc_device_bytes = harmonize.alloc_device_bytes
+
+
+# ======================================================================================
+# Program builder
+# ======================================================================================
+
+alloc_state = None
+free_state = None
+
+alloc_program = None
+free_program = None
+
+load_state_device_simulation = None
+store_state_device_simulation = None
+store_pointer_state_device_simulation = None
+
+load_state_device_data = None
+store_state_device_data = None
+store_pointer_state_device_data = None
+
+init_program = None
+exec_program = None
+complete = None
+clear_flags = None
+set_device = None
+
+ARENA_SIZE = 0
+BLOCK_COUNT = 0
+
+
+def build_gpu_program(data_size):
+    import harmonize
+    import mcdc.numba_types as type_
+    import mcdc.transport.util as util
+
+    from mcdc.transport.simulation import generate_source_particle, step_particle
+
+    global alloc_state, free_state
+
+    global alloc_program, free_program
+
+    global load_state_device_simulation, store_state_device_simulation, store_pointer_state_device_simulation
+
+    global load_state_device_data, store_state_device_data, store_pointer_state_device_data
+
+    global init_program, exec_program, complete, clear_flags, set_device
+    global ARENA_SIZE, BLOCK_COUNT
+
+    shape = eval(f"{(data_size,)}")
 
     # ==============
     # Base functions
     # ==============
 
-    def make_work(prog: nb.uintp) -> nb.boolean:
-        mcdc = adapt.mcdc_global(prog)
+    def make_work(program: nb.uintp) -> nb.boolean:
+        simulation = access_simulation(program)
+        data_ptr = access_data_ptr(program)
+        data = harmonize.array_from_ptr(data_ptr, shape, nb.float64)
 
-        idx_work = adapt.global_add(mcdc["mpi_work_iter"], 0, 1)
+        util.atomic_add(simulation["mpi_work_iter"], 0, 1)
+        idx_work = simulation["mpi_work_iter"][0]
 
-        if idx_work >= mcdc["mpi_work_size"]:
+        if idx_work >= simulation["mpi_work_size"]:
             return False
 
+        work_start = simulation["mpi_work_start"]
+
         generate_source_particle(
-            mcdc["mpi_work_start"], nb.uint64(idx_work), mcdc["source_seed"], prog
+            simulation["mpi_work_start"],
+            nb.uint64(idx_work),
+            simulation["source_seed"],
+            program,
+            data,
         )
         return True
 
-    def initialize(prog: nb.uintp):
+    def initialize(program: nb.uintp):
         pass
 
-    def finalize(prog: nb.uintp):
+    def finalize(program: nb.uintp):
         pass
 
     # ================
     # Async. functions
     # ================
 
-    shape = eval(f"{adapt.tally_shape_literal}")
+    def step(program: nb.uintp, particle_input: particle_gpu):
+        simulation = access_simulation(program)
+        data_ptr = access_data_ptr(program)
+        data = harmonize.array_from_ptr(data_ptr, shape, nb.float64)
 
-    def step(prog: nb.uintp, P_input: adapt.particle_gpu):
-        mcdc = adapt.mcdc_global(prog)
-        data_ptr = adapt.mcdc_data(prog)
-        data = adapt.harm.array_from_ptr(data_ptr, shape, nb.float64)
-        P_arr = adapt.local_array(1, type_.particle)
-        P_arr[0] = P_input
-        P = P_arr[0]
-        if P["fresh"]:
-            prep_particle(P_arr, prog)
-        P["fresh"] = False
-        step_particle(P_arr, data, prog)
-        if P["alive"]:
-            adapt.step_async(prog, P)
+        particle_container = util.local_array(1, type_.particle)
+        particle_container[0] = particle_input
+        particle = particle_container[0]
+        particle["fresh"] = False
+        step_particle(particle_container, program, data)
+        if particle["alive"]:
+            step_async(program, particle)
 
     # Bind them all
     base_fns = (initialize, finalize, make_work)
@@ -128,14 +239,7 @@ def build_gpu_program(mcdc_container, data):
     src_spec = harmonize.RuntimeSpec("mcdc_source", state_spec, base_fns, async_fns)
     harmonize.RuntimeSpec.bind_specs()
 
-    # ==================================================================================
-    #
-    # ==================================================================================
-
-    rank = MPI.COMM_WORLD.Get_rank()
-
-    MPI.COMM_WORLD.Barrier()
-
+    # Load the specs
     harmonize.RuntimeSpec.load_specs()
 
     if config.args.gpu_strategy == "async":
@@ -144,69 +248,99 @@ def build_gpu_program(mcdc_container, data):
     else:
         src_fns = src_spec.event_functions()
 
-    arena_size = config.args.gpu_arena_size
-    block_count = config.args.gpu_block_count
+    ARENA_SIZE = config.args.gpu_arena_size
+    BLOCK_COUNT = config.args.gpu_block_count
 
     alloc_state = src_fns["alloc_state"]
     free_state = src_fns["free_state"]
 
-    src_alloc_program = src_fns["alloc_program"]
-    src_free_program = src_fns["free_program"]
-    src_load_global = src_fns["load_state_device_global"]
-    src_store_global = src_fns["store_state_device_global"]
-    src_store_pointer_global = src_fns["store_pointer_state_device_global"]
-    src_load_data = src_fns["load_state_device_data"]
-    src_store_data = src_fns["store_state_device_data"]
-    src_store_pointer_data = src_fns["store_pointer_state_device_data"]
-    src_init_program = src_fns["init_program"]
-    src_exec_program = src_fns["exec_program"]
-    src_complete = src_fns["complete"]
-    src_clear_flags = src_fns["clear_flags"]
-    src_set_device = src_fns["set_device"]
+    alloc_program = src_fns["alloc_program"]
+    free_program = src_fns["free_program"]
 
-    # ==================================================================================
-    #
-    # ==================================================================================
+    load_state_device_simulation = src_fns["load_state_device_simulation"]
+    store_state_device_simulation = src_fns["store_state_device_simulation"]
+    store_pointer_state_device_simulation = src_fns[
+        "store_pointer_state_device_simulation"
+    ]
 
-    """
-    global loop_source
-    loop_source = gpu_loop_source
-    #
-    # Overwrite function
-    for impl in target_rosters["cpu"].values():
-        overwrite_func(impl, impl)
-    """
+    load_state_device_data = src_fns["load_state_device_data"]
+    store_state_device_data = src_fns["store_state_device_data"]
+    store_pointer_state_device_data = src_fns["store_pointer_state_device_data"]
 
-    # ==================================================================================
-    # Setup
-    # ==================================================================================
+    init_program = src_fns["init_program"]
+    exec_program = src_fns["exec_program"]
+    complete = src_fns["complete"]
+    clear_flags = src_fns["clear_flags"]
+    set_device = src_fns["set_device"]
 
-    device_id = rank % config.args.gpu_share_stride
 
-    mcdc = mcdc_container[0]
-    src_set_device(device_id)
-    mcdc["gpu_meta"]["state_pointer"] = cast_voidptr_to_uintp(alloc_state())
+# ======================================================================================
+# Setup GPU
+# ======================================================================================
+
+from numba import njit
+
+rank = MPI.COMM_WORLD.Get_rank()
+device_id = rank % config.args.gpu_share_stride
+
+
+@njit
+def setup_gpu_program(simulation_container, data):
+    simulation = simulation_container[0]
+
+    set_device(device_id)
+    simulation["gpu_meta"]["state_pointer"] = cast_voidptr_to_uintp(alloc_state())
+
     if config.gpu_state_storage == "separate":
-        src_store_pointer_global(
-            mcdc["gpu_meta"]["state_pointer"], mcdc["gpu_meta"]["global_pointer"]
+        store_pointer_state_device_simulation(
+            simulation["gpu_meta"]["state_pointer"],
+            simulation["gpu_meta"]["simulation_pointer"],
         )
-        src_store_pointer_data(
-            mcdc["gpu_meta"]["state_pointer"], mcdc["gpu_meta"]["tally_pointer"]
+        store_pointer_state_device_data(
+            simulation["gpu_meta"]["state_pointer"],
+            simulation["gpu_meta"]["data_pointer"],
         )
     else:
-        src_store_pointer_global(mcdc["gpu_meta"]["state_pointer"], mcdc_container)
-        src_store_pointer_data(mcdc["gpu_meta"]["state_pointer"], data)
+        store_pointer_state_device_simulation(
+            simulation["gpu_meta"]["state_pointer"], simulation_container
+        )
+        store_pointer_state_device_data(simulation["gpu_meta"]["state_pointer"], data)
 
-    mcdc["gpu_meta"]["source_program_pointer"] = cast_voidptr_to_uintp(
-        src_alloc_program(mcdc["gpu_meta"]["state_pointer"], arena_size)
+    simulation["gpu_meta"]["program_pointer"] = cast_voidptr_to_uintp(
+        alloc_program(simulation["gpu_meta"]["state_pointer"], ARENA_SIZE)
     )
-    src_init_program(mcdc["gpu_meta"]["source_program_pointer"], block_count)
-    return
+    init_program(simulation["gpu_meta"]["program_pointer"], BLOCK_COUNT)
 
 
-def teardown_gpu_program(mcdc):
-    src_free_program(cast_uintp_to_voidptr(mcdc["gpu_meta"]["source_program_pointer"]))
-    free_state(cast_uintp_to_voidptr(mcdc["gpu_meta"]["state_pointer"]))
+@njit
+def teardown_gpu_program(simulation):
+    free_program(cast_uintp_to_voidptr(simulation["gpu_meta"]["program_pointer"]))
+    free_state(cast_uintp_to_voidptr(simulation["gpu_meta"]["state_pointer"]))
+
+
+# ======================================================================================
+# Simulation structure and data creators
+# ======================================================================================
+
+
+def create_data_array(size, dtype):
+    if config.gpu_state_storage == "managed":
+        data_tally_ptr = harmonize.alloc_managed_bytes(size)
+    else:
+        data_tally_ptr = harmonize.alloc_device_bytes(size)
+    data_tally_uint = cast_voidptr_to_uintp(data_tally_ptr)
+    data_tally = nb.carray(data_tally_ptr, (size,), dtype)
+    return data_tally, data_tally_uint
+
+
+def create_mcdc_container(dtype):
+    if config.gpu_state_storage == "managed":
+        mcdc_ptr = harmonize.alloc_managed_bytes(dtype.itemsize)
+    else:
+        mcdc_ptr = harmonize.alloc_device_bytes(dtype.itemsize)
+    mcdc_uint = cast_voidptr_to_uintp(mcdc_ptr)
+    mcdc_container = nb.carray(mcdc_ptr, (1,), dtype)
+    return mcdc_container, mcdc_uint
 
 
 # ======================================================================================

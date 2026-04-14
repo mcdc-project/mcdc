@@ -6,6 +6,6 @@ from numba import njit
 
 
 @njit
-def report_lost_particle(particle_container, mcdc):
+def report_lost_particle(particle_container, simulation):
     particle = particle_container[0]
     particle["alive"] = False

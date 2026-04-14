@@ -6,10 +6,11 @@ from numba import njit
 ####
 
 import mcdc.mcdc_get as mcdc_get
-import mcdc.transport.literals as literals
+import mcdc.literals as literals
 import mcdc.transport.mesh as mesh
 import mcdc.transport.physics as physics
 import mcdc.transport.tally as tally_module
+import mcdc.transport.util as util
 
 from mcdc.constant import *
 from mcdc.transport.geometry.surface import get_distance, check_sense, reflect
@@ -20,7 +21,7 @@ from mcdc.transport.geometry.surface import get_distance, check_sense, reflect
 
 
 @njit
-def inspect_geometry(particle_container, mcdc, data):
+def inspect_geometry(particle_container, simulation, data):
     """
     Full geometry inspection of the particle:
         - Set particle top cell and material IDs (if not lost)
@@ -39,7 +40,7 @@ def inspect_geometry(particle_container, mcdc, data):
     ux_global = particle["ux"]
     uy_global = particle["uy"]
     uz_global = particle["uz"]
-    speed = physics.particle_speed(particle_container, mcdc, data)
+    speed = physics.particle_speed(particle_container, simulation, data)
 
     # Default returns
     distance = INF
@@ -47,20 +48,22 @@ def inspect_geometry(particle_container, mcdc, data):
 
     # Find top cell from root universe if unknown
     if particle["cell_ID"] == -1:
-        particle["cell_ID"] = get_cell(particle_container, UNIVERSE_ROOT, mcdc, data)
+        particle["cell_ID"] = get_cell(
+            particle_container, UNIVERSE_ROOT, simulation, data
+        )
 
         # Particle is lost?
         if particle["cell_ID"] == -1:
             event = EVENT_LOST
 
     # The top cell
-    cell = mcdc["cells"][particle["cell_ID"]]
+    cell = simulation["cells"][particle["cell_ID"]]
 
     # Recursively check cells until material cell is found (or the particle is lost)
     while event != EVENT_LOST:
         # Distance to nearest surface
         d_surface, surface_ID = distance_to_nearest_surface(
-            particle_container, cell, mcdc, data
+            particle_container, cell, simulation, data
         )
 
         # Check if smaller
@@ -103,7 +106,7 @@ def inspect_geometry(particle_container, mcdc, data):
             # Lattice cell?
             elif cell["fill_type"] == FILL_LATTICE:
                 # Get lattice
-                lattice = mcdc["lattices"][cell["fill_ID"]]
+                lattice = simulation["lattices"][cell["fill_ID"]]
 
                 # Distance to lattice grid
                 d_lattice = mesh.uniform.get_crossing_distance(
@@ -137,9 +140,9 @@ def inspect_geometry(particle_container, mcdc, data):
                 particle["z"] -= lattice["z0"] + (iz + 0.5) * lattice["dz"]
 
             # Get inner cell
-            cell_ID = get_cell(particle_container, universe_ID, mcdc, data)
+            cell_ID = get_cell(particle_container, universe_ID, simulation, data)
             if cell_ID > -1:
-                cell = mcdc["cells"][cell_ID]
+                cell = simulation["cells"][cell_ID]
             else:
                 event = EVENT_LOST
 
@@ -154,7 +157,7 @@ def inspect_geometry(particle_container, mcdc, data):
 
     # Report lost particle
     if event == EVENT_LOST:
-        report_lost_particle(particle_container, mcdc)
+        report_lost_particle(particle_container, simulation)
 
     # Assign particle event
     particle["event"] = event
@@ -163,7 +166,7 @@ def inspect_geometry(particle_container, mcdc, data):
 
 
 @njit
-def locate_particle(particle_container, mcdc, data):
+def locate_particle(particle_container, simulation, data):
     """
     Set particle cell and material IDs
     Return False if particle is lost
@@ -187,14 +190,16 @@ def locate_particle(particle_container, mcdc, data):
 
     # Find top cell from root universe if unknown
     if particle["cell_ID"] == -1:
-        particle["cell_ID"] = get_cell(particle_container, UNIVERSE_ROOT, mcdc, data)
+        particle["cell_ID"] = get_cell(
+            particle_container, UNIVERSE_ROOT, simulation, data
+        )
 
         # Particle is lost?
         if particle["cell_ID"] == -1:
             particle_is_lost = True
 
     # The top cell
-    cell = mcdc["cells"][particle["cell_ID"]]
+    cell = simulation["cells"][particle["cell_ID"]]
 
     # Recursively check cells until material cell is found (or the particle is lost)
     while not particle_is_lost:
@@ -224,7 +229,7 @@ def locate_particle(particle_container, mcdc, data):
             # Lattice cell?
             elif cell["fill_type"] == FILL_LATTICE:
                 # Get lattice
-                lattice = mcdc["lattices"][cell["fill_ID"]]
+                lattice = simulation["lattices"][cell["fill_ID"]]
 
                 # Get universe
                 ix, iy, iz = mesh.uniform.get_indices(particle_container, lattice)
@@ -241,9 +246,9 @@ def locate_particle(particle_container, mcdc, data):
                 particle["z"] -= lattice["z0"] + (iz + 0.5) * lattice["dz"]
 
             # Get inner cell
-            cell_ID = get_cell(particle_container, universe_ID, mcdc, data)
+            cell_ID = get_cell(particle_container, universe_ID, simulation, data)
             if cell_ID > -1:
-                cell = mcdc["cells"][cell_ID]
+                cell = simulation["cells"][cell_ID]
             else:
                 particle_is_lost = True
 
@@ -258,7 +263,7 @@ def locate_particle(particle_container, mcdc, data):
 
     # Report lost particle
     if particle_is_lost:
-        report_lost_particle(particle_container, mcdc)
+        report_lost_particle(particle_container, simulation)
 
     return not particle_is_lost
 
@@ -325,19 +330,19 @@ def _rotation_matrix(rotation):
 
 
 @njit
-def get_cell(particle_container, universe_ID, mcdc, data):
+def get_cell(particle_container, universe_ID, simulation, data):
     """
     Find and return particle cell ID in the given universe
     Return -1 if particle is lost
     """
     particle = particle_container[0]
-    universe = mcdc["universes"][universe_ID]
+    universe = simulation["universes"][universe_ID]
 
     # Check over all cells in the universe
     for i in range(universe["N_cell"]):
         cell_ID = int(mcdc_get.universe.cell_IDs(i, universe, data))
-        cell = mcdc["cells"][cell_ID]
-        if check_cell(particle_container, cell, mcdc, data):
+        cell = simulation["cells"][cell_ID]
+        if check_cell(particle_container, cell, simulation, data):
             return cell_ID
 
     # Particle is not found
@@ -345,7 +350,7 @@ def get_cell(particle_container, universe_ID, mcdc, data):
 
 
 @njit
-def check_cell(particle_container, cell, mcdc, data):
+def check_cell(particle_container, cell, simulation, data):
     """
     Check if the particle is inside the cell
     """
@@ -357,18 +362,18 @@ def check_cell(particle_container, cell, mcdc, data):
         return True
 
     # Create local value array
-    value = np.zeros(literals.rpn_evaluation_buffer_size, np.bool_)
+    value = util.local_array(literals.rpn_evaluation_buffer_size(), np.bool_)
     N_value = 0
 
     # Particle parameters
-    speed = physics.particle_speed(particle_container, mcdc, data)
+    speed = physics.particle_speed(particle_container, simulation, data)
 
     # March forward through RPN tokens
     for idx in range(N_token):
         token = int(mcdc_get.cell.region_RPN_tokens(idx, cell, data))
 
         if token >= 0:
-            surface = mcdc["surfaces"][token]
+            surface = simulation["surfaces"][token]
             value[N_value] = check_sense(particle_container, speed, surface, data)
             N_value += 1
 
@@ -387,7 +392,7 @@ def check_cell(particle_container, cell, mcdc, data):
 
 
 @njit
-def report_lost_particle(particle_container, mcdc):
+def report_lost_particle(particle_container, simulation):
     """
     Report lost particle and terminate it
     """
@@ -397,9 +402,9 @@ def report_lost_particle(particle_container, mcdc):
     y = particle["y"]
     z = particle["z"]
     t = particle["t"]
-    idx_batch = mcdc["idx_batch"]
-    idx_census = mcdc["idx_census"]
-    idx_work = mcdc["idx_work"]
+    idx_batch = simulation["idx_batch"]
+    idx_census = simulation["idx_census"]
+    idx_work = simulation["idx_work"]
     print("A particle is lost at (", x, y, z, t, ")")
     print("  (batch/census/work) indices: (", idx_batch, idx_census, idx_work, ")")
     particle["alive"] = False
@@ -411,7 +416,7 @@ def report_lost_particle(particle_container, mcdc):
 
 
 @njit
-def distance_to_nearest_surface(particle_container, cell, mcdc, data):
+def distance_to_nearest_surface(particle_container, cell, simulation, data):
     """
     Determine the nearest cell surface and the distance to it
     """
@@ -419,12 +424,12 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
     surface_ID = -1
 
     # Particle parameters
-    speed = physics.particle_speed(particle_container, mcdc, data)
+    speed = physics.particle_speed(particle_container, simulation, data)
 
     # Iterate over all surfaces and find the minimum distance
     for i in range(cell["N_surface"]):
         candidate_surface_ID = int(mcdc_get.cell.surface_IDs(i, cell, data))
-        surface = mcdc["surfaces"][candidate_surface_ID]
+        surface = simulation["surfaces"][candidate_surface_ID]
         d = get_distance(particle_container, speed, surface, data)
         if d < distance:
             distance = d
@@ -434,11 +439,11 @@ def distance_to_nearest_surface(particle_container, cell, mcdc, data):
 
 
 @njit
-def surface_crossing(P_arr, mcdc, data):
+def surface_crossing(P_arr, simulation, data):
     P = P_arr[0]
 
     # Apply BC
-    surface = mcdc["surfaces"][P["surface_ID"]]
+    surface = simulation["surfaces"][P["surface_ID"]]
     BC = surface["boundary_condition"]
     if BC == BC_VACUUM:
         P["alive"] = False
@@ -448,8 +453,8 @@ def surface_crossing(P_arr, mcdc, data):
     # Score tally
     for i in range(surface["N_tally"]):
         tally_ID = int(mcdc_get.surface.tally_IDs(i, surface, data))
-        tally = mcdc["surface_tallies"][tally_ID]
-        tally_module.score.surface_tally(P_arr, surface, tally, mcdc, data)
+        tally = simulation["surface_tallies"][tally_ID]
+        tally_module.score.surface_tally(P_arr, surface, tally, simulation, data)
 
     # Need to check new cell later?
     if P["alive"] and not BC == BC_REFLECTIVE:

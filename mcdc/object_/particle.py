@@ -2,7 +2,7 @@ import numpy as np
 
 from dataclasses import dataclass, field
 from typing import Annotated
-from numpy import int64, uint
+from numpy import int64, uint64
 from numpy.typing import NDArray
 
 ####
@@ -25,7 +25,7 @@ class ParticleData(ObjectBase):
     E: float = 0.0
     w: float = 0.0
     particle_type: int = PARTICLE_NEUTRON
-    rng_seed: uint = uint(1)
+    rng_seed: uint64 = uint64(1)
 
 
 @dataclass

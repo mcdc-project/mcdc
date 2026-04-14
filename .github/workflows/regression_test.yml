@@ -59,33 +59,28 @@ jobs:
           pip install -e ".[dev]"
           pip list
 
-      - name: Fetch regression test data
-        working-directory: test/regression
-        run: |
-          git clone https://github.com/mcdc-project/mcdc-regression_test_data.git
-
       - name: Run regression tests (${{ matrix.mode }})
         if: matrix.mode == 'Python-Serial'
         working-directory: test/regression
         run: |
-          python run.py --include_native_physics
+          python run.py
 
       - name: Run regression tests (${{ matrix.mode }})
         if: matrix.mode == 'Python-MPI'
         working-directory: test/regression
         run: |
-          python run.py --include_native_physics --mpiexec=4
-          python run.py --include_native_physics --mpiexec=16 --name=slab_reed_dd_3d
+          python run.py --mpiexec=4
+          python run.py --mpiexec=16 --name=slab_reed_dd_3d
 
       - name: Run regression tests (${{ matrix.mode }})
         if: matrix.mode == 'Numba-Serial'
         working-directory: test/regression
         run: |
-          python run.py --include_native_physics --mode numba
+          python run.py --mode numba
 
       - name: Run regression tests (${{ matrix.mode }})
         if: matrix.mode == 'Numba-MPI'
         working-directory: test/regression
         run: |
-          python run.py --include_native_physics --mode numba --mpiexec=4
-          python run.py --include_native_physics --mode numba --mpiexec=16 --name=slab_reed_dd_3d
+          python run.py --mode numba --mpiexec=4
+          python run.py --mode numba --mpiexec=16 --name=slab_reed_dd_3d

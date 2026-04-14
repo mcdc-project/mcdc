@@ -5,6 +5,7 @@ from numba import njit
 import mcdc.mcdc_get as mcdc_get
 import mcdc.transport.mesh as mesh_module
 import mcdc.transport.physics as physics
+import mcdc.transport.util as util
 
 from mcdc.constant import (
     AXIS_T,
@@ -28,7 +29,6 @@ from mcdc.constant import (
 )
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import get_filter_indices
-from mcdc.transport.util import atomic_add
 
 # ======================================================================================
 # Surface tally
@@ -36,12 +36,12 @@ from mcdc.transport.util import atomic_add
 
 
 @njit
-def surface_tally(particle_container, surface, tally, mcdc, data):
+def surface_tally(particle_container, surface, tally, simulation, data):
     particle = particle_container[0]
-    tally_base = mcdc["tallies"][tally["parent_ID"]]
+    tally_base = simulation["tallies"][tally["parent_ID"]]
 
     # Get filter indices
-    MG_mode = mcdc["settings"]["multigroup_mode"]
+    MG_mode = simulation["settings"]["neutron_multigroup_mode"]
     i_mu, i_azi, i_energy, i_time = get_filter_indices(
         particle_container, tally_base, data, MG_mode
     )
@@ -60,7 +60,7 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
     )
 
     # Flux
-    speed = physics.particle_speed(particle_container, mcdc, data)
+    speed = physics.particle_speed(particle_container, simulation, data)
     mu = get_normal_component(particle_container, speed, surface, data)
     flux = particle["w"] / abs(mu)
 
@@ -69,10 +69,10 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
         score_type = mcdc_get.tally.scores(i_score, tally_base, data)
         score = 0.0
         if score_type == SCORE_NET_CURRENT:
-            surface = mcdc["surfaces"][particle["surface_ID"]]
+            surface = simulation["surfaces"][particle["surface_ID"]]
             mu = get_normal_component(particle_container, speed, surface, data)
             score = flux * mu
-        atomic_add(data, idx_base + i_score, score)
+        util.atomic_add(data, idx_base + i_score, score)
 
 
 # ======================================================================================
@@ -81,13 +81,15 @@ def surface_tally(particle_container, surface, tally, mcdc, data):
 
 
 @njit
-def collision_tally(particle_container, collision_data_container, tally, mcdc, data):
+def collision_tally(
+    particle_container, collision_data_container, tally, simulation, data
+):
     particle = particle_container[0]
     collision_data = collision_data_container[0]
-    tally_base = mcdc["tallies"][tally["parent_ID"]]
+    tally_base = simulation["tallies"][tally["parent_ID"]]
 
     # Get filter indices
-    MG_mode = mcdc["settings"]["multigroup_mode"]
+    MG_mode = simulation["settings"]["neutron_multigroup_mode"]
     i_mu, i_azi, i_energy, i_time = get_filter_indices(
         particle_container, tally_base, data, MG_mode
     )
@@ -100,8 +102,10 @@ def collision_tally(particle_container, collision_data_container, tally, mcdc, d
     i_x, i_y, i_z = 0, 0, 0
     mesh_tally = tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
     if mesh_tally:
-        mesh = mcdc["meshes"][tally["spatial_filter_ID"]]
-        i_x, i_y, i_z = mesh_module.get_indices(particle_container, mesh, mcdc, data)
+        mesh = simulation["meshes"][tally["spatial_filter_ID"]]
+        i_x, i_y, i_z = mesh_module.get_indices(
+            particle_container, mesh, simulation, data
+        )
 
         # No score outside mesh bins
         if i_x == -1 or i_y == -1 or i_z == -1:
@@ -128,7 +132,7 @@ def collision_tally(particle_container, collision_data_container, tally, mcdc, d
         score = 0.0
         if score_type == SCORE_ENERGY_DEPOSITION:
             score = collision_data["energy_deposition"]
-        atomic_add(data, idx_base + i_score, score)
+        util.atomic_add(data, idx_base + i_score, score)
 
 
 # ======================================================================================
@@ -137,12 +141,12 @@ def collision_tally(particle_container, collision_data_container, tally, mcdc, d
 
 
 @njit
-def tracklength_tally(particle_container, distance, tally, mcdc, data):
+def tracklength_tally(particle_container, distance, tally, simulation, data):
     particle = particle_container[0]
-    tally_base = mcdc["tallies"][tally["parent_ID"]]
+    tally_base = simulation["tallies"][tally["parent_ID"]]
 
     # Get filter indices
-    MG_mode = mcdc["settings"]["multigroup_mode"]
+    MG_mode = simulation["settings"]["neutron_multigroup_mode"]
     i_mu, i_azi, i_energy, i_time = get_filter_indices(
         particle_container, tally_base, data, MG_mode
     )
@@ -159,7 +163,7 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
-    ut = 1.0 / physics.particle_speed(particle_container, mcdc, data)
+    ut = 1.0 / physics.particle_speed(particle_container, simulation, data)
     x_final = x + ux * distance
     y_final = y + uy * distance
     z_final = z + uz * distance
@@ -189,15 +193,17 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
     # Mesh axis indices
     i_x, i_y, i_z = 0, 0, 0
     if mesh_tally:
-        mesh = mcdc["meshes"][tally["spatial_filter_ID"]]
+        mesh = simulation["meshes"][tally["spatial_filter_ID"]]
 
         # Mesh axis indices
-        i_x, i_y, i_z = mesh_module.get_indices(particle_container, mesh, mcdc, data)
+        i_x, i_y, i_z = mesh_module.get_indices(
+            particle_container, mesh, simulation, data
+        )
 
         # No score if particle does not cross the mesh bins
         # Also get the appropriate index if needed
-        x_min = mesh_module.get_x(0, mesh, mcdc, data)
-        x_max = mesh_module.get_x(mesh["Nx"], mesh, mcdc, data)
+        x_min = mesh_module.get_x(0, mesh, simulation, data)
+        x_max = mesh_module.get_x(mesh["Nx"], mesh, simulation, data)
         if ux > 0.0:
             if (
                 x_final < x_min + COINCIDENCE_TOLERANCE
@@ -215,8 +221,8 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
             if x > x_max - COINCIDENCE_TOLERANCE:
                 i_x = mesh["Nx"]
         #
-        y_min = mesh_module.get_y(0, mesh, mcdc, data)
-        y_max = mesh_module.get_y(mesh["Ny"], mesh, mcdc, data)
+        y_min = mesh_module.get_y(0, mesh, simulation, data)
+        y_max = mesh_module.get_y(mesh["Ny"], mesh, simulation, data)
         if uy > 0.0:
             if (
                 y_final < y_min + COINCIDENCE_TOLERANCE
@@ -234,8 +240,8 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
             if y > y_max - COINCIDENCE_TOLERANCE:
                 i_y = mesh["Ny"]
         #
-        z_min = mesh_module.get_z(0, mesh, mcdc, data)
-        z_max = mesh_module.get_z(mesh["Nz"], mesh, mcdc, data)
+        z_min = mesh_module.get_z(0, mesh, simulation, data)
+        z_max = mesh_module.get_z(mesh["Nz"], mesh, simulation, data)
         if uz > 0.0:
             if (
                 z_final < z_min + COINCIDENCE_TOLERANCE
@@ -290,17 +296,17 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
 
         axis_crossed = AXIS_T
         if mesh_tally:
-            mesh = mcdc["meshes"][tally["spatial_filter_ID"]]
+            mesh = simulation["meshes"][tally["spatial_filter_ID"]]
 
             # x-direction
             if ux == 0.0:
                 dx = INF
             else:
                 if ux > 0.0:
-                    x_next = mesh_module.get_x(i_x + 1, mesh, mcdc, data)
+                    x_next = mesh_module.get_x(i_x + 1, mesh, simulation, data)
                     x_next = min(x_next, x_final)
                 else:
-                    x_next = mesh_module.get_x(i_x, mesh, mcdc, data)
+                    x_next = mesh_module.get_x(i_x, mesh, simulation, data)
                     x_next = max(x_next, x_final)
                 dx = (x_next - x) / ux
             if dx <= distance_scored:
@@ -312,10 +318,10 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
                 dy = INF
             else:
                 if uy > 0.0:
-                    y_next = mesh_module.get_y(i_y + 1, mesh, mcdc, data)
+                    y_next = mesh_module.get_y(i_y + 1, mesh, simulation, data)
                     y_next = min(y_next, y_final)
                 else:
-                    y_next = mesh_module.get_y(i_y, mesh, mcdc, data)
+                    y_next = mesh_module.get_y(i_y, mesh, simulation, data)
                     y_next = max(y_next, y_final)
                 dy = (y_next - y) / uy
             if dy <= distance_scored:
@@ -327,10 +333,10 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
                 dz = INF
             else:
                 if uz > 0.0:
-                    z_next = mesh_module.get_z(i_z + 1, mesh, mcdc, data)
+                    z_next = mesh_module.get_z(i_z + 1, mesh, simulation, data)
                     z_next = min(z_next, z_final)
                 else:
-                    z_next = mesh_module.get_z(i_z, mesh, mcdc, data)
+                    z_next = mesh_module.get_z(i_z, mesh, simulation, data)
                     z_next = max(z_next, z_final)
                 dz = (z_next - z) / uz
             if dz <= distance_scored:
@@ -348,21 +354,21 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
             if score_type == SCORE_FLUX:
                 score = flux
             elif score_type == SCORE_DENSITY:
-                speed = physics.particle_speed(particle_container, mcdc, data)
+                speed = physics.particle_speed(particle_container, simulation, data)
                 score = flux / speed
             elif score_type == SCORE_COLLISION:
                 score = flux * physics.macro_xs(
-                    NEUTRON_REACTION_TOTAL, particle_container, mcdc, data
+                    NEUTRON_REACTION_TOTAL, particle_container, simulation, data
                 )
             elif score_type == SCORE_CAPTURE:
                 score = flux * physics.macro_xs(
-                    NEUTRON_REACTION_CAPTURE, particle_container, mcdc, data
+                    NEUTRON_REACTION_CAPTURE, particle_container, simulation, data
                 )
             elif score_type == SCORE_FISSION:
                 score = flux * physics.macro_xs(
-                    NEUTRON_REACTION_FISSION, particle_container, mcdc, data
+                    NEUTRON_REACTION_FISSION, particle_container, simulation, data
                 )
-            atomic_add(data, idx_base + i_score, score)
+            util.atomic_add(data, idx_base + i_score, score)
 
         # Accumulate distance swept
         distance_swept += distance_scored
@@ -381,7 +387,7 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
             if i_time == tally_base["time_length"] - 1:
                 return
         elif mesh_tally:
-            mesh = mcdc["meshes"][tally["spatial_filter_ID"]]
+            mesh = simulation["meshes"][tally["spatial_filter_ID"]]
             if axis_crossed == AXIS_X:
                 if ux > 0.0:
                     i_x += 1
@@ -423,33 +429,33 @@ def tracklength_tally(particle_container, distance, tally, mcdc, data):
 
 
 @njit
-def eigenvalue_tally(particle_container, distance, mcdc, data):
+def eigenvalue_tally(particle_container, distance, simulation, data):
     particle = particle_container[0]
     flux = distance * particle["w"]
 
     # Get nu-fission
     nuSigmaF = physics.neutron_production_xs(
-        NEUTRON_REACTION_FISSION, particle_container, mcdc, data
+        NEUTRON_REACTION_FISSION, particle_container, simulation, data
     )
 
     # Fission production (needed even during inactive cycle)
-    atomic_add(mcdc["eigenvalue_tally_nuSigmaF"], 0, flux * nuSigmaF)
+    util.atomic_add(simulation["eigenvalue_tally_nuSigmaF"], 0, flux * nuSigmaF)
 
     # Done, if inactive
-    if not mcdc["cycle_active"]:
+    if not simulation["cycle_active"]:
         return
 
     # ==================================================================================
     # Neutron density
     # ==================================================================================
 
-    v = physics.particle_speed(particle_container, mcdc, data)
+    v = physics.particle_speed(particle_container, simulation, data)
     n_density = flux / v
-    atomic_add(mcdc["eigenvalue_tally_n"], 0, n_density)
+    util.atomic_add(simulation["eigenvalue_tally_n"], 0, n_density)
 
     # Maximum neutron density
-    if mcdc["n_max"] < n_density:
-        mcdc["n_max"] = n_density
+    if simulation["n_max"] < n_density:
+        simulation["n_max"] = n_density
 
     # ==================================================================================
     # TODO: Delayed neutron precursor density
@@ -457,7 +463,7 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
     return
     # Get the decay-wighted multiplicity
     total = 0.0
-    if mcdc["settings"]["multigroup_mode"]:
+    if simulation["settings"]["neutron_multigroup_mode"]:
         g = particle["g"]
         for j in range(J):
             nu_d = mcdc_get.material.mgxs_nu_d(g, j, material, data)
@@ -467,7 +473,7 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
         E = P["E"]
         for i in range(material["N_nuclide"]):
             ID_nuclide = material["nuclide_IDs"][i]
-            nuclide = mcdc["nuclides"][ID_nuclide]
+            nuclide = simulation["nuclides"][ID_nuclide]
             if not nuclide["fissionable"]:
                 continue
             for j in range(J):
@@ -475,10 +481,12 @@ def eigenvalue_tally(particle_container, distance, mcdc, data):
                 decay = nuclide["ce_decay"][j]
                 total += nu_d / decay
 
-    SigmaF = physics.macro_xs(NEUTRON_REACTION_FISSION, particle_container, mcdc, data)
-    C_density = flux * total * SigmaF / mcdc["k_eff"]
-    atomic_add(mcdc["eigenvalue_tally_C"], 0, C_density)
+    SigmaF = physics.macro_xs(
+        NEUTRON_REACTION_FISSION, particle_container, simulation, data
+    )
+    C_density = flux * total * SigmaF / simulation["k_eff"]
+    util.atomic_add(simulation["eigenvalue_tally_C"], 0, C_density)
 
     # Maximum precursor density
-    if mcdc["C_max"] < C_density:
-        mcdc["C_max"] = C_density
+    if simulation["C_max"] < C_density:
+        simulation["C_max"] = C_density

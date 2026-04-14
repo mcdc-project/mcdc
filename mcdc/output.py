@@ -48,7 +48,7 @@ def generate_output(mcdc, data):
     create_tally_dataset(file, mcdc, data)
 
     # Eigenvalues
-    if mcdc["settings"]["eigenvalue_mode"]:
+    if mcdc["settings"]["neutron_eigenvalue_mode"]:
         N_cycle = mcdc["settings"]["N_cycle"]
         file.create_dataset(
             "k_cycle", data=mcdc_get.simulation.k_cycle_chunk(0, N_cycle, mcdc, data)

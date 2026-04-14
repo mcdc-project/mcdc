@@ -21,7 +21,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: cement-psaap/mcdc
+  IMAGE_NAME: mcdc-project/mcdc
 
 jobs:
 
@@ -112,20 +112,20 @@ jobs:
           - Numba-MPI
         include:
           - mode: Python-Serial
-            run_cmd: "python run.py --include_native_physics"
+            run_cmd: "python run.py"
             timeout: 10
           - mode: Python-MPI
             run_cmd: |
-              python run.py --include_native_physics --mpiexec=4
-              python run.py --include_native_physics --mpiexec=16 --name=slab_reed_dd_3d
+              python run.py --mpiexec=4
+              python run.py --mpiexec=16 --name=slab_reed_dd_3d
             timeout: 20
           - mode: Numba-Serial
-            run_cmd: "python run.py --include_native_physics --mode numba"
+            run_cmd: "python run.py --mode numba"
             timeout: 120
           - mode: Numba-MPI
             run_cmd: |
-              python run.py --include_native_physics --mode numba --mpiexec=4
-              python run.py --include_native_physics --mode numba --mpiexec=16 --name=slab_reed_dd_3d
+              python run.py --mode numba --mpiexec=4
+              python run.py --mode numba --mpiexec=16 --name=slab_reed_dd_3d
             timeout: 120
 
     steps:
@@ -148,11 +148,6 @@ jobs:
 
       - name: Load Docker image
         run: docker load -i /tmp/mcdc-image.tar
-
-      - name: Fetch regression test data
-        working-directory: test/regression
-        run: |
-          git clone https://github.com/mcdc-project/mcdc-regression_test_data.git
 
       - name: Run regression tests (${{ matrix.mode }})
         run: |
