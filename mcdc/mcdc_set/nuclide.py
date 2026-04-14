@@ -258,9 +258,7 @@ def neutron_inelastic_scattering_reaction_IDs_last(nuclide, data, value):
 
 
 @njit
-def neutron_inelastic_scattering_reaction_IDs_chunk(
-    start, length, nuclide, data, value
-):
+def neutron_inelastic_scattering_reaction_IDs_chunk(start, length, nuclide, data, value):
     start += nuclide["neutron_inelastic_scattering_reaction_IDs_offset"]
     end = start + length
     data[start:end] = value

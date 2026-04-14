@@ -55,9 +55,7 @@ def subshell_product_IDs_last(electron_ionization_reaction, data, value):
 
 
 @njit
-def subshell_product_IDs_chunk(
-    start, length, electron_ionization_reaction, data, value
-):
+def subshell_product_IDs_chunk(start, length, electron_ionization_reaction, data, value):
     start += electron_ionization_reaction["subshell_product_IDs_offset"]
     end = start + length
     data[start:end] = value
