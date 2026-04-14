@@ -574,6 +574,20 @@ weight_roulette = into_dtype([
     ('weight_target', float64),
 ])
 
+weight_windows = into_dtype([
+    ('active', bool),
+    ('mesh_ID', int64),
+    ('Nx', int64),
+    ('Ny', int64),
+    ('Nz', int64),
+    ('lower_weights_offset', int64),
+    ('lower_weights_length', int64),
+    ('target_weights_offset', int64),
+    ('target_weights_length', int64),
+    ('upper_weights_offset', int64),
+    ('upper_weights_length', int64),
+])
+
 weighted_emission = into_dtype([
     ('active', bool),
     ('weight_target', float64),
@@ -815,6 +829,7 @@ def set_simulation(N: dict):
         ('implicit_capture', implicit_capture),
         ('weighted_emission', weighted_emission),
         ('weight_roulette', weight_roulette),
+        ('weight_windows', weight_windows),
         ('population_control', population_control),
         ('gpu_meta', gpu_meta),
         ('bank_future', bank_future),
