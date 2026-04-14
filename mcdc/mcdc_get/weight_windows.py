@@ -4,6 +4,35 @@ from numba import njit
 
 
 @njit
+def energy_bounds(index, weight_windows, data):
+    offset = weight_windows["energy_bounds_offset"]
+    return data[offset + index]
+
+
+@njit
+def energy_bounds_all(weight_windows, data):
+    start = weight_windows["energy_bounds_offset"]
+    size = weight_windows["energy_bounds_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def energy_bounds_last(weight_windows, data):
+    start = weight_windows["energy_bounds_offset"]
+    size = weight_windows["energy_bounds_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def energy_bounds_chunk(start, length, weight_windows, data):
+    start += weight_windows["energy_bounds_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
 def lower_weights(index, weight_windows, data):
     offset = weight_windows["lower_weights_offset"]
     return data[offset + index]

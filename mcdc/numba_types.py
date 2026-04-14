@@ -576,6 +576,9 @@ weight_roulette = into_dtype([
 
 weight_windows = into_dtype([
     ('active', bool),
+    ('energy_bounds_offset', int64),
+    ('energy_bounds_length', int64),
+    ('Ne', int64),
     ('mesh_ID', int64),
     ('Nx', int64),
     ('Ny', int64),
