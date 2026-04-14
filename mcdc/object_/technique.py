@@ -1,7 +1,7 @@
 from numpy.typing import NDArray
-from numpy import float64
+from numpy import float64, array
 from mcdc.object_.base import ObjectSingleton
-from mcdc.object_.mesh import MeshBase
+from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.print_ import print_error
 
 # ======================================================================================
@@ -88,6 +88,11 @@ class WeightWindows(ObjectSingleton):
 
     def __init__(self):
         self.active = False
+        self.mesh_ID = -1  # skirt around having to create a MeshBase instance
+        self.Nx, self.Ny, self.Nz = 1, 1, 1
+        self.lower_weights = array([1.0])
+        self.target_weights = array([1.0])
+        self.upper_weights = array([1.0])
 
     def __call__(self, mesh, weight_windows):
         # get mesh size
