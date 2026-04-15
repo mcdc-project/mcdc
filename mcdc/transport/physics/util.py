@@ -32,6 +32,18 @@ def evaluate_electron_xs_energy_grid(e, element, data):
 
 
 @njit
+def evaluate_proton_xs_energy_grid(e, nuclide, data):
+    offset = nuclide["proton_xs_energy_grid_offset"]
+    length = nuclide["proton_xs_energy_grid_length"]
+    energy_grid = data[offset : offset + length]
+
+    idx = find_bin(e, energy_grid)
+    e0 = energy_grid[idx]
+    e1 = energy_grid[idx + 1]
+    return idx, e0, e1
+
+
+@njit
 def scatter_direction(ux, uy, uz, mu0, azi):
     cos_azi = math.cos(azi)
     sin_azi = math.sin(azi)
