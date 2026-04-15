@@ -7,3 +7,4 @@ from .interface import (
 )
 import mcdc.transport.physics.electron as electron
 import mcdc.transport.physics.neutron as neutron
+import mcdc.transport.physics.proton as proton
