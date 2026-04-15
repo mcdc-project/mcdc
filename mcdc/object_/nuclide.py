@@ -18,6 +18,12 @@ from mcdc.object_.neutron_reaction import (
     NeutronReactionInelasticScattering,
     set_energy_distribution,
 )
+from mcdc.object_.proton_reaction import(
+    ProtonReactionCapture,
+    ProtonReactionElasticScattering,
+    ProtonReactionInelasticScattering,
+    set_energy_distribution,
+)
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
 
@@ -44,11 +50,19 @@ class Nuclide(ObjectNonSingleton):
     neutron_capture_xs: NDArray[float64]
     neutron_inelastic_xs: NDArray[float64]
     neutron_fission_xs: NDArray[float64]
+    proton_xs_energy_grid: NDArray[float64]
+    proton_total_xs: NDArray[float64]
+    proton_elastic_xs: NDArray[float64]
+    proton_capture_xs: NDArray[float64]
+    proton_inelastic_xs: NDArray[float64]
     #
     neutron_elastic_scattering_reactions: list[NeutronReactionElasticScattering]
     neutron_capture_reactions: list[NeutronReactionCapture]
     neutron_inelastic_scattering_reactions: list[NeutronReactionInelasticScattering]
     neutron_fission_reactions: list[NeutronReactionFission]
+    proton_elastic_scattering_reactions: list[ProtonReactionElasticScattering]
+    proton_capture_reactions: list[ProtonReactionCapture]
+    proton_inelastic_scattering_reactions: list[ProtonReactionInelasticScattering]
     #
     neutron_fission_prompt_multiplicity: DataBase
     neutron_fission_delayed_multiplicity: DataBase
@@ -213,6 +227,95 @@ class Nuclide(ObjectNonSingleton):
 
         file.close()
 
+    def set_proton_data(self):
+        nuclide_name = self.name
+        # All proton data in ENDF70PROT is at 293.6K
+        temperature = 293.6
+
+        # Load data library
+        dir_name = os.getenv("MCDC_LIB")
+        file_name = f"{nuclide_name}-{temperature}K.h5"
+        file = h5py.File(f"{dir_name}/{file_name}", "r")
+
+        rx_names = [
+            "elastic_scattering",
+            "capture",
+            "inelastic_scattering",
+        ]
+
+        # The reaction MTs
+        MTs = {}
+        for name in rx_names:
+            if name not in file["proton_reactions"]:
+                MTs[name] = []
+                continue
+
+            MTs[name] = [
+                x for x in file[f"proton_reactions/{name}"] if x.startswith("MT")
+            ]
+
+        # ==========================================================================
+        # Reaction XS
+        # ==========================================================================
+
+        # Energy grid
+        xs_energy = file["proton_reactions/xs_energy_grid"][()] * 1e6  # MeV to eV
+        self.proton_xs_energy_grid = xs_energy
+
+        # The total XS
+        self.proton_total_xs = np.zeros_like(self.proton_xs_energy_grid)
+        self.proton_elastic_xs = np.zeros_like(self.proton_xs_energy_grid)
+        self.proton_capture_xs = np.zeros_like(self.proton_xs_energy_grid)
+        self.proton_inelastic_xs = np.zeros_like(self.proton_xs_energy_grid)
+
+        xs_containers = [
+            self.proton_elastic_xs,
+            self.proton_capture_xs,
+            self.proton_inelastic_xs,
+        ]
+
+        for xs_container, rx_name in list(zip(xs_containers, rx_names)):
+            for MT in MTs[rx_name]:
+                xs = file[f"proton_reactions/{rx_name}/{MT}/xs"]
+                xs_container[xs.attrs["offset"] :] += xs[()]
+
+        self.proton_total_xs = (
+            self.proton_elastic_xs
+            + self.proton_capture_xs
+            + self.proton_inelastic_xs
+        )
+
+
+        # ==========================================================================
+        # The reactions
+        # ==========================================================================
+
+        self.proton_elastic_scattering_reactions = []
+        self.proton_capture_reactions = []
+        self.proton_inelastic_scattering_reactions = []
+
+        rx_containers = [
+            self.proton_elastic_scattering_reactions,
+            self.proton_capture_reactions,
+            self.proton_inelastic_scattering_reactions,
+        ]
+        rx_classes = [
+            ProtonReactionElasticScattering,
+            ProtonReactionCapture,
+            ProtonReactionInelasticScattering,
+        ]
+        for rx_container, rx_name, rx_class in list(
+            zip(rx_containers, rx_names, rx_classes)
+        ):
+            for MT in MTs[rx_name]:
+                h5_group = file[f"proton_reactions/{rx_name}/{MT}"]
+                reaction = rx_class.from_h5_group(h5_group)
+                rx_container.append(reaction)
+
+        file.close()
+
+
+    ## UPDATE this for protons
     def __repr__(self):
         text = "\n"
         text += f"Nuclide\n"
