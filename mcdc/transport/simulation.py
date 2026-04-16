@@ -347,7 +347,14 @@ def step_particle(particle_container, program, data):
         particle["alive"] = False
 
     # Weight splitting / rouletting
-    if particle["alive"] & simulation["weight_windows"]["active"]:
+    # Apply techniques
+    if particle["alive"]:
+        # Weight windows
+        if simulation["weight_windows"]["active"]:
+            technique.weight_windows(particle_container, simulation, data)
+        
+        # Weight roulette
+        else:
         technique.weight_windows(particle_container, simulation, data)
     elif particle["alive"]:
         technique.weight_roulette(particle_container, simulation)
