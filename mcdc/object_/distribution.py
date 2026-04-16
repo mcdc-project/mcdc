@@ -155,16 +155,21 @@ class DistributionMultiTable(DistributionBase):
     pdf: NDArray[float64]
     cdf: NDArray[float64]
 
-    def __init__(self, grid, offset, value, pdf):
+    def __init__(self, grid, offset, value, pdf=None, cdf=None):
         type_ = DISTRIBUTION_MULTITABLE
         super().__init__(type_)
 
         self.grid = grid
         self.offset = offset
         self.value = value
-        self.pdf = pdf
 
-        self.pdf, self.cdf = multi_cdf_from_pdf(offset, value, pdf)
+        if cdf is not None:
+            # Direct-CDF mode for electron data
+            self.pdf = np.array([], dtype=float64)
+            self.cdf = cdf
+        else:
+            self.pdf = pdf
+            self.pdf, self.cdf = multi_cdf_from_pdf(offset, value, pdf)
 
     def __repr__(self):
         text = super().__repr__()

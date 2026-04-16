@@ -307,27 +307,48 @@ def _sample_multi_table(E, rng_state, multi_table, data, scale):
     # The CDF
     offset = multi_table["cdf_offset"]
     cdf = data[start + offset : start + offset + size]
-    # Above is equivalent to: cdf = mcdc_get.multi_table_distribution.cdf_chunk(start, size, multi_table, data)
 
-    # Generate random numbers
+    # Generate random number
     xi = rng.lcg(rng_state)
 
-    # Sample bin index
-    idx = find_bin(xi, cdf)
-    c = cdf[idx]
+    # Degenerate table
+    if size == 1:
+        sample = mcdc_get.multi_table_distribution.value(start, multi_table, data)
 
-    # Get the other values
-    idx += start  # Apply the offset as these are not chunk-extracted like the cdf
-    p0 = mcdc_get.multi_table_distribution.pdf(idx, multi_table, data)
-    p1 = mcdc_get.multi_table_distribution.pdf(idx + 1, multi_table, data)
-    val0 = mcdc_get.multi_table_distribution.value(idx, multi_table, data)
-    val1 = mcdc_get.multi_table_distribution.value(idx + 1, multi_table, data)
-
-    m = (p1 - p0) / (val1 - val0)
-    if m == 0.0:
-        sample = val0 + (xi - c) / p0
     else:
-        sample = val0 + 1.0 / m * (math.sqrt(p0**2 + 2 * m * (xi - c)) - p0)
+        # Sample bin index from the tabulated CDF
+        idx = find_bin(xi, cdf)
+
+        # Direct-CDF mode: used by electron data written from ACE files
+        if multi_table["pdf_length"] == 0:
+
+            c0 = cdf[idx]
+            c1 = cdf[idx + 1]
+
+            idx += start
+            val0 = mcdc_get.multi_table_distribution.value(idx, multi_table, data)
+            val1 = mcdc_get.multi_table_distribution.value(idx + 1, multi_table, data)
+
+
+            frac = (xi - c0) / (c1 - c0)
+            if frac < 0.0:
+                frac = 0.0
+            elif frac > 1.0:
+                frac = 1.0
+            sample = val0 + frac * (val1 - val0)
+
+        # PDF-based mode: used by neutron data and PyEPICS libraries
+        else:
+            c = cdf[idx]
+
+            idx += start  # Apply the offset
+            p0 = mcdc_get.multi_table_distribution.pdf(idx, multi_table, data)
+            p1 = mcdc_get.multi_table_distribution.pdf(idx + 1, multi_table, data)
+            val0 = mcdc_get.multi_table_distribution.value(idx, multi_table, data)
+            val1 = mcdc_get.multi_table_distribution.value(idx + 1, multi_table, data)
+
+            m = (p1 - p0) / (val1 - val0)
+            sample = val0 + 1.0 / m * (math.sqrt(p0**2 + 2 * m * (xi - c)) - p0)
 
     if not scale:
         return sample
