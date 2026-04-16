@@ -11,7 +11,6 @@ import mcdc.type_ as type_
 from mcdc.adapt import for_cpu, for_gpu
 from mcdc.constant import *
 
-
 # ======================================================================================
 # Geometry inspection
 # ======================================================================================

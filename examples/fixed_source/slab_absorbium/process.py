@@ -4,7 +4,6 @@ import numpy as np
 
 from reference import reference
 
-
 # Load results
 with h5py.File("output.h5", "r") as f:
     z = f["tallies/mesh_tally_0/grid/z"][:]

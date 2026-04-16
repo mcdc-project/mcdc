@@ -565,16 +565,14 @@ def param_broke_cache(last_config, config):
 # Diagnostic info
 ###############################################################################
 
-print(
-    f"""
+print(f"""
 SCRAPER
 
 running on  : '{machine}'
 username    : '{username}'
 working dir : '{base_path}'
 job dir     : '{base_job_path}'
-"""
-)
+""")
 
 
 ###############################################################################
