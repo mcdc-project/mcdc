@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import h5py, sys
 import numpy as np
 
-
 # Load results
 with h5py.File("output.h5", "r") as f:
     # Grid

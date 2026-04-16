@@ -2,7 +2,6 @@ import math
 import numpy as np
 import numba as nb
 
-
 # Data index
 TALLY = 0
 

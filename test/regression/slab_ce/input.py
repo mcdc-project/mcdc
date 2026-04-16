@@ -4,7 +4,6 @@ from mpi4py import MPI
 
 import mcdc
 
-
 # Set the XS library directory
 os.environ["MCDC_XSLIB"] = os.getcwd()
 

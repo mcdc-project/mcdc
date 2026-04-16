@@ -4,7 +4,6 @@ from matplotlib.colors import LogNorm
 import h5py
 import matplotlib.animation as animation
 
-
 # =============================================================================
 # Plot results
 # =============================================================================

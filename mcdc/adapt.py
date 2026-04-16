@@ -7,7 +7,6 @@ import mcdc.type_ as type_
 import mcdc.kernel as kernel
 import mcdc.config as config
 
-
 if importlib.util.find_spec("harmonize") is None:
     HAS_HARMONIZE = False
 else:
@@ -22,7 +21,6 @@ import inspect
 from mcdc.print_ import print_error
 
 import mcdc.adapt as adapt
-
 
 # =============================================================================
 # Error Messangers
