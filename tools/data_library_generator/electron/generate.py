@@ -8,8 +8,8 @@ from tqdm import tqdm
 
 ####
 
-import util_electron
-from util_electron import print_error, print_note
+import util
+from util import print_error, print_note
 
 parser = argparse.ArgumentParser(description="MC/DC electron data generator")
 parser.add_argument("--rewrite", dest="rewrite", action="store_true", default=False)
@@ -20,48 +20,36 @@ verbose = args.verbose
 
 # Directories
 output_dir = os.getenv("MCDC_LIB_ELECTRON")
-ace_file   = os.getenv("MCDC_ACELIB_ELECTRON")
-xsdir_file = os.getenv("MCDC_ACELIB_ELECTRON_XSDIR")
-
+ace_file = os.getenv("MCDC_ACELIB_ELECTRON")
 if output_dir is None:
     print_error("Environment variable $MCDC_LIB_ELECTRON is not set")
 if ace_file is None:
     print_error("Environment variable $MCDC_ACELIB_ELECTRON is not set")
-if xsdir_file is None:
-    print_error("Environment variable $MCDC_ACELIB_ELECTRON_XSDIR is not set")
-
 # Create output directory if needed
 os.makedirs(output_dir, exist_ok=True)
 print(f"\nACE file    : {ace_file}")
-print(f"Xsdir file  : {xsdir_file}")
 print(f"Output dir  : {output_dir}\n")
 
-# Parse xsdir manually (EPRDATA14 xsdir has no header block)
-# Format: zaid  awr  filename  access  filetype  start_line  table_length  ...
-all_entries = []
-with open(xsdir_file) as f:
-    for line in f:
-        parts = line.split()
-        if len(parts) < 6:
-            continue
-        zaid       = parts[0]
-        start_line = int(parts[5])
-        all_entries.append((zaid, start_line))
+# Load all tables from the concatenated EPRDATA14 file
+print("Loading EPRDATA14 tables...")
+all_tables = ACEtk.PhotoatomicTable.from_concatenated_file(ace_file)
+table_map = {t.zaid: t for t in all_tables}
+print(f"Loaded {len(table_map)} tables\n")
 
 # Select target entries
 target_entries = []
-for zaid, start_line in all_entries:
+for zaid in table_map:
     if not zaid.endswith(".14p"):
         continue
 
-    Z = util_electron.decode_epr_zaid(zaid)
-    symbol = util_electron.Z_TO_SYMBOL[Z]
+    Z = util.decode_epr_zaid(zaid)
+    symbol = util.Z_TO_SYMBOL[Z]
     mcdc_name = f"{symbol}.h5"
 
     if not rewrite and os.path.exists(f"{output_dir}/{mcdc_name}"):
         continue
 
-    target_entries.append((zaid, start_line, Z, symbol, mcdc_name))
+    target_entries.append((zaid, Z, symbol, mcdc_name))
 
 # Loop over all elements
 pbar = tqdm(
@@ -69,7 +57,7 @@ pbar = tqdm(
     disable=verbose,
     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}{postfix}",
 )
-for zaid, start_line, Z, symbol, mcdc_name in pbar:
+for zaid, Z, symbol, mcdc_name in pbar:
 
     if not rewrite and os.path.exists(f"{output_dir}/{mcdc_name}"):
         continue
@@ -80,7 +68,7 @@ for zaid, start_line, Z, symbol, mcdc_name in pbar:
     pbar.set_postfix_str(f"{mcdc_name}")
 
     # Load ACE table
-    ace_table = ACEtk.PhotoatomicTable.from_concatenated_file(ace_file, start_line)
+    ace_table = table_map[zaid]
 
     # Create MC/DC file
     file = h5py.File(f"{output_dir}/{mcdc_name}", "w")
@@ -107,13 +95,13 @@ for zaid, start_line, Z, symbol, mcdc_name in pbar:
 
     reactions = file.create_group("electron_reactions")
 
-    elastic_group         = reactions.create_group("elastic_scattering")
-    excitation_group      = reactions.create_group("excitation")
-    bremsstrahlung_group  = reactions.create_group("bremsstrahlung")
+    elastic_group = reactions.create_group("elastic_scattering")
+    excitation_group = reactions.create_group("excitation")
+    bremsstrahlung_group = reactions.create_group("bremsstrahlung")
     electroionization_group = reactions.create_group("electroionization")
 
-    elastic_group.create_group("MT-528").attrs["MT"]        = 528
-    excitation_group.create_group("MT-527").attrs["MT"]     = 527
+    elastic_group.create_group("MT-528").attrs["MT"] = 528
+    excitation_group.create_group("MT-527").attrs["MT"] = 527
     bremsstrahlung_group.create_group("MT-526").attrs["MT"] = 526
 
     subsh_block = ace_table.electron_subshell_block
@@ -143,10 +131,14 @@ for zaid, start_line, Z, symbol, mcdc_name in pbar:
     xs = elastic_group.create_dataset("MT-528/xs", data=np.array(xs0_block.elastic))
     xs.attrs["unit"] = "barns"
 
-    xs = excitation_group.create_dataset("MT-527/xs", data=np.array(xs0_block.excitation))
+    xs = excitation_group.create_dataset(
+        "MT-527/xs", data=np.array(xs0_block.excitation)
+    )
     xs.attrs["unit"] = "barns"
 
-    xs = bremsstrahlung_group.create_dataset("MT-526/xs", data=np.array(xs0_block.bremsstrahlung))
+    xs = bremsstrahlung_group.create_dataset(
+        "MT-526/xs", data=np.array(xs0_block.bremsstrahlung)
+    )
     xs.attrs["unit"] = "barns"
 
     for i, MT in enumerate(electroionization_MTs):
@@ -160,7 +152,7 @@ for zaid, start_line, Z, symbol, mcdc_name in pbar:
     # ==================================================================================
 
     angle_group = elastic_group.create_group("MT-528/angular_cosine_distribution")
-    util_electron.load_elastic_angular_distribution(
+    util.load_elastic_angular_distribution(
         ace_table.electron_elastic_angular_distribution_block, angle_group
     )
 
@@ -184,7 +176,7 @@ for zaid, start_line, Z, symbol, mcdc_name in pbar:
     # ==================================================================================
 
     brems_group = bremsstrahlung_group.create_group("MT-526/energy_distribution")
-    util_electron.load_bremsstrahlung(
+    util.load_bremsstrahlung(
         ace_table.bremsstrahlung_energy_distribution_block, brems_group
     )
 
@@ -202,8 +194,9 @@ for zaid, start_line, Z, symbol, mcdc_name in pbar:
         dataset.attrs["unit"] = "MeV"
 
         energy_dist_group = MT_group.create_group("energy_distribution")
-        util_electron.load_electroionization_subshell(
-            ace_table.electroionisation_energy_distribution_block(idx), energy_dist_group
+        util.load_electroionization_subshell(
+            ace_table.electroionisation_energy_distribution_block(idx),
+            energy_dist_group,
         )
 
     # ==================================================================================
@@ -223,10 +216,10 @@ for zaid, start_line, Z, symbol, mcdc_name in pbar:
         MT_group.create_dataset("number_of_transitions", data=N_transitions)
 
         if N_transitions > 0:
-            primary_designators   = []
+            primary_designators = []
             secondary_designators = []
-            energies              = []
-            probabilities         = []
+            energies = []
+            probabilities = []
             for j in range(N_transitions):
                 jdx = j + 1
                 t = td.transition(jdx)
@@ -235,8 +228,12 @@ for zaid, start_line, Z, symbol, mcdc_name in pbar:
                 energies.append(td.energy(jdx))
                 probabilities.append(td.probability(jdx))
 
-            MT_group.create_dataset("primary_designator", data=np.array(primary_designators))
-            MT_group.create_dataset("secondary_designator", data=np.array(secondary_designators))
+            MT_group.create_dataset(
+                "primary_designator", data=np.array(primary_designators)
+            )
+            MT_group.create_dataset(
+                "secondary_designator", data=np.array(secondary_designators)
+            )
             dataset = MT_group.create_dataset("energy", data=np.array(energies))
             dataset.attrs["unit"] = "MeV"
             MT_group.create_dataset("probability", data=np.array(probabilities))
