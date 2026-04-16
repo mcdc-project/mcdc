@@ -87,37 +87,73 @@ for entry, Z, symbol, mcdc_name in pbar:
     file.create_dataset("atomic_weight_ratio", data=ace_table.atomic_weight_ratio)
 
     # ==================================================================================
-    # Principal cross sections (energy grid + xs for all reactions)
+    # Reaction groups
+    # ==================================================================================
+    # Elastic scattering : MT-528
+    # Excitation         : MT-527
+    # Bremsstrahlung     : MT-526
+    # Electroionization  : MT-534 (K), MT-535 (L1), MT-536 (L2), ...
+
+    reactions = file.create_group("electron_reactions")
+
+    elastic_group = reactions.create_group("elastic_scattering")
+    excitation_group = reactions.create_group("excitation")
+    bremsstrahlung_group = reactions.create_group("bremsstrahlung")
+    electroionization_group = reactions.create_group("electroionization")
+
+    # MT groups
+    elastic_group.create_group("MT-528").attrs["MT"] = 528
+    excitation_group.create_group("MT-527").attrs["MT"] = 527
+    bremsstrahlung_group.create_group("MT-526").attrs["MT"] = 526
+
+    subshell_block = ace_table.electron_subshell_block
+    N_subshells = subshell_block.number_of_subshells
+    electroionization_MTs = [534 + i for i in range(N_subshells)]
+
+    for i, MT in enumerate(electroionization_MTs):
+        electroionization_group.create_group(f"MT-{MT:03}").attrs["MT"] = MT
+
+    if verbose:
+        print(f"  Reaction group MTs")
+        print(f"    - Elastic scattering MT : [528]")
+        print(f"    - Excitation MT         : [527]")
+        print(f"    - Bremsstrahlung MT     : [526]")
+        print(f"    - Electroionization MTs : {electroionization_MTs}")
+
+    # ==================================================================================
+    # Cross sections
     # ==================================================================================
 
     xs0_block = ace_table.principal_cross_section_block
 
-    energy_grid = np.array(xs0_block.energies)
-    dataset = file.create_dataset("energy_grid", data=energy_grid)
+    xs_energy = np.array(xs0_block.energies)
+    dataset = reactions.create_dataset("xs_energy_grid", data=xs_energy)
     dataset.attrs["unit"] = "MeV"
 
-    xs_group = file.create_group("cross_sections")
+    # Elastic
+    xs = elastic_group.create_dataset("MT-528/xs", data=np.array(xs0_block.elastic))
+    xs.attrs["unit"] = "barns"
 
-    dataset = xs_group.create_dataset("elastic", data=np.array(xs0_block.elastic))
-    dataset.attrs["unit"] = "barns"
+    # Excitation
+    xs = excitation_group.create_dataset("MT-527/xs", data=np.array(xs0_block.excitation))
+    xs.attrs["unit"] = "barns"
 
-    dataset = xs_group.create_dataset("bremsstrahlung", data=np.array(xs0_block.bremsstrahlung))
-    dataset.attrs["unit"] = "barns"
+    # Bremsstrahlung
+    xs = bremsstrahlung_group.create_dataset("MT-526/xs", data=np.array(xs0_block.bremsstrahlung))
+    xs.attrs["unit"] = "barns"
 
-    dataset = xs_group.create_dataset("excitation", data=np.array(xs0_block.excitation))
-    dataset.attrs["unit"] = "barns"
-
-    dataset = xs_group.create_dataset("electroionization", data=np.array(xs0_block.electroionization))
-    dataset.attrs["unit"] = "barns"
-
-    dataset = xs_group.create_dataset("total", data=np.array(xs0_block.total))
-    dataset.attrs["unit"] = "barns"
+    # Electroionization per subshell
+    for i, MT in enumerate(electroionization_MTs):
+        xs = electroionization_group.create_dataset(
+            f"MT-{MT:03}/xs", data=np.array(subshell_block.cross_section(i + 1))
+        )
+        xs.attrs["unit"] = "barns"
 
     # ==================================================================================
     # Elastic angular distribution
     # ==================================================================================
 
-    angle_group = file.create_group("elastic_angular_distribution")
+    angle_group = elastic_group.create_group("MT-528/angular_cosine_distribution")
     util_electron.load_elastic_angular_distribution(
         ace_table.elastic_angular_distribution_block, angle_group
     )
@@ -127,7 +163,7 @@ for entry, Z, symbol, mcdc_name in pbar:
     # ==================================================================================
 
     excit_block = ace_table.excitation_block
-    excit_group = file.create_group("excitation")
+    excit_group = excitation_group.create_group("MT-527/energy_loss")
 
     energies = np.array(excit_block.energies)
     dataset = excit_group.create_dataset("energy", data=energies)
@@ -140,39 +176,25 @@ for entry, Z, symbol, mcdc_name in pbar:
     # Bremsstrahlung energy distribution
     # ==================================================================================
 
-    brems_group = file.create_group("bremsstrahlung")
+    brems_group = bremsstrahlung_group.create_group("MT-526/energy_distribution")
     util_electron.load_bremsstrahlung(ace_table.bremsstrahlung_block, brems_group)
 
     # ==================================================================================
-    # Electroionization: per-subshell cross sections and energy distributions
+    # Electroionization: binding energy and knock-on electron energy distributions
     # ==================================================================================
 
-    subshell_block = ace_table.electron_subshell_block
-    N_subshells = subshell_block.number_of_subshells
-
-    ioniz_group = file.create_group("electroionization")
-
-    for i in range(N_subshells):
+    for i, MT in enumerate(electroionization_MTs):
         idx = i + 1
-        shell_group = ioniz_group.create_group(f"subshell_{idx}")
+        MT_group = electroionization_group[f"MT-{MT:03}"]
 
-        # Binding energy and cross section
         binding_energy = subshell_block.binding_energy(idx)
-        dataset = shell_group.create_dataset("binding_energy", data=binding_energy)
+        dataset = MT_group.create_dataset("binding_energy", data=binding_energy)
         dataset.attrs["unit"] = "MeV"
 
-        xs = np.array(subshell_block.cross_section(idx))
-        dataset = shell_group.create_dataset("xs", data=xs)
-        dataset.attrs["unit"] = "barns"
-
-        # Knock-on electron energy distribution
-        energy_dist_group = shell_group.create_group("energy_distribution")
+        energy_dist_group = MT_group.create_group("energy_distribution")
         util_electron.load_electroionization_subshell(
             subshell_block.energy_distribution(idx), energy_dist_group
         )
-
-    if verbose:
-        print(f"  Z={Z} ({symbol}): {N_subshells} subshells")
 
     # ==================================================================================
     # Atomic relaxation (subshell transition data)
@@ -181,13 +203,14 @@ for entry, Z, symbol, mcdc_name in pbar:
     relaxation_block = ace_table.subshell_transition_data_block
     relaxation_group = file.create_group("atomic_relaxation")
 
-    for i in range(N_subshells):
+    for i, MT in enumerate(electroionization_MTs):
         idx = i + 1
         data = relaxation_block.transition_data(idx)
-        shell_group = relaxation_group.create_group(f"subshell_{idx}")
+        MT_group = relaxation_group.create_group(f"MT-{MT:03}")
+        MT_group.attrs["MT"] = MT
 
         N_transitions = data.number_of_transitions
-        shell_group.create_dataset("number_of_transitions", data=N_transitions)
+        MT_group.create_dataset("number_of_transitions", data=N_transitions)
 
         if N_transitions > 0:
             primary_shells = []
@@ -201,11 +224,11 @@ for entry, Z, symbol, mcdc_name in pbar:
                 energies.append(data.energy(jdx))
                 probabilities.append(data.probability(jdx))
 
-            shell_group.create_dataset("primary_subshell", data=np.array(primary_shells))
-            shell_group.create_dataset("secondary_subshell", data=np.array(secondary_shells))
-            dataset = shell_group.create_dataset("energy", data=np.array(energies))
+            MT_group.create_dataset("primary_subshell", data=np.array(primary_shells))
+            MT_group.create_dataset("secondary_subshell", data=np.array(secondary_shells))
+            dataset = MT_group.create_dataset("energy", data=np.array(energies))
             dataset.attrs["unit"] = "MeV"
-            shell_group.create_dataset("probability", data=np.array(probabilities))
+            MT_group.create_dataset("probability", data=np.array(probabilities))
 
     # ==================================================================================
     # Finalize
