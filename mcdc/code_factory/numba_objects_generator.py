@@ -1165,14 +1165,14 @@ def _accessor_3d_element(object_name, attribute_name, stride_2, stride_3, setter
     return text
 
 
-def _accessor_4d_element(object_name, attribute_name, stride_2, stride_3, stride_4, setter=False):
+def _accessor_4d_element(
+    object_name, attribute_name, stride_2, stride_3, stride_4, setter=False
+):
     text = f"@njit\n"
     if setter:
         text += f"def {attribute_name}(index_1, index_2, index_3, index_4, {object_name}, data, value):\n"
     else:
-        text += (
-            f"def {attribute_name}(index_1, index_2, index_3, index_4, {object_name}, data):\n"
-        )
+        text += f"def {attribute_name}(index_1, index_2, index_3, index_4, {object_name}, data):\n"
     text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
     text += f'    stride_2 = {object_name}["{stride_2}"]\n'
     text += f'    stride_3 = {object_name}["{stride_3}"]\n'

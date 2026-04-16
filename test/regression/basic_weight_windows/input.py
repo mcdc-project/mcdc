@@ -45,7 +45,7 @@ mcdc.settings.active_bank_buffer = 1000
 
 # Mesh
 Nx, Ny = 20, 20
-x0, y0 = -pitch/2, -pitch/2
+x0, y0 = -pitch / 2, -pitch / 2
 dx, dy = pitch / Nx, pitch / Ny
 mesh = mcdc.MeshUniform(x=(x0, dx, Nx), y=(y0, dy, Ny))
 
