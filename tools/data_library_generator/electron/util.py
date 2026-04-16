@@ -26,81 +26,75 @@ def decode_epr_zaid(name: str):
 def load_elastic_angular_distribution(block, h5_group: h5py.Group):
     """
     Load elastic angular distribution block into HDF5 group.
-    Stores incident energy grid, cosine grid, PDF, and CDF per energy.
+    Stores incident energy grid, cosine grid, and CDF per energy.
+    Note: ACEtk provides CDF only (no PDF) for electron elastic angular data.
     """
-    NE = block.number_of_energies
-
     energies = np.array(block.energies)
     dataset = h5_group.create_dataset("energy", data=energies)
     dataset.attrs["unit"] = "MeV"
 
+    NE = len(energies)
     offset = np.zeros(NE, dtype=int)
     cosines = []
-    pdf = []
     cdf = []
-    for i in range(NE):
-        dist = block.distribution(i + 1)
+    for i, dist in enumerate(block.distributions):
         offset[i] = len(cosines)
         cosines.extend(dist.cosines)
-        pdf.extend(dist.pdf)
         cdf.extend(dist.cdf)
 
     h5_group.create_dataset("offset", data=offset)
     h5_group.create_dataset("cosine", data=np.array(cosines))
-    h5_group.create_dataset("pdf", data=np.array(pdf))
     h5_group.create_dataset("cdf", data=np.array(cdf))
 
 
 def load_bremsstrahlung(block, h5_group: h5py.Group):
     """
     Load bremsstrahlung energy distribution block into HDF5 group.
-    Stores outgoing photon energy PDF for each incident electron energy.
+    Stores outgoing photon energy CDF for each incident electron energy.
+    Note: ACEtk provides CDF only (no PDF) for bremsstrahlung distributions.
     """
-    NE = block.number_of_energies
-
     energies = np.array(block.energies)
     dataset = h5_group.create_dataset("energy", data=energies)
     dataset.attrs["unit"] = "MeV"
 
+    NE = len(energies)
     offset = np.zeros(NE, dtype=int)
     energy_out = []
-    pdf = []
-    for i in range(NE):
-        dist = block.distribution(i + 1)
+    cdf = []
+    for i, dist in enumerate(block.distributions):
         offset[i] = len(energy_out)
         energy_out.extend(dist.outgoing_energies)
-        pdf.extend(dist.pdf)
+        cdf.extend(dist.cdf)
 
     h5_group.create_dataset("offset", data=offset)
     dataset = h5_group.create_dataset("energy_out", data=np.array(energy_out))
     dataset.attrs["unit"] = "MeV"
-    h5_group.create_dataset("pdf", data=np.array(pdf))
+    h5_group.create_dataset("cdf", data=np.array(cdf))
 
 
 def load_electroionization_subshell(block, h5_group: h5py.Group):
     """
     Load electroionization energy distribution for a single subshell.
-    Stores outgoing (knock-on) electron energy PDF per incident energy.
+    Stores outgoing (knock-on) electron energy CDF per incident energy.
+    Note: ACEtk provides CDF only (no PDF) for electroionization distributions.
     """
-    NE = block.number_of_energies
-
     energies = np.array(block.energies)
     dataset = h5_group.create_dataset("energy", data=energies)
     dataset.attrs["unit"] = "MeV"
 
+    NE = len(energies)
     offset = np.zeros(NE, dtype=int)
     energy_out = []
-    pdf = []
-    for i in range(NE):
-        dist = block.distribution(i + 1)
+    cdf = []
+    for i, dist in enumerate(block.distributions):
         offset[i] = len(energy_out)
         energy_out.extend(dist.outgoing_energies)
-        pdf.extend(dist.pdf)
+        cdf.extend(dist.cdf)
 
     h5_group.create_dataset("offset", data=offset)
     dataset = h5_group.create_dataset("energy_out", data=np.array(energy_out))
     dataset.attrs["unit"] = "MeV"
-    h5_group.create_dataset("pdf", data=np.array(pdf))
+    h5_group.create_dataset("cdf", data=np.array(cdf))
 
 
 # =============================================================================
