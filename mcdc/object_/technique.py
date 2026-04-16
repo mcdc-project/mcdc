@@ -1,5 +1,6 @@
 from numpy.typing import NDArray
 import numpy as np
+from typing import Annotated
 from mcdc.constant import INF
 from mcdc.object_.base import ObjectSingleton
 from mcdc.object_.mesh import MeshBase, MeshUniform
@@ -87,10 +88,10 @@ class WeightWindows(ObjectSingleton):
     Ny: int
     Nz: int
 
-    # flattened arrays of ww params
-    lower_weights: NDArray[np.float64]
-    target_weights: NDArray[np.float64]
-    upper_weights: NDArray[np.float64]
+    # arrays of ww params
+    lower_weights: Annotated[NDArray[np.float64], ("Ne", "Nx", "Ny", "Nz")]
+    target_weights: Annotated[NDArray[np.float64], ("Ne", "Nx", "Ny", "Nz")]
+    upper_weights: Annotated[NDArray[np.float64], ("Ne", "Nx", "Ny", "Nz")]
 
     def __init__(self):
         self.active = False
@@ -98,9 +99,11 @@ class WeightWindows(ObjectSingleton):
         self.Ne = 1
         self.mesh_ID = -1  # skirt around having to create a MeshBase instance
         self.Nx, self.Ny, self.Nz = 1, 1, 1
-        self.lower_weights = np.array([1.0])
-        self.target_weights = np.array([1.0])
-        self.upper_weights = np.array([1.0])
+        self.Nt = 1
+        shape = (self.Ne, self.Nx, self.Ny, self.Nz)
+        self.lower_weights = np.array([1.0]).reshape(*shape)
+        self.target_weights = np.array([1.0]).reshape(*shape)
+        self.upper_weights = np.array([1.0]).reshape(*shape)
 
     def __call__(self, weight_windows, mesh=None, energy=None):
         # fill in defaults
@@ -148,9 +151,10 @@ class WeightWindows(ObjectSingleton):
         self.Ne = ne
         self.mesh = mesh
         self.Nx, self.Ny, self.Nz = mesh_shape
-        self.lower_weights = weight_windows[..., 0].reshape(-1)
-        self.target_weights = weight_windows[..., 1].reshape(-1)
-        self.upper_weights = weight_windows[..., 2].reshape(-1)
+        shape = (self.Ne, *mesh_shape)
+        self.lower_weights = weight_windows[..., 0]
+        self.target_weights = weight_windows[..., 1]
+        self.upper_weights = weight_windows[..., 2]
 
         # check weight windows are valid
         if (self.lower_weights <= 0.0).any():
