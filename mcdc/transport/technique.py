@@ -20,14 +20,9 @@ import mcdc.transport.util as util
 
 @njit
 def weight_roulette(particle_container, simulation):
-    particle = particle_container[0]
-    if particle["w"] < simulation["weight_roulette"]["weight_threshold"]:
-        w_target = simulation["weight_roulette"]["weight_target"]
-        survival_probability = particle["w"] / w_target
-        if rng.lcg(particle_container) < survival_probability:
-            particle["w"] = w_target
-        else:
-            particle["alive"] = False
+    threshold = simulation["weight_roulette"]["weight_threshold"]
+    target = simulation["weight_roulette"]["weight_target"]
+    roulette_from_weight_bounds(particle_container, threshold, target)
 
 
 # ======================================================================================
@@ -52,7 +47,7 @@ def weight_windows(particle_container, program, data):
     simulation = util.access_simulation(program)
     [lower, target, upper] = query_weight_window(particle_container, simulation, data)
     split_from_weight_window(particle_container, upper, simulation)
-    roulette_from_weight_window(particle_container, lower, target)
+    roulette_from_weight_bounds(particle_container, lower, target)
 
 
 @njit
@@ -153,7 +148,7 @@ def split_from_weight_window(particle_container, threshold_weight, program):
 
 
 @njit
-def roulette_from_weight_window(particle_container, w_threshold, w_target):
+def roulette_from_weight_bounds(particle_container, w_threshold, w_target):
     """
     Russian roulette particle if weight is below threshold.
 

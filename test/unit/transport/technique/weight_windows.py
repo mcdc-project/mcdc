@@ -6,7 +6,7 @@ import os
 from mcdc.main import preparation
 import mcdc.numba_types as type_
 from mcdc.transport.technique import (
-    roulette_from_weight_window,
+    roulette_from_weight_bounds,
     split_from_weight_window,
     query_weight_window,
     weight_windows,
@@ -126,7 +126,7 @@ def test_error_throw(capsys, kwargs, expected_msg):
 # =========================================================================== #
 
 
-def test_roullete_from_weight_window():
+def test_roulette_from_weight_bounds():
     # because of rng, want to loop over to hit both branches
     for _ in range(10):
         particles = np.zeros(1, type_.particle_data)
@@ -134,7 +134,7 @@ def test_roullete_from_weight_window():
         target = 0.2
         threshold = 0.1 + TINY
 
-        roulette_from_weight_window(particles, threshold, target)
+        roulette_from_weight_bounds(particles, threshold, target)
         p = particles[0]
         assert p["w"] == target or not p["alive"]
 
