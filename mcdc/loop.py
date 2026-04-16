@@ -470,8 +470,13 @@ def gpu_sources_spec():
     base_fns = (initialize, finalize, make_work)
 
     lns = {}
-    exec (f"shape = ({adapt.tally_shape_literal[0]},{adapt.tally_shape_literal[1]})",globals(),lns)
+    exec(
+        f"shape = ({adapt.tally_shape_literal[0]},{adapt.tally_shape_literal[1]})",
+        globals(),
+        lns,
+    )
     shape = lns["shape"]
+
     # Just do exec/eval
     def step(prog: nb.uintp, P_input: adapt.particle_gpu):
         mcdc = adapt.mcdc_global(prog)
@@ -840,7 +845,11 @@ def gpu_precursor_spec():
     base_fns = (initialize, finalize, make_work)
 
     lns = {}
-    exec (f"shape = ({adapt.tally_shape_literal[0]},{adapt.tally_shape_literal[1]})",globals(),lns)
+    exec(
+        f"shape = ({adapt.tally_shape_literal[0]},{adapt.tally_shape_literal[1]})",
+        globals(),
+        lns,
+    )
     shape = lns["shape"]
 
     def step(prog: nb.uintp, P_input: adapt.particle_gpu):
