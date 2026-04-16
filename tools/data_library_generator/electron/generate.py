@@ -20,7 +20,7 @@ verbose = args.verbose
 
 # Directories
 output_dir = os.getenv("MCDC_LIB_ELECTRON")
-ace_file = os.getenv("MCDC_ACELIB_ELECTRON")
+ace_file   = os.getenv("MCDC_ACELIB_ELECTRON")
 xsdir_file = os.getenv("MCDC_ACELIB_ELECTRON_XSDIR")
 
 if output_dir is None:
@@ -36,21 +36,32 @@ print(f"\nACE file    : {ace_file}")
 print(f"Xsdir file  : {xsdir_file}")
 print(f"Output dir  : {output_dir}\n")
 
-# Read xsdir and collect EPR entries
-xsdir = ACEtk.Xsdir.from_file(xsdir_file)
+# Parse xsdir manually (EPRDATA14 xsdir has no header block)
+# Format: zaid  awr  filename  access  filetype  start_line  table_length  ...
+all_entries = []
+with open(xsdir_file) as f:
+    for line in f:
+        parts = line.split()
+        if len(parts) < 6:
+            continue
+        zaid       = parts[0]
+        start_line = int(parts[5])
+        all_entries.append((zaid, start_line))
+
+# Select target entries
 target_entries = []
-for entry in xsdir.entries:
-    if not entry.zaid.endswith(".14p"):
+for zaid, start_line in all_entries:
+    if not zaid.endswith(".14p"):
         continue
 
-    Z = util_electron.decode_epr_zaid(entry.zaid)
+    Z = util_electron.decode_epr_zaid(zaid)
     symbol = util_electron.Z_TO_SYMBOL[Z]
     mcdc_name = f"{symbol}.h5"
 
     if not rewrite and os.path.exists(f"{output_dir}/{mcdc_name}"):
         continue
 
-    target_entries.append((entry, Z, symbol, mcdc_name))
+    target_entries.append((zaid, start_line, Z, symbol, mcdc_name))
 
 # Loop over all elements
 pbar = tqdm(
@@ -58,18 +69,18 @@ pbar = tqdm(
     disable=verbose,
     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}{postfix}",
 )
-for entry, Z, symbol, mcdc_name in pbar:
+for zaid, start_line, Z, symbol, mcdc_name in pbar:
 
     if not rewrite and os.path.exists(f"{output_dir}/{mcdc_name}"):
         continue
 
     if verbose:
         print("\n" + "=" * 80 + "\n")
-        print(f"Create {mcdc_name} from {entry.zaid}\n")
+        print(f"Create {mcdc_name} from {zaid}\n")
     pbar.set_postfix_str(f"{mcdc_name}")
 
     # Load ACE table
-    ace_table = ACEtk.PhotoatomicTable.from_file(ace_file, entry.file_start_line)
+    ace_table = ACEtk.PhotoatomicTable.from_concatenated_file(ace_file, start_line)
 
     # Create MC/DC file
     file = h5py.File(f"{output_dir}/{mcdc_name}", "w")
@@ -96,21 +107,20 @@ for entry, Z, symbol, mcdc_name in pbar:
 
     reactions = file.create_group("electron_reactions")
 
-    elastic_group = reactions.create_group("elastic_scattering")
-    excitation_group = reactions.create_group("excitation")
-    bremsstrahlung_group = reactions.create_group("bremsstrahlung")
+    elastic_group         = reactions.create_group("elastic_scattering")
+    excitation_group      = reactions.create_group("excitation")
+    bremsstrahlung_group  = reactions.create_group("bremsstrahlung")
     electroionization_group = reactions.create_group("electroionization")
 
-    # MT groups
-    elastic_group.create_group("MT-528").attrs["MT"] = 528
-    excitation_group.create_group("MT-527").attrs["MT"] = 527
+    elastic_group.create_group("MT-528").attrs["MT"]        = 528
+    excitation_group.create_group("MT-527").attrs["MT"]     = 527
     bremsstrahlung_group.create_group("MT-526").attrs["MT"] = 526
 
-    subshell_block = ace_table.electron_subshell_block
-    N_subshells = subshell_block.number_of_subshells
+    subsh_block = ace_table.electron_subshell_block
+    N_subshells = subsh_block.number_electron_subshells
     electroionization_MTs = [534 + i for i in range(N_subshells)]
 
-    for i, MT in enumerate(electroionization_MTs):
+    for MT in electroionization_MTs:
         electroionization_group.create_group(f"MT-{MT:03}").attrs["MT"] = MT
 
     if verbose:
@@ -124,28 +134,24 @@ for entry, Z, symbol, mcdc_name in pbar:
     # Cross sections
     # ==================================================================================
 
-    xs0_block = ace_table.principal_cross_section_block
+    xs0_block = ace_table.electron_cross_section_block
 
     xs_energy = np.array(xs0_block.energies)
     dataset = reactions.create_dataset("xs_energy_grid", data=xs_energy)
     dataset.attrs["unit"] = "MeV"
 
-    # Elastic
     xs = elastic_group.create_dataset("MT-528/xs", data=np.array(xs0_block.elastic))
     xs.attrs["unit"] = "barns"
 
-    # Excitation
     xs = excitation_group.create_dataset("MT-527/xs", data=np.array(xs0_block.excitation))
     xs.attrs["unit"] = "barns"
 
-    # Bremsstrahlung
     xs = bremsstrahlung_group.create_dataset("MT-526/xs", data=np.array(xs0_block.bremsstrahlung))
     xs.attrs["unit"] = "barns"
 
-    # Electroionization per subshell
     for i, MT in enumerate(electroionization_MTs):
         xs = electroionization_group.create_dataset(
-            f"MT-{MT:03}/xs", data=np.array(subshell_block.cross_section(i + 1))
+            f"MT-{MT:03}/xs", data=np.array(xs0_block.electroionisation(i + 1))
         )
         xs.attrs["unit"] = "barns"
 
@@ -155,21 +161,22 @@ for entry, Z, symbol, mcdc_name in pbar:
 
     angle_group = elastic_group.create_group("MT-528/angular_cosine_distribution")
     util_electron.load_elastic_angular_distribution(
-        ace_table.elastic_angular_distribution_block, angle_group
+        ace_table.electron_elastic_angular_distribution_block, angle_group
     )
 
     # ==================================================================================
     # Excitation energy loss
     # ==================================================================================
 
-    excit_block = ace_table.excitation_block
+    excit_block = ace_table.electron_excitation_energy_loss_block
     excit_group = excitation_group.create_group("MT-527/energy_loss")
 
-    energies = np.array(excit_block.energies)
-    dataset = excit_group.create_dataset("energy", data=energies)
+    dataset = excit_group.create_dataset("energy", data=np.array(excit_block.energies))
     dataset.attrs["unit"] = "MeV"
 
-    dataset = excit_group.create_dataset("energy_loss", data=np.array(excit_block.energy_loss))
+    dataset = excit_group.create_dataset(
+        "excitation_energy_loss", data=np.array(excit_block.excitation_energy_loss)
+    )
     dataset.attrs["unit"] = "MeV"
 
     # ==================================================================================
@@ -177,7 +184,9 @@ for entry, Z, symbol, mcdc_name in pbar:
     # ==================================================================================
 
     brems_group = bremsstrahlung_group.create_group("MT-526/energy_distribution")
-    util_electron.load_bremsstrahlung(ace_table.bremsstrahlung_block, brems_group)
+    util_electron.load_bremsstrahlung(
+        ace_table.bremsstrahlung_energy_distribution_block, brems_group
+    )
 
     # ==================================================================================
     # Electroionization: binding energy and knock-on electron energy distributions
@@ -187,45 +196,47 @@ for entry, Z, symbol, mcdc_name in pbar:
         idx = i + 1
         MT_group = electroionization_group[f"MT-{MT:03}"]
 
-        binding_energy = subshell_block.binding_energy(idx)
-        dataset = MT_group.create_dataset("binding_energy", data=binding_energy)
+        dataset = MT_group.create_dataset(
+            "binding_energy", data=subsh_block.binding_energy(idx)
+        )
         dataset.attrs["unit"] = "MeV"
 
         energy_dist_group = MT_group.create_group("energy_distribution")
         util_electron.load_electroionization_subshell(
-            subshell_block.energy_distribution(idx), energy_dist_group
+            ace_table.electroionisation_energy_distribution_block(idx), energy_dist_group
         )
 
     # ==================================================================================
     # Atomic relaxation (subshell transition data)
     # ==================================================================================
 
-    relaxation_block = ace_table.subshell_transition_data_block
+    relax_block = ace_table.subshell_transition_data_block
     relaxation_group = file.create_group("atomic_relaxation")
 
     for i, MT in enumerate(electroionization_MTs):
         idx = i + 1
-        data = relaxation_block.transition_data(idx)
+        td = relax_block.transition_data(idx)
         MT_group = relaxation_group.create_group(f"MT-{MT:03}")
         MT_group.attrs["MT"] = MT
 
-        N_transitions = data.number_of_transitions
+        N_transitions = td.number_transitions
         MT_group.create_dataset("number_of_transitions", data=N_transitions)
 
         if N_transitions > 0:
-            primary_shells = []
-            secondary_shells = []
-            energies = []
-            probabilities = []
+            primary_designators   = []
+            secondary_designators = []
+            energies              = []
+            probabilities         = []
             for j in range(N_transitions):
                 jdx = j + 1
-                primary_shells.append(data.primary_subshell(jdx))
-                secondary_shells.append(data.secondary_subshell(jdx))
-                energies.append(data.energy(jdx))
-                probabilities.append(data.probability(jdx))
+                t = td.transition(jdx)
+                primary_designators.append(td.primary_designator(jdx))
+                secondary_designators.append(td.secondary_designator(jdx))
+                energies.append(td.energy(jdx))
+                probabilities.append(td.probability(jdx))
 
-            MT_group.create_dataset("primary_subshell", data=np.array(primary_shells))
-            MT_group.create_dataset("secondary_subshell", data=np.array(secondary_shells))
+            MT_group.create_dataset("primary_designator", data=np.array(primary_designators))
+            MT_group.create_dataset("secondary_designator", data=np.array(secondary_designators))
             dataset = MT_group.create_dataset("energy", data=np.array(energies))
             dataset.attrs["unit"] = "MeV"
             MT_group.create_dataset("probability", data=np.array(probabilities))
