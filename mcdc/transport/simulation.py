@@ -355,7 +355,7 @@ def step_particle(particle_container, program, data):
 
         # Weight roulette
         else:
-            technique.weight_windows(particle_container, simulation, data)
+            technique.weight_roulette(particle_container, simulation)
 
 
 @njit
