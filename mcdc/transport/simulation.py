@@ -351,13 +351,11 @@ def step_particle(particle_container, program, data):
     if particle["alive"]:
         # Weight windows
         if simulation["weight_windows"]["active"]:
-            technique.weight_windows(particle_container, simulation, data)
+            technique.weight_windows(particle_container, program, data)
         
         # Weight roulette
         else:
-        technique.weight_windows(particle_container, simulation, data)
-    elif particle["alive"]:
-        technique.weight_roulette(particle_container, simulation)
+            technique.weight_windows(particle_container, simulation, data)
 
 
 @njit

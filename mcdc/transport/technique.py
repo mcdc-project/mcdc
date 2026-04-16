@@ -36,7 +36,7 @@ def weight_roulette(particle_container, simulation):
 
 
 @njit
-def weight_windows(particle_container, simulation, data):
+def weight_windows(particle_container, program, data):
     """
     Apply weight window splitting and rouletting to a particle.
 
@@ -44,11 +44,12 @@ def weight_windows(particle_container, simulation, data):
     ----------
     particle_container : ndarray
         Container holding the particle.
-    simulation : object
-        Simulation state containing weight window and mesh data.
+    program : object
+        Program object containing simulation state with weight window and mesh data.
     data : object
         Simulation data for array access.
     """
+    simulation = util.access_simulation(program)
     [lower, target, upper] = query_weight_window(particle_container, simulation, data)
     split_from_weight_window(particle_container, upper, simulation)
     roulette_from_weight_window(particle_container, lower, target)
@@ -127,7 +128,7 @@ def get_ww_index(particle_container, ww_obj, simulation, data):
 
 
 @njit
-def split_from_weight_window(particle_container, threshold_weight, simulation):
+def split_from_weight_window(particle_container, threshold_weight, program):
     """
     Split a particle if its weight exceeds the threshold.
 
@@ -137,8 +138,8 @@ def split_from_weight_window(particle_container, threshold_weight, simulation):
         Container holding the particle.
     threshold_weight : float
         Upper weight bound triggering splitting.
-    simulation : object
-        Simulation state used for banking split particles.
+    program : object
+        Program object used for banking split particles.
     """
     particle = particle_container[0]
     weight = particle["w"]
@@ -149,7 +150,7 @@ def split_from_weight_window(particle_container, threshold_weight, simulation):
         particle["w"] = weight / num_split
         for _ in range(num_split - 1):
             # bank split particles into the active bank
-            particle_bank_module.bank_active_particle(particle_container, simulation)
+            particle_bank_module.bank_active_particle(particle_container, program)
 
 
 @njit

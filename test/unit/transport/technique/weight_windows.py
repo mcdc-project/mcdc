@@ -14,6 +14,7 @@ from mcdc.transport.technique import (
 )
 from mcdc.transport.mesh.interface import get_indices
 from mcdc.constant import TINY
+import mcdc.transport.util as util
 
 # =========================================================================== #
 # Helper method for creating a dummy model
@@ -143,14 +144,15 @@ def test_split_from_weight_window():
     init_weight = 2.0 + TINY
     particles[0]["w"] = init_weight
     threshold = 1.0
-    mcdc_obj, data = make_ww_model_distinct()
+    program, data = make_ww_model_distinct()
+    simulation = util.access_simulation(program)
 
     # get bank and init size
-    bank = mcdc_obj["bank_active"]
+    bank = simulation["bank_active"]
     init_bank_size = particle_bank_module.get_bank_size(bank)
 
     # split
-    split_from_weight_window(particles, threshold, mcdc_obj)
+    split_from_weight_window(particles, threshold, program)
 
     p1 = particles[0]
     num_split = np.ceil(init_weight / threshold)
@@ -168,9 +170,9 @@ def test_split_from_weight_window():
 def test_query_weight_window():
     p = np.zeros(1, type_.particle_data)
 
-    mcdc_obj, data = make_ww_model_distinct()
-    mcdc_obj["settings"]["neutron_multigroup_mode"] = False
-
+    program, data = make_ww_model_distinct()
+    simulation = util.access_simulation(program)
+    simulation["settings"]["neutron_multigroup_mode"] = False
     # hardcode mesh params
     pitch, height, N = 2.0, 10.0, 3
     nx, ny, nz = N, N, N
@@ -193,7 +195,7 @@ def test_query_weight_window():
                     p[0]["E"] = energy
 
                     # query and predict
-                    lower, target, upper = query_weight_window(p, mcdc_obj, data)
+                    lower, target, upper = query_weight_window(p, simulation, data)
                     exp_lower = 1000 * ne + 100 * ix + 10 * iy + iz + 1
                     exp_target = 10000 + exp_lower
                     exp_upper = 20000 + exp_lower
