@@ -80,16 +80,16 @@ def query_weight_window(particle_container, simulation, data):
     """
     # grab objects
     ww_obj = simulation["weight_windows"]
-    index = get_ww_index(particle_container, ww_obj, simulation, data)
+    indices = get_ww_indices(particle_container, ww_obj, simulation, data)
     # grab the actual ww parameters
-    lower = ww_get.lower_weights(index, ww_obj, data)
-    target = ww_get.target_weights(index, ww_obj, data)
-    upper = ww_get.upper_weights(index, ww_obj, data)
+    lower = ww_get.lower_weights(*indices, ww_obj, data)
+    target = ww_get.target_weights(*indices, ww_obj, data)
+    upper = ww_get.upper_weights(*indices, ww_obj, data)
     return lower, target, upper
 
 
 @njit
-def get_ww_index(particle_container, ww_obj, simulation, data):
+def get_ww_indices(particle_container, ww_obj, simulation, data):
     """
     Get flattened weight window index from particle information
 
@@ -106,7 +106,7 @@ def get_ww_index(particle_container, ww_obj, simulation, data):
 
     Returns
     -------
-    index: int
+    indices: Tuple[int]
         the flattened index in the weight window array
     """
     particle = particle_container[0]
@@ -123,8 +123,7 @@ def get_ww_index(particle_container, ww_obj, simulation, data):
     mesh = simulation["meshes"][ww_obj["mesh_ID"]]
     idx, idy, idz = get_mesh_indices(particle_container, mesh, simulation, data)
 
-    index = (((ie * ww_obj["Nx"]) + idx) * ww_obj["Ny"] + idy) * ww_obj["Nz"] + idz
-    return index
+    return (ie, idx, idy, idz)
 
 
 @njit
