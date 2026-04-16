@@ -209,7 +209,7 @@ def _get_distance_static(particle_container, surface):
             return plane_y.get_distance(particle_container, surface)
         elif surface["type"] & SURFACE_PLANE_Z:
             return plane_z.get_distance(particle_container, surface)
-        elif surface["type"] & SURFACE_PLANE: # SHOULD BE REVIEWED 
+        elif surface["type"] & SURFACE_PLANE:  # SHOULD BE REVIEWED
             return plane.get_distance(particle_container, surface)
         else:
             return INF

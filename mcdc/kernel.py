@@ -22,7 +22,9 @@ from mcdc.print_ import print_error, print_msg
 from mcdc.src.algorithm import binary_search, binary_search_with_length
 
 import cffi
+
 ffi = cffi.FFI()
+
 
 @njit
 def round(float_val):
@@ -976,7 +978,9 @@ def add_bank_size(bank, value):
 @for_cpu()
 def full_bank_print(bank):
     with objmode():
-        print_error("Particle %s bank is full at count %d." % (bank["tag"],bank["size"]))
+        print_error(
+            "Particle %s bank is full at count %d." % (bank["tag"], bank["size"])
+        )
 
 
 @for_gpu()
@@ -2250,11 +2254,11 @@ def cs_clip(p, q, t):
 def cs_tracklength_in_box(base_start, base_end, x_min, x_max, y_min, y_max):
 
     start = adapt.local_array(2, type_.float64)
-    end   = adapt.local_array(2, type_.float64)
-    start [0] = base_start[0]
-    start [1] = base_start[1]
-    end   [0] = base_end[0]
-    end   [1] = base_end[1]
+    end = adapt.local_array(2, type_.float64)
+    start[0] = base_start[0]
+    start[1] = base_start[1]
+    end[0] = base_end[0]
+    end[1] = base_end[1]
 
     # Uses Liang-Barsky algorithm for finding tracklength in box
     t = adapt.local_array(2, type_.float64)
@@ -2264,8 +2268,8 @@ def cs_tracklength_in_box(base_start, base_end, x_min, x_max, y_min, y_max):
     dy = end[1] - start[1]
 
     # Perform clipping for each boundary
-    #result = cs_clip(-dx, start[0] - x_min, t)
-    #if not result:
+    # result = cs_clip(-dx, start[0] - x_min, t)
+    # if not result:
     #    return 0.0
     result = cs_clip(dx, x_max - start[1], t)
     if not result:
@@ -2278,28 +2282,27 @@ def cs_tracklength_in_box(base_start, base_end, x_min, x_max, y_min, y_max):
         return 0.0
 
     ## Update start and end points based on clipping results
-    #if t[1] < 1:
+    # if t[1] < 1:
     #    end[0] = start[0] + t[1] * dx
     #    end[1] = start[1] + t[1] * dy
-    #if t[0] > 0:
+    # if t[0] > 0:
     #    start[0] = start[0] + t[0] * dx
     #    start[1] = start[1] + t[0] * dx
 
-    #if t[0] > 0:
+    # if t[0] > 0:
     #    start[0] = start[0] + t[0] * dx
     #    start[1] = start[1] + t[0] * dx
 
-    #start[0] = start[0] + t[0]
-    #end[0] = start[0]
-
+    # start[0] = start[0] + t[0]
+    # end[0] = start[0]
 
     ## Return the norm
-    #X = end[0] - start[0]
-    #Y = end[1] - start[1]
-    #return math.sqrt(X**2 + Y**2)
+    # X = end[0] - start[0]
+    # Y = end[1] - start[1]
+    # return math.sqrt(X**2 + Y**2)
     if t[0] == 0:
         return 1
-    else :
+    else:
         return 0
 
 
@@ -2907,7 +2910,6 @@ def move_to_event(P_arr, data_tally, mcdc):
     if mcdc["setting"]["mode_eigenvalue"]:
         eigenvalue_tally(P_arr, distance, mcdc)
 
-
     # Move particle
     move_particle(P_arr, distance, mcdc)
 
@@ -3506,8 +3508,6 @@ def fission_CE(P_arr, nuclide, P_new_arr, mcdc):
     nu_d = adapt.local_array(J, type_.float64)
     for j in range(J):
         nu_d[j] = get_nu_group(NU_FISSION_DELAYED, nuclide, E, j)
-
-
 
     # Delayed?
     prompt = True

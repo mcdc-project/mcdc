@@ -100,7 +100,7 @@ def run():
     MPI.COMM_WORLD.Barrier()
     mcdc["runtime_total"] = MPI.Wtime() - total_start
 
-    #for i in range(mcdc["bank_log"]["size"][0]):
+    # for i in range(mcdc["bank_log"]["size"][0]):
     #    print(mcdc["bank_log"]["particles"][i])
 
     # Closout
@@ -1158,7 +1158,7 @@ def prepare():
             print_error(
                 "No module named 'harmonize' - GPU functionality not available. "
             )
-        adapt.gpu_forward_declare(config.args,tally_shape)
+        adapt.gpu_forward_declare(config.args, tally_shape)
 
     adapt.set_toggle("iQMC", input_deck.technique["iQMC"])
     adapt.set_toggle("domain_decomp", input_deck.technique["domain_decomposition"])
@@ -1168,12 +1168,13 @@ def prepare():
         build_gpu_progs(input_deck, config.args)
     adapt.nopython_mode((config.mode == "numba") or (config.mode == "numba_debug"))
 
-
     # =========================================================================
     # Allocate Tally Storage
     # =========================================================================
 
-    data_tally, data_tally_uint = adapt.create_tally_array(tally_shape[0],tally_shape[1])
+    data_tally, data_tally_uint = adapt.create_tally_array(
+        tally_shape[0], tally_shape[1]
+    )
 
     mcdc_arr, mcdc_uint = adapt.create_mcdc_array()
     mcdc_arr[0] = mcdc
@@ -1580,7 +1581,7 @@ def prepare():
                     "w"
                 ]
 
-    loop.setup_gpu(mcdc_arr,data_tally)
+    loop.setup_gpu(mcdc_arr, data_tally)
 
     # =========================================================================
     # Finalize data: wrapping into a tuple

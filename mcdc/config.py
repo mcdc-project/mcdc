@@ -19,7 +19,7 @@ parser.add_argument(
     "--gpu_state_storage",
     type=str,
     help="Strategy used in GPU execution (event or async).",
-    choices=["separate","managed", "united"],
+    choices=["separate", "managed", "united"],
     default="separate",
 )
 

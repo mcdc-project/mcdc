@@ -123,7 +123,7 @@ def align(field_list):
     pad_id = 0
     for field in field_list:
 
-        if isinstance(field[1],list):
+        if isinstance(field[1], list):
             raise ValueError("Given type of subfield is a list, but should be a dtype.")
 
         if len(field) > 3:
@@ -305,6 +305,7 @@ precursor = into_dtype(
 # Particle bank
 # ==============================================================================
 
+
 def full_particle_bank(max_size):
     return into_dtype(
         [
@@ -313,6 +314,7 @@ def full_particle_bank(max_size):
             ("tag", str_),
         ]
     )
+
 
 def particle_bank(max_size):
     return into_dtype(
@@ -792,36 +794,40 @@ def make_type_mesh_tally(input_deck):
         Nmax_x, Nmax_y, Nmax_z = dd_meshtally(input_deck)
 
     # Set the filter
-    filter_ = into_dtype([
-        ("x", float64, (Nmax_x,)),
-        ("y", float64, (Nmax_y,)),
-        ("z", float64, (Nmax_z,)),
-        ("t", float64, (Nmax_t,)),
-        ("mu", float64, (Nmax_mu,)),
-        ("azi", float64, (Nmax_azi,)),
-        ("g", float64, (Nmax_g,)),
-        ("Nx", int64),
-        ("Ny", int64),
-        ("Nz", int64),
-        ("Nt", int64),
-        ("Nmu", int64),
-        ("N_azi", int64),
-        ("Ng", int64),
-    ])
+    filter_ = into_dtype(
+        [
+            ("x", float64, (Nmax_x,)),
+            ("y", float64, (Nmax_y,)),
+            ("z", float64, (Nmax_z,)),
+            ("t", float64, (Nmax_t,)),
+            ("mu", float64, (Nmax_mu,)),
+            ("azi", float64, (Nmax_azi,)),
+            ("g", float64, (Nmax_g,)),
+            ("Nx", int64),
+            ("Ny", int64),
+            ("Nz", int64),
+            ("Nt", int64),
+            ("Nmu", int64),
+            ("N_azi", int64),
+            ("Ng", int64),
+        ]
+    )
     struct += [("filter", filter_)]
 
     # Tally strides
-    stride = into_dtype([
-        ("tally", int64),
-        ("sensitivity", int64),
-        ("mu", int64),
-        ("azi", int64),
-        ("g", int64),
-        ("t", int64),
-        ("x", int64),
-        ("y", int64),
-        ("z", int64),
-    ])
+    stride = into_dtype(
+        [
+            ("tally", int64),
+            ("sensitivity", int64),
+            ("mu", int64),
+            ("azi", int64),
+            ("g", int64),
+            ("t", int64),
+            ("x", int64),
+            ("y", int64),
+            ("z", int64),
+        ]
+    )
     struct += [("stride", stride)]
 
     # Total number of bins
@@ -854,24 +860,28 @@ def make_type_surface_tally(input_deck):
         Nmax_score = max(Nmax_score, len(card.scores))
 
     # Set the filter
-    filter_ = into_dtype([
-        ("surface_ID", int64),
-        ("t", float64, (Nmax_t,)),
-        ("mu", float64, (Nmax_mu,)),
-        ("azi", float64, (Nmax_azi,)),
-        ("g", float64, (Nmax_g,)),
-    ])
+    filter_ = into_dtype(
+        [
+            ("surface_ID", int64),
+            ("t", float64, (Nmax_t,)),
+            ("mu", float64, (Nmax_mu,)),
+            ("azi", float64, (Nmax_azi,)),
+            ("g", float64, (Nmax_g,)),
+        ]
+    )
     struct = [("filter", filter_)]
 
     # Tally strides
-    stride = into_dtype([
-        ("tally", int64),
-        ("sensitivity", int64),
-        ("mu", int64),
-        ("azi", int64),
-        ("g", int64),
-        ("t", int64),
-    ])
+    stride = into_dtype(
+        [
+            ("tally", int64),
+            ("sensitivity", int64),
+            ("mu", int64),
+            ("azi", int64),
+            ("g", int64),
+            ("t", int64),
+        ]
+    )
     struct += [("stride", stride)]
 
     # Total number of bins
@@ -903,26 +913,30 @@ def make_type_cell_tally(input_deck):
         Nmax_score = max(Nmax_score, len(card.scores))
 
     # Set the filter
-    filter_ = into_dtype([
-        ("cell_ID", int64),
-        ("t", float64, (Nmax_t,)),
-        ("mu", float64, (Nmax_mu,)),
-        ("azi", float64, (Nmax_azi,)),
-        ("g", float64, (Nmax_g,)),
-        ("Nt", int64),
-        ("Ng", int64),
-    ])
+    filter_ = into_dtype(
+        [
+            ("cell_ID", int64),
+            ("t", float64, (Nmax_t,)),
+            ("mu", float64, (Nmax_mu,)),
+            ("azi", float64, (Nmax_azi,)),
+            ("g", float64, (Nmax_g,)),
+            ("Nt", int64),
+            ("Ng", int64),
+        ]
+    )
     struct = [("filter", filter_)]
 
     # Tally strides
-    stride = into_dtype([
-        ("tally", int64),
-        ("sensitivity", int64),
-        ("mu", int64),
-        ("azi", int64),
-        ("g", int64),
-        ("t", int64),
-    ])
+    stride = into_dtype(
+        [
+            ("tally", int64),
+            ("sensitivity", int64),
+            ("mu", int64),
+            ("azi", int64),
+            ("g", int64),
+            ("t", int64),
+        ]
+    )
     struct += [("stride", stride)]
 
     # Total number of bins
@@ -965,43 +979,47 @@ def make_type_cs_tally(input_deck):
     #     Nmax_x, Nmax_y, Nmax_z = dd_meshtally(input_deck)
 
     # Set the filter
-    filter_ = into_dtype([
-        ("N_cs_bins", int),
-        ("cs_bin_size", float64, (2,)),
-        (
-            "cs_centers",
-            float64,
+    filter_ = into_dtype(
+        [
+            ("N_cs_bins", int),
+            ("cs_bin_size", float64, (2,)),
             (
-                2,
-                N_cs_centers,
+                "cs_centers",
+                float64,
+                (
+                    2,
+                    N_cs_centers,
+                ),
             ),
-        ),
-        ("cs_S", float64, (N_cs_centers, (Nmax_x - 1) * (Nmax_y - 1))),
-        ("cs_reconstruction", float64, ((Nmax_y - 1), (Nmax_x - 1))),
-        ("x", float64, (Nmax_x,)),
-        ("y", float64, (Nmax_y,)),
-        ("z", float64, (Nmax_z,)),
-        ("t", float64, (Nmax_t,)),
-        ("mu", float64, (Nmax_mu,)),
-        ("azi", float64, (Nmax_azi,)),
-        ("g", float64, (Nmax_g,)),
-    ])
+            ("cs_S", float64, (N_cs_centers, (Nmax_x - 1) * (Nmax_y - 1))),
+            ("cs_reconstruction", float64, ((Nmax_y - 1), (Nmax_x - 1))),
+            ("x", float64, (Nmax_x,)),
+            ("y", float64, (Nmax_y,)),
+            ("z", float64, (Nmax_z,)),
+            ("t", float64, (Nmax_t,)),
+            ("mu", float64, (Nmax_mu,)),
+            ("azi", float64, (Nmax_azi,)),
+            ("g", float64, (Nmax_g,)),
+        ]
+    )
 
     struct += [("filter", filter_)]
 
     # Tally strides
-    stride = into_dtype([
-        ("tally", int64),
-        ("sensitivity", int64),
-        ("mu", int64),
-        ("azi", int64),
-        ("g", int64),
-        ("t", int64),
-        ("x", int64),
-        ("y", int64),
-        ("z", int64),
-        # ("N_cs_bins", int64),   # TODO: get rid of this line?
-    ])
+    stride = into_dtype(
+        [
+            ("tally", int64),
+            ("sensitivity", int64),
+            ("mu", int64),
+            ("azi", int64),
+            ("g", int64),
+            ("t", int64),
+            ("x", int64),
+            ("y", int64),
+            ("z", int64),
+            # ("N_cs_bins", int64),   # TODO: get rid of this line?
+        ]
+    )
     struct += [("stride", stride)]
 
     # Total number of bins (will be used for the reconstruction)
@@ -1441,16 +1459,19 @@ param_names = ["tag", "ID", "key", "mean", "delta", "distribution", "rng_seed"]
 # GPU Metadata
 # ==============================================================================
 
+
 def make_type_gpu_meta():
     global gpu_meta
 
-    gpu_meta = into_dtype([
-        ("state_pointer", uintp),
-        ("source_program_pointer", uintp),
-        ("precursor_program_pointer", uintp),
-        ("global_pointer",uintp),
-        ("tally_pointer",uintp),
-    ])
+    gpu_meta = into_dtype(
+        [
+            ("state_pointer", uintp),
+            ("source_program_pointer", uintp),
+            ("precursor_program_pointer", uintp),
+            ("global_pointer", uintp),
+            ("tally_pointer", uintp),
+        ]
+    )
 
 
 # ==============================================================================
@@ -1538,7 +1559,6 @@ def make_type_global(input_deck):
     ) or input_deck.technique["iQMC"]:
         bank_source = particle_bank(N_work)
 
-
     global_ = into_dtype(
         [
             ("nuclides", nuclide, (N_nuclide,)),
@@ -1607,7 +1627,7 @@ def make_type_global(input_deck):
             ("runtime_bank_management", float64),
             ("precursor_strength", float64),
             ("mpi_work_iter", int64, (1,)),
-            ("gpu_meta",gpu_meta),
+            ("gpu_meta", gpu_meta),
             ("source_seed", uint64),
         ]
     )

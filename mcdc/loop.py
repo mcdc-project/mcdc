@@ -34,7 +34,13 @@ caching = config.caching
 alloc_state, free_state = [None] * 2
 
 src_alloc_program, src_free_program = [None] * 2
-src_load_global, src_load_constant, src_store_global, src_store_data, src_store_pointer_data = [None] * 5
+(
+    src_load_global,
+    src_load_constant,
+    src_store_global,
+    src_store_data,
+    src_store_pointer_data,
+) = [None] * 5
 src_init_program, src_exec_program, src_complete, src_clear_flags = [None] * 4
 
 pre_alloc_program, pre_free_program = [None] * 2
@@ -46,7 +52,7 @@ pre_init_program, pre_exec_program, pre_complete, pre_clear_flags = [None] * 4
 # be redefined to overwrite the above symbols and perform initialization/
 # finalization of GPU state
 @njit
-def setup_gpu(mcdc,data_tally):
+def setup_gpu(mcdc, data_tally):
     pass
 
 
@@ -65,9 +71,8 @@ def loop_fixed_source(data_tally, mcdc_arr):
 
     # Ensure `mcdc` exist for the lifetime of the program
     # by intentionally leaking their memory
-    #adapt.leak(mcdc_arr)
+    # adapt.leak(mcdc_arr)
     mcdc = mcdc_arr[0]
-
 
     # Loop over batches
     for idx_batch in range(mcdc["setting"]["N_batch"]):
@@ -78,7 +83,6 @@ def loop_fixed_source(data_tally, mcdc_arr):
         mcdc["idx_batch"] = idx_batch
         seed_batch = kernel.split_seed(idx_batch, mcdc["setting"]["rng_seed"])
 
-
         # Print multi-batch header
         if mcdc["setting"]["N_batch"] > 1:
             with objmode():
@@ -86,7 +90,6 @@ def loop_fixed_source(data_tally, mcdc_arr):
             if mcdc["technique"]["uq"]:
                 seed_uq = kernel.split_seed(seed_batch, SEED_SPLIT_UQ)
                 kernel.uq_reset(mcdc, seed_uq)
-
 
         # Loop over time censuses
         for idx_census in range(mcdc["setting"]["N_census"]):
@@ -121,7 +124,6 @@ def loop_fixed_source(data_tally, mcdc_arr):
             # Loop over source particles
             seed_source = kernel.split_seed(seed_census, SEED_SPLIT_SOURCE)
 
-
             loop_source(seed_source, data_tally, mcdc)
 
             # Loop over source precursors
@@ -131,11 +133,9 @@ def loop_fixed_source(data_tally, mcdc_arr):
                 )
                 loop_source_precursor(seed_source_precursor, data_tally, mcdc)
 
-
             # Manage particle banks: population control and work rebalance
             seed_bank = kernel.split_seed(seed_census, SEED_SPLIT_BANK)
             kernel.manage_particle_banks(seed_bank, mcdc)
-
 
             # Time census-based tally closeout
             if mcdc["setting"]["census_based_tally"]:
@@ -187,7 +187,7 @@ def loop_fixed_source(data_tally, mcdc_arr):
 def loop_eigenvalue(data_tally, mcdc_arr):
     # Ensure `mcdc` exist for the lifetime of the program
     # by intentionally leaking their memory
-    #adapt.leak(mcdc_arr)
+    # adapt.leak(mcdc_arr)
     mcdc = mcdc_arr[0]
 
     # Loop over power iteration cycles
@@ -476,7 +476,7 @@ def gpu_sources_spec():
     def step(prog: nb.uintp, P_input: adapt.particle_gpu):
         mcdc = adapt.mcdc_global(prog)
         data_ptr = adapt.mcdc_data(prog)
-        data = adapt.harm.array_from_ptr(data_ptr,shape,nb.float64)
+        data = adapt.harm.array_from_ptr(data_ptr, shape, nb.float64)
         P_arr = adapt.local_array(1, type_.particle)
         P_arr[0] = P_input
         P = P_arr[0]
@@ -534,14 +534,18 @@ def gpu_loop_source(seed, data, mcdc):
 
         # Execute the program, and continue to do so until it is done
         if ASYNC_EXECUTION:
-            src_exec_program(mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, iter_count)
+            src_exec_program(
+                mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, iter_count
+            )
             while not src_complete(mcdc["gpu_meta"]["source_program_pointer"]):
                 kernel.dd_particle_send(mcdc)
                 src_exec_program(
                     mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, iter_count
                 )
         else:
-            src_exec_program(mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, batch_size)
+            src_exec_program(
+                mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, batch_size
+            )
             while not src_complete(mcdc["gpu_meta"]["source_program_pointer"]):
                 kernel.dd_particle_send(mcdc)
                 src_exec_program(
@@ -551,8 +555,8 @@ def gpu_loop_source(seed, data, mcdc):
         # Recover the original program state
 
         if config.gpu_state_storage == "separate":
-            adapt.harm.memcpy_device_to_host(mcdc,mcdc["gpu_meta"]["state_pointer"])
-            adapt.harm.memcpy_device_to_host(data,mcdc["gpu_meta"]["state_pointer"])
+            adapt.harm.memcpy_device_to_host(mcdc, mcdc["gpu_meta"]["state_pointer"])
+            adapt.harm.memcpy_device_to_host(data, mcdc["gpu_meta"]["state_pointer"])
 
         src_clear_flags(mcdc["gpu_meta"]["source_program_pointer"])
 
@@ -789,8 +793,6 @@ def loop_source_precursor(seed, data, mcdc):
         source_precursor_closeout(mcdc, idx_work, N_prog, data)
 
 
-
-
 # =========================================================================
 # GPU Runtime Specifications and Function Re-definitions
 # =========================================================================
@@ -844,7 +846,7 @@ def gpu_precursor_spec():
     def step(prog: nb.uintp, P_input: adapt.particle_gpu):
         mcdc = adapt.mcdc_global(prog)
         data_ptr = adapt.mcdc_data(prog)
-        data = adapt.harm.array_from_ptr(data_ptr,shape,nb.float64)
+        data = adapt.harm.array_from_ptr(data_ptr, shape, nb.float64)
         P_arr = adapt.local_array(1, type_.particle)
         P_arr[0] = P_input
         P = P_arr[0]
@@ -899,23 +901,30 @@ def gpu_loop_source_precursor(seed, data, mcdc):
 
     # Execute the program, and continue to do so until it is done
     if ASYNC_EXECUTION:
-        pre_exec_program(mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, iter_count)
+        pre_exec_program(
+            mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, iter_count
+        )
         while not pre_complete(mcdc["gpu_meta"]["source_program_pointer"]):
             kernel.dd_particle_send(mcdc)
-            pre_exec_program(mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, iter_count)
+            pre_exec_program(
+                mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, iter_count
+            )
     else:
-        pre_exec_program(mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, batch_size)
-        while  not pre_complete(mcdc["gpu_meta"]["source_program_pointer"]):
+        pre_exec_program(
+            mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, batch_size
+        )
+        while not pre_complete(mcdc["gpu_meta"]["source_program_pointer"]):
             kernel.dd_particle_send(mcdc)
-            pre_exec_program(mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, batch_size)
+            pre_exec_program(
+                mcdc["gpu_meta"]["source_program_pointer"], BLOCK_COUNT, batch_size
+            )
 
     # Recover the original program state
     if config.gpu_state_storage == "separate":
-        adapt.harm.memcpy_device_to_host(mcdc,mcdc["gpu_meta"]["state_pointer"])
-        adapt.harm.memcpy_device_to_host(data,mcdc["gpu_meta"]["state_pointer"])
+        adapt.harm.memcpy_device_to_host(mcdc, mcdc["gpu_meta"]["state_pointer"])
+        adapt.harm.memcpy_device_to_host(data, mcdc["gpu_meta"]["state_pointer"])
 
     pre_clear_flags(mcdc["gpu_meta"]["source_program_pointer"])
-
 
     kernel.set_bank_size(mcdc["bank_active"], 0)
 
@@ -992,15 +1001,19 @@ def build_gpu_progs(input_deck, args):
     pre_clear_flags = pre_fns["clear_flags"]
 
     @njit
-    def real_setup_gpu(mcdc_array,data_tally):
+    def real_setup_gpu(mcdc_array, data_tally):
         mcdc = mcdc_array[0]
         src_set_device(device_id)
         arena_size = ARENA_SIZE
         mcdc["gpu_meta"]["state_pointer"] = adapt.cast_voidptr_to_uintp(alloc_state())
-        #src_store_global(mcdc["gpu_meta"]["state_pointer"], mcdc_array[0])
+        # src_store_global(mcdc["gpu_meta"]["state_pointer"], mcdc_array[0])
         if config.gpu_state_storage == "separate":
-            src_store_pointer_global(mcdc["gpu_meta"]["state_pointer"], mcdc["gpu_meta"]["global_pointer"])
-            src_store_pointer_data(mcdc["gpu_meta"]["state_pointer"], mcdc["gpu_meta"]["tally_pointer"])
+            src_store_pointer_global(
+                mcdc["gpu_meta"]["state_pointer"], mcdc["gpu_meta"]["global_pointer"]
+            )
+            src_store_pointer_data(
+                mcdc["gpu_meta"]["state_pointer"], mcdc["gpu_meta"]["tally_pointer"]
+            )
         else:
             src_store_pointer_global(mcdc["gpu_meta"]["state_pointer"], mcdc_array)
             src_store_pointer_data(mcdc["gpu_meta"]["state_pointer"], data_tally)
@@ -1017,8 +1030,12 @@ def build_gpu_progs(input_deck, args):
 
     @njit
     def real_teardown_gpu(mcdc):
-        src_free_program(adapt.cast_uintp_to_voidptr(mcdc["gpu_meta"]["source_program_pointer"]))
-        pre_free_program(adapt.cast_uintp_to_voidptr(mcdc["gpu_meta"]["precursor_program_pointer"]))
+        src_free_program(
+            adapt.cast_uintp_to_voidptr(mcdc["gpu_meta"]["source_program_pointer"])
+        )
+        pre_free_program(
+            adapt.cast_uintp_to_voidptr(mcdc["gpu_meta"]["precursor_program_pointer"])
+        )
         free_state(adapt.cast_uintp_to_voidptr(mcdc["gpu_meta"]["state_pointer"]))
 
     global setup_gpu, teardown_gpu
