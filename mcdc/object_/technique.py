@@ -55,14 +55,12 @@ class ForcedCollisions(ObjectSingleton):
                 f"Expected cells, threshold_weights, and target_weights to be the same size, but got {len(cells)}, {len(threshold_weights)}, and {len(target_weights)} instead"
             )
 
-        cell_ids = []
         for cell in cells:
             if cell.fill_type != FILL_MATERIAL:
                 print_error(
                     f"Invalid cell fill on cell: \n{cell}\nForced collision technique is only valid on cells with material fill"
                 )
-            cell_ids.append(cell.ID)
-        self.cell_IDs = cell_ids
+            self.cell_IDs.append(cell.ID)
         self.threshold_weights = threshold_weights
         self.target_weights = target_weights
 

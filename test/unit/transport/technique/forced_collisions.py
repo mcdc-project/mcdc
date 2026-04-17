@@ -1,26 +1,14 @@
 import numpy as np
 import os
-import sys
 import pytest
+import mcdc
+from mcdc.main import preparation
+from mcdc.transport import technique
+import mcdc.numba_types as types_
+from mcdc.transport.util import access_simulation
+from mcdc.transport import geometry
 
 os.environ["MCDC_LIB"] = "../../../regression/mcdc-regression_test_data/"
-
-# =============================================================================
-# State helpers
-# =============================================================================
-
-
-def _clear_mcdc_modules():
-    for name in list(sys.modules):
-        if name == "mcdc" or name.startswith("mcdc."):
-            del sys.modules[name]
-
-@pytest.fixture
-def fresh_mcdc():
-    _clear_mcdc_modules()
-    import mcdc
-    yield mcdc 
-    _clear_mcdc_modules()
 
 
 # =============================================================================
@@ -29,8 +17,7 @@ def fresh_mcdc():
 
 
 @pytest.fixture
-def pin_cell_model(fresh_mcdc):
-  mcdc = fresh_mcdc
+def pin_cell_model():
   # Material
   fuel = mcdc.Material(
       nuclide_composition={
@@ -54,7 +41,7 @@ def pin_cell_model(fresh_mcdc):
   fuel_cell = mcdc.Cell(-cylinder, fill=fuel)
   mod_cell = mcdc.Cell(+x0 & -x1 & +y0 & -y1 & +cylinder, fill=moderator)
 
-  yield mcdc, fuel_cell, mod_cell
+  yield fuel_cell, mod_cell
 
 
 # =============================================================================
@@ -66,19 +53,19 @@ def pin_cell_model(fresh_mcdc):
     "cells_builder, thresholds, targets, expected_msg",
     [
         (
-            lambda fuel_cell, mcdc: [fuel_cell],
+            lambda fuel_cell: [fuel_cell],
             [0.5, 0.5],
             [1.0],
             "Expected cells, threshold_weights, and target_weights to be the same size",
         ),
         (
-            lambda fuel_cell, mcdc: [fuel_cell],
+            lambda fuel_cell: [fuel_cell],
             [0.5],
             [1.0, 1.0],
             "Expected cells, threshold_weights, and target_weights to be the same size",
         ),
         (
-            lambda fuel_cell, mcdc: [mcdc.Cell(fill=mcdc.Universe(cells=[fuel_cell]))],
+            lambda fuel_cell: [mcdc.Cell(fill=mcdc.Universe(cells=[fuel_cell]))],
             None,
             None,
             "Invalid cell fill on cell",
@@ -88,9 +75,9 @@ def pin_cell_model(fresh_mcdc):
 def test_forced_collisions_error_throw(
     pin_cell_model, capsys, cells_builder, thresholds, targets, expected_msg
 ):
-    mcdc, fuel_cell, mod_cell = pin_cell_model
+    fuel_cell, mod_cell = pin_cell_model
 
-    cells = cells_builder(fuel_cell, mcdc)
+    cells = cells_builder(fuel_cell)
 
     with pytest.raises(SystemExit):
         mcdc.simulation.forced_collisions(
@@ -102,3 +89,23 @@ def test_forced_collisions_error_throw(
     captured = capsys.readouterr()
     assert expected_msg in captured.out
 
+
+# =============================================================================
+# Method tests
+# =============================================================================
+
+
+def test_in_forced_collision_cell(pin_cell_model):
+    # instantiate
+    fuel_cell, _ = pin_cell_model
+    mcdc.simulation.forced_collisions([fuel_cell])
+    # preparation
+    program, data = preparation()
+    simulation = access_simulation(program)
+    # make particle
+    particle_container = np.zeros(1, types_.particle)
+    particle = particle_container[0]
+    particle["cell_ID"] = -1
+    # inspect geometry
+    geometry.inspect_geometry(particle_container, simulation, data)
+    assert technique.in_forced_collision_cell(particle_container, simulation, data)
