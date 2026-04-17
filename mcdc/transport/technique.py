@@ -5,7 +5,9 @@ from numba import njit
 
 ####
 
+import mcdc.mcdc_get.weight_windows as ww_get
 import mcdc.numba_types as type_
+from mcdc.transport.mesh import get_indices as get_mesh_indices
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
@@ -65,10 +67,151 @@ def in_forced_collision_cell(particle_container, simulation, data):
 
 @njit
 def weight_roulette(particle_container, simulation):
+    threshold = simulation["weight_roulette"]["weight_threshold"]
+    target = simulation["weight_roulette"]["weight_target"]
+    roulette_from_weight_bounds(particle_container, threshold, target)
+
+
+# ======================================================================================
+# Weight Windows
+# ======================================================================================
+
+
+@njit
+def weight_windows(particle_container, program, data):
+    """
+    Apply weight window splitting and rouletting to a particle.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    program : object
+        Program object containing simulation state with weight window and mesh data.
+    data : object
+        Simulation data for array access.
+    """
+    simulation = util.access_simulation(program)
+    [lower, target, upper] = query_weight_window(particle_container, simulation, data)
+    split_from_weight_window(particle_container, upper, simulation)
+    roulette_from_weight_bounds(particle_container, lower, target)
+
+
+@njit
+def query_weight_window(particle_container, simulation, data):
+    """
+    Query weight window bounds for the particle.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    simulation : object
+        Simulation state containing weight window and mesh data.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    lower : float
+        Lower weight bound.
+    target : float
+        Target weight.
+    upper : float
+        Upper weight bound.
+    """
+    # grab objects
+    ww_obj = simulation["weight_windows"]
+    indices = get_ww_indices(particle_container, ww_obj, simulation, data)
+    # grab the actual ww parameters
+    lower = ww_get.lower_weights(*indices, ww_obj, data)
+    target = ww_get.target_weights(*indices, ww_obj, data)
+    upper = ww_get.upper_weights(*indices, ww_obj, data)
+    return lower, target, upper
+
+
+@njit
+def get_ww_indices(particle_container, ww_obj, simulation, data):
+    """
+    Get flattened weight window index from particle information
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    weight_window_object : object
+        The weight window object containing index information
+    simulation : object
+        Simulation state containing weight window and mesh data.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    indices: Tuple[int]
+        the flattened index in the weight window array
+    """
     particle = particle_container[0]
-    if particle["w"] < simulation["weight_roulette"]["weight_threshold"]:
-        w_target = simulation["weight_roulette"]["weight_target"]
+
+    # get energy index
+    energy_bounds = ww_get.energy_bounds_all(ww_obj, data)
+    if simulation["settings"]["neutron_multigroup_mode"]:
+        energy = particle["g"]
+    else:
+        energy = particle["E"]
+    ie = util.find_bin(energy, energy_bounds)
+
+    # get spatial index
+    mesh = simulation["meshes"][ww_obj["mesh_ID"]]
+    idx, idy, idz = get_mesh_indices(particle_container, mesh, simulation, data)
+
+    return (ie, idx, idy, idz)
+
+
+@njit
+def split_from_weight_window(particle_container, threshold_weight, program):
+    """
+    Split a particle if its weight exceeds the threshold.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    threshold_weight : float
+        Upper weight bound triggering splitting.
+    program : object
+        Program object used for banking split particles.
+    """
+    particle = particle_container[0]
+    weight = particle["w"]
+    if weight > threshold_weight:
+        # determine how many to split into
+        num_split = math.ceil(weight / threshold_weight)
+        # distribute weight
+        particle["w"] = weight / num_split
+        for _ in range(num_split - 1):
+            # bank split particles into the active bank
+            particle_bank_module.bank_active_particle(particle_container, program)
+
+
+@njit
+def roulette_from_weight_bounds(particle_container, w_threshold, w_target):
+    """
+    Russian roulette particle if weight is below threshold.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    w_threshold : float
+        Lower weight bound triggering roulette.
+    w_target : float
+        Target weight assigned upon survival.
+    """
+    particle = particle_container[0]
+    if particle["w"] < w_threshold:
         survival_probability = particle["w"] / w_target
+        # sample random number to determine survival
         if rng.lcg(particle_container) < survival_probability:
             particle["w"] = w_target
         else:

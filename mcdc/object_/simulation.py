@@ -6,6 +6,7 @@ from mcdc.object_.technique import (
     ForcedCollisions,
     PopulationControl,
     WeightRoulette,
+    WeightWindows,
     WeightedEmission,
 )
 
@@ -84,6 +85,7 @@ class Simulation(ObjectSingleton):
     forced_collisions: ForcedCollisions
     weighted_emission: WeightedEmission
     weight_roulette: WeightRoulette
+    weight_windows: WeightWindows
     population_control: PopulationControl
 
     # Particle banks
@@ -170,6 +172,7 @@ class Simulation(ObjectSingleton):
         self.forced_collisions = ForcedCollisions()
         self.weighted_emission = WeightedEmission()
         self.weight_roulette = WeightRoulette()
+        self.weight_windows = WeightWindows()
         self.population_control = PopulationControl()
 
         # ==============================================================================

@@ -94,6 +94,8 @@ import mcdc.mcdc_set.population_control as population_control
 
 import mcdc.mcdc_set.weight_roulette as weight_roulette
 
+import mcdc.mcdc_set.weight_windows as weight_windows
+
 import mcdc.mcdc_set.weighted_emission as weighted_emission
 
 import mcdc.mcdc_set.source as source
