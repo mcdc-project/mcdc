@@ -31,6 +31,20 @@ def particle_speed(particle_container, simulation, data):
 
 
 @njit
+def total_xs(particle_container, simulation, data):
+    particle = particle_container[0]
+    if particle["particle_type"] == PARTICLE_NEUTRON:
+        module = neutron
+        type_total = NEUTRON_REACTION_TOTAL
+    elif particle["particle_type"] == PARTICLE_ELECTRON:
+        module = electron
+        type_total = ELECTRON_REACTION_TOTAL
+    else:
+        return 0.0
+    return module.macro_xs(type_total, particle_container, simulation, data)
+
+
+@njit
 def macro_xs(reaction_type, particle_container, simulation, data):
     particle = particle_container[0]
     if particle["particle_type"] == PARTICLE_NEUTRON:
@@ -57,14 +71,8 @@ def neutron_production_xs(reaction_type, particle_container, simulation, data):
 
 @njit
 def collision_distance(particle_container, simulation, data):
-    particle = particle_container[0]
-
     # Get total cross-section
-    SigmaT = 0.0
-    if particle["particle_type"] == PARTICLE_NEUTRON:
-        SigmaT = macro_xs(NEUTRON_REACTION_TOTAL, particle_container, simulation, data)
-    elif particle["particle_type"] == PARTICLE_ELECTRON:
-        SigmaT = macro_xs(ELECTRON_REACTION_TOTAL, particle_container, simulation, data)
+    SigmaT = total_xs(particle_container, simulation, data)
 
     # Vacuum material?
     if SigmaT == 0.0:
@@ -73,6 +81,22 @@ def collision_distance(particle_container, simulation, data):
     # Sample collision distance
     xi = rng.lcg(particle_container)
     distance = -math.log(xi) / SigmaT
+    return distance
+
+
+@njit
+def forced_collision_distance(particle_container, surface_distance, simulation, data):
+    # Get total cross-section
+    SigmaT = total_xs(particle_container, simulation, data)
+
+    # Vacuum material?
+    if SigmaT == 0.0:
+        return INF
+
+    # Sample collision distance
+    xi = rng.lcg(particle_container)
+    
+    distance = - math.log(1 - xi*(1-math.exp(-surface_distance * SigmaT))) / SigmaT
     return distance
 
 
