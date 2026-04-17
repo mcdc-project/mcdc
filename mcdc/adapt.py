@@ -514,12 +514,12 @@ def create_tally_array(width, length):
             data_tally_ptr = alloc_device_bytes(tally_size)
         data_tally_uint = voidptr_to_uintp(data_tally_ptr)
         if config.gpu_state_storage == "separate":
-            data_tally = np.empty((width,length),type_.float64)
+            data_tally = np.empty((width, length), type_.float64)
         else:
             data_tally = numba.carray(data_tally_ptr, (width, length), type_.float64)
         for i in range(data_tally.shape[0]):
             for j in range(data_tally.shape[1]):
-                data_tally[i,j] = 0
+                data_tally[i, j] = 0
         return data_tally, data_tally_uint
     else:
         data_tally = np.zeros((width, length), dtype=type_.float64)
@@ -535,7 +535,7 @@ def create_mcdc_array():
             mcdc_ptr = alloc_device_bytes(type_.global_size)
         mcdc_uint = voidptr_to_uintp(mcdc_ptr)
         if config.gpu_state_storage == "separate":
-            mcdc_array = np.empty((1,),type_.global_)
+            mcdc_array = np.empty((1,), type_.global_)
         else:
             mcdc_array = numba.carray(mcdc_ptr, (1,), type_.global_)
         return mcdc_array, mcdc_uint
