@@ -86,6 +86,8 @@ import mcdc.mcdc_set.particle_bank as particle_bank
 
 import mcdc.mcdc_set.settings as settings
 
+import mcdc.mcdc_set.forced_collisions as forced_collisions
+
 import mcdc.mcdc_set.implicit_capture as implicit_capture
 
 import mcdc.mcdc_set.population_control as population_control

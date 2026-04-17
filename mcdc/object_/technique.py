@@ -1,4 +1,10 @@
+from typing import TYPE_CHECKING, Annotated
+from numpy.typing import NDArray
+import numpy as np
 from mcdc.object_.base import ObjectSingleton
+if TYPE_CHECKING:
+    from mcdc.object_.cell import Cell
+from mcdc.constant import FILL_MATERIAL
 from mcdc.print_ import print_error
 
 # ======================================================================================
@@ -16,6 +22,31 @@ class ImplicitCapture(ObjectSingleton):
 
     def __call__(self, active: bool = True):
         self.active = active
+
+
+# ======================================================================================
+# ForcedCollisions
+# ======================================================================================
+
+
+class ForcedCollisions(ObjectSingleton):
+    #Annotations for Numba mode
+    label: str = "forced_collisions"
+    active: bool
+
+    cell_IDs: list[np.int64]
+
+    def __init__(self):
+        self.active = False
+        self.cell_IDs = []
+    
+    def __call__(self, cells):
+        for cell in cells:
+            if cell.fill_type != FILL_MATERIAL:
+                print_error(
+                    f"Invalid cell fill on cell: \n{cell}\nForced collision technique is only valid on cells with material fill"
+                )
+            self.cell_IDs.append(cell.ID)
 
 
 # ======================================================================================
