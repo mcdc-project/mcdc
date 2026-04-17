@@ -534,8 +534,8 @@ def gpu_loop_source(seed, data, mcdc):
 
         # Store the global state to the GPU
         if config.gpu_state_storage == "separate":
-            adapt.harm.memcpy_host_to_device(mcdc["gpu_meta"]["state_pointer"], mcdc)
-            adapt.harm.memcpy_host_to_device(mcdc["gpu_meta"]["state_pointer"], data)
+            adapt.harm.memcpy_host_to_device(mcdc["gpu_meta"]["global_pointer"], mcdc)
+            adapt.harm.memcpy_host_to_device(mcdc["gpu_meta"]["tally_pointer"], data)
 
         # Execute the program, and continue to do so until it is done
         if ASYNC_EXECUTION:
@@ -560,8 +560,8 @@ def gpu_loop_source(seed, data, mcdc):
         # Recover the original program state
 
         if config.gpu_state_storage == "separate":
-            adapt.harm.memcpy_device_to_host(mcdc, mcdc["gpu_meta"]["state_pointer"])
-            adapt.harm.memcpy_device_to_host(data, mcdc["gpu_meta"]["state_pointer"])
+            adapt.harm.memcpy_device_to_host(mcdc, mcdc["gpu_meta"]["global_pointer"])
+            adapt.harm.memcpy_device_to_host(data, mcdc["gpu_meta"]["tally_pointer"])
 
         src_clear_flags(mcdc["gpu_meta"]["source_program_pointer"])
 
@@ -903,8 +903,8 @@ def gpu_loop_source_precursor(seed, data, mcdc):
 
     # Store the global state to the GPU
     if config.gpu_state_storage == "separate":
-        adapt.harm.memcpy_host_to_device(mcdc["gpu_meta"]["state_pointer"], mcdc)
-        adapt.harm.memcpy_host_to_device(mcdc["gpu_meta"]["state_pointer"], data)
+        adapt.harm.memcpy_host_to_device(mcdc["gpu_meta"]["global_pointer"], mcdc)
+        adapt.harm.memcpy_host_to_device(mcdc["gpu_meta"]["tally_pointer"], data)
 
     # Execute the program, and continue to do so until it is done
 
@@ -930,8 +930,8 @@ def gpu_loop_source_precursor(seed, data, mcdc):
 
     # Recover the original program state
     if config.gpu_state_storage == "separate":
-        adapt.harm.memcpy_device_to_host(mcdc, mcdc["gpu_meta"]["state_pointer"])
-        adapt.harm.memcpy_device_to_host(data, mcdc["gpu_meta"]["state_pointer"])
+        adapt.harm.memcpy_device_to_host(mcdc, mcdc["gpu_meta"]["global_pointer"])
+        adapt.harm.memcpy_device_to_host(data, mcdc["gpu_meta"]["tally_pointer"])
 
     pre_clear_flags(mcdc["gpu_meta"]["source_program_pointer"])
 

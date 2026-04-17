@@ -1180,6 +1180,9 @@ def prepare():
     mcdc_arr[0] = mcdc
     mcdc = mcdc_arr[0]
 
+    mcdc["gpu_meta"]["global_pointer"] = mcdc_uint
+    mcdc["gpu_meta"]["tally_pointer"]  = data_tally_uint
+
     # =========================================================================
     # Setting
     # =========================================================================
