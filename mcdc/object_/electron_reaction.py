@@ -136,7 +136,6 @@ class ElectronReactionIonization(ElectronReactionBase):
                     )
                 )
 
-
         return cls(
             MT,
             xs,
@@ -207,7 +206,6 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
                 mu_group["value"][()],
                 mu_group["PDF"][()],
             )
-
 
         return cls(MT, xs, xs_offset, reference_frame, xs_large, mu)
 

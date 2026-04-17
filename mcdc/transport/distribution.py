@@ -329,7 +329,6 @@ def _sample_multi_table(E, rng_state, multi_table, data, scale):
             val0 = mcdc_get.multi_table_distribution.value(idx, multi_table, data)
             val1 = mcdc_get.multi_table_distribution.value(idx + 1, multi_table, data)
 
-
             frac = (xi - c0) / (c1 - c0)
             if frac < 0.0:
                 frac = 0.0
