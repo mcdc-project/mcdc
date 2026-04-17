@@ -9,7 +9,54 @@ import mcdc.numba_types as type_
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
+from mcdc.transport.physics import interface as physics
 import mcdc.transport.util as util
+import mcdc.mcdc_get as mcdc_get
+
+# ======================================================================================
+# Forced Collisions
+# ======================================================================================
+
+
+@njit
+def forced_collisions(particle_container, surface_distance, program, data):
+    simulation = util.access_simulation(program)
+    fc_object = simulation["forced_collisions"]
+    SigmaT = physics.total_xs(particle_container, simulation, data)
+
+    # create collided and transmitted particles
+    collided_container = particle_container
+    collided = collided_container[0]
+
+    transmitted_container = util.local_array(1, type_.particle_data)
+    transmitted = transmitted_container[0]
+    particle_module.copy_as_child(transmitted_container, collided_container)
+    
+    # update transmitted particle
+    weight_multiplier = math.exp(-surface_distance * SigmaT)
+    transmitted["w"] *= weight_multiplier
+    particle_module.move(transmitted_container, surface_distance, simulation, data)
+    particle_bank_module.bank_active_particle(transmitted_container, program)
+
+    # update collided particle
+    collided["w"] *= (1 - weight_multiplier)
+    # return distance to forced collision, let simulation handle the rest (tallies)
+    return physics.forced_collision_distance(collided_container, surface_distance, simulation, data) 
+
+
+@njit
+def in_forced_collision_cell(particle_container, simulation, data):
+    fc_object = simulation["forced_collisions"]
+    # not active, dont need to query cells
+    if not fc_object["active"]:
+        return False
+    # active, need to check if in active cell
+    cell_ids = mcdc_get.forced_collisions.cell_IDs_all(fc_object, data)
+    if particle_container[0]["cell_ID"] not in cell_ids:
+        return True
+    # not in active cell
+    return False
+
 
 # ======================================================================================
 # Weight Roulette

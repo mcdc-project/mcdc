@@ -401,7 +401,10 @@ def move_to_event(particle_container, simulation, data):
     )
 
     # Distance to next collision
-    d_collision = physics.collision_distance(particle_container, simulation, data)
+    if technique.in_forced_collision_cell(particle_container, simulation, data):
+        d_collision = technique.forced_collisions(particle_container, d_boundary, simulation, data)
+    else:
+        d_collision = physics.collision_distance(particle_container, simulation, data)
 
     # ==================================================================================
     # Determine event(s)
