@@ -98,7 +98,6 @@ class Tally(ObjectPolymorphic):
         # Surface tally
         if surface is not None:
             for score in scores:
-                print(score, SURFACE_SCORES)
                 if not score in SURFACE_SCORES:
                     print_error(
                         f"Scoring '{score}' with surface tally is not supported. "
