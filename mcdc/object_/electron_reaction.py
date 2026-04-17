@@ -117,14 +117,24 @@ class ElectronReactionIonization(ElectronReactionBase):
 
             # Secondary electron energy distribution
             product = subshell["product"]
-            subshell_product.append(
-                DistributionMultiTable(
-                    product["energy_grid"][()],
-                    product["energy_offset"][()],
-                    product["value"][()],
-                    product["PDF"][()],
+            if "CDF" in product:
+                subshell_product.append(
+                    DistributionMultiTable(
+                        product["energy_grid"][()],
+                        product["energy_offset"][()],
+                        product["value"][()],
+                        cdf=product["CDF"][()],
+                    )
                 )
-            )
+            else:
+                subshell_product.append(
+                    DistributionMultiTable(
+                        product["energy_grid"][()],
+                        product["energy_offset"][()],
+                        product["value"][()],
+                        product["PDF"][()],
+                    )
+                )
 
         return cls(
             MT,
@@ -182,12 +192,20 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
         xs_large = DataTable(large_angle["xs_energy"][()], large_angle["xs"][()])
 
         mu_group = large_angle["scattering_cosine"]
-        mu = DistributionMultiTable(
-            mu_group["energy_grid"][()],
-            mu_group["energy_offset"][()],
-            mu_group["value"][()],
-            mu_group["PDF"][()],
-        )
+        if "CDF" in mu_group:
+            mu = DistributionMultiTable(
+                mu_group["energy_grid"][()],
+                mu_group["energy_offset"][()],
+                mu_group["value"][()],
+                cdf=mu_group["CDF"][()],
+            )
+        else:
+            mu = DistributionMultiTable(
+                mu_group["energy_grid"][()],
+                mu_group["energy_offset"][()],
+                mu_group["value"][()],
+                mu_group["PDF"][()],
+            )
 
         return cls(MT, xs, xs_offset, reference_frame, xs_large, mu)
 
