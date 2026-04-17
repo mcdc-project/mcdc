@@ -565,6 +565,10 @@ forced_collisions = into_dtype([
     ('active', bool),
     ('cell_IDs_offset', int64),
     ('cell_IDs_length', int64),
+    ('threshold_weights_offset', int64),
+    ('threshold_weights_length', int64),
+    ('target_weights_offset', int64),
+    ('target_weights_length', int64),
 ])
 
 implicit_capture = into_dtype([

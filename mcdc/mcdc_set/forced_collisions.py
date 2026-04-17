@@ -30,3 +30,61 @@ def cell_IDs_chunk(start, length, forced_collisions, data, value):
     start += forced_collisions["cell_IDs_offset"]
     end = start + length
     data[start:end] = value
+
+
+@njit
+def threshold_weights(index, forced_collisions, data, value):
+    offset = forced_collisions["threshold_weights_offset"]
+    data[offset + index] = value
+
+
+@njit
+def threshold_weights_all(forced_collisions, data, value):
+    start = forced_collisions["threshold_weights_offset"]
+    size = forced_collisions["threshold_weights_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def threshold_weights_last(forced_collisions, data, value):
+    start = forced_collisions["threshold_weights_offset"]
+    size = forced_collisions["threshold_weights_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def threshold_weights_chunk(start, length, forced_collisions, data, value):
+    start += forced_collisions["threshold_weights_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def target_weights(index, forced_collisions, data, value):
+    offset = forced_collisions["target_weights_offset"]
+    data[offset + index] = value
+
+
+@njit
+def target_weights_all(forced_collisions, data, value):
+    start = forced_collisions["target_weights_offset"]
+    size = forced_collisions["target_weights_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def target_weights_last(forced_collisions, data, value):
+    start = forced_collisions["target_weights_offset"]
+    size = forced_collisions["target_weights_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def target_weights_chunk(start, length, forced_collisions, data, value):
+    start += forced_collisions["target_weights_offset"]
+    end = start + length
+    data[start:end] = value

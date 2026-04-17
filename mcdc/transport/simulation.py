@@ -353,6 +353,8 @@ def step_particle(particle_container, program, data):
         if simulation["weight_windows"]["active"]:
             technique.weight_windows(particle_container, program, data)
 
+        elif simulation["forced_collisions"]["active"]:
+            technique.forced_collision_roulette(particle_container, program, data)
         # Weight roulette
         else:
             technique.weight_roulette(particle_container, simulation)

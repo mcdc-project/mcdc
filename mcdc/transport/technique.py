@@ -47,6 +47,20 @@ def forced_collisions(particle_container, surface_distance, program, data):
 
 
 @njit
+def forced_collision_roulette(particle_container, program, data):
+    simulation = util.access_simulation(program)
+    if not in_forced_collision_cell(particle_container, simulation, data):
+        return
+    particle = particle_container[0]
+    fc_object = simulation["forced_collisions"]
+    cell_ids = mcdc_get.forced_collisions.cell_IDs_all(fc_object, data)
+    index = cell_ids.index(particle["cell_ID"])
+    threshold = mcdc_get.forced_collisions.threshold_weights(index ,fc_object, data)
+    target = mcdc_get.forced_collisions.target_weights(index, fc_object, data)
+    roulette_from_weight_bounds(particle_container, threshold, target)
+
+
+@njit
 def in_forced_collision_cell(particle_container, simulation, data):
     fc_object = simulation["forced_collisions"]
     # not active, dont need to query cells

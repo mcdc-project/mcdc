@@ -36,18 +36,32 @@ class ForcedCollisions(ObjectSingleton):
     active: bool
 
     cell_IDs: list[np.int64]
+    threshold_weights: list[float]
+    target_weights: list[float]
 
     def __init__(self):
         self.active = False
         self.cell_IDs = []
+        self.threshold_weights = []
+        self.target_weights = []
     
-    def __call__(self, cells):
+    def __call__(self, cells, threshold_weights=None, target_weights=None):
+        if threshold_weights is None:
+            threshold_weights = [0.5] * len(cells)
+        if target_weights is None:
+            target_weights = [1.0] * len(cells)
+        if len(cells) != len(threshold_weights) or len(cells) != len(target_weights):
+            print_error(
+                f"Expected cells, threshold_weights, and target_weights to be the same size, but got {len(cells)}, {len(threshold_weights)}, and {len(target_weights)} instead"
+            )
         for cell in cells:
             if cell.fill_type != FILL_MATERIAL:
                 print_error(
                     f"Invalid cell fill on cell: \n{cell}\nForced collision technique is only valid on cells with material fill"
                 )
             self.cell_IDs.append(cell.ID)
+        self.threshold_weights = threshold_weights
+        self.target_weights = target_weights
 
 
 # ======================================================================================
