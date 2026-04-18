@@ -11,6 +11,7 @@ from mcdc.transport.mesh import get_indices as get_mesh_indices
 import mcdc.transport.geometry as geometry_module
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
+import mcdc.transport.tally as tally_module
 import mcdc.transport.rng as rng
 from mcdc.transport.physics import interface as physics
 import mcdc.transport.util as util
@@ -61,6 +62,11 @@ def bank_transmitted_particle(collided_container, weight_multiplier, surface_dis
     # assign weight
     transmitted = transmitted_container[0]
     transmitted["w"] *= weight_multiplier
+
+    # score tracklength tallies
+    tally_module.score.score_tracklength_tallies(
+        transmitted_container, surface_distance, simulation, data
+    )
 
     # update position and perform surface crossing
     particle_module.move(transmitted_container, surface_distance, simulation, data)
