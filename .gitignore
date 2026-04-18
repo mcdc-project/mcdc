@@ -33,6 +33,9 @@ output*.h5
 # Ignore all png and giffiles except those in the docs/source/images directory
 !docs/source/images/**/*.png
 !docs/source/images/**/*.gif
+!mcdc-vv/Al/results/*.png
+!mcdc-vv/Al/results/old/*.png
+
 
 # Cluster job
 *.out
@@ -69,3 +72,4 @@ source_particles.h5
 *.sif
 *_sandbox
 *.tar
+
