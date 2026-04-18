@@ -53,6 +53,16 @@ def copy_as_child(child_particle_container, parent_particle_container):
 
 @njit
 def copy_run_state(target_particle_container, source_particle_container):
+    """
+    Helper for copying runtime particle state into new particle.
+
+    Parameters
+    ----------
+    target_particle_container : ndarray
+        Container holding the particle to copy data into.
+    source_particle_container : ndarray
+        Container holding the particle to copy data from.
+    """
     target_particle = target_particle_container[0]
     source_particle = source_particle_container[0]
     target_particle["alive"] = source_particle["alive"]

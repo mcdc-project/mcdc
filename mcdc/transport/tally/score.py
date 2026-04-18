@@ -144,6 +144,20 @@ def collision_tally(
 
 @njit
 def score_tracklength_tallies(particle_container, distance, simulation, data):
+    """
+    Helper for scoring traveled distance on all track length tallies in the simulation.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    distance:
+        The distance traveled to score.
+    simulation : object
+        Simulation object.
+    data : object
+        Simulation data for array access.
+    """
     particle = particle_container[0]
 
     if simulation["cycle_active"]:

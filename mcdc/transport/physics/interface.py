@@ -32,6 +32,23 @@ def particle_speed(particle_container, simulation, data):
 
 @njit
 def total_xs(particle_container, simulation, data):
+    """
+    Convenience helper for getting specifically the total cross section. 
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    simulation : object
+        Simulation object.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    float
+        Total macroscopic cross section.
+    """
     particle = particle_container[0]
     if particle["particle_type"] == PARTICLE_NEUTRON:
         module = neutron
@@ -86,6 +103,25 @@ def collision_distance(particle_container, simulation, data):
 
 @njit
 def forced_collision_distance(particle_container, surface_distance, simulation, data):
+    """
+    Method for finding the distance for a forced collision particle to travel.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    surface_distance:
+        The distance to the next surface along the particles direction.
+    simulation : object
+        Simulation object.
+    data : object
+        Simulation data for array access.
+    
+    Returns
+    -------
+    distance : float
+        Distance for particle to travel.
+    """
     # Get total cross-section
     SigmaT = total_xs(particle_container, simulation, data)
 

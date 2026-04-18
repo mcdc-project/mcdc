@@ -25,20 +25,38 @@ from mcdc.print_ import print_error
 
 @njit
 def forced_collisions(particle_container, surface_distance, program, data):
+    """
+    Applies the method of forced collisions, splitting the source particle into a collided and transmitted particle. This method returns the distance for the collided particle to travel, letting the `simulation.move_to_event` handle the actual transport for the collided particle.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the original particle to copy over all data from.
+    surface_distance : float
+        The distance to the surface the transmitted particle will be moved to.
+    program : object
+        Program object containing simulation state with forced collision data.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    collision_distance : float
+        Distance for the collided component to travel.
+    """
     simulation = util.access_simulation(program)
 
     # find weight multiplier
     SigmaT = physics.total_xs(particle_container, simulation, data)
     weight_multiplier = math.exp(-surface_distance * SigmaT)
-
-    # alias input particle as collided particle
-    collided_container = particle_container
  
     # transmitted particle
     bank_transmitted_particle(
-        collided_container, weight_multiplier, surface_distance, program, data
+        particle_container, weight_multiplier, surface_distance, program, data
     )
 
+    # alias input particle as collided particle
+    collided_container = particle_container
     # update collided particle
     collided = collided_container[0]
     collided["w"] *= (1 - weight_multiplier)
@@ -51,13 +69,29 @@ def forced_collisions(particle_container, surface_distance, program, data):
 
 
 @njit
-def bank_transmitted_particle(collided_container, weight_multiplier, surface_distance, program, data):
+def bank_transmitted_particle(particle_container, weight_multiplier, surface_distance, program, data):
+    """
+    Helper for creating and banking the transmitted component. If the transmitted particle leaves the simulation through a boundary surface, the particle is not banked. Additionally, the particle is scored over all tracklength tallies via the helper in `tally.score`.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the original particle to copy over all data from.
+    weight_multiplier : float
+        The multiplier to adjust the particle weight by.
+    surface_distance : float
+        The distance to the surface the transmitted particle will be moved to.
+    program : object
+        Program object containing simulation state with forced collision data.
+    data : object
+        Simulation data for array access.
+    """
     simulation = util.access_simulation(program)
 
     # create child copy of collided particle history
     transmitted_container = util.local_array(1, type_.particle)
-    particle_module.copy_as_child(transmitted_container, collided_container)
-    particle_module.copy_run_state(transmitted_container, collided_container)
+    particle_module.copy_as_child(transmitted_container, particle_container)
+    particle_module.copy_run_state(transmitted_container, particle_container)
 
     # assign weight
     transmitted = transmitted_container[0]
@@ -79,6 +113,18 @@ def bank_transmitted_particle(collided_container, weight_multiplier, surface_dis
 
 @njit
 def forced_collision_roulette(particle_container, program, data):
+    """
+    Roulette procedure for forced collision. Particle is only rouletted if in a cell marked for forced collisions
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    program : object
+        Program object containing simulation state with forced collision data.
+    data : object
+        Simulation data for array access.
+    """
     simulation = util.access_simulation(program)
     fc_object = simulation["forced_collisions"]
 
@@ -99,6 +145,23 @@ def forced_collision_roulette(particle_container, program, data):
 
 @njit
 def get_forced_collision_cell_index(particle_container, fc_object, data):
+    """
+    Helper for getting the getter index for weight roulette parameters
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    fc_object : object
+        Forced collision object for use in mcdc_get methods.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    index : int
+        The flattened index for getting weight roulette parameters.
+    """
     particle = particle_container[0]
     
     # grab all cell ids
@@ -117,6 +180,23 @@ def get_forced_collision_cell_index(particle_container, fc_object, data):
 
 @njit
 def in_forced_collision_cell(particle_container, simulation, data):
+    """
+    Check if particle is in a cell marked for forced collision
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    program : object
+        Program object containing simulation state with forced collision data.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    bool
+        True if particle in cell marked for forced collision.
+    """
     fc_object = simulation["forced_collisions"]
 
     # not active, dont need to query cells
