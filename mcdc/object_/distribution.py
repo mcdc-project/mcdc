@@ -163,7 +163,10 @@ class DistributionMultiTable(DistributionBase):
         self.offset = offset
         self.value = value
 
-        if cdf is not None:
+        if pdf is not None and cdf is not None:
+            self.pdf = pdf
+            self.cdf = cdf
+        elif cdf is not None:
             # Direct-CDF mode for electron data
             self.pdf = np.array([], dtype=float64)
             self.cdf = cdf

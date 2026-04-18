@@ -68,6 +68,35 @@ def decode_reference_frame(type_):
         return "Center of mass"
 
 
+def load_multi_table_distribution(h5_group):
+    if "PDF" in h5_group and "CDF" in h5_group:
+        return DistributionMultiTable(
+            h5_group["energy_grid"][()],
+            h5_group["energy_offset"][()],
+            h5_group["value"][()],
+            pdf=h5_group["PDF"][()],
+            cdf=h5_group["CDF"][()],
+        )
+
+    if "PDF" in h5_group:
+        return DistributionMultiTable(
+            h5_group["energy_grid"][()],
+            h5_group["energy_offset"][()],
+            h5_group["value"][()],
+            h5_group["PDF"][()],
+        )
+
+    if "CDF" in h5_group:
+        return DistributionMultiTable(
+            h5_group["energy_grid"][()],
+            h5_group["energy_offset"][()],
+            h5_group["value"][()],
+            cdf=h5_group["CDF"][()],
+        )
+
+    raise KeyError("Expected either PDF or CDF dataset in multi-table distribution")
+
+
 # ======================================================================================
 # Electron ionization
 # ======================================================================================
@@ -117,24 +146,7 @@ class ElectronReactionIonization(ElectronReactionBase):
 
             # Secondary electron energy distribution
             product = subshell["product"]
-            if "CDF" in product:
-                subshell_product.append(
-                    DistributionMultiTable(
-                        product["energy_grid"][()],
-                        product["energy_offset"][()],
-                        product["value"][()],
-                        cdf=product["CDF"][()],
-                    )
-                )
-            else:
-                subshell_product.append(
-                    DistributionMultiTable(
-                        product["energy_grid"][()],
-                        product["energy_offset"][()],
-                        product["value"][()],
-                        product["PDF"][()],
-                    )
-                )
+            subshell_product.append(load_multi_table_distribution(product))
 
         return cls(
             MT,
@@ -190,22 +202,7 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
 
         large_angle = h5_group["large_angle"]
         xs_large = DataTable(large_angle["xs_energy"][()], large_angle["xs"][()])
-
-        mu_group = large_angle["scattering_cosine"]
-        if "CDF" in mu_group:
-            mu = DistributionMultiTable(
-                mu_group["energy_grid"][()],
-                mu_group["energy_offset"][()],
-                mu_group["value"][()],
-                cdf=mu_group["CDF"][()],
-            )
-        else:
-            mu = DistributionMultiTable(
-                mu_group["energy_grid"][()],
-                mu_group["energy_offset"][()],
-                mu_group["value"][()],
-                mu_group["PDF"][()],
-            )
+        mu = load_multi_table_distribution(large_angle["scattering_cosine"])
 
         return cls(MT, xs, xs_offset, reference_frame, xs_large, mu)
 

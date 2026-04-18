@@ -26,13 +26,12 @@ from mcdc.constant import (
 from mcdc.transport.data import evaluate_data
 from mcdc.transport.distribution import (
     sample_distribution,
-    sample_multi_table,
 )
 from mcdc.transport.physics.util import (
     evaluate_electron_xs_energy_grid,
     scatter_direction,
 )
-from mcdc.transport.util import linear_interpolation
+from mcdc.transport.util import find_bin, linear_interpolation
 
 # ======================================================================================
 # Particle attributes
@@ -268,44 +267,9 @@ def elastic_scattering(reaction, particle_container, element, simulation, data):
 
     # Current energy
     E = particle["E"]
-
-    # -------------------------------------------------------------------------
-    # Total elastic xs
-    # -------------------------------------------------------------------------
-
-    reaction_base_ID = int(reaction["parent_ID"])
-    reaction_base = simulation["electron_reactions"][reaction_base_ID]
-    xs_total = reaction_micro_xs(E, reaction_base, element, data)
-
-    # If large-angle, xs from data table
-    xs_large = elastic_large_xs(E, reaction, simulation, data)
-
-    # Important to check because of numerical issues
-    if xs_large < 0.0:
-        xs_large = 0.0
-    if xs_large > xs_total:
-        xs_large = xs_total
-
-    prob_large = xs_large / xs_total
-    mu_cut = float(reaction["mu_cut"])
-
-    xi = rng.lcg(particle_container)
-
-    if xi < prob_large:
-        # ---------------------------------------------------------------------
-        # Large-angle elastic scattering
-        # ---------------------------------------------------------------------
-
-        multi_table = simulation["multi_table_distributions"][reaction["mu_ID"]]
-        mu0 = sample_multi_table(E, particle_container, multi_table, data)
-
-    else:
-        # ---------------------------------------------------------------------
-        # Small-angle elastic scattering (Coulomb tail sampling)
-        # ---------------------------------------------------------------------
-
-        Z = int(element["atomic_number"])
-        mu0 = sample_small_angle_mu_coulomb(E, Z, particle_container, mu_cut)
+    Z = int(element["atomic_number"])
+    multi_table = simulation["multi_table_distributions"][reaction["mu_ID"]]
+    mu0 = sample_coupled_elastic_mu(E, Z, particle_container, multi_table, data)
 
     # Update direction
     azi = 2.0 * PI * rng.lcg(particle_container)
@@ -317,6 +281,270 @@ def elastic_scattering(reaction, particle_container, element, simulation, data):
     particle["ux"] = ux_new
     particle["uy"] = uy_new
     particle["uz"] = uz_new
+
+
+@njit
+def sample_coupled_elastic_mu(E, Z, rng_state, multi_table, data):
+    idx0, idx1, frac = elastic_table_energy_interval(E, multi_table, data)
+    fu0, mu_n0, eta0 = elastic_forward_branch_probability(idx0, Z, multi_table, data)
+
+    if idx1 == idx0:
+        fu = fu0
+    else:
+        fu1, mu_n1, eta1 = elastic_forward_branch_probability(
+            idx1, Z, multi_table, data
+        )
+        fu = fu0 + frac * (fu1 - fu0)
+
+    if fu < 0.0:
+        fu = 0.0
+    elif fu > 1.0:
+        fu = 1.0
+
+    if rng.lcg(rng_state) < fu:
+        u = rng.lcg(rng_state)
+        if idx1 == idx0:
+            mu = sample_forward_peak_mu(eta0, mu_n0, u)
+        else:
+            mu0 = sample_forward_peak_mu(eta0, mu_n0, u)
+            mu1 = sample_forward_peak_mu(eta1, mu_n1, u)
+            mu = mu0 + frac * (mu1 - mu0)
+    else:
+        u = rng.lcg(rng_state)
+        if idx1 == idx0:
+            mu = sample_multi_table_fixed_index(idx0, u, multi_table, data)
+        else:
+            mu = sample_multi_table_log_cdf(E, idx0, idx1, u, multi_table, data)
+
+    if mu < -1.0:
+        return -1.0
+    if mu > 1.0:
+        return 1.0
+    return mu
+
+
+@njit
+def elastic_table_energy_interval(E, multi_table, data):
+    grid = mcdc_get.multi_table_distribution.grid_all(multi_table, data)
+    if E <= grid[0]:
+        return 0, 0, 0.0
+    if E >= grid[-1]:
+        idx = len(grid) - 1
+        return idx, idx, 0.0
+
+    idx0 = find_bin(E, grid)
+    idx1 = idx0 + 1
+    E0 = grid[idx0]
+    E1 = grid[idx1]
+    frac = (E - E0) / (E1 - E0)
+    return idx0, idx1, frac
+
+
+@njit
+def elastic_table_bounds(index, multi_table, data):
+    start = int(mcdc_get.multi_table_distribution.offset(index, multi_table, data))
+    if index + 1 == multi_table["grid_length"]:
+        end = multi_table["value_length"]
+    else:
+        end = int(mcdc_get.multi_table_distribution.offset(index + 1, multi_table, data))
+    return start, end
+
+
+@njit
+def elastic_table_area(index, multi_table, data):
+    start, end = elastic_table_bounds(index, multi_table, data)
+    size = end - start
+    if size < 2:
+        return 0.0
+
+    if multi_table["pdf_length"] == 0:
+        c0 = mcdc_get.multi_table_distribution.cdf(start, multi_table, data)
+        c1 = mcdc_get.multi_table_distribution.cdf(end - 1, multi_table, data)
+        return c1 - c0
+
+    total = 0.0
+    for i in range(start, end - 1):
+        mu0 = mcdc_get.multi_table_distribution.value(i, multi_table, data)
+        mu1 = mcdc_get.multi_table_distribution.value(i + 1, multi_table, data)
+        p0 = mcdc_get.multi_table_distribution.pdf(i, multi_table, data)
+        p1 = mcdc_get.multi_table_distribution.pdf(i + 1, multi_table, data)
+        total += 0.5 * (p0 + p1) * (mu1 - mu0)
+    return total
+
+
+@njit
+def elastic_table_tail_density(index, multi_table, data):
+    start, end = elastic_table_bounds(index, multi_table, data)
+    size = end - start
+    if size < 2:
+        return 0.0
+
+    mu_prev = mcdc_get.multi_table_distribution.value(end - 2, multi_table, data)
+    mu_n = mcdc_get.multi_table_distribution.value(end - 1, multi_table, data)
+    dmu = mu_n - mu_prev
+    if dmu <= 0.0:
+        return 0.0
+
+    if multi_table["pdf_length"] == 0:
+        c_prev = mcdc_get.multi_table_distribution.cdf(end - 2, multi_table, data)
+        c_last = mcdc_get.multi_table_distribution.cdf(end - 1, multi_table, data)
+        return (c_last - c_prev) / dmu
+
+    return mcdc_get.multi_table_distribution.pdf(end - 1, multi_table, data)
+
+
+@njit
+def elastic_forward_branch_probability(index, Z, multi_table, data):
+    energy = mcdc_get.multi_table_distribution.grid(index, multi_table, data)
+    eta = compute_scattering_eta(energy, Z)
+
+    start, end = elastic_table_bounds(index, multi_table, data)
+    size = end - start
+    if size < 2:
+        mu_n = mcdc_get.multi_table_distribution.value(end - 1, multi_table, data)
+        return 0.0, mu_n, eta
+
+    mu_n = mcdc_get.multi_table_distribution.value(end - 1, multi_table, data)
+    p_n = elastic_table_tail_density(index, multi_table, data)
+    t_t = elastic_table_area(index, multi_table, data)
+
+    x_n = eta + 1.0 - mu_n
+    if p_n <= 0.0 or x_n <= 0.0 or eta <= 0.0:
+        return 0.0, mu_n, eta
+
+    A = p_n * x_n * x_n
+    t_fu = A * ((1.0 / eta) - (1.0 / x_n))
+    denom = t_fu + t_t
+    if denom <= 0.0:
+        return 0.0, mu_n, eta
+
+    return t_fu / denom, mu_n, eta
+
+
+@njit
+def sample_forward_peak_mu(eta, mu_n, u):
+    x_n = eta + 1.0 - mu_n
+    if x_n <= 0.0 or eta <= 0.0:
+        return mu_n
+
+    inv_n = 1.0 / x_n
+    inv = inv_n + u * ((1.0 / eta) - inv_n)
+    if inv <= 0.0:
+        return mu_n
+
+    return 1.0 + eta - (1.0 / inv)
+
+
+@njit
+def sample_multi_table_fixed_index(index, xi, multi_table, data):
+    start, end = elastic_table_bounds(index, multi_table, data)
+    size = end - start
+    if size <= 1:
+        return mcdc_get.multi_table_distribution.value(start, multi_table, data)
+
+    cdf_offset = multi_table["cdf_offset"]
+    cdf = data[start + cdf_offset : start + cdf_offset + size]
+    idx = find_bin(xi, cdf)
+    c0 = cdf[idx]
+    c1 = cdf[idx + 1]
+    if c1 <= c0:
+        return mcdc_get.multi_table_distribution.value(start + idx, multi_table, data)
+
+    val0 = mcdc_get.multi_table_distribution.value(start + idx, multi_table, data)
+    val1 = mcdc_get.multi_table_distribution.value(start + idx + 1, multi_table, data)
+    frac = (xi - c0) / (c1 - c0)
+    if frac < 0.0:
+        frac = 0.0
+    elif frac > 1.0:
+        frac = 1.0
+    return val0 + frac * (val1 - val0)
+
+
+@njit
+def evaluate_multi_table_cdf_at_mu(index, mu, multi_table, data):
+    start, end = elastic_table_bounds(index, multi_table, data)
+    size = end - start
+    if size <= 0:
+        return 0.0
+
+    value_offset = multi_table["value_offset"]
+    values = data[start + value_offset : start + value_offset + size]
+    if mu <= values[0]:
+        return 0.0
+    if mu >= values[-1]:
+        return 1.0
+
+    cdf_offset = multi_table["cdf_offset"]
+    cdf = data[start + cdf_offset : start + cdf_offset + size]
+    idx = find_bin(mu, values)
+    mu0 = values[idx]
+    mu1 = values[idx + 1]
+    c0 = cdf[idx]
+    c1 = cdf[idx + 1]
+
+    if mu1 <= mu0:
+        return c0
+    return c0 + (mu - mu0) * (c1 - c0) / (mu1 - mu0)
+
+
+@njit
+def elastic_log_energy_fraction(E, E0, E1):
+    if E <= 0.0 or E0 <= 0.0 or E1 <= 0.0:
+        return (E - E0) / (E1 - E0)
+    return (math.log(E) - math.log(E0)) / (math.log(E1) - math.log(E0))
+
+
+@njit
+def log_interpolate_cdf_value(E, E0, E1, c0, c1):
+    eps = 1.0e-300
+    if c0 <= 0.0 and c1 <= 0.0:
+        return 0.0
+    if c0 >= 1.0 and c1 >= 1.0:
+        return 1.0
+
+    y0 = max(min(c0, 1.0), eps)
+    y1 = max(min(c1, 1.0), eps)
+    frac = elastic_log_energy_fraction(E, E0, E1)
+    if frac < 0.0:
+        frac = 0.0
+    elif frac > 1.0:
+        frac = 1.0
+    return math.exp(math.log(y0) + frac * (math.log(y1) - math.log(y0)))
+
+
+@njit
+def sample_multi_table_log_cdf(E, idx0, idx1, xi, multi_table, data):
+    if idx0 == idx1:
+        return sample_multi_table_fixed_index(idx0, xi, multi_table, data)
+
+    E0 = mcdc_get.multi_table_distribution.grid(idx0, multi_table, data)
+    E1 = mcdc_get.multi_table_distribution.grid(idx1, multi_table, data)
+
+    start0, end0 = elastic_table_bounds(idx0, multi_table, data)
+    start1, end1 = elastic_table_bounds(idx1, multi_table, data)
+    lo0 = mcdc_get.multi_table_distribution.value(start0, multi_table, data)
+    lo1 = mcdc_get.multi_table_distribution.value(start1, multi_table, data)
+    hi0 = mcdc_get.multi_table_distribution.value(end0 - 1, multi_table, data)
+    hi1 = mcdc_get.multi_table_distribution.value(end1 - 1, multi_table, data)
+
+    lo = min(lo0, lo1)
+    hi = max(hi0, hi1)
+    if xi <= 0.0:
+        return lo
+    if xi >= 1.0:
+        return hi
+
+    for _ in range(64):
+        mid = 0.5 * (lo + hi)
+        c0 = evaluate_multi_table_cdf_at_mu(idx0, mid, multi_table, data)
+        c1 = evaluate_multi_table_cdf_at_mu(idx1, mid, multi_table, data)
+        c = log_interpolate_cdf_value(E, E0, E1, c0, c1)
+        if c < xi:
+            lo = mid
+        else:
+            hi = mid
+
+    return 0.5 * (lo + hi)
 
 
 @njit
@@ -346,12 +574,6 @@ def sample_small_angle_mu_coulomb(E, Z, rng_state, mu_cut):
     x = (1.0 / inv) - eta
 
     return 1.0 - x
-
-
-@njit
-def elastic_large_xs(E, reaction, simulation, data):
-    data_base = simulation["data"][int(reaction["xs_large_ID"])]
-    return evaluate_data(E, data_base, simulation, data)
 
 
 # ======================================================================================

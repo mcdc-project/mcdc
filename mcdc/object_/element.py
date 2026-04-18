@@ -83,29 +83,41 @@ class Element(ObjectNonSingleton):
         # ==========================================================================
 
         self.electron_xs_energy_grid = file["electron_reactions/xs_energy_grid"][()]
-        self.electron_total_xs = np.zeros_like(self.electron_xs_energy_grid)
-        self.electron_elastic_xs = np.zeros_like(self.electron_xs_energy_grid)
-        self.electron_excitation_xs = np.zeros_like(self.electron_xs_energy_grid)
-        self.electron_bremsstrahlung_xs = np.zeros_like(self.electron_xs_energy_grid)
-        self.electron_ionization_xs = np.zeros_like(self.electron_xs_energy_grid)
+        def load_xs_dataset(dataset):
+            values = np.zeros_like(self.electron_xs_energy_grid)
+            offset = int(dataset.attrs.get("offset", 0))
+            data = dataset[()]
+            values[offset : offset + len(data)] = data
+            return values
 
-        xs_containers = [
-            self.electron_elastic_xs,
-            self.electron_excitation_xs,
-            self.electron_bremsstrahlung_xs,
-            self.electron_ionization_xs,
-        ]
-        for xs_container, rx_name in list(zip(xs_containers, rx_names)):
+        def load_reaction_total_xs(rx_name):
+            total_path = f"electron_reactions/{rx_name}/total/xs"
+            if total_path in file:
+                return load_xs_dataset(file[total_path])
+
+            values = np.zeros_like(self.electron_xs_energy_grid)
             for MT in MTs[rx_name]:
                 xs = file[f"electron_reactions/{rx_name}/{MT}/xs"]
-                xs_container[xs.attrs["offset"] :] += xs[()]
+                offset = int(xs.attrs.get("offset", 0))
+                data = xs[()]
+                values[offset : offset + len(data)] += data
+            return values
 
-        self.electron_total_xs = (
-            self.electron_elastic_xs
-            + self.electron_excitation_xs
-            + self.electron_bremsstrahlung_xs
-            + self.electron_ionization_xs
-        )
+        self.electron_elastic_xs = load_reaction_total_xs("elastic_scattering")
+        self.electron_excitation_xs = load_reaction_total_xs("excitation")
+        self.electron_bremsstrahlung_xs = load_reaction_total_xs("bremsstrahlung")
+        self.electron_ionization_xs = load_reaction_total_xs("ionization")
+
+        total_path = "electron_reactions/total/xs"
+        if total_path in file:
+            self.electron_total_xs = load_xs_dataset(file[total_path])
+        else:
+            self.electron_total_xs = (
+                self.electron_elastic_xs
+                + self.electron_excitation_xs
+                + self.electron_bremsstrahlung_xs
+                + self.electron_ionization_xs
+            )
 
         # ==========================================================================
         # The reactions
