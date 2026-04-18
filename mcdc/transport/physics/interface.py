@@ -51,14 +51,12 @@ def total_xs(particle_container, simulation, data):
     """
     particle = particle_container[0]
     if particle["particle_type"] == PARTICLE_NEUTRON:
-        module = neutron
-        type_total = NEUTRON_REACTION_TOTAL
+        total = NEUTRON_REACTION_TOTAL
+        return neutron.macro_xs(total, particle_container, simulation, data)
     elif particle["particle_type"] == PARTICLE_ELECTRON:
-        module = electron
-        type_total = ELECTRON_REACTION_TOTAL
-    else:
-        return 0.0
-    return module.macro_xs(type_total, particle_container, simulation, data)
+        total = ELECTRON_REACTION_TOTAL
+        return electron.macro_xs(total, particle_container, simulation, data)
+    return 0.0
 
 
 @njit

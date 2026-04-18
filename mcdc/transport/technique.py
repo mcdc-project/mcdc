@@ -2,6 +2,7 @@ import numpy as np
 import math
 
 from numba import njit
+import numba
 
 ####
 
@@ -139,6 +140,8 @@ def forced_collision_roulette(particle_container, program, data):
 
     # get index into arrays
     index = get_forced_collision_cell_index(particle_container, fc_object, data)
+    if index < 0:
+        return
 
     # get weights
     threshold = mcdc_get.forced_collisions.threshold_weights(index, fc_object, data)
@@ -178,9 +181,7 @@ def get_forced_collision_cell_index(particle_container, fc_object, data):
             return index
 
     # should never hit this, but just to be safe
-    print_error(
-        f"Failed to find {particle['cell_ID']} in list of cell ids for forced collisions"
-    )
+    return -1
 
 
 @njit
