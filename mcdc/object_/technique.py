@@ -46,6 +46,7 @@ class ForcedCollisions(ObjectSingleton):
         self.target_weights = []
     
     def __call__(self, cells, threshold_weights=None, target_weights=None):
+        self.active = True
         if threshold_weights is None:
             threshold_weights = [0.5] * len(cells)
         if target_weights is None:
