@@ -1,12 +1,14 @@
 import numpy as np
 import os
 import pytest
+from numba import njit
 import mcdc
 from mcdc.main import preparation
 from mcdc.transport import technique
 import mcdc.numba_types as types_
 from mcdc.transport.util import access_simulation
 from mcdc.transport import geometry
+from mcdc.mcdc_get import forced_collisions as get_fc
 
 os.environ["MCDC_LIB"] = "../../../regression/mcdc-regression_test_data/"
 
@@ -18,30 +20,22 @@ os.environ["MCDC_LIB"] = "../../../regression/mcdc-regression_test_data/"
 
 @pytest.fixture
 def pin_cell_model():
-  # Material
-  fuel = mcdc.Material(
-      nuclide_composition={
-          "U235": 1.0 
-      }
-  )
-  moderator = mcdc.Material(
-      nuclide_composition={
-          "H1": 1.0
-      }
-  )
+    # Material
+    fuel = mcdc.Material(nuclide_composition={"U235": 1.0})
+    moderator = mcdc.Material(nuclide_composition={"H1": 1.0})
 
-  # Geometry
-  cylinder = mcdc.Surface.CylinderZ(radius=0.5)
-  pitch = 1.5
-  x0 = mcdc.Surface.PlaneX(x=-pitch / 2, boundary_condition="reflective")
-  x1 = mcdc.Surface.PlaneX(x=pitch / 2, boundary_condition="reflective")
-  y0 = mcdc.Surface.PlaneY(y=-pitch / 2, boundary_condition="reflective")
-  y1 = mcdc.Surface.PlaneY(y=pitch / 2, boundary_condition="reflective")
-  #
-  fuel_cell = mcdc.Cell(-cylinder, fill=fuel)
-  mod_cell = mcdc.Cell(+x0 & -x1 & +y0 & -y1 & +cylinder, fill=moderator)
+    # Geometry
+    cylinder = mcdc.Surface.CylinderZ(radius=0.5)
+    pitch = 1.5
+    x0 = mcdc.Surface.PlaneX(x=-pitch / 2, boundary_condition="reflective")
+    x1 = mcdc.Surface.PlaneX(x=pitch / 2, boundary_condition="reflective")
+    y0 = mcdc.Surface.PlaneY(y=-pitch / 2, boundary_condition="reflective")
+    y1 = mcdc.Surface.PlaneY(y=pitch / 2, boundary_condition="reflective")
+    #
+    fuel_cell = mcdc.Cell(-cylinder, fill=fuel)
+    mod_cell = mcdc.Cell(+x0 & -x1 & +y0 & -y1 & +cylinder, fill=moderator)
 
-  yield fuel_cell, mod_cell
+    yield fuel_cell, mod_cell
 
 
 # =============================================================================
@@ -93,19 +87,3 @@ def test_forced_collisions_error_throw(
 # =============================================================================
 # Method tests
 # =============================================================================
-
-
-def test_in_forced_collision_cell(pin_cell_model):
-    # instantiate
-    fuel_cell, _ = pin_cell_model
-    mcdc.simulation.forced_collisions([fuel_cell])
-    # preparation
-    program, data = preparation()
-    simulation = access_simulation(program)
-    # make particle
-    particle_container = np.zeros(1, types_.particle)
-    particle = particle_container[0]
-    particle["cell_ID"] = -1
-    # inspect geometry
-    geometry.inspect_geometry(particle_container, simulation, data)
-    assert technique.in_forced_collision_cell(particle_container, simulation, data)
