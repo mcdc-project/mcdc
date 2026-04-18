@@ -8,12 +8,14 @@ from numba import njit
 import mcdc.mcdc_get.weight_windows as ww_get
 import mcdc.numba_types as type_
 from mcdc.transport.mesh import get_indices as get_mesh_indices
+import mcdc.transport.geometry as geometry_module
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
 from mcdc.transport.physics import interface as physics
 import mcdc.transport.util as util
 import mcdc.mcdc_get as mcdc_get
+from mcdc.print_ import print_error
 
 # ======================================================================================
 # Forced Collisions
@@ -23,53 +25,103 @@ import mcdc.mcdc_get as mcdc_get
 @njit
 def forced_collisions(particle_container, surface_distance, program, data):
     simulation = util.access_simulation(program)
-    fc_object = simulation["forced_collisions"]
+
+    # find weight multiplier
     SigmaT = physics.total_xs(particle_container, simulation, data)
-
-    # create collided and transmitted particles
-    collided_container = particle_container
-    collided = collided_container[0]
-
-    transmitted_container = util.local_array(1, type_.particle_data)
-    transmitted = transmitted_container[0]
-    particle_module.copy_as_child(transmitted_container, collided_container)
-    
-    # update transmitted particle
     weight_multiplier = math.exp(-surface_distance * SigmaT)
-    transmitted["w"] *= weight_multiplier
-    particle_module.move(transmitted_container, surface_distance, simulation, data)
-    particle_bank_module.bank_active_particle(transmitted_container, program)
+
+    # alias input particle as collided particle
+    collided_container = particle_container
+ 
+    # transmitted particle
+    bank_transmitted_particle(
+        collided_container, weight_multiplier, surface_distance, program, data
+    )
 
     # update collided particle
+    collided = collided_container[0]
     collided["w"] *= (1 - weight_multiplier)
+
     # return distance to forced collision, let simulation handle the rest (tallies)
-    return physics.forced_collision_distance(collided_container, surface_distance, simulation, data) 
+    collision_distance =  physics.forced_collision_distance(
+        collided_container, surface_distance, simulation, data
+    ) 
+    return collision_distance
+
+
+@njit
+def bank_transmitted_particle(collided_container, weight_multiplier, surface_distance, program, data):
+    simulation = util.access_simulation(program)
+
+    # create child copy of collided particle history
+    transmitted_container = util.local_array(1, type_.particle)
+    particle_module.copy_as_child(transmitted_container, collided_container)
+    particle_module.copy_run_state(transmitted_container, collided_container)
+
+    # assign weight
+    transmitted = transmitted_container[0]
+    transmitted["w"] *= weight_multiplier
+
+    # update position and perform surface crossing
+    particle_module.move(transmitted_container, surface_distance, simulation, data)
+    geometry_module.surface_crossing(transmitted_container, simulation, data)
+
+    # particle could leave through BC, so check if alive before banking
+    if transmitted["alive"]:
+        particle_bank_module.bank_active_particle(transmitted_container, program)
 
 
 @njit
 def forced_collision_roulette(particle_container, program, data):
     simulation = util.access_simulation(program)
+    fc_object = simulation["forced_collisions"]
+
+    # check if particle is in a cell with forced collisions
     if not in_forced_collision_cell(particle_container, simulation, data):
         return
-    particle = particle_container[0]
-    fc_object = simulation["forced_collisions"]
-    cell_ids = mcdc_get.forced_collisions.cell_IDs_all(fc_object, data)
-    index = cell_ids.index(particle["cell_ID"])
+    
+    # get index into arrays
+    index = get_forced_collision_cell_index(particle_container, fc_object, data) 
+
+    # get weights
     threshold = mcdc_get.forced_collisions.threshold_weights(index ,fc_object, data)
     target = mcdc_get.forced_collisions.target_weights(index, fc_object, data)
+
+    # roulette
     roulette_from_weight_bounds(particle_container, threshold, target)
+
+
+@njit
+def get_forced_collision_cell_index(particle_container, fc_object, data):
+    particle = particle_container[0]
+    
+    # grab all cell ids
+    cell_ids = mcdc_get.forced_collisions.cell_IDs_all(fc_object, data)
+
+    # find the cell index
+    for index in range(len(cell_ids)):
+        if cell_ids[index] == particle["cell_ID"]:
+            return index
+    
+    # should never hit this, but just to be safe
+    print_error(
+        f"Failed to find {particle['cell_ID']} in list of cell ids for forced collisions"
+    )
 
 
 @njit
 def in_forced_collision_cell(particle_container, simulation, data):
     fc_object = simulation["forced_collisions"]
+
     # not active, dont need to query cells
     if not fc_object["active"]:
         return False
+
     # active, need to check if in active cell
     cell_ids = mcdc_get.forced_collisions.cell_IDs_all(fc_object, data)
-    if particle_container[0]["cell_ID"] not in cell_ids:
+    if particle_container[0]["cell_ID"] in cell_ids:
         return True
+
     # not in active cell
     return False
 
