@@ -49,7 +49,7 @@ def forced_collisions(particle_container, surface_distance, program, data):
     # find weight multiplier
     SigmaT = physics.total_xs(particle_container, simulation, data)
     weight_multiplier = math.exp(-surface_distance * SigmaT)
- 
+
     # transmitted particle
     bank_transmitted_particle(
         particle_container, weight_multiplier, surface_distance, program, data
@@ -59,19 +59,24 @@ def forced_collisions(particle_container, surface_distance, program, data):
     collided_container = particle_container
     # update collided particle
     collided = collided_container[0]
-    collided["w"] *= (1 - weight_multiplier)
+    collided["w"] *= 1 - weight_multiplier
 
     # return distance to forced collision, let simulation handle the rest (tallies)
-    collision_distance =  physics.forced_collision_distance(
+    collision_distance = physics.forced_collision_distance(
         collided_container, surface_distance, simulation, data
-    ) 
+    )
     return collision_distance
 
 
 @njit
-def bank_transmitted_particle(particle_container, weight_multiplier, surface_distance, program, data):
+def bank_transmitted_particle(
+    particle_container, weight_multiplier, surface_distance, program, data
+):
     """
-    Helper for creating and banking the transmitted component. If the transmitted particle leaves the simulation through a boundary surface, the particle is not banked. Additionally, the particle is scored over all tracklength tallies via the helper in `tally.score`.
+    Helper for creating and banking the transmitted component. If the
+    transmitted particle leaves the simulation through a boundary surface, the
+    particle is not banked. Additionally, the particle is scored over all
+    tracklength tallies via the helper in `tally.score`.
 
     Parameters
     ----------
@@ -131,12 +136,12 @@ def forced_collision_roulette(particle_container, program, data):
     # check if particle is in a cell with forced collisions
     if not in_forced_collision_cell(particle_container, simulation, data):
         return
-    
+
     # get index into arrays
-    index = get_forced_collision_cell_index(particle_container, fc_object, data) 
+    index = get_forced_collision_cell_index(particle_container, fc_object, data)
 
     # get weights
-    threshold = mcdc_get.forced_collisions.threshold_weights(index ,fc_object, data)
+    threshold = mcdc_get.forced_collisions.threshold_weights(index, fc_object, data)
     target = mcdc_get.forced_collisions.target_weights(index, fc_object, data)
 
     # roulette
@@ -163,7 +168,7 @@ def get_forced_collision_cell_index(particle_container, fc_object, data):
         The flattened index for getting weight roulette parameters.
     """
     particle = particle_container[0]
-    
+
     # grab all cell ids
     cell_ids = mcdc_get.forced_collisions.cell_IDs_all(fc_object, data)
 
@@ -171,7 +176,7 @@ def get_forced_collision_cell_index(particle_container, fc_object, data):
     for index in range(len(cell_ids)):
         if cell_ids[index] == particle["cell_ID"]:
             return index
-    
+
     # should never hit this, but just to be safe
     print_error(
         f"Failed to find {particle['cell_ID']} in list of cell ids for forced collisions"

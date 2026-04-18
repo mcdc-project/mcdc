@@ -33,7 +33,7 @@ def particle_speed(particle_container, simulation, data):
 @njit
 def total_xs(particle_container, simulation, data):
     """
-    Convenience helper for getting specifically the total cross section. 
+    Convenience helper for getting specifically the total cross section.
 
     Parameters
     ----------
@@ -116,7 +116,7 @@ def forced_collision_distance(particle_container, surface_distance, simulation, 
         Simulation object.
     data : object
         Simulation data for array access.
-    
+
     Returns
     -------
     distance : float
@@ -131,8 +131,8 @@ def forced_collision_distance(particle_container, surface_distance, simulation, 
 
     # Sample collision distance
     xi = rng.lcg(particle_container)
-    
-    distance = - math.log(1 - xi*(1-math.exp(-surface_distance * SigmaT))) / SigmaT
+
+    distance = -math.log(1 - xi * (1 - math.exp(-surface_distance * SigmaT))) / SigmaT
     return distance
 
 

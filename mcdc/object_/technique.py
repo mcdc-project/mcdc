@@ -3,6 +3,7 @@ from numpy.typing import NDArray
 import numpy as np
 from mcdc.constant import FILL_MATERIAL, INF
 from mcdc.object_.base import ObjectSingleton
+
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell
 from mcdc.object_.mesh import MeshBase, MeshUniform
@@ -31,7 +32,7 @@ class ImplicitCapture(ObjectSingleton):
 
 
 class ForcedCollisions(ObjectSingleton):
-    #Annotations for Numba mode
+    # Annotations for Numba mode
     label: str = "forced_collisions"
     active: bool
 
@@ -44,7 +45,7 @@ class ForcedCollisions(ObjectSingleton):
         self.cell_IDs = []
         self.threshold_weights = []
         self.target_weights = []
-    
+
     def __call__(self, cells, threshold_weights=None, target_weights=None):
         self.active = True
         if threshold_weights is None:

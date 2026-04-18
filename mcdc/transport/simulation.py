@@ -411,7 +411,9 @@ def move_to_event(particle_container, simulation, data):
 
     # Distance to next collision
     if technique.in_forced_collision_cell(particle_container, simulation, data):
-        d_collision = technique.forced_collisions(particle_container, d_boundary, simulation, data)
+        d_collision = technique.forced_collisions(
+            particle_container, d_boundary, simulation, data
+        )
     else:
         d_collision = physics.collision_distance(particle_container, simulation, data)
 
@@ -448,7 +450,9 @@ def move_to_event(particle_container, simulation, data):
     # Move particle
     # ==================================================================================
     # Score tracklength tallies
-    tally_module.score.score_tracklength_tallies(particle_container, distance, simulation, data)
+    tally_module.score.score_tracklength_tallies(
+        particle_container, distance, simulation, data
+    )
 
     # Move particle
     particle_module.move(particle_container, distance, simulation, data)

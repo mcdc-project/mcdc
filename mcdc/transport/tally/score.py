@@ -172,9 +172,7 @@ def score_tracklength_tallies(particle_container, distance, simulation, data):
                 continue
 
             tally = simulation["tracklength_tallies"][tally_base["child_ID"]]
-            tracklength_tally(
-                particle_container, distance, tally, simulation, data
-            )
+            tracklength_tally(particle_container, distance, tally, simulation, data)
 
         # Other tracklength tallies
         for i in range(simulation["N_tracklength_tally"]):
@@ -184,14 +182,10 @@ def score_tracklength_tallies(particle_container, distance, simulation, data):
             if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
                 continue
 
-            tracklength_tally(
-                particle_container, distance, tally, simulation, data
-            )
+            tracklength_tally(particle_container, distance, tally, simulation, data)
 
     if simulation["settings"]["neutron_eigenvalue_mode"]:
-        eigenvalue_tally(
-            particle_container, distance, simulation, data
-        )
+        eigenvalue_tally(particle_container, distance, simulation, data)
 
 
 @njit
