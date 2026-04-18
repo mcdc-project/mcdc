@@ -49,3 +49,14 @@ def copy_as_child(child_particle_container, parent_particle_container):
 
     # Evolve parent seed
     rng.lcg(parent_particle_container)
+
+
+@njit
+def copy_run_state(target_particle_container, source_particle_container):
+    target_particle = target_particle_container[0]
+    source_particle = source_particle_container[0]
+    target_particle["alive"] = source_particle["alive"]
+    target_particle["material_ID"] = source_particle["material_ID"]
+    target_particle["cell_ID"] = source_particle["cell_ID"]
+    target_particle["surface_ID"] = source_particle["surface_ID"]
+    target_particle["event"] = source_particle["event"]
