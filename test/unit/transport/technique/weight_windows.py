@@ -162,17 +162,17 @@ def test_split_from_weight_window():
     # check weight of original particle
     assert p1["w"] == init_weight / num_split
     # check correct number of particles to bank
-    assert num_bank ==  num_new
+    assert num_bank == num_new
 
 
 def test_bank_split_particles():
     particle_container = np.zeros(1, type_.particle_data)
     particle = particle_container[0]
 
-    # weight params for both tests 
+    # weight params for both tests
     particle["w"] = 0.1
     target = 1.0
-    
+
     program, data = make_ww_model_distinct()
     simulation = util.access_simulation(program)
 
@@ -196,8 +196,8 @@ def test_bank_split_particles():
     init_bank_size += num_bank
 
     # banks rouletted
-    num_trials = 10 # need multiple to ensure rng hits a roulette
-    threshold = 2 * particle["w"] # arbitrarily greater
+    num_trials = 10  # need multiple to ensure rng hits a roulette
+    threshold = 2 * particle["w"]  # arbitrarily greater
     for _ in range(num_trials):
         bank_split_particles(particle_container, num_bank, threshold, target, program)
     num_added = particle_bank_module.get_bank_size(bank) - init_bank_size

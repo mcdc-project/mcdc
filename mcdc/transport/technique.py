@@ -190,13 +190,15 @@ def split_from_weight_window(particle_container, threshold_weight):
         # distribute weight
         particle["w"] = weight / num_split
         # return the number of particles to bank (exclude current container)
-        return num_split - 1 
+        return num_split - 1
     else:
         return 0
 
 
 @njit
-def bank_split_particles(particle_container, num_bank, roulette_threshold, target_weight, program):
+def bank_split_particles(
+    particle_container, num_bank, roulette_threshold, target_weight, program
+):
     """
     Roulettes split particles and banks them if they survive
 
@@ -216,7 +218,7 @@ def bank_split_particles(particle_container, num_bank, roulette_threshold, targe
     # no work to do
     if num_bank == 0:
         return
-    
+
     # create temporary copy to not mess with original particle
     original_particle = particle_container[0]
     container_copy = util.local_array(1, type_.particle)
