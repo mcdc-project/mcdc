@@ -86,7 +86,11 @@ def weight_windows(particle_container, program, data):
     """
     simulation = util.access_simulation(program)
     [lower, target, upper] = query_weight_window(particle_container, simulation, data)
-    split_from_weight_window(particle_container, upper, simulation)
+    # split
+    num_bank = split_from_weight_window(particle_container, upper)
+    # roulette and bank split particles
+    bank_split_particles(particle_container, num_bank, lower, target, program)
+    # roulette original particle
     weight_roulette(particle_container, lower, target)
 
 
@@ -162,7 +166,7 @@ def get_ww_indices(particle_container, ww_obj, simulation, data):
 
 
 @njit
-def split_from_weight_window(particle_container, threshold_weight, program):
+def split_from_weight_window(particle_container, threshold_weight):
     """
     Split a particle if its weight exceeds the threshold.
 
@@ -172,8 +176,11 @@ def split_from_weight_window(particle_container, threshold_weight, program):
         Container holding the particle.
     threshold_weight : float
         Upper weight bound triggering splitting.
-    program : object
-        Program object used for banking split particles.
+
+    Returns
+    -------
+    num_split : int
+        The number of split particles to bank
     """
     particle = particle_container[0]
     weight = particle["w"]
@@ -182,8 +189,48 @@ def split_from_weight_window(particle_container, threshold_weight, program):
         num_split = math.ceil(weight / threshold_weight)
         # distribute weight
         particle["w"] = weight / num_split
-        for _ in range(num_split - 1):
-            # bank split particles into the active bank
+        # return the number of particles to bank (exclude current container)
+        return num_split - 1 
+    else:
+        return 0
+
+
+@njit
+def bank_split_particles(particle_container, num_bank, roulette_threshold, target_weight, program):
+    """
+    Roulettes split particles and banks them if they survive
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the original particle after splitting weight.
+    num_bank: int
+        Number of split particles to bank.
+    roulette_threshold : float
+        Lower weight bound triggering roulette.
+    target_weight: float
+        Target weight assigned upon survival.
+    program : object
+        Program object containing simulation state with bank data.
+    """
+    # no work to do
+    if num_bank == 0:
+        return
+    
+    # create temporary copy to not mess with original particle
+    original_particle = particle_container[0]
+    container_copy = util.local_array(1, type_.particle)
+    particle_module.copy_as_child(container_copy, particle_container)
+    particle_copy = container_copy[0]
+
+    # loop over particles to bank
+    for _ in range(num_bank):
+        # reset weight and status
+        particle_copy["alive"] = True
+        particle_copy["w"] = original_particle["w"]
+        weight_roulette(container_copy, roulette_threshold, target_weight)
+        # if survived roulette bank
+        if particle_copy["alive"]:
             particle_bank_module.bank_active_particle(particle_container, program)
 
 
