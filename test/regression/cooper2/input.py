@@ -52,11 +52,12 @@ mesh = mcdc.MeshUniform(x=(0.0, 0.1, 40), y=(0.0, 0.1, 40))
 mcdc.Tally(mesh=mesh, scores=["flux"])
 
 # Settings
-mcdc.settings.N_particle = 50
+mcdc.settings.N_particle = 1000
 mcdc.settings.N_batch = 2
 
 # Techniques
 mcdc.simulation.implicit_capture()
+mcdc.simulation.weight_roulette(0.1, 1.0)
 
 # Run
 mcdc.run()
