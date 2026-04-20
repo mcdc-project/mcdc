@@ -7,11 +7,12 @@ from numba import njit
 
 import mcdc.mcdc_get.weight_windows as ww_get
 import mcdc.numba_types as type_
-from mcdc.transport.mesh import get_indices as get_mesh_indices
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
 import mcdc.transport.util as util
+
+from mcdc.transport.mesh import get_indices as get_mesh_indices
 
 # ======================================================================================
 # Weight Roulette
