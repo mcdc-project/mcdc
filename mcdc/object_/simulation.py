@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Annotated
 from mcdc.object_.technique import (
     ImplicitCapture,
     PopulationControl,
-    WeightRoulette,
+    GlobalWeightRoulette,
     WeightWindows,
     WeightedEmission,
 )
@@ -82,7 +82,7 @@ class Simulation(ObjectSingleton):
     # Techniques
     implicit_capture: ImplicitCapture
     weighted_emission: WeightedEmission
-    weight_roulette: WeightRoulette
+    global_weight_roulette: GlobalWeightRoulette
     weight_windows: WeightWindows
     population_control: PopulationControl
 
@@ -168,7 +168,7 @@ class Simulation(ObjectSingleton):
         # Techniques
         self.implicit_capture = ImplicitCapture()
         self.weighted_emission = WeightedEmission()
-        self.weight_roulette = WeightRoulette()
+        self.global_weight_roulette = GlobalWeightRoulette()
         self.weight_windows = WeightWindows()
         self.population_control = PopulationControl()
 

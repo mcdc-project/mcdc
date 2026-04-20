@@ -57,7 +57,7 @@ mcdc.settings.N_batch = 2
 
 # Techniques
 mcdc.simulation.implicit_capture()
-mcdc.simulation.weight_roulette(0.1, 1.0)
+mcdc.simulation.global_weight_roulette(0.1, 1.0)
 
 # Run
 mcdc.run()
