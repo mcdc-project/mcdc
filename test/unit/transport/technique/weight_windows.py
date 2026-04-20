@@ -6,10 +6,11 @@ import os
 from mcdc.main import preparation
 import mcdc.numba_types as type_
 from mcdc.transport.technique import (
-    roulette_from_weight_bounds,
+    weight_roulette,
     split_from_weight_window,
     query_weight_window,
     weight_windows,
+    bank_split_particles,
     particle_bank_module,
 )
 from mcdc.transport.mesh.interface import get_indices
@@ -134,7 +135,7 @@ def test_roulette_from_weight_bounds():
         target = 0.2
         threshold = 0.1 + TINY
 
-        roulette_from_weight_bounds(particles, threshold, target)
+        weight_roulette(particles, threshold, target)
         p = particles[0]
         assert p["w"] == target or not p["alive"]
 
@@ -152,7 +153,7 @@ def test_split_from_weight_window():
     init_bank_size = particle_bank_module.get_bank_size(bank)
 
     # split
-    split_from_weight_window(particles, threshold, program)
+    num_bank = split_from_weight_window(particles, threshold)
 
     p1 = particles[0]
     num_split = np.ceil(init_weight / threshold)
@@ -160,11 +161,50 @@ def test_split_from_weight_window():
 
     # check weight of original particle
     assert p1["w"] == init_weight / num_split
-    # check particles were created and check their weights
-    assert particle_bank_module.get_bank_size(bank) == init_bank_size + num_new
-    for i in range(2):
+    # check correct number of particles to bank
+    assert num_bank ==  num_new
+
+
+def test_bank_split_particles():
+    particle_container = np.zeros(1, type_.particle_data)
+    particle = particle_container[0]
+
+    # weight params for both tests 
+    particle["w"] = 0.1
+    target = 1.0
+    
+    program, data = make_ww_model_distinct()
+    simulation = util.access_simulation(program)
+
+    # get bank and init size
+    bank = simulation["bank_active"]
+    init_bank_size = particle_bank_module.get_bank_size(bank)
+
+    # define the num to bank
+    num_bank = 3
+
+    # no banks rouletted
+    threshold = 0.0
+    bank_split_particles(particle_container, num_bank, threshold, target, program)
+
+    assert init_bank_size + num_bank == particle_bank_module.get_bank_size(bank)
+    for i in range(num_bank):
         pnew = bank["particle_data"][init_bank_size + i]
-        assert pnew["w"] == p1["w"]
+        assert pnew["w"] == particle["w"]
+
+    # update init bank size
+    init_bank_size += num_bank
+
+    # banks rouletted
+    num_trials = 10 # need multiple to ensure rng hits a roulette
+    threshold = 2 * particle["w"] # arbitrarily greater
+    for _ in range(num_trials):
+        bank_split_particles(particle_container, num_bank, threshold, target, program)
+    num_added = particle_bank_module.get_bank_size(bank) - init_bank_size
+    assert num_added < num_trials * num_bank
+    for i in range(num_added):
+        pnew = bank["particle_data"][init_bank_size + i]
+        assert pnew["w"] == target
 
 
 def test_query_weight_window():

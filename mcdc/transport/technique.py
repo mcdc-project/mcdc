@@ -231,7 +231,7 @@ def bank_split_particles(particle_container, num_bank, roulette_threshold, targe
         weight_roulette(container_copy, roulette_threshold, target_weight)
         # if survived roulette bank
         if particle_copy["alive"]:
-            particle_bank_module.bank_active_particle(particle_container, program)
+            particle_bank_module.bank_active_particle(container_copy, program)
 
 
 # ======================================================================================
