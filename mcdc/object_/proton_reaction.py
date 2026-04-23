@@ -48,12 +48,12 @@ class ProtonReactionBase(ObjectPolymorphic):
     q_value: float64
 
     def __init__(self, type_, MT, xs, xs_offset, reference_frame, q_value):
-        super().__init__(type_)
         self.MT = MT
         self.xs = xs
         self.xs_offset_ = xs_offset
         self.reference_frame = reference_frame
         self.q_value = q_value
+        super().__init__(type_)
 
     def __repr__(self):
         text = "\n"
