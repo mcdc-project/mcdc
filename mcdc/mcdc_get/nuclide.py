@@ -178,6 +178,151 @@ def neutron_fission_xs_chunk(start, length, nuclide, data):
 
 
 @njit
+def proton_xs_energy_grid(index, nuclide, data):
+    offset = nuclide["proton_xs_energy_grid_offset"]
+    return data[offset + index]
+
+
+@njit
+def proton_xs_energy_grid_all(nuclide, data):
+    start = nuclide["proton_xs_energy_grid_offset"]
+    size = nuclide["proton_xs_energy_grid_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def proton_xs_energy_grid_last(nuclide, data):
+    start = nuclide["proton_xs_energy_grid_offset"]
+    size = nuclide["proton_xs_energy_grid_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def proton_xs_energy_grid_chunk(start, length, nuclide, data):
+    start += nuclide["proton_xs_energy_grid_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def proton_total_xs(index, nuclide, data):
+    offset = nuclide["proton_total_xs_offset"]
+    return data[offset + index]
+
+
+@njit
+def proton_total_xs_all(nuclide, data):
+    start = nuclide["proton_total_xs_offset"]
+    size = nuclide["proton_total_xs_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def proton_total_xs_last(nuclide, data):
+    start = nuclide["proton_total_xs_offset"]
+    size = nuclide["proton_total_xs_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def proton_total_xs_chunk(start, length, nuclide, data):
+    start += nuclide["proton_total_xs_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def proton_elastic_xs(index, nuclide, data):
+    offset = nuclide["proton_elastic_xs_offset"]
+    return data[offset + index]
+
+
+@njit
+def proton_elastic_xs_all(nuclide, data):
+    start = nuclide["proton_elastic_xs_offset"]
+    size = nuclide["proton_elastic_xs_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def proton_elastic_xs_last(nuclide, data):
+    start = nuclide["proton_elastic_xs_offset"]
+    size = nuclide["proton_elastic_xs_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def proton_elastic_xs_chunk(start, length, nuclide, data):
+    start += nuclide["proton_elastic_xs_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def proton_capture_xs(index, nuclide, data):
+    offset = nuclide["proton_capture_xs_offset"]
+    return data[offset + index]
+
+
+@njit
+def proton_capture_xs_all(nuclide, data):
+    start = nuclide["proton_capture_xs_offset"]
+    size = nuclide["proton_capture_xs_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def proton_capture_xs_last(nuclide, data):
+    start = nuclide["proton_capture_xs_offset"]
+    size = nuclide["proton_capture_xs_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def proton_capture_xs_chunk(start, length, nuclide, data):
+    start += nuclide["proton_capture_xs_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def proton_inelastic_xs(index, nuclide, data):
+    offset = nuclide["proton_inelastic_xs_offset"]
+    return data[offset + index]
+
+
+@njit
+def proton_inelastic_xs_all(nuclide, data):
+    start = nuclide["proton_inelastic_xs_offset"]
+    size = nuclide["proton_inelastic_xs_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def proton_inelastic_xs_last(nuclide, data):
+    start = nuclide["proton_inelastic_xs_offset"]
+    size = nuclide["proton_inelastic_xs_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def proton_inelastic_xs_chunk(start, length, nuclide, data):
+    start += nuclide["proton_inelastic_xs_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
 def neutron_elastic_scattering_reaction_IDs(index, nuclide, data):
     offset = nuclide["neutron_elastic_scattering_reaction_IDs_offset"]
     return data[offset + index]
@@ -289,6 +434,93 @@ def neutron_fission_reaction_IDs_last(nuclide, data):
 @njit
 def neutron_fission_reaction_IDs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_fission_reaction_IDs_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def proton_elastic_scattering_reaction_IDs(index, nuclide, data):
+    offset = nuclide["proton_elastic_scattering_reaction_IDs_offset"]
+    return data[offset + index]
+
+
+@njit
+def proton_elastic_scattering_reaction_IDs_all(nuclide, data):
+    start = nuclide["proton_elastic_scattering_reaction_IDs_offset"]
+    size = nuclide["N_proton_elastic_scattering_reaction"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def proton_elastic_scattering_reaction_IDs_last(nuclide, data):
+    start = nuclide["proton_elastic_scattering_reaction_IDs_offset"]
+    size = nuclide["N_proton_elastic_scattering_reaction"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def proton_elastic_scattering_reaction_IDs_chunk(start, length, nuclide, data):
+    start += nuclide["proton_elastic_scattering_reaction_IDs_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def proton_capture_reaction_IDs(index, nuclide, data):
+    offset = nuclide["proton_capture_reaction_IDs_offset"]
+    return data[offset + index]
+
+
+@njit
+def proton_capture_reaction_IDs_all(nuclide, data):
+    start = nuclide["proton_capture_reaction_IDs_offset"]
+    size = nuclide["N_proton_capture_reaction"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def proton_capture_reaction_IDs_last(nuclide, data):
+    start = nuclide["proton_capture_reaction_IDs_offset"]
+    size = nuclide["N_proton_capture_reaction"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def proton_capture_reaction_IDs_chunk(start, length, nuclide, data):
+    start += nuclide["proton_capture_reaction_IDs_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def proton_inelastic_scattering_reaction_IDs(index, nuclide, data):
+    offset = nuclide["proton_inelastic_scattering_reaction_IDs_offset"]
+    return data[offset + index]
+
+
+@njit
+def proton_inelastic_scattering_reaction_IDs_all(nuclide, data):
+    start = nuclide["proton_inelastic_scattering_reaction_IDs_offset"]
+    size = nuclide["N_proton_inelastic_scattering_reaction"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def proton_inelastic_scattering_reaction_IDs_last(nuclide, data):
+    start = nuclide["proton_inelastic_scattering_reaction_IDs_offset"]
+    size = nuclide["N_proton_inelastic_scattering_reaction"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def proton_inelastic_scattering_reaction_IDs_chunk(start, length, nuclide, data):
+    start += nuclide["proton_inelastic_scattering_reaction_IDs_offset"]
     end = start + length
     return data[start:end]
 
