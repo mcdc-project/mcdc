@@ -234,7 +234,6 @@ for ace_name in pbar:
         (fission_MTs, fission_group),
     ]:
         for MT in MTs:
-            print(f'MT = {MT}')
             idx = rx_block.index(MT)
             xs = group.create_dataset(f"MT-{MT:03}/xs", data=cross_sections(idx))
             xs.attrs["offset"] = offsets(idx) - 1
