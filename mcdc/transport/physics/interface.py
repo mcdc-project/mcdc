@@ -24,6 +24,7 @@ def particle_speed(particle_container, simulation, data):
     elif particle["particle_type"] == PARTICLE_ELECTRON:
         return electron.particle_speed(particle_container, simulation, data)
     elif particle["particle_type"] == PARTICLE_PROTON:
+        print(f'proton E = {particle["E"]}')
         return proton.particle_speed(particle_container, simulation, data)
     return -1.0
 
