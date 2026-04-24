@@ -95,8 +95,8 @@ class ProtonReactionElasticScattering(ProtonReactionBase):
 
     def __init__(self, MT, xs, xs_offset, reference_frame, mu):
         type_ = PROTON_REACTION_ELASTIC_SCATTERING
-        super().__init__(type_, MT, xs, xs_offset, reference_frame, 0.0)
         self.mu_table = mu
+        super().__init__(type_, MT, xs, xs_offset, reference_frame, 0.0)
 
     @classmethod
     def from_h5_group(cls, h5_group):
