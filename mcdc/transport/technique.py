@@ -199,10 +199,10 @@ def split_from_weight_window(particle_container, w_upper, w_target, w_lower, pro
         if residual_weight > 0.0:
             residual_copy = util.local_array(1, type_.particle)
             particle_module.copy_as_child(residual_copy, particle_container)
-            residual_copy["w"] = residual_weight
-            residual_copy["alive"] = True
+            residual_copy[0]["w"] = residual_weight
+            residual_copy[0]["alive"] = True
             weight_roulette(residual_copy, w_lower, w_target)
-            if residual_copy["alive"]:
+            if residual_copy[0]["alive"]:
                 particle_bank_module.bank_active_particle(residual_copy, program)
 
 
