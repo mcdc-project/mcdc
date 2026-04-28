@@ -10,7 +10,6 @@ from mcdc.transport.technique import (
     split_from_weight_window,
     query_weight_window,
     weight_windows,
-    bank_split_particles,
     particle_bank_module,
 )
 from mcdc.transport.mesh.interface import get_indices
@@ -141,70 +140,58 @@ def test_roulette_from_weight_bounds():
 
 
 def test_split_from_weight_window():
-    particles = np.zeros(1, type_.particle_data)
-    init_weight = 2.0 + TINY
-    particles[0]["w"] = init_weight
-    threshold = 1.0
     program, data = make_ww_model_distinct()
     simulation = util.access_simulation(program)
-
-    # get bank and init size
     bank = simulation["bank_active"]
-    init_bank_size = particle_bank_module.get_bank_size(bank)
 
-    # split
-    num_bank = split_from_weight_window(particles, threshold)
+    def run_split(initial_weight, w_upper=1.0, w_target=0.5, w_lower=0.0):
+        particles = np.zeros(1, type_.particle)
+        particles[0]["w"] = initial_weight
+        particles[0]["alive"] = True
+        init_bank_size = particle_bank_module.get_bank_size(bank)
 
-    p1 = particles[0]
-    num_split = np.ceil(init_weight / threshold)
-    num_new = num_split - 1
+        split_from_weight_window(
+            particles,
+            w_upper=w_upper,
+            w_target=w_target,
+            w_lower=w_lower,
+            program=program,
+        )
 
-    # check weight of original particle
-    assert p1["w"] == init_weight / num_split
-    # check correct number of particles to bank
-    assert num_bank == num_new
+        final_bank_size = particle_bank_module.get_bank_size(bank)
+        banked_particles = bank["particle_data"][init_bank_size:final_bank_size]
+        return particles[0], banked_particles
 
+    # No split occurs when particle weight is at the upper bound.
+    particle, banked_particles = run_split(initial_weight=1.0)
+    assert particle["w"] == 1.0
+    assert len(banked_particles) == 0
 
-def test_bank_split_particles():
-    particle_container = np.zeros(1, type_.particle_data)
-    particle = particle_container[0]
+    # Integer split, all should be at target weight
+    particle, banked_particles = run_split(initial_weight=2.0)
+    assert particle["w"] == 0.5
+    assert len(banked_particles) == 3
+    for banked_particle in banked_particles:
+        assert banked_particle["w"] == 0.5
 
-    # weight params for both tests
-    particle["w"] = 0.1
-    target = 1.0
+    # Non-integer split, all but last should be at target, last should be residual
+    particle, banked_particles = run_split(initial_weight=2.1)
+    assert particle["w"] == 0.5
+    assert len(banked_particles) == 4
+    for banked_particle in banked_particles[:-1]:
+        assert banked_particle["w"] == 0.5
+    assert banked_particles[-1]["w"] == pytest.approx(0.1)
 
-    program, data = make_ww_model_distinct()
-    simulation = util.access_simulation(program)
-
-    # get bank and init size
-    bank = simulation["bank_active"]
-    init_bank_size = particle_bank_module.get_bank_size(bank)
-
-    # define the num to bank
-    num_bank = 3
-
-    # no banks rouletted
-    threshold = 0.0
-    bank_split_particles(particle_container, num_bank, threshold, target, program)
-
-    assert init_bank_size + num_bank == particle_bank_module.get_bank_size(bank)
-    for i in range(num_bank):
-        pnew = bank["particle_data"][init_bank_size + i]
-        assert pnew["w"] == particle["w"]
-
-    # update init bank size
-    init_bank_size += num_bank
-
-    # banks rouletted
-    num_trials = 10  # need multiple to ensure rng hits a roulette
-    threshold = 2 * particle["w"]  # arbitrarily greater
-    for _ in range(num_trials):
-        bank_split_particles(particle_container, num_bank, threshold, target, program)
-    num_added = particle_bank_module.get_bank_size(bank) - init_bank_size
-    assert num_added < num_trials * num_bank
-    for i in range(num_added):
-        pnew = bank["particle_data"][init_bank_size + i]
-        assert pnew["w"] == target
+    # Non-integer split, all but last should be at target, last should be residual
+    total_banked = 0
+    maximum_bank = 10*4
+    for _ in range(10):
+        particle, banked_particles = run_split(initial_weight=2.1, w_lower=0.2)
+        assert particle["w"] == 0.5
+        total_banked += len(banked_particles)
+        for banked_particle in banked_particles:
+            assert banked_particle["w"] == 0.5
+    assert total_banked < maximum_bank
 
 
 def test_query_weight_window():
