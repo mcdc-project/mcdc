@@ -189,9 +189,9 @@ def split_from_weight_window(particle_container, w_upper, w_target, w_lower, pro
 
         # bank target particles
         particle["w"] = w_target
-        for _ in range(num_split_to_target-1):
+        for _ in range(num_split_to_target - 1):
             container_copy = util.local_array(1, type_.particle)
-            particle_module.copy_as_child(container_copy, particle_container) 
+            particle_module.copy_as_child(container_copy, particle_container)
             particle_bank_module.bank_active_particle(container_copy, program)
 
         # bank residual particle
@@ -203,7 +203,7 @@ def split_from_weight_window(particle_container, w_upper, w_target, w_lower, pro
             residual_copy["alive"] = True
             weight_roulette(residual_copy, w_lower, w_target)
             if residual_copy["alive"]:
-                particle_bank_module.bank_active_particle(residual_copy, program) 
+                particle_bank_module.bank_active_particle(residual_copy, program)
 
 
 # ======================================================================================

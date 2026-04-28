@@ -184,7 +184,7 @@ def test_split_from_weight_window():
 
     # Non-integer split, all but last should be at target, last should be residual
     total_banked = 0
-    maximum_bank = 10*4
+    maximum_bank = 10 * 4
     for _ in range(10):
         particle, banked_particles = run_split(initial_weight=2.1, w_lower=0.2)
         assert particle["w"] == 0.5
