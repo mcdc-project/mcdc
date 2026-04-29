@@ -86,11 +86,13 @@ import mcdc.mcdc_set.particle_bank as particle_bank
 
 import mcdc.mcdc_set.settings as settings
 
+import mcdc.mcdc_set.global_weight_roulette as global_weight_roulette
+
 import mcdc.mcdc_set.implicit_capture as implicit_capture
 
 import mcdc.mcdc_set.population_control as population_control
 
-import mcdc.mcdc_set.weight_roulette as weight_roulette
+import mcdc.mcdc_set.weight_windows as weight_windows
 
 import mcdc.mcdc_set.weighted_emission as weighted_emission
 
