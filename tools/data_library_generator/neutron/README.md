@@ -5,24 +5,22 @@ for continuous-energy neutron transport.
 
 ## Prerequisites
 
-```bash
-pip install ACEtk h5py numpy tqdm
-```
-
-You need a collection of ACE files (e.g., from NJOY or an ENDF/B distribution).
+- Installing ACEtk from source: [link](https://github.com/njoy/ACEtk)
+- Dependencies: `pip install h5py numpy tqdm`
+- You need a collection of ACE files (e.g., from NJOY or an ENDF/B distribution).
 
 ## Environment Variables
 
 | Variable      | Description                                           |
 |---------------|-------------------------------------------------------|
-| `MCDC_ACELIB` | Path to the directory containing your ACE files.      |
-| `MCDC_LIB`    | Path to the output directory for MC/DC HDF5 files.    |
+| `MCDC_ACELIB_NEUTRON` | Path to the directory containing your ACE files.      |
+| `MCDC_LIB_NEUTRON`    | Path to the output directory for MC/DC HDF5 files.    |
 
 ## Usage
 
 ```bash
-export MCDC_ACELIB=/path/to/ace/files
-export MCDC_LIB=/path/to/mcdc/library
+export MCDC_ACELIB_NEUTRON=/path/to/ace/files
+export MCDC_LIB_NEUTRON=/path/to/mcdc/library
 
 python generate.py              # Convert only missing nuclides
 python generate.py --rewrite    # Regenerate all files
@@ -31,7 +29,7 @@ python generate.py --verbose    # Print detailed per-nuclide info
 
 ## What it Does
 
-For each ACE file in `$MCDC_ACELIB`, the generator:
+For each ACE file in `$MCDC_ACELIB_NEUTRON`, the generator:
 
 1. Reads the ACE header to identify the nuclide (Z, A, isomeric state) and temperature.
 2. Extracts pointwise cross sections (elastic, capture, inelastic, fission) and the energy grid.

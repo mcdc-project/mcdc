@@ -3,10 +3,10 @@ Converts EPRDATA14 ACE-format electron/photon/relaxation data into MC/DC's
 per-element HDF5 format for continuous-energy electron transport.
 
 ## Prerequisites
-```bash
-pip install ACEtk h5py numpy tqdm
-```
-You need the EPRDATA14 library (available from [LANL Nuclear Data](https://nucleardata.lanl.gov/ace/eprdata14)).
+
+- Installing ACEtk from source: [link](https://github.com/njoy/ACEtk)
+- Dependencies: `pip install h5py numpy tqdm`
+- You need the EPRDATA14 library (available from [LANL Nuclear Data](https://nucleardata.lanl.gov/ace/eprdata14)).
 
 ## Environment Variables
 | Variable               | Description                                        |
@@ -16,23 +16,23 @@ You need the EPRDATA14 library (available from [LANL Nuclear Data](https://nucle
 
 ## Usage
 ```bash
-export MCDC_ACELIB_ELECTRON=/path/to/eprdata14/eprdata14
+export MCDC_ACELIB_ELECTRON=/path/to/eprdata14/eprdata14/eprdata14
 export MCDC_LIB_ELECTRON=/path/to/mcdc/electron/library
 
-python generate_electron.py              # Convert only missing elements
-python generate_electron.py --rewrite    # Regenerate all files
-python generate_electron.py --verbose    # Print detailed per-element info
+python generate.py              # Convert only missing elements
+python generate.py --rewrite    # Regenerate all files
+python generate.py --verbose    # Print detailed per-element info
 ```
 
 ## What it Does
 For each element (Z=1 to Z=100) in the EPRDATA14 library, the generator:
 1. Loads all elemental tables from the single concatenated EPRDATA14 file.
 2. Extracts the principal cross section energy grid and pointwise cross sections
-   (elastic, bremsstrahlung, excitation, electroionization) for all reaction channels.
+   (elastic, bremsstrahlung, excitation, ionization) for all reaction channels.
 3. Extracts tabulated elastic angular distributions (cosine CDFs) per incident energy (MT-528).
 4. Extracts excitation energy loss as a function of incident energy (MT-527).
 5. Extracts bremsstrahlung outgoing photon energy distributions per incident energy (MT-526).
-6. Extracts per-subshell electroionization cross sections and knock-on electron
+6. Extracts per-subshell ionization cross sections and knock-on electron
    energy distributions (MT-534 for K-shell, MT-535+ for higher shells).
 7. Extracts atomic relaxation (fluorescence and Auger) transition data per subshell.
 8. Writes a single HDF5 file per element (e.g., `Al.h5`).
@@ -67,7 +67,7 @@ For each element (Z=1 to Z=100) in the EPRDATA14 library, the generator:
 │   │           ├── offset                      (1-D array, int)
 │   │           ├── energy_out                  (1-D array, MeV)
 │   │           └── cdf                         (1-D array)
-│   └── electroionization/
+│   └── ionization/
 │       └── MT-534/  (K-shell; MT-535, MT-536, ... for higher shells)
 │           ├── xs                              (1-D array, barns)
 │           ├── binding_energy                  (float, MeV)

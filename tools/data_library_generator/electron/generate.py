@@ -91,14 +91,14 @@ for zaid, Z, symbol, mcdc_name in pbar:
     # Elastic scattering : MT-528
     # Excitation         : MT-527
     # Bremsstrahlung     : MT-526
-    # Electroionization  : MT-534 (K), MT-535 (L1), MT-536 (L2), ...
+    # Ionization  : MT-534 (K), MT-535 (L1), MT-536 (L2), ...
 
     reactions = file.create_group("electron_reactions")
 
     elastic_group = reactions.create_group("elastic_scattering")
     excitation_group = reactions.create_group("excitation")
     bremsstrahlung_group = reactions.create_group("bremsstrahlung")
-    electroionization_group = reactions.create_group("electroionization")
+    ionization_group = reactions.create_group("ionization")
 
     elastic_group.create_group("MT-528").attrs["MT"] = 528
     excitation_group.create_group("MT-527").attrs["MT"] = 527
@@ -106,17 +106,17 @@ for zaid, Z, symbol, mcdc_name in pbar:
 
     subsh_block = ace_table.electron_subshell_block
     N_subshells = subsh_block.number_electron_subshells
-    electroionization_MTs = [534 + i for i in range(N_subshells)]
+    ionization_MTs = [534 + i for i in range(N_subshells)]
 
-    for MT in electroionization_MTs:
-        electroionization_group.create_group(f"MT-{MT:03}").attrs["MT"] = MT
+    for MT in ionization_MTs:
+        ionization_group.create_group(f"MT-{MT:03}").attrs["MT"] = MT
 
     if verbose:
         print(f"  Reaction group MTs")
         print(f"    - Elastic scattering MT : [528]")
         print(f"    - Excitation MT         : [527]")
         print(f"    - Bremsstrahlung MT     : [526]")
-        print(f"    - Electroionization MTs : {electroionization_MTs}")
+        print(f"    - Ionization MTs : {ionization_MTs}")
 
     # ==================================================================================
     # Cross sections
@@ -141,8 +141,8 @@ for zaid, Z, symbol, mcdc_name in pbar:
     )
     xs.attrs["unit"] = "barns"
 
-    for i, MT in enumerate(electroionization_MTs):
-        xs = electroionization_group.create_dataset(
+    for i, MT in enumerate(ionization_MTs):
+        xs = ionization_group.create_dataset(
             f"MT-{MT:03}/xs", data=np.array(xs0_block.electroionisation(i + 1))
         )
         xs.attrs["unit"] = "barns"
@@ -181,12 +181,12 @@ for zaid, Z, symbol, mcdc_name in pbar:
     )
 
     # ==================================================================================
-    # Electroionization: binding energy and knock-on electron energy distributions
+    # Ionization: binding energy and knock-on electron energy distributions
     # ==================================================================================
 
-    for i, MT in enumerate(electroionization_MTs):
+    for i, MT in enumerate(ionization_MTs):
         idx = i + 1
-        MT_group = electroionization_group[f"MT-{MT:03}"]
+        MT_group = ionization_group[f"MT-{MT:03}"]
 
         dataset = MT_group.create_dataset(
             "binding_energy", data=subsh_block.binding_energy(idx)
@@ -206,7 +206,7 @@ for zaid, Z, symbol, mcdc_name in pbar:
     relax_block = ace_table.subshell_transition_data_block
     relaxation_group = file.create_group("atomic_relaxation")
 
-    for i, MT in enumerate(electroionization_MTs):
+    for i, MT in enumerate(ionization_MTs):
         idx = i + 1
         td = relax_block.transition_data(idx)
         MT_group = relaxation_group.create_group(f"MT-{MT:03}")
