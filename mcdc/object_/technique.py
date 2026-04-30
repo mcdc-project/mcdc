@@ -100,9 +100,15 @@ class WeightWindows(ObjectSingleton):
     Nz: int
 
     # arrays of ww params
-    lower_weights: Annotated[NDArray[np.float64], ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz")]
-    target_weights: Annotated[NDArray[np.float64], ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz")]
-    upper_weights: Annotated[NDArray[np.float64], ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz")]
+    lower_weights: Annotated[
+        NDArray[np.float64], ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz")
+    ]
+    target_weights: Annotated[
+        NDArray[np.float64], ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz")
+    ]
+    upper_weights: Annotated[
+        NDArray[np.float64], ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz")
+    ]
 
     def __init__(self):
         self.active = False
@@ -122,7 +128,9 @@ class WeightWindows(ObjectSingleton):
         self.target_weights = np.array([1.0]).reshape(*shape)
         self.upper_weights = np.array([1.0]).reshape(*shape)
 
-    def __call__(self, weight_windows, mesh=None, energy=None, mu=None, azimuthal=None, time=None):
+    def __call__(
+        self, weight_windows, mesh=None, energy=None, mu=None, azimuthal=None, time=None
+    ):
         # fill in defaults
         if mesh is None:
             mesh = MeshUniform()
@@ -151,7 +159,7 @@ class WeightWindows(ObjectSingleton):
                     f"{type(mesh).__name__} is not supported for weight windows"
                 )
         # validate energy and get size
-        self.__check_array(energy, "Energy") 
+        self.__check_array(energy, "Energy")
         ne = energy.shape[0] - 1
         # validate mu and get size
         self.__check_array(mu, "Mu")

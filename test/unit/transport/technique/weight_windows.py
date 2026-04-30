@@ -78,18 +78,29 @@ def make_ww_model_distinct():
 
     # value at index is related to index, easy to predict during later test
     for t in range(Nt):
-      for e in range(Ne):
-          for m in range(Nmu):
-              for a in range(Na):
-                for i in range(N):
-                    for j in range(N):
-                        for k in range(N):
-                            val = 1_000_000*t + 100_000*e + 10_000*m + 1_000*a + 100 * i + 10 * j + k + 1
-                            ww_array[t, e, m, a, i, j, k, 0] = val
-                            ww_array[t, e, m, a, i, j, k, 1] = 10_000_000 + val
-                            ww_array[t, e, m, a, i, j, k, 2] = 20_000_000 + val
+        for e in range(Ne):
+            for m in range(Nmu):
+                for a in range(Na):
+                    for i in range(N):
+                        for j in range(N):
+                            for k in range(N):
+                                val = (
+                                    1_000_000 * t
+                                    + 100_000 * e
+                                    + 10_000 * m
+                                    + 1_000 * a
+                                    + 100 * i
+                                    + 10 * j
+                                    + k
+                                    + 1
+                                )
+                                ww_array[t, e, m, a, i, j, k, 0] = val
+                                ww_array[t, e, m, a, i, j, k, 1] = 10_000_000 + val
+                                ww_array[t, e, m, a, i, j, k, 2] = 20_000_000 + val
 
-    mcdc.simulation.weight_windows(ww_array, mesh=mesh, energy=energy, time=time, mu=mu, azimuthal=azimuthal)
+    mcdc.simulation.weight_windows(
+        ww_array, mesh=mesh, energy=energy, time=time, mu=mu, azimuthal=azimuthal
+    )
 
     mcdc_container, data = preparation()
     return mcdc_container[0], data
@@ -226,29 +237,40 @@ def test_query_weight_window():
 
     # loop over all bins, check query against expected ww
     for it, time in enumerate(times):
-      for ie, energy in enumerate(energies):
-          for imu, mu in enumerate(mus):
-              for ia, azimuthal in enumerate(azimuthals):
-                for ix in range(nx):
-                    for iy in range(ny):
-                        for iz in range(nz):
-                            # put particle in center of current mesh bin
-                            p[0]["x"] = xmin + dx * (ix + 0.5)
-                            p[0]["y"] = ymin + dy * (iy + 0.5)
-                            p[0]["z"] = zmin + dz * (iz + 0.5)
-                            # assign params to be in center of bins
-                            p[0]["t"] = time
-                            p[0]["E"] = energy
-                            p[0]["ux"] = np.sqrt(1.0 - mu**2) * np.cos(azimuthal)
-                            p[0]["uy"] = np.sqrt(1.0 - mu**2) * np.sin(azimuthal)
-                            p[0]["uz"] = mu
+        for ie, energy in enumerate(energies):
+            for imu, mu in enumerate(mus):
+                for ia, azimuthal in enumerate(azimuthals):
+                    for ix in range(nx):
+                        for iy in range(ny):
+                            for iz in range(nz):
+                                # put particle in center of current mesh bin
+                                p[0]["x"] = xmin + dx * (ix + 0.5)
+                                p[0]["y"] = ymin + dy * (iy + 0.5)
+                                p[0]["z"] = zmin + dz * (iz + 0.5)
+                                # assign params to be in center of bins
+                                p[0]["t"] = time
+                                p[0]["E"] = energy
+                                p[0]["ux"] = np.sqrt(1.0 - mu**2) * np.cos(azimuthal)
+                                p[0]["uy"] = np.sqrt(1.0 - mu**2) * np.sin(azimuthal)
+                                p[0]["uz"] = mu
 
-                            # query and predict
-                            lower, target, upper = query_weight_window(p, simulation, data)
-                            exp_lower = 1_000_000*it + 100_000*ie + 10_000*imu + 1_000*ia + 100 * ix + 10 * iy + iz + 1
-                            exp_target = 10_000_000 + exp_lower
-                            exp_upper = 20_000_000 + exp_lower
+                                # query and predict
+                                lower, target, upper = query_weight_window(
+                                    p, simulation, data
+                                )
+                                exp_lower = (
+                                    1_000_000 * it
+                                    + 100_000 * ie
+                                    + 10_000 * imu
+                                    + 1_000 * ia
+                                    + 100 * ix
+                                    + 10 * iy
+                                    + iz
+                                    + 1
+                                )
+                                exp_target = 10_000_000 + exp_lower
+                                exp_upper = 20_000_000 + exp_lower
 
-                            assert lower == exp_lower
-                            assert target == exp_target
-                            assert upper == exp_upper
+                                assert lower == exp_lower
+                                assert target == exp_target
+                                assert upper == exp_upper

@@ -1023,11 +1023,26 @@ def generate_mcdc_access(targets):
                 )
             elif len(shape) == 7:
                 text_getter += _accessor_7d_element(
-                    object_name, attribute_name, shape[1], shape[2], shape[3], shape[4], shape[5], shape[6]
+                    object_name,
+                    attribute_name,
+                    shape[1],
+                    shape[2],
+                    shape[3],
+                    shape[4],
+                    shape[5],
+                    shape[6],
                 )
 
                 text_setter += _accessor_7d_element(
-                    object_name, attribute_name, shape[1], shape[2], shape[3], shape[4], shape[5], shape[6], True
+                    object_name,
+                    attribute_name,
+                    shape[1],
+                    shape[2],
+                    shape[3],
+                    shape[4],
+                    shape[5],
+                    shape[6],
+                    True,
                 )
             text_getter += _accessor_chunk(object_name, attribute_name)
             text_setter += _accessor_chunk(object_name, attribute_name, True)
@@ -1220,6 +1235,7 @@ def _accessor_7d_element(
     else:
         text += f"    return data[offset + index_1 * stride_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_4 * stride_5 * stride_6 * stride_7 + index_5 * stride_6 * stride_7 + index_6 * stride_7 + index_7]\n\n\n"
     return text
+
 
 # ======================================================================================
 # Misc.
