@@ -577,9 +577,18 @@ population_control = into_dtype([
 
 weight_windows = into_dtype([
     ('active', bool),
+    ('time_bounds_offset', int64),
+    ('time_bounds_length', int64),
+    ('Nt', int64),
     ('energy_bounds_offset', int64),
     ('energy_bounds_length', int64),
     ('Ne', int64),
+    ('mu_bounds_offset', int64),
+    ('mu_bounds_length', int64),
+    ('Nmu', int64),
+    ('azi_bounds_offset', int64),
+    ('azi_bounds_length', int64),
+    ('Na', int64),
     ('mesh_ID', int64),
     ('Nx', int64),
     ('Ny', int64),
