@@ -1,17 +1,6 @@
 import numpy as np
-import os
 import pytest
-from numba import njit
 import mcdc
-from mcdc.main import preparation
-from mcdc.transport import technique
-import mcdc.numba_types as types_
-from mcdc.transport.util import access_simulation
-from mcdc.transport import geometry
-from mcdc.mcdc_get import forced_collisions as get_fc
-
-os.environ["MCDC_LIB"] = "../../../regression/mcdc-regression_test_data/"
-
 
 # =============================================================================
 # Model base fixture
@@ -21,8 +10,14 @@ os.environ["MCDC_LIB"] = "../../../regression/mcdc-regression_test_data/"
 @pytest.fixture
 def pin_cell_model():
     # Material
-    fuel = mcdc.Material(nuclide_composition={"U235": 1.0})
-    moderator = mcdc.Material(nuclide_composition={"H1": 1.0})
+    fuel = mcdc.MaterialMG(
+        capture=np.array([1.0 / 3.0]),
+        scatter=np.array([[1.0 / 3.0]]),
+    )
+    moderator = mcdc.MaterialMG(
+        capture=np.array([1.0 / 3.0]),
+        scatter=np.array([[1.0 / 3.0]]),
+    )
 
     # Geometry
     cylinder = mcdc.Surface.CylinderZ(radius=0.5)
