@@ -93,14 +93,16 @@ class WeightedEmission(ObjectSingleton):
 # ======================================================================================
 
 
-class WeightRoulette(ObjectSingleton):
+class GlobalWeightRoulette(ObjectSingleton):
     # Annotations for Numba mode
-    label: str = "weight_roulette"
+    label: str = "global_weight_roulette"
 
+    active: bool
     weight_threshold: float
     weight_target: float
 
     def __init__(self):
+        self.active = False
         self.weight_threshold = 0.0
         self.weight_target = 1.0
 
@@ -109,6 +111,7 @@ class WeightRoulette(ObjectSingleton):
             print_error(
                 "For weight roulette, weight threshold has to be smaller than the target"
             )
+        self.active = True
         self.weight_threshold = weight_threshold
         self.weight_target = weight_target
 

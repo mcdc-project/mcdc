@@ -346,19 +346,25 @@ def step_particle(particle_container, program, data):
     if particle["event"] & EVENT_TIME_BOUNDARY:
         particle["alive"] = False
 
-    # Weight splitting / rouletting
+    # ==================================================================================
     # Apply techniques
-    if particle["alive"]:
-        # Weight windows
-        if simulation["weight_windows"]["active"]:
-            technique.weight_windows(particle_container, program, data)
+    # ==================================================================================
 
-        elif simulation["forced_collisions"]["active"]:
-            technique.forced_collision_roulette(particle_container, program, data)
-        # Weight roulette
-        else:
-            technique.weight_roulette(particle_container, simulation)
 
+    # Skip if not alive
+    if not particle["alive"]:
+        return
+
+    # Weight windows
+    if simulation["weight_windows"]["active"]:
+        technique.weight_windows(particle_container, program, data)
+
+    # Global weight roulette
+    if simulation["global_weight_roulette"]["active"]:
+        technique.global_weight_roulette(particle_container, simulation)
+
+    if simulation["forced_collisions"]["active"]:
+        technique.forced_collision_roulette(particle_container, program, data)
 
 @njit
 def move_to_event(particle_container, simulation, data):

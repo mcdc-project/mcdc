@@ -571,17 +571,18 @@ forced_collisions = into_dtype([
     ('target_weights_length', int64),
 ])
 
+global_weight_roulette = into_dtype([
+    ('active', bool),
+    ('weight_threshold', float64),
+    ('weight_target', float64),
+])
+
 implicit_capture = into_dtype([
     ('active', bool),
 ])
 
 population_control = into_dtype([
     ('active', bool),
-])
-
-weight_roulette = into_dtype([
-    ('weight_threshold', float64),
-    ('weight_target', float64),
 ])
 
 weight_windows = into_dtype([
@@ -842,7 +843,7 @@ def set_simulation(N: dict):
         ('implicit_capture', implicit_capture),
         ('forced_collisions', forced_collisions),
         ('weighted_emission', weighted_emission),
-        ('weight_roulette', weight_roulette),
+        ('global_weight_roulette', global_weight_roulette),
         ('weight_windows', weight_windows),
         ('population_control', population_control),
         ('gpu_meta', gpu_meta),

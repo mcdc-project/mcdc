@@ -88,11 +88,11 @@ import mcdc.mcdc_get.settings as settings
 
 import mcdc.mcdc_get.forced_collisions as forced_collisions
 
+import mcdc.mcdc_get.global_weight_roulette as global_weight_roulette
+
 import mcdc.mcdc_get.implicit_capture as implicit_capture
 
 import mcdc.mcdc_get.population_control as population_control
-
-import mcdc.mcdc_get.weight_roulette as weight_roulette
 
 import mcdc.mcdc_get.weight_windows as weight_windows
 

@@ -5,7 +5,7 @@ from mcdc.object_.technique import (
     ImplicitCapture,
     ForcedCollisions,
     PopulationControl,
-    WeightRoulette,
+    GlobalWeightRoulette,
     WeightWindows,
     WeightedEmission,
 )
@@ -84,7 +84,7 @@ class Simulation(ObjectSingleton):
     implicit_capture: ImplicitCapture
     forced_collisions: ForcedCollisions
     weighted_emission: WeightedEmission
-    weight_roulette: WeightRoulette
+    global_weight_roulette: GlobalWeightRoulette
     weight_windows: WeightWindows
     population_control: PopulationControl
 
@@ -171,7 +171,7 @@ class Simulation(ObjectSingleton):
         self.implicit_capture = ImplicitCapture()
         self.forced_collisions = ForcedCollisions()
         self.weighted_emission = WeightedEmission()
-        self.weight_roulette = WeightRoulette()
+        self.global_weight_roulette = GlobalWeightRoulette()
         self.weight_windows = WeightWindows()
         self.population_control = PopulationControl()
 

@@ -148,7 +148,7 @@ def forced_collision_roulette(particle_container, program, data):
     target = mcdc_get.forced_collisions.target_weights(index, fc_object, data)
 
     # roulette
-    roulette_from_weight_bounds(particle_container, threshold, target)
+    weight_roulette(particle_container, threshold, target)
 
 
 @njit
@@ -218,16 +218,57 @@ def in_forced_collision_cell(particle_container, simulation, data):
     return False
 
 
+from mcdc.transport.mesh import get_indices as get_mesh_indices
+
 # ======================================================================================
 # Weight Roulette
 # ======================================================================================
 
 
 @njit
-def weight_roulette(particle_container, simulation):
-    threshold = simulation["weight_roulette"]["weight_threshold"]
-    target = simulation["weight_roulette"]["weight_target"]
-    roulette_from_weight_bounds(particle_container, threshold, target)
+def weight_roulette(particle_container, w_threshold, w_target):
+    """
+    Russian roulette particle if weight is below threshold.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    w_threshold : float
+        Lower weight bound triggering roulette.
+    w_target : float
+        Target weight assigned upon survival.
+    """
+    particle = particle_container[0]
+    if particle["w"] < w_threshold:
+        survival_probability = particle["w"] / w_target
+        # sample random number to determine survival
+        if rng.lcg(particle_container) < survival_probability:
+            particle["w"] = w_target
+        else:
+            particle["alive"] = False
+
+
+# ======================================================================================
+# Global weight Roulette
+# ======================================================================================
+
+
+@njit
+def global_weight_roulette(particle_container, simulation):
+    """
+    Russian roulette particle with the global weight roulette parameters.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    simulation : object
+        Simulation state containing global weight roulette parameters.
+    """
+    w_threshold = simulation["global_weight_roulette"]["weight_threshold"]
+    w_target = simulation["global_weight_roulette"]["weight_target"]
+    weight_roulette(particle_container, w_threshold, w_target)
 
 
 # ======================================================================================
@@ -251,8 +292,10 @@ def weight_windows(particle_container, program, data):
     """
     simulation = util.access_simulation(program)
     [lower, target, upper] = query_weight_window(particle_container, simulation, data)
-    split_from_weight_window(particle_container, upper, simulation)
-    roulette_from_weight_bounds(particle_container, lower, target)
+    # split
+    split_from_weight_window(particle_container, upper, target, lower, program)
+    # roulette original particle
+    weight_roulette(particle_container, lower, target)
 
 
 @njit
@@ -327,7 +370,7 @@ def get_ww_indices(particle_container, ww_obj, simulation, data):
 
 
 @njit
-def split_from_weight_window(particle_container, threshold_weight, program):
+def split_from_weight_window(particle_container, w_upper, w_target, w_lower, program):
     """
     Split a particle if its weight exceeds the threshold.
 
@@ -335,45 +378,38 @@ def split_from_weight_window(particle_container, threshold_weight, program):
     ----------
     particle_container : ndarray
         Container holding the particle.
-    threshold_weight : float
+    w_upper : float
         Upper weight bound triggering splitting.
+    w_target : float
+        Target weight to assign to split particles.
+    w_lower : float
+        Lower weight bound triggering roulette on residual particle.
     program : object
-        Program object used for banking split particles.
+        Program object containing simulation state with access to active bank.
     """
     particle = particle_container[0]
     weight = particle["w"]
-    if weight > threshold_weight:
+    if weight > w_upper:
         # determine how many to split into
-        num_split = math.ceil(weight / threshold_weight)
-        # distribute weight
-        particle["w"] = weight / num_split
-        for _ in range(num_split - 1):
-            # bank split particles into the active bank
-            particle_bank_module.bank_active_particle(particle_container, program)
+        num_split_to_target = math.floor(weight / w_target)
 
+        # bank target particles
+        particle["w"] = w_target
+        for _ in range(num_split_to_target - 1):
+            container_copy = util.local_array(1, type_.particle)
+            particle_module.copy_as_child(container_copy, particle_container)
+            particle_bank_module.bank_active_particle(container_copy, program)
 
-@njit
-def roulette_from_weight_bounds(particle_container, w_threshold, w_target):
-    """
-    Russian roulette particle if weight is below threshold.
-
-    Parameters
-    ----------
-    particle_container : ndarray
-        Container holding the particle.
-    w_threshold : float
-        Lower weight bound triggering roulette.
-    w_target : float
-        Target weight assigned upon survival.
-    """
-    particle = particle_container[0]
-    if particle["w"] < w_threshold:
-        survival_probability = particle["w"] / w_target
-        # sample random number to determine survival
-        if rng.lcg(particle_container) < survival_probability:
-            particle["w"] = w_target
-        else:
-            particle["alive"] = False
+        # bank residual particle
+        residual_weight = weight - num_split_to_target * w_target
+        if residual_weight > 0.0:
+            residual_copy = util.local_array(1, type_.particle)
+            particle_module.copy_as_child(residual_copy, particle_container)
+            residual_copy[0]["w"] = residual_weight
+            residual_copy[0]["alive"] = True
+            weight_roulette(residual_copy, w_lower, w_target)
+            if residual_copy[0]["alive"]:
+                particle_bank_module.bank_active_particle(residual_copy, program)
 
 
 # ======================================================================================
