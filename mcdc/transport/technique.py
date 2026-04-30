@@ -148,6 +148,10 @@ def get_ww_indices(particle_container, ww_obj, simulation, data):
     """
     particle = particle_container[0]
 
+    # get time index
+    time_bounds = ww_get.time_bounds_all(ww_obj, data)
+    it = util.find_bin(particle["t"], time_bounds)
+
     # get energy index
     energy_bounds = ww_get.energy_bounds_all(ww_obj, data)
     if simulation["settings"]["neutron_multigroup_mode"]:
@@ -156,11 +160,20 @@ def get_ww_indices(particle_container, ww_obj, simulation, data):
         energy = particle["E"]
     ie = util.find_bin(energy, energy_bounds)
 
+    # get mu index
+    mu_bounds = ww_get.mu_bounds_all(ww_obj, data)
+    imu = util.find_bin(particle["uz"], mu_bounds)
+
+    # get azimuthal index
+    azi_bounds = ww_get.azi_bounds_all(ww_obj, data)
+    azimuthal = np.arctan2(particle["uy"], particle["ux"])
+    ia = util.find_bin(azimuthal, azi_bounds)
+
     # get spatial index
     mesh = simulation["meshes"][ww_obj["mesh_ID"]]
     idx, idy, idz = get_mesh_indices(particle_container, mesh, simulation, data)
 
-    return (ie, idx, idy, idz)
+    return (it, ie, imu, ia, idx, idy, idz)
 
 
 @njit
