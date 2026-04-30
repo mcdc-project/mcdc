@@ -90,7 +90,7 @@ Techniques are enabled by calling methods on the ``mcdc.simulation`` singleton:
 - ``mcdc.simulation.global_weight_roulette(weight_threshold=0.0, weight_target=1.0)``
 - ``mcdc.simulation.population_control(active=True)``
 - ``mcdc.simulation.weighted_emission(active=True, weight_target=1.0)``
-- ``mcdc.simulation.weight_windows(weight_windows, mesh=None, energy=None)``
+- ``mcdc.simulation.weight_windows(weight_windows, mesh=None, energy=None, time=None, mu=None, azimuthal=None)``
 
 Running
 -------
