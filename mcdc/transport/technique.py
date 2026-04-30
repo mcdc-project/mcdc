@@ -210,7 +210,7 @@ def in_forced_collision_cell(particle_container, simulation, data):
     # skip if not a neutron
     if particle_container[0]["particle_type"] != PARTICLE_NEUTRON:
         return False
-    
+
     fc_object = simulation["forced_collisions"]
 
     # not active, dont need to query cells

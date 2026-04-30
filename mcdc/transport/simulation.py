@@ -350,7 +350,6 @@ def step_particle(particle_container, program, data):
     # Apply techniques
     # ==================================================================================
 
-
     # Skip if not alive
     if not particle["alive"]:
         return
@@ -365,6 +364,7 @@ def step_particle(particle_container, program, data):
 
     if simulation["forced_collisions"]["active"]:
         technique.forced_collision_roulette(particle_container, program, data)
+
 
 @njit
 def move_to_event(particle_container, simulation, data):
