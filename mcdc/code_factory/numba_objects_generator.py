@@ -1021,6 +1021,14 @@ def generate_mcdc_access(targets):
                 text_setter += _accessor_4d_element(
                     object_name, attribute_name, shape[1], shape[2], shape[3], True
                 )
+            elif len(shape) == 7:
+                text_getter += _accessor_7d_element(
+                    object_name, attribute_name, shape[1], shape[2], shape[3], shape[4], shape[5], shape[6]
+                )
+
+                text_setter += _accessor_7d_element(
+                    object_name, attribute_name, shape[1], shape[2], shape[3], shape[4], shape[5], shape[6], True
+                )
             text_getter += _accessor_chunk(object_name, attribute_name)
             text_setter += _accessor_chunk(object_name, attribute_name, True)
 
@@ -1183,6 +1191,35 @@ def _accessor_4d_element(
         text += f"    return data[offset + index_1 * stride_2 * stride_3 * stride_4 + index_2 * stride_3 * stride_4 + index_3 * stride_4 + index_4]\n\n\n"
     return text
 
+
+def _accessor_7d_element(
+    object_name,
+    attribute_name,
+    stride_2,
+    stride_3,
+    stride_4,
+    stride_5,
+    stride_6,
+    stride_7,
+    setter=False,
+):
+    text = f"@njit\n"
+    if setter:
+        text += f"def {attribute_name}(index_1, index_2, index_3, index_4, index_5, index_6, index_7, {object_name}, data, value):\n"
+    else:
+        text += f"def {attribute_name}(index_1, index_2, index_3, index_4, index_5, index_6, index_7, {object_name}, data):\n"
+    text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
+    text += f'    stride_2 = {object_name}["{stride_2}"]\n'
+    text += f'    stride_3 = {object_name}["{stride_3}"]\n'
+    text += f'    stride_4 = {object_name}["{stride_4}"]\n'
+    text += f'    stride_5 = {object_name}["{stride_5}"]\n'
+    text += f'    stride_6 = {object_name}["{stride_6}"]\n'
+    text += f'    stride_7 = {object_name}["{stride_7}"]\n'
+    if setter:
+        text += f"    data[offset + index_1 * stride_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_4 * stride_5 * stride_6 * stride_7 + index_5 * stride_6 * stride_7 + index_6 * stride_7 + index_7] = value\n\n\n"
+    else:
+        text += f"    return data[offset + index_1 * stride_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_4 * stride_5 * stride_6 * stride_7 + index_5 * stride_6 * stride_7 + index_6 * stride_7 + index_7]\n\n\n"
+    return text
 
 # ======================================================================================
 # Misc.

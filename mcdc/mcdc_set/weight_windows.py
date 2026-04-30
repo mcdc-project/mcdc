@@ -4,6 +4,35 @@ from numba import njit
 
 
 @njit
+def time_bounds(index, weight_windows, data, value):
+    offset = weight_windows["time_bounds_offset"]
+    data[offset + index] = value
+
+
+@njit
+def time_bounds_all(weight_windows, data, value):
+    start = weight_windows["time_bounds_offset"]
+    size = weight_windows["time_bounds_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def time_bounds_last(weight_windows, data, value):
+    start = weight_windows["time_bounds_offset"]
+    size = weight_windows["time_bounds_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def time_bounds_chunk(start, length, weight_windows, data, value):
+    start += weight_windows["time_bounds_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
 def energy_bounds(index, weight_windows, data, value):
     offset = weight_windows["energy_bounds_offset"]
     data[offset + index] = value
@@ -33,12 +62,73 @@ def energy_bounds_chunk(start, length, weight_windows, data, value):
 
 
 @njit
-def lower_weights(index_1, index_2, index_3, index_4, weight_windows, data, value):
+def mu_bounds(index, weight_windows, data, value):
+    offset = weight_windows["mu_bounds_offset"]
+    data[offset + index] = value
+
+
+@njit
+def mu_bounds_all(weight_windows, data, value):
+    start = weight_windows["mu_bounds_offset"]
+    size = weight_windows["mu_bounds_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def mu_bounds_last(weight_windows, data, value):
+    start = weight_windows["mu_bounds_offset"]
+    size = weight_windows["mu_bounds_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def mu_bounds_chunk(start, length, weight_windows, data, value):
+    start += weight_windows["mu_bounds_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def azi_bounds(index, weight_windows, data, value):
+    offset = weight_windows["azi_bounds_offset"]
+    data[offset + index] = value
+
+
+@njit
+def azi_bounds_all(weight_windows, data, value):
+    start = weight_windows["azi_bounds_offset"]
+    size = weight_windows["azi_bounds_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def azi_bounds_last(weight_windows, data, value):
+    start = weight_windows["azi_bounds_offset"]
+    size = weight_windows["azi_bounds_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def azi_bounds_chunk(start, length, weight_windows, data, value):
+    start += weight_windows["azi_bounds_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def lower_weights(index_1, index_2, index_3, index_4, index_5, index_6, index_7, weight_windows, data, value):
     offset = weight_windows["lower_weights_offset"]
-    stride_2 = weight_windows["Nx"]
-    stride_3 = weight_windows["Ny"]
-    stride_4 = weight_windows["Nz"]
-    data[offset + index_1 * stride_2 * stride_3 * stride_4 + index_2 * stride_3 * stride_4 + index_3 * stride_4 + index_4] = value
+    stride_2 = weight_windows["Ne"]
+    stride_3 = weight_windows["Nmu"]
+    stride_4 = weight_windows["Na"]
+    stride_5 = weight_windows["Nx"]
+    stride_6 = weight_windows["Ny"]
+    stride_7 = weight_windows["Nz"]
+    data[offset + index_1 * stride_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_4 * stride_5 * stride_6 * stride_7 + index_5 * stride_6 * stride_7 + index_6 * stride_7 + index_7] = value
 
 
 @njit
@@ -49,12 +139,15 @@ def lower_weights_chunk(start, length, weight_windows, data, value):
 
 
 @njit
-def target_weights(index_1, index_2, index_3, index_4, weight_windows, data, value):
+def target_weights(index_1, index_2, index_3, index_4, index_5, index_6, index_7, weight_windows, data, value):
     offset = weight_windows["target_weights_offset"]
-    stride_2 = weight_windows["Nx"]
-    stride_3 = weight_windows["Ny"]
-    stride_4 = weight_windows["Nz"]
-    data[offset + index_1 * stride_2 * stride_3 * stride_4 + index_2 * stride_3 * stride_4 + index_3 * stride_4 + index_4] = value
+    stride_2 = weight_windows["Ne"]
+    stride_3 = weight_windows["Nmu"]
+    stride_4 = weight_windows["Na"]
+    stride_5 = weight_windows["Nx"]
+    stride_6 = weight_windows["Ny"]
+    stride_7 = weight_windows["Nz"]
+    data[offset + index_1 * stride_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_4 * stride_5 * stride_6 * stride_7 + index_5 * stride_6 * stride_7 + index_6 * stride_7 + index_7] = value
 
 
 @njit
@@ -65,12 +158,15 @@ def target_weights_chunk(start, length, weight_windows, data, value):
 
 
 @njit
-def upper_weights(index_1, index_2, index_3, index_4, weight_windows, data, value):
+def upper_weights(index_1, index_2, index_3, index_4, index_5, index_6, index_7, weight_windows, data, value):
     offset = weight_windows["upper_weights_offset"]
-    stride_2 = weight_windows["Nx"]
-    stride_3 = weight_windows["Ny"]
-    stride_4 = weight_windows["Nz"]
-    data[offset + index_1 * stride_2 * stride_3 * stride_4 + index_2 * stride_3 * stride_4 + index_3 * stride_4 + index_4] = value
+    stride_2 = weight_windows["Ne"]
+    stride_3 = weight_windows["Nmu"]
+    stride_4 = weight_windows["Na"]
+    stride_5 = weight_windows["Nx"]
+    stride_6 = weight_windows["Ny"]
+    stride_7 = weight_windows["Nz"]
+    data[offset + index_1 * stride_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_2 * stride_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_3 * stride_4 * stride_5 * stride_6 * stride_7 + index_4 * stride_5 * stride_6 * stride_7 + index_5 * stride_6 * stride_7 + index_6 * stride_7 + index_7] = value
 
 
 @njit
