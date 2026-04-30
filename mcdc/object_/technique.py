@@ -1,7 +1,7 @@
 from numpy.typing import NDArray
 import numpy as np
 from typing import Annotated
-from mcdc.constant import INF
+from mcdc.constant import INF, PI, PI_HALF
 from mcdc.object_.base import ObjectSingleton
 from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.print_ import print_error
@@ -82,9 +82,17 @@ class WeightWindows(ObjectSingleton):
 
     active: bool
 
+    # time
+    time_bounds: NDArray[np.float64]
+    Nt: int
     # energy
     energy_bounds: NDArray[np.float64]
     Ne: int
+    # angle
+    mu_bounds: NDArray[np.float64]
+    Nmu: int
+    azi_bounds: NDArray[np.float64]
+    Na: int
     # space
     mesh: MeshBase
     Nx: int
@@ -92,29 +100,41 @@ class WeightWindows(ObjectSingleton):
     Nz: int
 
     # arrays of ww params
-    lower_weights: Annotated[NDArray[np.float64], ("Ne", "Nx", "Ny", "Nz")]
-    target_weights: Annotated[NDArray[np.float64], ("Ne", "Nx", "Ny", "Nz")]
-    upper_weights: Annotated[NDArray[np.float64], ("Ne", "Nx", "Ny", "Nz")]
+    lower_weights: Annotated[NDArray[np.float64], ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz")]
+    target_weights: Annotated[NDArray[np.float64], ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz")]
+    upper_weights: Annotated[NDArray[np.float64], ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz")]
 
     def __init__(self):
         self.active = False
-        self.energy_bounds = np.array([0.0, 1.0])
+        self.time_bounds = np.array([0.0, INF])
+        self.Nt = 1
+        self.azi_bounds = np.array([-PI, PI])
+        self.Na = 1
+        self.mu_bounds = np.array([-1.0, 1.0])
+        self.Nmu = 1
+        self.energy_bounds = np.array([-0.5, INF])
         self.Ne = 1
         self.mesh_ID = -1  # skirt around having to create a MeshBase instance
         self.Nx, self.Ny, self.Nz = 1, 1, 1
         self.Nt = 1
-        shape = (self.Ne, self.Nx, self.Ny, self.Nz)
+        shape = (self.Nt, self.Ne, self.Nmu, self.Na, self.Nx, self.Ny, self.Nz)
         self.lower_weights = np.array([1.0]).reshape(*shape)
         self.target_weights = np.array([1.0]).reshape(*shape)
         self.upper_weights = np.array([1.0]).reshape(*shape)
 
-    def __call__(self, weight_windows, mesh=None, energy=None):
+    def __call__(self, weight_windows, mesh=None, energy=None, mu=None, azimuthal=None, time=None):
         # fill in defaults
         if mesh is None:
             mesh = MeshUniform()
         if energy is None:
             # usable for both groups and max energy
             energy = np.array([-0.5, INF])
+        if mu is None:
+            mu = np.array([-1.0, 1.0])
+        if azimuthal is None:
+            azimuthal = np.array([-PI, PI])
+        if time is None:
+            time = np.array([0, INF])
 
         # get mesh size
         match mesh.label:
@@ -130,31 +150,38 @@ class WeightWindows(ObjectSingleton):
                 print_error(
                     f"{type(mesh).__name__} is not supported for weight windows"
                 )
-        # validate energy as strictly increasing
-        if not (np.diff(energy) > 0).all():
-            print_error("Energy bounds must be strictly increasing")
-        # get energy size
-        if len(energy.shape) != 1:
-            print_error(
-                f"Invalid shape for energy; expected 1D got {len(energy.shape)}D"
-            )
+        # validate energy and get size
+        self.__check_array(energy, "Energy") 
         ne = energy.shape[0] - 1
+        # validate mu and get size
+        self.__check_array(mu, "Mu")
+        nmu = mu.shape[0] - 1
+        # validate azimuthal and get size
+        self.__check_array(azimuthal, "Azimuthal")
+        na = azimuthal.shape[0] - 1
+        # validate time and get size
+        self.__check_array(time, "Time")
+        nt = time.shape[0] - 1
 
         # check correct shape
-        mesh_shape = (nx, ny, nz)
+        expected_shape = (nt, ne, nmu, na, nx, ny, nz, 3)
         ww_shape = weight_windows.shape
-        expected_shape = (ne, *mesh_shape, 3)
         if ww_shape != expected_shape:
             print_error(
                 f"Weight window array has shape {ww_shape}, but expected {expected_shape}"
             )
 
         self.active = True
+        self.time_bounds = time
+        self.Nt = nt
         self.energy_bounds = energy
         self.Ne = ne
+        self.mu_bounds = mu
+        self.Nmu = nmu
+        self.azi_bounds = azimuthal
+        self.Na = na
         self.mesh = mesh
-        self.Nx, self.Ny, self.Nz = mesh_shape
-        shape = (self.Ne, *mesh_shape)
+        self.Nx, self.Ny, self.Nz = (nx, ny, nz)
         self.lower_weights = weight_windows[..., 0]
         self.target_weights = weight_windows[..., 1]
         self.upper_weights = weight_windows[..., 2]
@@ -171,6 +198,15 @@ class WeightWindows(ObjectSingleton):
         if (self.target_weights > self.upper_weights).any():
             print_error(
                 "Target weight can not be greater than the upper bound weight for any weight window"
+            )
+
+    @staticmethod
+    def __check_array(array: NDArray[np.float64], name: str):
+        if not (np.diff(array) > 0).all():
+            print_error(f"{name} bounds must be strictly increasing")
+        if len(array.shape) != 1:
+            print_error(
+                f"Invalid shape for {name} bounds; expected 1D got {len(array.shape)}D"
             )
 
 
