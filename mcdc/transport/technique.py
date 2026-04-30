@@ -17,7 +17,7 @@ import mcdc.transport.rng as rng
 from mcdc.transport.physics import interface as physics
 import mcdc.transport.util as util
 import mcdc.mcdc_get as mcdc_get
-from mcdc.print_ import print_error
+from mcdc.constant import PARTICLE_NEUTRON
 
 # ======================================================================================
 # Forced Collisions
@@ -131,6 +131,10 @@ def forced_collision_roulette(particle_container, program, data):
     data : object
         Simulation data for array access.
     """
+    # skip if not a neutron
+    if particle_container[0]["particle_type"] != PARTICLE_NEUTRON:
+        return
+
     simulation = util.access_simulation(program)
     fc_object = simulation["forced_collisions"]
 
@@ -203,6 +207,10 @@ def in_forced_collision_cell(particle_container, simulation, data):
     bool
         True if particle in cell marked for forced collision.
     """
+    # skip if not a neutron
+    if particle_container[0]["particle_type"] != PARTICLE_NEUTRON:
+        return False
+    
     fc_object = simulation["forced_collisions"]
 
     # not active, dont need to query cells
