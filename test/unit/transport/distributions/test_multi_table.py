@@ -12,7 +12,7 @@ def test_multi_table_distribution_sample(rng_sequence, rng_state):
     # xi_2 = 0.3 < r, so Eq. (2.64) selects l = i + 1, i.e. the second table.
     rng_sequence([0.3, 0.2])
 
-    sampled_E = dist.sample_multi_table(2.0, rng_state, multi_table, data, scale=True)
+    sampled_E = dist._sample_multi_table(2.0, rng_state, multi_table, data, scale=True)
 
     # In the selected table, xi_1 = 0.2 falls in the first continuous bin.
     # Eq. (2.65) gives E' = E_l,k + (xi_1 - c_l,k) / p_l,k = 100 + 0.2 / 0.01 = 120.

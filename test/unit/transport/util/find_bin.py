@@ -3,7 +3,7 @@ import pytest
 
 ####
 
-from mcdc.transport.util import find_bin
+from mcdc.transport.util import find_bin, find_bin_with_rules
 
 
 @pytest.fixture
@@ -24,37 +24,37 @@ def test_inside_bins(grid):
 
 
 def test_exact_interior_edges(grid):
-    assert find_bin(1.0, grid, 0.0, True) == 0
-    assert find_bin(1.0, grid, 0.0, False) == 1
-    assert find_bin(5.0, grid, 0.0, True) == 2
-    assert find_bin(5.0, grid, 0.0, False) == 3
+    assert find_bin_with_rules(1.0, grid, 0.0, True) == 0
+    assert find_bin_with_rules(1.0, grid, 0.0, False) == 1
+    assert find_bin_with_rules(5.0, grid, 0.0, True) == 2
+    assert find_bin_with_rules(5.0, grid, 0.0, False) == 3
 
 
 def test_first_edge(grid):
-    assert find_bin(0.0, grid, 0.0, True) == -1
-    assert find_bin(0.0, grid, 0.0, False) == 0
+    assert find_bin_with_rules(0.0, grid, 0.0, True) == -1
+    assert find_bin_with_rules(0.0, grid, 0.0, False) == 0
 
 
 def test_last_edge(grid):
-    assert find_bin(10.0, grid, 0.0, True) == 3
-    assert find_bin(10.0, grid, 0.0, False) == -1
+    assert find_bin_with_rules(10.0, grid, 0.0, True) == 3
+    assert find_bin_with_rules(10.0, grid, 0.0, False) == -1
 
 
 def test_near_interior_edges_with_epsilon(grid, eps):
-    assert find_bin(1.0 - 1e-6, grid, eps, True) == 0
-    assert find_bin(1.0 - 1e-6, grid, eps, False) == 1
-    assert find_bin(1.0 + 1e-6, grid, eps, True) == 0
-    assert find_bin(1.0 + 1e-6, grid, eps, False) == 1
+    assert find_bin_with_rules(1.0 - 1e-6, grid, eps, True) == 0
+    assert find_bin_with_rules(1.0 - 1e-6, grid, eps, False) == 1
+    assert find_bin_with_rules(1.0 + 1e-6, grid, eps, True) == 0
+    assert find_bin_with_rules(1.0 + 1e-6, grid, eps, False) == 1
 
 
 def test_near_first_edge_with_epsilon(grid, eps):
-    assert find_bin(0.0 + 1e-6, grid, eps, True) == -1
-    assert find_bin(0.0 + 1e-6, grid, eps, False) == 0
+    assert find_bin_with_rules(0.0 + 1e-6, grid, eps, True) == -1
+    assert find_bin_with_rules(0.0 + 1e-6, grid, eps, False) == 0
 
 
 def test_near_last_edge_with_epsilon(grid, eps):
-    assert find_bin(10.0 - 1e-6, grid, eps, True) == 3
-    assert find_bin(10.0 - 1e-6, grid, eps, False) == -1
+    assert find_bin_with_rules(10.0 - 1e-6, grid, eps, True) == 3
+    assert find_bin_with_rules(10.0 - 1e-6, grid, eps, False) == -1
 
 
 def test_out_of_range(grid):

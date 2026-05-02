@@ -13,4 +13,5 @@ def test_edep_cannot_be_grouped_with_other_scores(capsys):
         mcdc.Tally(mesh=mesh, scores=["flux", "energy_deposition"])
 
     captured = capsys.readouterr()
-    assert "cannot be grouped with other scores yet" in captured.out
+    assert "Cannot mix tracklength scores with collision ones" in captured.out
+    assert "energy_deposition" in captured.out
