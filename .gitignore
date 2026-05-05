@@ -1,0 +1,71 @@
+# setup.py
+build
+.eggs
+mcdc.egg-info
+
+# Material Data
+mcdc_xs
+MCDC-Xsec
+
+# Python cache
+__pycache__
+*.pyc
+*.nbc
+*.nbi
+
+# GPU cache
+__ptxcache__
+__harmonize_cache__
+
+# Editor
+.spyproject
+*.swp
+.vscode/
+
+# Output
+*output.h5
+output*.h5
+*output.h5
+*.png
+*.mp4
+*.gif
+
+# Ignore all png and giffiles except those in the docs/source/images directory
+!docs/source/images/**/*.png
+!docs/source/images/**/*.gif
+
+# Cluster job
+*.out
+*.pbs
+
+# Misc.
+tmp
+tmp.py
+tmp_*
+*_tmp.py
+*.core
+.DS_Store # for mac users
+**/.DS_Store
+**/.idea
+
+# test cache
+.pytest_cache
+pytestdebug.log
+
+# profiler
+*.prof
+
+# Documentation builds
+docs/build
+docs/source/pythonapi/generated/
+
+*.csv
+
+# Regression tests
+dummy_nuclide.h5
+source_particles.h5
+
+# Container artifacts
+*.sif
+*_sandbox
+*.tar
