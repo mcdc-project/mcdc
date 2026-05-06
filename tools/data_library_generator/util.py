@@ -80,21 +80,23 @@ def get_ace_name(Z, A, T, S=None):
     return f"{ID}{extension}"
 
 
-def get_interpolation_type(interpolation_data, tag):
-    interpolation = "linear"
-    if all(np.array(interpolation_data.interpolants) == 1):
-        interpolation = "histogram"
-    elif all(np.array(interpolation_data.interpolants) == 2):
-        interpolation = "linear"
-    elif all(np.array(interpolation_data.interpolants) == 3):
-        interpolation = "semilog-x"
-    elif all(np.array(interpolation_data.interpolants) == 4):
-        interpolation = "semilog-y"
-    elif all(np.array(interpolation_data.interpolants) == 5):
-        interpolation = "log"
-    else:
-        print_error(f"Unsupported interpolation type in {tag}")
-    return interpolation
+def extract_interpolation_data(interpolation_data, tag):
+    interpolations = []
+    for interpolation in interpolation_data.interpolants:
+        if interpolation == 1:
+            interpolations.append("histogram")
+        elif interpolation == 2:
+            interpolations.append("linear")
+        elif interpolation == 3:
+            interpolations.append("semilog-x")
+        elif interpolation == 4:
+            interpolations.append("semilog-y")
+        elif interpolation == 5:
+            interpolations.append("log")
+        else:
+            print_error(f"Unsupported interpolation type in {tag}")
+    interpolation_boundaries = interpolation_data.boundaries[:]
+    return interpolations, interpolation_boundaries
 
 
 def load_fission_multiplicity(data, h5_group: h5py.Group):
@@ -180,7 +182,7 @@ def load_energy_distribution(data, h5_group: h5py.Group):
     elif isinstance(data, ACEtk.continuous.EvaporationSpectrum):
         h5_group.attrs["type"] = "evaporation"
 
-        interpolation = get_interpolation_type(
+        interpolations, interpolation_boundaries = extract_interpolation_data(
             data.interpolation_data, "Evaporation spectrum temperature"
         )
 
@@ -188,7 +190,10 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         temperature = np.array(data.temperatures)
         restriction_energy = np.array(data.restriction_energy)
 
-        h5_group.create_dataset("temperature_interpolation", data=interpolation)
+        h5_group.create_dataset("temperature_interpolations", data=interpolations)
+        h5_group.create_dataset(
+            "interpolation_boundaries", data=interpolation_boundaries
+        )
         dataset = h5_group.create_dataset("temperature_energy_grid", data=energy)
         dataset.attrs["unit"] = "MeV"
         dataset = h5_group.create_dataset("temperature", data=temperature)
@@ -199,7 +204,7 @@ def load_energy_distribution(data, h5_group: h5py.Group):
     elif isinstance(data, ACEtk.continuous.SimpleMaxwellianFissionSpectrum):
         h5_group.attrs["type"] = "maxwellian"
 
-        interpolation = get_interpolation_type(
+        interpolations, interpolation_boundaries = extract_interpolation_data(
             data.interpolation_data, "Maxwellian spectrum temperature"
         )
 
@@ -207,7 +212,10 @@ def load_energy_distribution(data, h5_group: h5py.Group):
         temperature = np.array(data.temperatures)
         restriction_energy = np.array(data.restriction_energy)
 
-        h5_group.create_dataset("temperature_interpolation", data=interpolation)
+        h5_group.create_dataset("temperature_interpolation", data=interpolations)
+        h5_group.create_dataset(
+            "interpolation_boundaries", data=interpolation_boundaries
+        )
         dataset = h5_group.create_dataset("temperature_energy_grid", data=energy)
         dataset.attrs["unit"] = "MeV"
         dataset = h5_group.create_dataset("temperature", data=temperature)

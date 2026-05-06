@@ -1,4 +1,6 @@
-from numpy import float64
+import numpy as np
+
+from numpy import float64, int64
 from numpy.typing import NDArray
 
 ####
@@ -14,7 +16,7 @@ from mcdc.constant import (
     INTERPOLATION_LOG,
 )
 from mcdc.object_.base import ObjectPolymorphic
-from mcdc.print_ import print_1d_array
+from mcdc.print_ import print_1d_array, print_error
 
 # ======================================================================================
 # Data base class
@@ -72,21 +74,38 @@ class DataTable(DataBase):
     #
     x: NDArray[float64]
     y: NDArray[float64]
-    interpolation: int
+    interpolations: NDArray[int64]
+    interpolation_boundaries: NDArray[int64]
 
-    def __init__(self, x, y, interpolation):
+    def __init__(self, x, y, interpolations, interpolation_boundaries=None):
         type_ = DATA_TABLE
         super().__init__(type_)
 
         self.x = x
         self.y = y
-        self.interpolation = interpolation
+
+        if isinstance(interpolations, int):
+            self.interpolations = np.array([interpolations], dtype=int)
+            self.interpolation_boundaries = np.array([len(x)], dtype=int)
+        else:
+            self.interpolations = np.array(interpolations, dtype=int)
+            if interpolation_boundaries is None:
+                print_error("Missing interpolation boundaries in tabulated data.")
+            else:
+                self.interpolation_boundaries = np.array(
+                    interpolation_boundaries, dtype=int
+                )
 
     def __repr__(self):
         text = super().__repr__()
         text += f"  - x {print_1d_array(self.x)}\n"
         text += f"  - y {print_1d_array(self.y)}\n"
-        text += f"  - Interpolation: {decode_interpolation(self.interpolation)}\n"
+        if len(self.interpolations) == 1:
+            text += (
+                f"  - Interpolation: {decode_interpolation(self.interpolations[0])}\n"
+            )
+        else:
+            text += f"  - Interpolations: {[decode_interpolation(x) for x in set(self.interpolations)]}\n"
         return text
 
 

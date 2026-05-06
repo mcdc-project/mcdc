@@ -218,7 +218,8 @@ class DistributionEvaporation(DistributionBase):
         nuclear_temperature_energy_grid,
         nuclear_temperature_value,
         restriction_energy,
-        temperature_interpolation,
+        temperature_interpolations,
+        interpolation_boundaries,
     ):
         type_ = DISTRIBUTION_EVAPORATION
         super().__init__(type_)
@@ -227,7 +228,8 @@ class DistributionEvaporation(DistributionBase):
         self.nuclear_temperature = DataTable(
             nuclear_temperature_energy_grid,
             nuclear_temperature_value,
-            temperature_interpolation,
+            temperature_interpolations,
+            interpolation_boundaries,
         )
 
     def __repr__(self):
@@ -255,7 +257,8 @@ class DistributionMaxwellian(DistributionBase):
         nuclear_temperature_energy_grid,
         nuclear_temperature_value,
         restriction_energy,
-        temperature_interpolation,
+        temperature_interpolations,
+        interpolation_boundaries,
     ):
         type_ = DISTRIBUTION_MAXWELLIAN
         super().__init__(type_)
@@ -264,7 +267,8 @@ class DistributionMaxwellian(DistributionBase):
         self.nuclear_temperature = DataTable(
             nuclear_temperature_energy_grid,
             nuclear_temperature_value,
-            temperature_interpolation,
+            temperature_interpolations,
+            interpolation_boundaries,
         )
 
     def __repr__(self):

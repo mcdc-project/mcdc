@@ -150,7 +150,10 @@ table_data = into_dtype([
     ('x_length', int64),
     ('y_offset', int64),
     ('y_length', int64),
-    ('interpolation', int64),
+    ('interpolations_offset', int64),
+    ('interpolations_length', int64),
+    ('interpolation_boundaries_offset', int64),
+    ('interpolation_boundaries_length', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])

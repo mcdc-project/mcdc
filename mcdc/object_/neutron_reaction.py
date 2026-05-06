@@ -347,24 +347,36 @@ def set_energy_distribution(h5_group):
         energy = h5_group[f"temperature_energy_grid"][()] * 1e6  # MeV to eV
         temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
         restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
-        interpolation = encode_interpolation(
-            h5_group[f"temperature_interpolation"][()].decode("utf-8")
-        )
+        interpolations = [
+            encode_interpolation(x.decode("utf-8"))
+            for x in h5_group[f"temperature_interpolations"][()]
+        ]
+        interpolation_boundaries = h5_group["interpolation_boundaries"][()]
 
         energy_spectrum = DistributionEvaporation(
-            energy, temperature, restriction_energy, interpolation
+            energy,
+            temperature,
+            restriction_energy,
+            interpolations,
+            interpolation_boundaries,
         )
 
     elif spectrum_type == "maxwellian":
         energy = h5_group[f"temperature_energy_grid"][()] * 1e6  # MeV to eV
         temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
         restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
-        interpolation = encode_interpolation(
-            h5_group[f"temperature_interpolation"][()].decode("utf-8")
-        )
+        interpolations = [
+            encode_interpolation(x.decode("utf-8"))
+            for x in h5_group[f"temperature_interpolations"][()]
+        ]
+        interpolation_boundaries = h5_group["interpolation_boundaries"][()]
 
         energy_spectrum = DistributionMaxwellian(
-            energy, temperature, restriction_energy, interpolation
+            energy,
+            temperature,
+            restriction_energy,
+            interpolations,
+            interpolation_boundaries,
         )
 
     elif spectrum_type == "kalbach-mann":
