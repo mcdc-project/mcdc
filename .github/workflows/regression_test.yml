@@ -8,6 +8,8 @@ jobs:
   regression-test:
     name: ${{ matrix.mode }} (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     timeout-minutes: ${{ matrix.timeout }}
 
     strategy:
