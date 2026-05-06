@@ -12,6 +12,14 @@ def print_note(message):
     print(f"\n  [NOTE]: {message}\n")
 
 
+def decode_name(header):
+    Z, A, S, T = decode_ace_name(header.zaid)
+    symbol = Z_TO_SYMBOL[Z]
+    nuclide_name = f"{symbol}{A}" if S == 0 else f"{symbol}{A}m{S}"
+    mcdc_name = f"{nuclide_name}-{T}K.h5"
+    return mcdc_name
+
+
 def decode_interpolation(code):
     if code not in INTERPOLATION_MAP.keys():
         print_error(f"Unsupported interpolation law: {code}")
