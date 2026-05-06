@@ -112,24 +112,38 @@ def find_bin_with_tolerance(value, grid, tolerance):
 # ======================================================================================
 
 
+# INT = 1: histogram
+@njit
+def histogram_interpolation(x, x1, x2, y1, y2):
+    return y1
+
+
+# INT = 2: linear-linear
 @njit
 def linear_interpolation(x, x1, x2, y1, y2):
     return y1 + (x - x1) * (y2 - y1) / (x2 - x1)
 
 
+# INT = 3: linear-log / semilogx
+# linear in log(x), linear in y
+@njit
+def semilogx_interpolation(x, x1, x2, y1, y2):
+    return y1 + (math.log(x) - math.log(x1)) * (y2 - y1) / (math.log(x2) - math.log(x1))
+
+
+# INT = 4: log-linear / semilogy
+# linear in x, linear in log(y)
+@njit
+def semilogy_interpolation(x, x1, x2, y1, y2):
+    return y1 * (y2 / y1) ** ((x - x1) / (x2 - x1))
+
+
+# INT = 5: log-log
+# linear in log(x), linear in log(y)
 @njit
 def log_interpolation(x, x1, x2, y1, y2):
-    # Convert to logs
-    lx1, lx2 = math.log(x1), math.log(x2)
-    ly1, ly2 = math.log(y1), math.log(y2)
-
-    # Slope in log–log space
-    m = (ly2 - ly1) / (lx2 - lx1)
-
-    # Interpolate log(y)
-    ly = ly1 + m * (math.log(x) - lx1)
-
-    return math.exp(ly)
+    m = math.log(y2 / y1) / math.log(x2 / x1)
+    return y1 * (x / x1) ** m
 
 
 # ======================================================================================
