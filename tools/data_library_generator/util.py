@@ -100,8 +100,7 @@ def load_fission_multiplicity(data, h5_group: h5py.Group):
         h5_group.attrs["type"] = "tabulated"
 
         if not data.interpolation_data.is_linear_linear:
-            print(f"[ERROR] Non linear-linear tabulated multiplicity is not supported")
-            exit()
+            print_error("Non linear-linear tabulated multiplicity is not supported")
 
         energy = np.array(data.energies)
 
@@ -170,15 +169,20 @@ def load_energy_distribution(data, h5_group: h5py.Group):
     elif isinstance(data, ACEtk.continuous.EvaporationSpectrum):
         h5_group.attrs["type"] = "evaporation"
 
-        if not data.interpolation_data.is_linear_linear:
+        if all(np.array(data.interpolation_data.interpolants) == 2):
+            interpolation = "linear"
+        elif all(np.array(data.interpolation_data.interpolants) == 5):
+            interpolation = "log"
+        else:
             print_error(
-                "Evaporation distribution temperature is not linearly interpolable"
+                "Unsupported temperature interpolation law in Evaporation Spectrum"
             )
 
         energy = np.array(data.energies)
         temperature = np.array(data.temperatures)
         restriction_energy = np.array(data.restriction_energy)
 
+        h5_group.create_dataset("temperature_interpolation", data=interpolation)
         dataset = h5_group.create_dataset("temperature_energy_grid", data=energy)
         dataset.attrs["unit"] = "MeV"
         dataset = h5_group.create_dataset("temperature", data=temperature)

@@ -218,13 +218,16 @@ class DistributionEvaporation(DistributionBase):
         nuclear_temperature_energy_grid,
         nuclear_temperature_value,
         restriction_energy,
+        temperature_interpolation,
     ):
         type_ = DISTRIBUTION_EVAPORATION
         super().__init__(type_)
 
         self.restriction_energy = restriction_energy
         self.nuclear_temperature = DataTable(
-            nuclear_temperature_energy_grid, nuclear_temperature_value
+            nuclear_temperature_energy_grid,
+            nuclear_temperature_value,
+            temperature_interpolation,
         )
 
     def __repr__(self):
