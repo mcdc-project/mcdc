@@ -20,12 +20,6 @@ def decode_name(header):
     return mcdc_name, nuclide_name, Z, A, S, T
 
 
-def decode_interpolation(code):
-    if code not in INTERPOLATION_MAP.keys():
-        print_error(f"Unsupported interpolation law: {code}")
-    return INTERPOLATION_MAP[code]
-
-
 def decode_ace_name(name: str):
     """
     Decode an ACE file name into atomic number Z, mass number A, excitation state S,
@@ -84,6 +78,23 @@ def get_ace_name(Z, A, T, S=None):
         ID += 300 + S * 100
     extension = ACE_EXTENSION_LIB81[T]
     return f"{ID}{extension}"
+
+
+def get_interpolation_type(interpolation_data, tag):
+    interpolation = "linear"
+    if all(np.array(interpolation_data.interpolants) == 1):
+        interpolation = "histogram"
+    elif all(np.array(interpolation_data.interpolants) == 2):
+        interpolation = "linear"
+    elif all(np.array(interpolation_data.interpolants) == 3):
+        interpolation = "semilog-x"
+    elif all(np.array(interpolation_data.interpolants) == 4):
+        interpolation = "semilog-y"
+    elif all(np.array(interpolation_data.interpolants) == 5):
+        interpolation = "log"
+    else:
+        print_error(f"Unsupported interpolation type in {tag}")
+    return interpolation
 
 
 def load_fission_multiplicity(data, h5_group: h5py.Group):
@@ -169,14 +180,9 @@ def load_energy_distribution(data, h5_group: h5py.Group):
     elif isinstance(data, ACEtk.continuous.EvaporationSpectrum):
         h5_group.attrs["type"] = "evaporation"
 
-        if all(np.array(data.interpolation_data.interpolants) == 2):
-            interpolation = "linear"
-        elif all(np.array(data.interpolation_data.interpolants) == 5):
-            interpolation = "log"
-        else:
-            print_error(
-                "Unsupported temperature interpolation law in Evaporation Spectrum"
-            )
+        interpolation = get_interpolation_type(
+            data.interpolation_data, "Evaporation spectrum temperature"
+        )
 
         energy = np.array(data.energies)
         temperature = np.array(data.temperatures)
@@ -193,14 +199,9 @@ def load_energy_distribution(data, h5_group: h5py.Group):
     elif isinstance(data, ACEtk.continuous.SimpleMaxwellianFissionSpectrum):
         h5_group.attrs["type"] = "maxwellian"
 
-        if all(np.array(data.interpolation_data.interpolants) == 2):
-            interpolation = "linear"
-        elif all(np.array(data.interpolation_data.interpolants) == 5):
-            interpolation = "log"
-        else:
-            print_error(
-                "Unsupported temperature interpolation law in Maxwellian distribution"
-            )
+        interpolation = get_interpolation_type(
+            data.interpolation_data, "Maxwellian spectrum temperature"
+        )
 
         energy = np.array(data.energies)
         temperature = np.array(data.temperatures)
@@ -349,8 +350,6 @@ def load_energy_distribution(data, h5_group: h5py.Group):
 # ======================================================================================
 # Constants
 # ======================================================================================
-
-INTERPOLATION_MAP = {2: "linear-linear"}
 
 ACE_TEMPERATURE_LIB81 = {
     "10c": 293.6,
