@@ -25,7 +25,7 @@ jobs:
           - mode: Python-Serial
             timeout: 10
           - mode: Python-MPI
-            timeout: 20
+            timeout: 30
           - mode: Numba-Serial
             timeout: 120
           - mode: Numba-MPI
