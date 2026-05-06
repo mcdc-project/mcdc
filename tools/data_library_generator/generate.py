@@ -45,7 +45,7 @@ else:
             header = ACEtk.Header.from_string(f.readline())
 
         # Decode ACE name to MC/DC name
-        mcdc_name = util.decode_name(header.zaid)
+        mcdc_name, nuclide_name, Z, A, S, T = util.decode_name(header)
 
         if not os.path.exists(f"{output_dir}/{mcdc_name}"):
             target_files.append(file_name)
@@ -62,7 +62,7 @@ for ace_name in pbar:
         header = ACEtk.Header.from_string(f.readline())
 
     # Decode ACE name to MC/DC name
-    mcdc_name = util.decode_name(header.zaid)
+    mcdc_name, nuclide_name, Z, A, S, T = util.decode_name(header)
 
     # Rewrite or skip?
     if not rewrite and os.path.exists(f"{output_dir}/{mcdc_name}"):

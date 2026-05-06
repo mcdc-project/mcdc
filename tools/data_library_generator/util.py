@@ -17,7 +17,7 @@ def decode_name(header):
     symbol = Z_TO_SYMBOL[Z]
     nuclide_name = f"{symbol}{A}" if S == 0 else f"{symbol}{A}m{S}"
     mcdc_name = f"{nuclide_name}-{T}K.h5"
-    return mcdc_name
+    return mcdc_name, nuclide_name, Z, A, S, T
 
 
 def decode_interpolation(code):
