@@ -7,7 +7,10 @@ from mcdc.constant import (
     DATA_NONE,
     DATA_TABLE,
     DATA_POLYNOMIAL,
+    INTERPOLATION_HISTOGRAM,
     INTERPOLATION_LINEAR,
+    INTERPOLATION_SEMILOGX,
+    INTERPOLATION_SEMILOGY,
     INTERPOLATION_LOG,
 )
 from mcdc.object_.base import ObjectPolymorphic
@@ -71,7 +74,7 @@ class DataTable(DataBase):
     y: NDArray[float64]
     interpolation: int
 
-    def __init__(self, x, y, interpolation=INTERPOLATION_LINEAR):
+    def __init__(self, x, y, interpolation):
         type_ = DATA_TABLE
         super().__init__(type_)
 
@@ -83,11 +86,34 @@ class DataTable(DataBase):
         text = super().__repr__()
         text += f"  - x {print_1d_array(self.x)}\n"
         text += f"  - y {print_1d_array(self.y)}\n"
-        if self.interpolation == INTERPOLATION_LINEAR:
-            text += f"  - Interpolation: linear\n"
-        elif self.interpolation == INTERPOLATION_LOG:
-            text += f"  - Interpolation: log\n"
+        text += f"  - Interpolation: {decode_interpolation(self.interpolation)}\n"
         return text
+
+
+def decode_interpolation(type_):
+    if type_ == INTERPOLATION_HISTOGRAM:
+        return "histogram"
+    elif type_ == INTERPOLATION_LINEAR:
+        return "linear"
+    elif type_ == INTERPOLATION_SEMILOGX:
+        return "semilog-x"
+    elif type_ == INTERPOLATION_SEMILOGY:
+        return "semilog-y"
+    elif type_ == INTERPOLATION_LOG:
+        return "log"
+
+
+def encode_interpolation(type_):
+    if type_ == "histogram":
+        return INTERPOLATION_HISTOGRAM
+    elif type_ == "linear":
+        return INTERPOLATION_LINEAR
+    elif type_ == "semilog-x":
+        return INTERPOLATION_SEMILOGX
+    elif type_ == "semilog-y":
+        return INTERPOLATION_SEMILOGY
+    elif type_ == "log":
+        return INTERPOLATION_LOG
 
 
 # ======================================================================================

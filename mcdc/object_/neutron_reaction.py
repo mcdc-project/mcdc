@@ -20,6 +20,7 @@ from mcdc.constant import (
     REFERENCE_FRAME_LAB,
 )
 from mcdc.object_.base import ObjectPolymorphic
+from mcdc.object_.data import encode_interpolation
 from mcdc.object_.distribution import (
     DistributionBase,
     DistributionMultiTable,
@@ -346,20 +347,21 @@ def set_energy_distribution(h5_group):
         energy = h5_group[f"temperature_energy_grid"][()] * 1e6  # MeV to eV
         temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
         restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
+        interpolation = encode_interpolation(
+            h5_group[f"temperature_interpolation"][()].decode("utf-8")
+        )
 
         energy_spectrum = DistributionEvaporation(
-            energy, temperature, restriction_energy
+            energy, temperature, restriction_energy, interpolation
         )
 
     elif spectrum_type == "maxwellian":
         energy = h5_group[f"temperature_energy_grid"][()] * 1e6  # MeV to eV
         temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
         restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
-        interpolation = h5_group[f"temperature_interpolation"][()].decode("utf-8")
-        if interpolation == "linear":
-            interpolation = INTERPOLATION_LINEAR
-        elif interpolation == "log":
-            interpolation = INTERPOLATION_LOG
+        interpolation = encode_interpolation(
+            h5_group[f"temperature_interpolation"][()].decode("utf-8")
+        )
 
         energy_spectrum = DistributionMaxwellian(
             energy, temperature, restriction_energy, interpolation
