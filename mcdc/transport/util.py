@@ -132,6 +132,57 @@ def log_interpolation(x, x1, x2, y1, y2):
     return math.exp(ly)
 
 
+# =
+# 
+# = 
+
+
+@njit
+def calculate_angles(particle_container, px, py, pz):
+    particle = particle_container[0]
+    ux = particle["ux"]
+    uy = particle["uy"]
+    uz = particle["uz"]
+
+    mu = ux*px + uy*py + uz*pz
+
+    azimuthal = _calculate_azimuthal(ux, uy, uz, px, py, pz)
+
+    return mu, azimuthal
+
+
+def _calculate_azimuthal(ux, uy, uz, px, py, pz):
+    # get two orthonormal basis vectors u1, u2 perpendicular to p
+    # u1 done via gram-schmidt, u2 done via cross product
+
+    # choose arbitrary guess v1, check to make sure its not accidentally parallel to p
+    if px < 0.9:
+      v1x, v1y, v1z = 1.0, 0.0, 0.0
+    else:
+        v1x, v1y, v1z = 0.0, 1.0, 0.0
+
+    # u1 = (v1 - proj(v1, p)) / ||u1||
+    v1dotp = v1x*px + v1y*py + v1z*pz
+    u1x = v1x - v1dotp * px
+    u1y = v1y - v1dotp * py
+    u1z = v1z - v1dotp * pz
+    u1norm = math.sqrt(u1x*u1x + u1y*u1y + u1z*u1z)
+    u1x /= u1norm
+    u1y /= u1norm
+    u1z /= u1norm
+
+    # u2 = p x u1
+    u2x = py*u1z - pz*u1y
+    u2y = pz*u1x - px*u1z
+    u2z = px*u1y - py*u1x
+
+    # particle vector in terms of u1 and u2 (dot products)
+    rel_ux = ux*u1x + uy*u1y + uz*u1z
+    rel_uy = ux*u2x + uy*u2y + uz*u2z
+    
+    return math.atan2(rel_uy, rel_ux)
+
+
 # ======================================================================================
 # Framework utilities
 # ======================================================================================

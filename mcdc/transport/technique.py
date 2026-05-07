@@ -160,13 +160,15 @@ def get_ww_indices(particle_container, ww_obj, simulation, data):
         energy = particle["E"]
     ie = util.find_bin(energy, energy_bounds)
 
-    # get mu index
-    mu_bounds = ww_get.mu_bounds_all(ww_obj, data)
-    imu = util.find_bin(particle["uz"], mu_bounds)
+    # get angular indices
+    mu, azimuthal = util.calculate_angles(particle_container, ww_obj["px"], ww_obj["py"], ww_obj["pz"])
 
-    # get azimuthal index
+    # mu
+    mu_bounds = ww_get.mu_bounds_all(ww_obj, data)
+    imu = util.find_bin(mu, mu_bounds)
+
+    # azimuthal
     azi_bounds = ww_get.azi_bounds_all(ww_obj, data)
-    azimuthal = np.arctan2(particle["uy"], particle["ux"])
     ia = util.find_bin(azimuthal, azi_bounds)
 
     # get spatial index
