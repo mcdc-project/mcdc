@@ -13,7 +13,7 @@ from mcdc.numba_types import particle_data
         (0.0, 1.0, 0.0, 0.0, np.pi / 2.0),
         (0.0, -1.0, 0.0, 0.0, -np.pi / 2.0),
         (0.0, 0.0, 1.0, 1.0, 0.0),
-        (0.0, 0.0, -1.0, -1.0, 0.0)
+        (0.0, 0.0, -1.0, -1.0, 0.0),
     ],
 )
 def test_calculate_angles(ux, uy, uz, expected_mu, expected_phi):
