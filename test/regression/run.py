@@ -1,4 +1,4 @@
-import h5py, os, sys, argparse, fnmatch 
+import h5py, os, sys, argparse, fnmatch
 import numpy as np
 from colorama import Fore, Style
 
@@ -173,7 +173,7 @@ for i, name in enumerate(names):
                     if ("uq_var" in result) and (args.target == "gpu"):
                         continue
                     # Passed?
-                    try: 
+                    try:
                         np.testing.assert_allclose(a, b)
                         print(
                             Fore.GREEN + "  {}: Passed".format(name) + Style.RESET_ALL
@@ -182,14 +182,8 @@ for i, name in enumerate(names):
                         all_pass = False
                         error_msgs[-1].append(
                             "Differences in %s"
-                            % (
-                                name
-                                + "/"
-                                + result
-                                + "\n"
-                                + "{}\n".format(error)
-                            )
-                        ) 
+                            % (name + "/" + result + "\n" + "{}\n".format(error))
+                        )
                         print(Fore.RED + "  {}: Failed".format(name) + Style.RESET_ALL)
 
         # Other quantities
