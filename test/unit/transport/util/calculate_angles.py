@@ -23,9 +23,9 @@ def test_calculate_angles(ux, uy, uz, expected_mu, expected_phi):
     particle["ux"] = ux
     particle["uy"] = uy
     particle["uz"] = uz
-    px, py, pz = 0.0, 0.0, 1.0
+    polar_reference = np.array([0.0, 0.0, 1.0])
 
-    mu, phi = calculate_angles(particle_container, px, py, pz)
+    mu, phi = calculate_angles(particle_container, polar_reference)
 
     assert np.isclose(mu, expected_mu)
     assert np.isclose(phi, expected_phi)

@@ -138,7 +138,7 @@ def log_interpolation(x, x1, x2, y1, y2):
 
 
 @njit
-def calculate_angles(particle_container, px, py, pz):
+def calculate_angles(particle_container, polar_reference):
     """
     Calculate particle mu and azimuthal angle from given reference vector
 
@@ -146,12 +146,8 @@ def calculate_angles(particle_container, px, py, pz):
     ----------
     particle_container : ndarray
       Container holding the particle.
-    px : float
-      X-component of reference vector
-    py : float
-      Y-component of reference vector
-    pz : float
-      Z-component of reference vector
+    polar_reference : ndarray
+      3D polar reference vector
 
     Returns
     -------
@@ -164,6 +160,10 @@ def calculate_angles(particle_container, px, py, pz):
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
+
+    px = polar_reference[0]
+    py = polar_reference[1]
+    pz = polar_reference[2]
 
     mu = ux * px + uy * py + uz * pz
 

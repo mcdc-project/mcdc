@@ -100,9 +100,7 @@ class WeightWindows(ObjectSingleton):
     Nz: int
 
     # reference vector for calculating mu and azimuthal angle
-    px: float
-    py: float
-    pz: float
+    polar_reference: Annotated[NDArray[np.float64], (3,)]
 
     # arrays of ww params
     lower_weights: Annotated[
@@ -128,9 +126,7 @@ class WeightWindows(ObjectSingleton):
         self.mesh_ID = -1  # skirt around having to create a MeshBase instance
         self.Nx, self.Ny, self.Nz = 1, 1, 1
         self.Nt = 1
-        self.px = 0.0
-        self.py = 0.0
-        self.pz = 1.0
+        self.polar_reference = np.array([0.0, 0.0, 1.0])
         shape = (self.Nt, self.Ne, self.Nmu, self.Na, self.Nx, self.Ny, self.Nz)
         self.lower_weights = np.array([1.0]).reshape(*shape)
         self.target_weights = np.array([1.0]).reshape(*shape)
@@ -217,10 +213,8 @@ class WeightWindows(ObjectSingleton):
             )
 
     def set_polar_reference(self, px, py, pz):
-        norm = np.linalg.norm([px, py, pz])
-        self.px = px / norm
-        self.py = py / norm
-        self.pz = pz / norm
+        polar_reference = np.array([px, py, pz])
+        self.polar_reference = polar_reference / np.linalg.norm(polar_reference)
 
     @staticmethod
     def __check_array(array: NDArray[np.float64], name: str):
