@@ -171,7 +171,7 @@ def calculate_angles(particle_container, polar_reference):
 
     return mu, azimuthal
 
-
+@njit
 def _calculate_azimuthal(ux, uy, uz, px, py, pz):
     """
     Calculates the azimuthal angle of a particle relative to a reference vector.
