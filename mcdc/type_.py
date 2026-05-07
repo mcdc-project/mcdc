@@ -51,7 +51,9 @@ technique = None
 gpu_meta = None
 
 global_ = None
+global_prep = None
 global_size = None
+
 
 # ==============================================================================
 # MC/DC Member Array Sizes
@@ -1467,7 +1469,6 @@ def make_type_gpu_meta():
             ("source_program_pointer", uintp),
             ("precursor_program_pointer", uintp),
             ("global_pointer", uintp),
-            ("tally_pointer", uintp),
         ]
     )
 
@@ -1477,8 +1478,8 @@ def make_type_gpu_meta():
 # ==============================================================================
 
 
-def make_type_global(input_deck):
-    global global_, global_size
+def make_global_fields(input_deck,tally_shape):
+    global global_, global_prep, global_size
 
     # Get modes
     mode_CE = input_deck.setting["mode_CE"]
@@ -1557,8 +1558,7 @@ def make_type_global(input_deck):
     ) or input_deck.technique["iQMC"]:
         bank_source = particle_bank(N_work)
 
-    global_ = into_dtype(
-        [
+    global_fields = [
             ("nuclides", nuclide, (N_nuclide,)),
             ("materials", material, (N_material,)),
             ("surfaces", surface, (N_surface,)),
@@ -1627,12 +1627,30 @@ def make_type_global(input_deck):
             ("mpi_work_iter", int64, (1,)),
             ("gpu_meta", gpu_meta),
             ("source_seed", uint64),
+            ("data",float64,tally_shape),
         ]
-    )
+    
+    return global_fields
+
+
+
+def make_type_global(input_deck,tally_shape):
+    global global_, global_size
+
+    global_fields = make_global_fields(input_deck,tally_shape)
+    global_ = into_dtype(global_fields)
 
     # GLobal type
-
     global_size = global_.itemsize
+    
+
+
+def make_type_global_prep(input_deck):
+    global global_prep
+
+    global_fields = make_global_fields(input_deck,(1,))
+    global_prep = into_dtype(global_fields[:-1])
+
 
 
 # ==============================================================================

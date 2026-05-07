@@ -64,7 +64,7 @@ def run():
     if input_deck.technique["iQMC"]:
         iqmc_validate_inputs(input_deck)
 
-    data_tally, mcdc_arr = prepare()
+    mcdc_arr = prepare()
     mcdc = mcdc_arr[0]
     mcdc["runtime_preparation"] = MPI.Wtime() - preparation_start
 
@@ -80,20 +80,20 @@ def run():
     if mcdc["technique"]["iQMC"]:
         iqmc_simulation(mcdc_arr)
     elif mcdc["setting"]["mode_eigenvalue"]:
-        loop_eigenvalue(data_tally, mcdc_arr)
+        loop_eigenvalue(mcdc_arr)
     else:
         print_msg("Starting fixed source")
-        loop_fixed_source(data_tally, mcdc_arr)
+        loop_fixed_source(mcdc_arr)
     mcdc["runtime_simulation"] = MPI.Wtime() - simulation_start
 
     # Compressed sensing reconstruction
     N_cs_bins = mcdc["cs_tallies"]["filter"]["N_cs_bins"][0]
     if N_cs_bins != 0:
-        cs_reconstruct(data_tally, mcdc)
+        cs_reconstruct(mcdc)
 
     # Output: generate hdf5 output files
     output_start = MPI.Wtime()
-    generate_hdf5(data_tally, mcdc)
+    generate_hdf5(mcdc)
     mcdc["runtime_output"] = MPI.Wtime() - output_start
 
     # Stop timer
@@ -203,8 +203,8 @@ def calculate_cs_sparse_solution(data, mcdc, A, b):
     return sparse_solution
 
 
-def cs_reconstruct(data, mcdc):
-    tally_bin = data
+def cs_reconstruct(mcdc):
+    tally_bin = mcdc["data"]
     tally = mcdc["cs_tallies"][0]
     stride = tally["stride"]
     bin_idx = stride["tally"]
@@ -214,8 +214,8 @@ def cs_reconstruct(data, mcdc):
 
     b = tally_bin[TALLY_SUM, bin_idx : bin_idx + N_cs_bins]
 
-    A, T_inv = calculate_cs_A(data, mcdc)
-    x = calculate_cs_sparse_solution(data, mcdc, A, b)
+    A, T_inv = calculate_cs_A(tally_bin, mcdc)
+    x = calculate_cs_sparse_solution(tally_bin, mcdc, A, b)
 
     recon = T_inv @ x
     recon_reshaped = recon.reshape(Ny, Nx)
@@ -531,8 +531,8 @@ def prepare():
     type_.make_type_dd_turnstile_event(input_deck)
     type_.make_type_technique(input_deck)
     type_.make_type_gpu_meta()
-    type_.make_type_global(input_deck)
     type_.make_size_rpn(input_deck)
+    type_.make_type_global_prep(input_deck)
     kernel.adapt_rng(nb.config.DISABLE_JIT)
 
     input_deck.setting["target"] = config.target
@@ -542,7 +542,7 @@ def prepare():
     #   TODO: Better alternative?
     # =========================================================================
 
-    mcdc_arr = np.zeros(1, dtype=type_.global_)
+    mcdc_arr = np.zeros(1, dtype=type_.global_prep)
     mcdc = mcdc_arr[0]
 
     # Now, set up the global variable container
@@ -1144,6 +1144,7 @@ def prepare():
         tally_bin_N_copies = 5
 
     tally_shape = (tally_bin_N_copies, tally_bin_size)
+    type_.make_type_global(input_deck,tally_shape)
 
     # =========================================================================
     # Platform Targeting, Adapters, Toggles, etc
@@ -1172,16 +1173,17 @@ def prepare():
     # Allocate Tally Storage
     # =========================================================================
 
-    data_tally, data_tally_uint = adapt.create_tally_array(
-        tally_shape[0], tally_shape[1]
-    )
-
     mcdc_arr, mcdc_uint = adapt.create_mcdc_array()
-    mcdc_arr[0] = mcdc
+    
+    for name in type_.global_.names:
+        if name == "data":
+            continue
+        mcdc_arr[0][name] = mcdc[name]
+
     mcdc = mcdc_arr[0]
 
     mcdc["gpu_meta"]["global_pointer"] = mcdc_uint
-    mcdc["gpu_meta"]["tally_pointer"] = data_tally_uint
+    
 
     # =========================================================================
     # Setting
@@ -1584,13 +1586,13 @@ def prepare():
                     "w"
                 ]
 
-    loop.setup_gpu(mcdc_arr, data_tally)
+    loop.setup_gpu(mcdc_arr)
 
     # =========================================================================
     # Finalize data: wrapping into a tuple
     # =========================================================================
 
-    return data_tally, mcdc_arr
+    return mcdc_arr
 
 
 def cardlist_to_h5group(dictlist, input_group, name):
@@ -1642,12 +1644,14 @@ def dict_to_h5group(dict_, group):
             group[k] = v
 
 
-def dd_mergetally(mcdc, data_tally):
+def dd_mergetally(mcdc):
     """
     Performs tally recombination on domain-decomposed mesh tallies.
     Gathers and re-organizes tally data into a single array as it
       would appear in a non-decomposed simulation.
     """
+
+    data_tally = mcdc["data"]
 
     # create bin for recomposed tallies
     d_Nx = input_deck.technique["dd_mesh"]["x"].size - 1
@@ -1751,12 +1755,15 @@ def dd_mergetally(mcdc, data_tally):
     return dd_tally
 
 
-def dd_mergemesh(mcdc, data_tally):
+def dd_mergemesh(mcdc):
     """
     Performs mesh recombination on domain-decomposed mesh tallies.
     Gathers and re-organizes mesh data into a single array as it
       would appear in a non-decomposed simulation.
     """
+
+    data_tally = mcdc["data"]
+
     d_Nx = input_deck.technique["dd_mesh"]["x"].size - 1
     d_Ny = input_deck.technique["dd_mesh"]["y"].size - 1
     d_Nz = input_deck.technique["dd_mesh"]["z"].size - 1
@@ -1840,7 +1847,9 @@ def dd_mergemesh(mcdc, data_tally):
     return dd_mesh
 
 
-def generate_hdf5(data_tally, mcdc):
+def generate_hdf5(mcdc):
+
+    data_tally = mcdc["data"]
 
     if mcdc["technique"]["domain_decomposition"]:
         dd_tally = dd_mergetally(mcdc, data_tally)
@@ -2458,7 +2467,7 @@ def visualize(
     """
     # TODO: add input error checkers
 
-    _, mcdc_container = prepare()
+    mcdc_container = prepare()
     mcdc = mcdc_container[0]
 
     # Color assignment for materials (by material ID)
