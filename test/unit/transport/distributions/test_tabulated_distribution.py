@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 import mcdc.transport.distribution as dist
 
@@ -16,4 +17,4 @@ def test_tabulated_distribution_sample(rng_sequence, rng_state):
     # (c_0, E_0) = (0.0, 1.0) and (c_1, E_1) = (0.4, 3.0) gives the expected value.
     expected_E = 1.0 + (0.2 - 0.0) * (3.0 - 1.0) / (0.4 - 0.0)
 
-    assert math.isclose(sampled_E, expected_E, rel_tol=0.0, abs_tol=1e-12)
+    np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)

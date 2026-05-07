@@ -179,7 +179,6 @@ for i, name in enumerate(names):
                             Fore.GREEN + "  {}: Passed".format(name) + Style.RESET_ALL
                         )
                     except AssertionError as error:
-                        message = str(error)
                         all_pass = False
                         error_msgs[-1].append(
                             "Differences in %s"
