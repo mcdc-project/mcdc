@@ -13,11 +13,7 @@ import mcdc.transport.util as util
 
 @njit
 def particle_speed(particle_container, simulation, data):
-    if simulation["settings"]["proton_multigroup_mode"]:
-        return multigroup.particle_speed(particle_container, simulation, data)
-    else:
-        return native.particle_speed(particle_container)
-
+    return native.particle_speed(particle_container)
 
 # ======================================================================================
 # Material properties
@@ -26,23 +22,7 @@ def particle_speed(particle_container, simulation, data):
 
 @njit
 def macro_xs(reaction_type, particle_container, simulation, data):
-    if simulation["settings"]["proton_multigroup_mode"]:
-        return multigroup.macro_xs(reaction_type, particle_container, simulation, data)
-    else:
-        return native.macro_xs(reaction_type, particle_container, simulation, data)
-
-
-# @njit
-# def proton_production_xs(reaction_type, particle_container, simulation, data):
-#     if simulation["settings"]["proton_multigroup_mode"]:
-#         return multigroup.proton_production_xs(
-#             reaction_type, particle_container, simulation, data
-#         )
-#     else:
-#         return native.proton_production_xs(
-#             reaction_type, particle_container, simulation, data
-#         )
-
+    return native.macro_xs(reaction_type, particle_container, simulation, data)
 
 # ======================================================================================
 # Collision
@@ -52,10 +32,4 @@ def macro_xs(reaction_type, particle_container, simulation, data):
 @njit
 def collision(particle_container, collision_data_container, program, data):
     simulation = util.access_simulation(program)
-
-    if simulation["settings"]["proton_multigroup_mode"]:
-        multigroup.collision(
-            particle_container, collision_data_container, program, data
-        )
-    else:
-        native.collision(particle_container, collision_data_container, program, data)
+    native.collision(particle_container, collision_data_container, program, data)

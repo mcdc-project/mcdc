@@ -19,9 +19,9 @@ from mcdc.object_.neutron_reaction import (
     set_energy_distribution,
 )
 from mcdc.object_.proton_reaction import(
-    ProtonReactionCapture,
     ProtonReactionElasticScattering,
-    ProtonReactionInelasticScattering,
+    ProtonReactionNonelasticReaction,
+    ProtonSecondaryChannel,
     set_energy_distribution,
 )
 from mcdc.object_.simulation import simulation
@@ -53,16 +53,16 @@ class Nuclide(ObjectNonSingleton):
     proton_xs_energy_grid: NDArray[float64]
     proton_total_xs: NDArray[float64]
     proton_elastic_xs: NDArray[float64]
-    proton_capture_xs: NDArray[float64]
-    proton_inelastic_xs: NDArray[float64]
+    proton_nonelastic_xs: NDArray[float64]
     #
     neutron_elastic_scattering_reactions: list[NeutronReactionElasticScattering]
     neutron_capture_reactions: list[NeutronReactionCapture]
     neutron_inelastic_scattering_reactions: list[NeutronReactionInelasticScattering]
     neutron_fission_reactions: list[NeutronReactionFission]
     proton_elastic_scattering_reactions: list[ProtonReactionElasticScattering]
-    proton_capture_reactions: list[ProtonReactionCapture]
-    proton_inelastic_scattering_reactions: list[ProtonReactionInelasticScattering]
+    proton_nonelastic_reactions: list[ProtonReactionNonelasticReaction]
+    proton_secondary_channels: dict[int, list[ProtonSecondaryChannel]]
+    non_numba: list[str] = ["proton_secondary_channels"]
     #
     neutron_fission_prompt_multiplicity: DataBase
     neutron_fission_delayed_multiplicity: DataBase
@@ -100,19 +100,17 @@ class Nuclide(ObjectNonSingleton):
         self.proton_xs_energy_grid = np.zeros(0)
         self.proton_total_xs = np.zeros(0)
         self.proton_elastic_xs = np.zeros(0)
-        self.proton_capture_xs = np.zeros(0)
-        self.proton_inelastic_xs = np.zeros(0)
+        self.proton_nonelastic_xs = np.zeros(0)
         # Reactions
         self.neutron_elastic_scattering_reactions = []
         self.neutron_capture_reactions = []
         self.neutron_inelastic_scattering_reactions = []
         self.neutron_fission_reactions = []
         self.proton_elastic_scattering_reactions = []
-        self.proton_capture_reactions = []
-        self.proton_inelastic_scattering_reactions = []
+        self.proton_nonelastic_reactions = []
         # Fission
-        self.neutron_fission_prompt_multiplicity = 0
-        self.neutron_fission_delayed_multiplicity = 0
+        self.neutron_fission_prompt_multiplicity = DataPolynomial(np.array([0.0]))
+        self.neutron_fission_delayed_multiplicity = DataPolynomial(np.array([0.0]))
         self.N_neutron_fission_delayed_precursor = 0
         self.neutron_fission_delayed_fractions = np.zeros(0)
         self.neutron_fission_delayed_decay_rates = np.zeros(0)
@@ -259,8 +257,7 @@ class Nuclide(ObjectNonSingleton):
 
     def set_proton_data(self):
         nuclide_name = self.name
-        # All proton data in ENDF70PROT is at 293.6K
-        temperature = 293.6
+        temperature = self.temperature
 
         # Load data library
         dir_name = os.getenv("MCDC_LIB")
@@ -269,8 +266,7 @@ class Nuclide(ObjectNonSingleton):
 
         rx_names = [
             "elastic_scattering",
-            "capture",
-            "inelastic_scattering",
+            "nonelastic_reaction",
         ]
 
         # The reaction MTs
@@ -295,13 +291,11 @@ class Nuclide(ObjectNonSingleton):
         # The total XS
         self.proton_total_xs = np.zeros_like(self.proton_xs_energy_grid)
         self.proton_elastic_xs = np.zeros_like(self.proton_xs_energy_grid)
-        self.proton_capture_xs = np.zeros_like(self.proton_xs_energy_grid)
-        self.proton_inelastic_xs = np.zeros_like(self.proton_xs_energy_grid)
+        self.proton_nonelastic_xs = np.zeros_like(self.proton_xs_energy_grid)
 
         xs_containers = [
             self.proton_elastic_xs,
-            self.proton_capture_xs,
-            self.proton_inelastic_xs,
+            self.proton_nonelastic_xs,
         ]
 
         for xs_container, rx_name in list(zip(xs_containers, rx_names)):
@@ -311,8 +305,7 @@ class Nuclide(ObjectNonSingleton):
 
         self.proton_total_xs = (
             self.proton_elastic_xs
-            + self.proton_capture_xs
-            + self.proton_inelastic_xs
+            + self.proton_nonelastic_xs
         )
 
 
@@ -321,18 +314,15 @@ class Nuclide(ObjectNonSingleton):
         # ==========================================================================
 
         self.proton_elastic_scattering_reactions = []
-        self.proton_capture_reactions = []
-        self.proton_inelastic_scattering_reactions = []
+        self.proton_nonelastic_reactions = []
 
         rx_containers = [
             self.proton_elastic_scattering_reactions,
-            self.proton_capture_reactions,
-            self.proton_inelastic_scattering_reactions,
+            self.proton_nonelastic_reactions,
         ]
         rx_classes = [
             ProtonReactionElasticScattering,
-            ProtonReactionCapture,
-            ProtonReactionInelasticScattering,
+            ProtonReactionNonelasticReaction,
         ]
         for rx_container, rx_name, rx_class in list(
             zip(rx_containers, rx_names, rx_classes)
@@ -342,10 +332,37 @@ class Nuclide(ObjectNonSingleton):
                 reaction = rx_class.from_h5_group(h5_group)
                 rx_container.append(reaction)
 
+        # # ==========================================================================
+        # # Secondary particles
+        # # ==========================================================================
+        
+        # self.proton_secondary_channels = {}
+        # if "secondary_particles" in file:
+        #     sec_group = file["secondary_particles"]
+        #     for zap_name in sec_group.keys():
+        #         if not zap_name.startswith("ZAP_"):
+        #             continue
+        #         zap = int(zap_name.split("_")[1])
+        #         zap_group = sec_group[zap_name]
+                
+        #         # Iterate over MT numbers for this secondary particle type
+        #         for mt_name in zap_group.keys():
+        #             if not mt_name.startswith("MT-"):
+        #                 continue
+        #             MT = int(mt_name.split("-")[1])
+        #             mt_group = zap_group[mt_name]
+                    
+        #             # Load secondary channel
+        #             channel = ProtonSecondaryChannel.from_h5_group(mt_group, zap)
+                    
+        #             if MT not in self.proton_secondary_channels:
+        #                 self.proton_secondary_channels[MT] = []
+        #             self.proton_secondary_channels[MT].append(channel)
+
         file.close()
 
 
-    ## UPDATE this for protons
+    ## TODO: UPDATE this to handle protons as well as neutrons
     def __repr__(self):
         text = "\n"
         text += f"Nuclide\n"
