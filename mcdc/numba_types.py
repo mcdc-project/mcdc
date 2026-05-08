@@ -420,10 +420,8 @@ nuclide = into_dtype([
     ('proton_total_xs_length', int64),
     ('proton_elastic_xs_offset', int64),
     ('proton_elastic_xs_length', int64),
-    ('proton_capture_xs_offset', int64),
-    ('proton_capture_xs_length', int64),
-    ('proton_inelastic_xs_offset', int64),
-    ('proton_inelastic_xs_length', int64),
+    ('proton_nonelastic_xs_offset', int64),
+    ('proton_nonelastic_xs_length', int64),
     ('N_neutron_elastic_scattering_reaction', int64),
     ('neutron_elastic_scattering_reaction_IDs_offset', int64),
     ('N_neutron_capture_reaction', int64),
@@ -434,10 +432,8 @@ nuclide = into_dtype([
     ('neutron_fission_reaction_IDs_offset', int64),
     ('N_proton_elastic_scattering_reaction', int64),
     ('proton_elastic_scattering_reaction_IDs_offset', int64),
-    ('N_proton_capture_reaction', int64),
-    ('proton_capture_reaction_IDs_offset', int64),
-    ('N_proton_inelastic_scattering_reaction', int64),
-    ('proton_inelastic_scattering_reaction_IDs_offset', int64),
+    ('N_proton_nonelastic_reaction', int64),
+    ('proton_nonelastic_reaction_IDs_offset', int64),
     ('neutron_fission_prompt_multiplicity_ID', int64),
     ('neutron_fission_delayed_multiplicity_ID', int64),
     ('N_neutron_fission_delayed_precursor', int64),
@@ -533,18 +529,13 @@ neutron_inelastic_scattering_reaction = into_dtype([
     ('parent_ID', int64),
 ])
 
-proton_capture_reaction = into_dtype([
-    ('ID', int64),
-    ('parent_ID', int64),
-])
-
 proton_elastic_scattering_reaction = into_dtype([
     ('mu_table_ID', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])
 
-proton_inelastic_scattering_reaction = into_dtype([
+proton_nonelastic_reaction = into_dtype([
     ('multiplicity', int64),
     ('angle_type', int64),
     ('mu_ID', int64),
@@ -844,12 +835,10 @@ def set_simulation(N: dict):
         ('N_neutron_inelastic_scattering_reaction', int64),
         ('sources', source, (N['source'])),
         ('N_source', int64),
-        ('proton_capture_reactions', proton_capture_reaction, (N['proton_capture_reaction'])),
-        ('N_proton_capture_reaction', int64),
         ('proton_elastic_scattering_reactions', proton_elastic_scattering_reaction, (N['proton_elastic_scattering_reaction'])),
         ('N_proton_elastic_scattering_reaction', int64),
-        ('proton_inelastic_scattering_reactions', proton_inelastic_scattering_reaction, (N['proton_inelastic_scattering_reaction'])),
-        ('N_proton_inelastic_scattering_reaction', int64),
+        ('proton_nonelastic_reactions', proton_nonelastic_reaction, (N['proton_nonelastic_reaction'])),
+        ('N_proton_nonelastic_reaction', int64),
         ('proton_reactions', proton_reaction, (N['proton_reaction'])),
         ('N_proton_reaction', int64),
         ('cells', cell, (N['cell'])),

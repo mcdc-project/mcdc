@@ -69,9 +69,9 @@ class Material(MaterialBase):
     name : str, optional
         User label.
     nuclide_composition : dict
-        Dictionary mapping nuclide names (str) to atom densities (float).
+        Dictionary mapping nuclide names (str) to atom densities in units of atoms/barn-cm (float).
     element_composition : dict
-        Dictionary mapping element names (str) to atom densities (float).
+        Dictionary mapping element names (str) to atom densities in units of atoms/barn-cm (float).
     temperature : float, optional
         Temperature in Kelvin (default 293.6 K).
 

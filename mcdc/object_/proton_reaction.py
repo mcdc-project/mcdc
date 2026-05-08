@@ -1,4 +1,5 @@
 from typing import Annotated
+import numpy as np
 from numpy import float64
 from numpy.typing import NDArray
 
@@ -12,11 +13,12 @@ from mcdc.constant import (
     ANGLE_DISTRIBUTED,
     INTERPOLATION_LINEAR,
     INTERPOLATION_LOG,
-    PROTON_REACTION_CAPTURE,
     PROTON_REACTION_ELASTIC_SCATTERING,
-    PROTON_REACTION_INELASTIC_SCATTERING,
+    PROTON_REACTION_NONELASTIC,
     REFERENCE_FRAME_COM,
     REFERENCE_FRAME_LAB,
+    PARTICLE_NEUTRON,
+    PARTICLE_PROTON,
 )
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.distribution import (
@@ -31,6 +33,15 @@ from mcdc.object_.distribution import (
 )
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
+
+# ======================================================================================
+# ZAP to particle type mapping
+# ======================================================================================
+
+ZAP_TO_PARTICLE = {
+    1: PARTICLE_NEUTRON,
+    31: PARTICLE_PROTON,
+}
 
 # ======================================================================================
 # Proton reaction base class
@@ -69,10 +80,8 @@ class ProtonReactionBase(ObjectPolymorphic):
 def decode_type(type_):
     if type_ == PROTON_REACTION_ELASTIC_SCATTERING:
         return "Proton elastic scattering"
-    elif type_ == PROTON_REACTION_CAPTURE:
-        return "Proton capture"
-    elif type_ == PROTON_REACTION_INELASTIC_SCATTERING:
-        return "Proton inelastic scattering"
+    elif type_ == PROTON_REACTION_NONELASTIC:
+        return "Proton nonelastic reaction"
 
 
 def decode_reference_frame(type_):
@@ -91,7 +100,7 @@ class ProtonReactionElasticScattering(ProtonReactionBase):
     # Annotations for Numba mode
     label: str = "proton_elastic_scattering_reaction"
     #
-    mu_table: DistributionMultiTable
+    mu_table: DistributionBase
 
     def __init__(self, MT, xs, xs_offset, reference_frame, mu):
         type_ = PROTON_REACTION_ELASTIC_SCATTERING
@@ -111,32 +120,12 @@ class ProtonReactionElasticScattering(ProtonReactionBase):
 
 
 # ======================================================================================
-# Proton capture
+# Proton nonelastic reaction
 # ======================================================================================
 
-
-class ProtonReactionCapture(ProtonReactionBase):
+class ProtonReactionNonelasticReaction(ProtonReactionBase):
     # Annotations for Numba mode
-    label: str = "proton_capture_reaction"
-
-    def __init__(self, MT, xs, xs_offset, reference_frame, q_value):
-        type_ = PROTON_REACTION_CAPTURE
-        super().__init__(type_, MT, xs, xs_offset, reference_frame, q_value)
-
-    @classmethod
-    def from_h5_group(cls, h5_group):
-        MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
-        return cls(MT, xs, xs_offset, reference_frame, q_value)
-
-
-# ======================================================================================
-# Proton inelastic scattering
-# ======================================================================================
-
-
-class ProtonReactionInelasticScattering(ProtonReactionBase):
-    # Annotations for Numba mode
-    label: str = "proton_inelastic_scattering_reaction"
+    label: str = "proton_nonelastic_reaction"
     #
     multiplicity: int
     angle_type: int
@@ -163,7 +152,7 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
         spectrum_probability,
         energy_spectra,
     ):
-        type_ = PROTON_REACTION_INELASTIC_SCATTERING
+        type_ = PROTON_REACTION_NONELASTIC
         super().__init__(type_, MT, xs, xs_offset, reference_frame, q_value)
 
         self.multiplicity = multiplicity
@@ -229,7 +218,7 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
 
 
 def set_basic_properties(h5_group):
-    MT = h5_group.attrs["MT"][()]
+    MT = int(h5_group.attrs["MT"][()])
     xs = h5_group["xs"][()]
     xs_offset = h5_group["xs"].attrs["offset"]
     reference_frame = h5_group["reference_frame"][()].decode("utf-8")
@@ -242,19 +231,64 @@ def set_basic_properties(h5_group):
 
 
 def set_angular_distribution(h5_group):
-    mu_type = h5_group.attrs["type"]
+    # Handle missing type attribute
+    if "type" not in h5_group.attrs:
+        mu_type = "isotropic"
+    else:
+        mu_type = h5_group.attrs["type"]
+
     if mu_type == "isotropic":
         angle_type = ANGLE_ISOTROPIC
         mu = simulation.distributions[0]
     elif mu_type == "energy-correlated":
         angle_type = ANGLE_ENERGY_CORRELATED
         mu = simulation.distributions[0]
-    else:
+    elif mu_type == "given_in_energy_distribution":
+        # Angular information comes from the Kalbach-Mann energy distribution.
+        angle_type = ANGLE_ENERGY_CORRELATED
+        mu = simulation.distributions[0]
+    elif mu_type == "tabulated":
         angle_type = ANGLE_DISTRIBUTED
-        grid = h5_group[f"energy"][()] * 1e6  # MeV to eV
-        offset = h5_group[f"offset"][()]
-        value = h5_group[f"value"][()]
-        pdf = h5_group[f"pdf"][()]
+        
+        # Check if data is in flattened format or subgroup format
+        if "energy" in h5_group:
+            # Flattened format
+            grid = h5_group[f"energy"][()] * 1e6  # MeV to eV
+            offset = h5_group[f"offset"][()]
+            value = h5_group[f"value"][()]
+            pdf = h5_group[f"pdf"][()]
+        else:
+            # Subgroup format: E_in_1, E_in_2, etc.
+            incident_energies = h5_group["incident_energies"][()] * 1e6  # MeV to eV
+            
+            # Collect all cosines and pdfs into flattened arrays
+            cosines_list = []
+            pdf_list = []
+            offset = np.zeros(len(incident_energies), dtype=np.int32)
+            
+            for i, energy in enumerate(incident_energies):
+                subgroup_name = f"E_in_{i + 1}"
+                if subgroup_name in h5_group:
+                    subgroup = h5_group[subgroup_name]
+                    if subgroup.attrs.get("type", "tabulated") == "tabulated":
+                        cosines_list.extend(subgroup["cosines"][()])
+                        pdf_list.extend(subgroup["pdf"][()])
+                    else:
+                        # Isotropic - use dummy values
+                        cosines_list.extend([0.0])  # isotropic cosine
+                        pdf_list.extend([1.0])     # uniform pdf
+                else:
+                    # Missing subgroup - assume isotropic
+                    cosines_list.extend([0.0])
+                    pdf_list.extend([1.0])
+                
+                if i < len(incident_energies) - 1:
+                    offset[i + 1] = len(cosines_list)
+            
+            grid = incident_energies
+            value = np.array(cosines_list)
+            pdf = np.array(pdf_list)
+        
         mu = DistributionMultiTable(grid, offset, value, pdf)
 
     return angle_type, mu
@@ -338,3 +372,94 @@ def set_energy_distribution(h5_group):
         print_error(f"Unsupported energy spectrum of type {spectrum_type}")
 
     return energy_spectrum
+
+
+# ======================================================================================
+# Proton secondary particle channel
+# ======================================================================================
+
+
+class ProtonSecondaryChannel(ObjectPolymorphic):
+    """
+    Data container for a proton secondary particle channel.
+    Plain helper object.
+    """
+    particle_type: int
+    MT: int
+    multiplicity: float64       # Multiplicity of particles produced per reaction
+    production_xs: NDArray[float64]
+    production_xs_offset_: int
+    reference_frame: int    # COM or LAB
+    energy_spectrum: DistributionBase
+
+    def __init__(
+        self,
+        particle_type,
+        MT,
+        multiplicity,
+        production_xs,
+        production_xs_offset,
+        reference_frame,
+        energy_spectrum,
+    ):
+        self.particle_type = particle_type
+        self.MT = MT
+        self.multiplicity = multiplicity
+        self.production_xs = production_xs
+        self.production_xs_offset_ = production_xs_offset
+        self.reference_frame = reference_frame
+        self.energy_spectrum = energy_spectrum
+        super().__init__(type_=0, register=False)
+
+    @classmethod
+    def from_h5_group(cls, h5_group, zap):
+        """
+        Load a secondary particle channel from HDF5 group.
+        zap: ZAP code (1=neutron, 31=proton, etc.)
+        """
+        if zap not in ZAP_TO_PARTICLE:
+            raise ValueError(f"zap {zap} not in ZAP_TO_PARTICLE")
+        particle_type = ZAP_TO_PARTICLE.get(zap)
+        MT = h5_group.attrs["MT"]
+        multiplicity = h5_group.attrs["multiplicity"]
+        
+        reference_frame_str = h5_group.attrs["reference_frame"]
+        if reference_frame_str == "LAB":
+            reference_frame = REFERENCE_FRAME_LAB
+        elif reference_frame_str == "COM":
+            reference_frame = REFERENCE_FRAME_COM
+        else:
+            reference_frame = REFERENCE_FRAME_COM  # default
+        
+        # Production cross section (optional)
+        if "production_xs" in h5_group:
+            production_xs = h5_group["production_xs"][()]
+            production_xs_offset = h5_group["production_xs"].attrs["offset"]
+        else:
+            production_xs = np.zeros(0, dtype=float)
+            production_xs_offset = 0
+
+        # Energy spectrum (currently assume Kalbach-Mann)
+        energy_spectrum = set_energy_distribution(h5_group["kalbach_mann"])
+        
+        return cls(
+            particle_type,
+            MT,
+            multiplicity,
+            production_xs,
+            production_xs_offset,
+            reference_frame,
+            energy_spectrum,
+        )
+
+    def __repr__(self):
+        particle_name = "Neutron" if self.particle_type == PARTICLE_NEUTRON else "Proton"
+        text = "\n"
+        text += f"Proton secondary channel ({particle_name})\n"
+        text += f"  - ID: {self.ID}\n"
+        text += f"  - MT: {self.MT}\n"
+        text += f"  - Multiplicity: {self.multiplicity}\n"
+        text += f"  - Production XS: {print_1d_array(self.production_xs)} barn\n"
+        text += f"  - Reference frame: {decode_reference_frame(self.reference_frame)}\n"
+        text += f"  - Energy spectrum: {distribution.decode_type(self.energy_spectrum.type)} [ID: {self.energy_spectrum.ID}]\n"
+        return text

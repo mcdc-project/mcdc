@@ -15,8 +15,8 @@ import mcdc.transport.util as util
 from mcdc.constant import (
     PI,
     PROTON_REACTION_TOTAL,
-    PROTON_REACTION_CAPTURE,
     PROTON_REACTION_ELASTIC_SCATTERING,
+    PROTON_REACTION_NONELASTIC,
     )
 from mcdc.transport.physics.util import scatter_direction
 from mcdc.transport.distribution import sample_isotropic_direction
@@ -46,8 +46,6 @@ def macro_xs(reaction_type, particle_container, simulation, data):
 
     if reaction_type == PROTON_REACTION_TOTAL:
         return mcdc_get.multigroup_material.mgxs_total(g, material, data)
-    elif reaction_type == PROTON_REACTION_CAPTURE:
-        return mcdc_get.multigroup_material.mgxs_capture(g, material, data)
     elif reaction_type == PROTON_REACTION_ELASTIC_SCATTERING:
         return mcdc_get.multigroup_material.mgxs_scatter(g, material, data)
     return 0.0
