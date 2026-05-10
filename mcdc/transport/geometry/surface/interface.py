@@ -17,6 +17,8 @@ import mcdc.transport.geometry.surface.cylinder_y as cylinder_y
 import mcdc.transport.geometry.surface.cylinder_z as cylinder_z
 import mcdc.transport.geometry.surface.sphere as sphere
 import mcdc.transport.geometry.surface.quadric as quadric
+import mcdc.transport.geometry.surface.torus_x as torus_x
+import mcdc.transport.geometry.surface.torus_y as torus_y
 import mcdc.transport.geometry.surface.torus_z as torus_z
 
 from mcdc.constant import (
@@ -36,6 +38,8 @@ from mcdc.constant import (
     SURFACE_CONE_X,
     SURFACE_CONE_Y,
     SURFACE_CONE_Z,
+    SURFACE_TORUS_X,
+    SURFACE_TORUS_Y,
     SURFACE_TORUS_Z,
 )
 from mcdc.transport.util import find_bin_with_rules
@@ -106,6 +110,10 @@ def evaluate(particle_container, surface, data):
             result = sphere.evaluate(particle_container, surface)
         elif surface["type"] == SURFACE_QUADRIC:
             result = quadric.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_X:
+            result = torus_x.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Y:
+            result = torus_y.evaluate(particle_container, surface)
         elif surface["type"] == SURFACE_TORUS_Z:
             result = torus_z.evaluate(particle_container, surface)
 
