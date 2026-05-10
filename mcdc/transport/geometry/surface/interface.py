@@ -175,6 +175,10 @@ def get_normal_component(particle_container, speed, surface, data):
             result = sphere.get_normal_component(particle_container, surface)
         elif surface["type"] == SURFACE_QUADRIC:
             result = quadric.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_X:
+            result = torus_x.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Y:
+            result = torus_y.get_normal_component(particle_container, surface)
         elif surface["type"] == SURFACE_TORUS_Z:
             result = torus_z.get_normal_component(particle_container, surface)
 
@@ -225,6 +229,10 @@ def reflect(particle_container, surface):
             return sphere.reflect(particle_container, surface)
         elif surface["type"] == SURFACE_QUADRIC:
             return quadric.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_X:
+            return torus_x.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Y:
+            return torus_y.reflect(particle_container, surface)
         elif surface["type"] == SURFACE_TORUS_Z:
             return torus_z.reflect(particle_container, surface)
 
@@ -280,6 +288,10 @@ def _get_distance_static(particle_container, surface):
             return sphere.get_distance(particle_container, surface)
         elif surface["type"] == SURFACE_QUADRIC:
             return quadric.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_X:
+            return torus_x.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Y:
+            return torus_y.get_distance(particle_container, surface)
         elif surface["type"] == SURFACE_TORUS_Z:
             return torus_z.get_distance(particle_container, surface)
 

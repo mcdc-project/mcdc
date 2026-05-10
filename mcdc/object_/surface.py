@@ -24,6 +24,8 @@ from mcdc.constant import (
     SURFACE_CONE_X,
     SURFACE_CONE_Y,
     SURFACE_CONE_Z,
+    SURFACE_TORUS_X,
+    SURFACE_TORUS_Y,
     SURFACE_TORUS_Z,
 )
 from mcdc.object_.base import ObjectNonSingleton
@@ -828,6 +830,92 @@ class Surface(ObjectNonSingleton):
         return surface
 
     @classmethod
+    def TorusX(
+        cls,
+        name: str = "",
+        A: float = 0.0,
+        B: float = 0.0,
+        C: float = 0.0,
+        R: float = 0.0,
+        r: float = 0.0,
+        boundary_condition: str = "none",
+    ):
+        """
+        Create a torus radially symmetric around the x axis:
+            f(x, y, z) = ( sqrt[(y - B)^2 + (z - C)^2] - R )^2 + (x - A)^2 - r^2
+
+        Parameters
+        ----------
+        name : str, optional
+        A,B,C,R,r : float
+            A, B, C are displacement values for the torus in the x, y, z directions respectfully
+            R is the radius around which a circle is revolved about the axis of revolution (parallel with the x-axis)
+            r is the radius of the circle that is being revolved
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Torus surface.
+        """
+        type_ = SURFACE_TORUS_X
+        surface = cls(type_, name, boundary_condition)
+
+        surface.linear = False
+
+        # Coefficients
+        surface.A = A
+        surface.B = B
+        surface.C = C
+        surface.R = R
+        surface.r = r
+
+        return surface
+
+    @classmethod
+    def TorusY(
+        cls,
+        name: str = "",
+        A: float = 0.0,
+        B: float = 0.0,
+        C: float = 0.0,
+        R: float = 0.0,
+        r: float = 0.0,
+        boundary_condition: str = "none",
+    ):
+        """
+        Create a torus radially symmetric around the y axis:
+            f(x, y, z) = ( sqrt[(x - A)^2 + (z - C)^2] - R )^2 + (y - B)^2 - r^2
+
+        Parameters
+        ----------
+        name : str, optional
+        A,B,C,R,r : float
+            A, B, C are displacement values for the torus in the x, y, z directions respectfully
+            R is the radius around which a circle is revolved about the axis of revolution (parallel with the y-axis)
+            r is the radius of the circle that is being revolved
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            Torus surface.
+        """
+        type_ = SURFACE_TORUS_Y
+        surface = cls(type_, name, boundary_condition)
+
+        surface.linear = False
+
+        # Coefficients
+        surface.A = A
+        surface.B = B
+        surface.C = C
+        surface.R = R
+        surface.r = r
+
+        return surface
+
+    @classmethod
     def TorusZ(
         cls,
         name: str = "",
@@ -839,7 +927,7 @@ class Surface(ObjectNonSingleton):
         boundary_condition: str = "none",
     ):
         """
-        Create a torus on the x-y plane radially symetric around the z axis:
+        Create a torus radially symmetric around the z axis:
             f(x, y, z) = ( sqrt[(x - A)^2 + (y - B)^2] - R )^2 + (z - C)^2 - r^2
 
         Parameters
@@ -962,6 +1050,10 @@ def decode_type(type_):
         return "Infinite cone-Y surface"
     elif type_ == SURFACE_CONE_Z:
         return "Infinite cone-Z surface"
+    elif type_ == SURFACE_TORUS_X:
+        return "Torus-X surface"
+    elif type_ == SURFACE_TORUS_Y:
+        return "Torus-Y surface"
     elif type_ == SURFACE_TORUS_Z:
         return "Torus-Z surface"
 
