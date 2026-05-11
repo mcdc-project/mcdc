@@ -29,6 +29,7 @@ from mcdc.constant import (
     PARTICLE_ELECTRON,
     PARTICLE_NEUTRON,
     PARTICLE_PROTON,
+    PROTON_CUTOFF_ENERGY,
 )
 from mcdc.transport.data import evaluate_data
 from mcdc.transport.distribution import (
@@ -140,6 +141,13 @@ def collision(particle_container, collision_data_container, program, data):
     # Particle properties
     E = particle["E"]
 
+    # Check for cutoff energy
+    if E <= PROTON_CUTOFF_ENERGY:
+        collision_data["energy_deposition"] += E * particle["w"]
+        particle["alive"] = False
+        particle["E"] = 0.0
+        return
+    
     # ==================================================================================
     # Sample colliding nuclide
     # ==================================================================================
