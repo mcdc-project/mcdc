@@ -17,8 +17,8 @@ inside_sphere = -sphere
 sphere_cell = mcdc.Cell(region=inside_sphere, fill=U_235)
 
 # Set Source
-ENERGY = 14
-energy = np.array([[ENERGY - 1e-8, ENERGY + 1e-8], [0.5,0.5]])
+ENERGY = 14e6
+energy = np.array([[ENERGY - 1, ENERGY + 1], [0.5,0.5]])
 mcdc.Source(position=[0,0,0], isotropic=True, energy=energy) # energy in ev
 
 
@@ -31,9 +31,14 @@ y = r *np.sin(theta) * np.sin(phi)
 z = r * np.cos(theta)
 mesh = np.meshgrid(x,y,z)
 
-E_1 = np.linspace(1e-4,1,100) # thermal energy axis
-E_2 = np.linspace(200,1e5,1000)
-E_3 = np.linspace(1.1e5,14e6,1000)
+#E_1 = np.linspace(1e-4,1,100) # thermal energy axis
+#E_2 = np.linspace(200,1e5,1000)
+#E_3 = np.linspace(1.1e5,14e6,1000)
+#E_axis = np.concatenate([E_1, E_2, E_3])
+
+E_1 = np.linspace(1e-10,1e-6,10) # thermal energy axis
+E_2 = np.linspace(2e-4,1e-1,10)
+E_3 = np.linspace(1.1e-1,14,10)
 E_axis = np.concatenate([E_1, E_2, E_3])
 
 # tallies
@@ -42,15 +47,10 @@ E_axis = np.concatenate([E_1, E_2, E_3])
 mcdc.Tally(cell=sphere_cell, scores=["flux"],energy=E_axis)
 
 # Settings
-N = 60
+N = 1500
 
 #mcdc.settings.N_batch = 1
 mcdc.settings.N_particle = N
-mcdc.settings_active_bank_buffer = 10000*N
-
-#mcdc.settings.set_eigenmode(N_inactive=1, N_active=2)
-
-# Techniques
-#mcdc.simulation.population_control()
+mcdc.settings.active_bank_buffer = 1000
 
 mcdc.run()

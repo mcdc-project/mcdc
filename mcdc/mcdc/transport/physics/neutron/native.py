@@ -11,6 +11,7 @@ import mcdc.numba_types as type_
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
+import mcdc.transport.util as util
 
 from mcdc.constant import (
     ANGLE_DISTRIBUTED,
@@ -627,15 +628,17 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
     # Particle properties
     particle = particle_container[0]
     E = particle["E"] 
+    #print('Energy',E)
     ux = particle["ux"]
     uy = particle["uy"]
     uz = particle["uz"]
     Z = nuclide["atomic_number"]
-    A = nuclide["atomic_weight_ratio"]
+    #A = nuclide["atomic_weight_ratio"]
+    A = 235
     ZAID = int(1000*Z+A)
     # Kill the current particle
     particle["alive"] = False
-
+    simulation = util.access_simulation(mcdc)
     # Adjust production and product weights if weighted emission
     weight_production = 1.0
     weight_product = particle["w"]
@@ -647,7 +650,7 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
     # Fission yields
     
     N_delayed = nuclide["N_neutron_fission_delayed_precursor"]
-    evt = cgmfwrap.run_event(ZAID,E*10e-6) # produces nu_n
+    evt = cgmfwrap.run_event(ZAID,E*1e-6) # produces nu_n
     
     nu_d = neutron_fission_delayed_multiplicity(E, nuclide, mcdc, data)
     nu_p = int(evt.nu_n)
@@ -661,14 +664,15 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
     
     # Deal with Prompt and Delayed separately. CGMF takes care of all prompt business. 
     
-    s = 0
+    
+    #print(particle_bank_module.get_bank_size(bank_active))
     
     for i in range(nu_p):
         # uses cmgf sampled energies and directions, set weight
         particle_module.copy_as_child(particle_container_new, particle_container) # <-- contains time
         particle_new["w"] = weight_product
         
-        E_new = evt.neutron_energies[i]
+        E_new = evt.neutron_energies[i]*1e6
         ux_new = evt.neutron_dir_cosu[i]
         uy_new = evt.neutron_dir_cosv[i]
         uz_new = evt.neutron_dir_cosw[i]
@@ -707,7 +711,7 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
         # Not hitting census --> add to active bank
         if not hit_current_census:
             particle_bank_module.bank_active_particle(particle_container_new, mcdc)
-            s += 1 # debug
+            #s += 1 # debug
         # Hit future census --> add to future bank
         elif hit_future_census:
             # Particle will participate in the future
@@ -717,7 +721,8 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
         else:
             # Particle will participate after the current census is completed
             particle_bank_module.bank_census_particle(particle_container_new, mcdc)
-     
+        
+        #print('prompt',particle_bank_module.get_bank_size(simulation["bank_active"]))
     
 # ==============================================================================
  # Sample delayed fission neutron, separate from prompt neutrons.
@@ -735,6 +740,9 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
         beta_total += mcdc_get.nuclide.neutron_fission_delayed_fractions(
             j, nuclide, data
         )
+
+    #print('nu_d',nu_d)
+    #print('nu_p',nu_p)
     for n in range(N_delayed):
         # Set default attributes
         particle_module.copy_as_child(particle_container_new, particle_container)
@@ -744,7 +752,7 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
         
         # assign group
         xi = rng.lcg(particle_container_new)
-        print(xi)
+        
         P_j = 0.0
     
         for j in range(N_groups):
@@ -808,7 +816,10 @@ def fission(reaction, particle_container, nuclide, mcdc, data):
         else:
             # Particle will participate after the current census is completed
             particle_bank_module.bank_census_particle(particle_container_new, mcdc)
-
+        
+        
+        #print('delayed',particle_bank_module.get_bank_size(simulation["bank_active"]))
+    
     
 @njit
 def neutron_fission_prompt_multiplicity(E, nuclide, mcdc, data):
