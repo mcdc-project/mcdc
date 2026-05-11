@@ -20,6 +20,7 @@ import mcdc.transport.geometry.surface.quadric as quadric
 import mcdc.transport.geometry.surface.torus_x as torus_x
 import mcdc.transport.geometry.surface.torus_y as torus_y
 import mcdc.transport.geometry.surface.torus_z as torus_z
+import mcdc.transport.geometry.surface.torus as torus
 
 from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
@@ -41,6 +42,7 @@ from mcdc.constant import (
     SURFACE_TORUS_X,
     SURFACE_TORUS_Y,
     SURFACE_TORUS_Z,
+    SURFACE_TORUS,
 )
 from mcdc.transport.util import find_bin_with_rules
 
@@ -116,6 +118,8 @@ def evaluate(particle_container, surface, data):
             result = torus_y.evaluate(particle_container, surface)
         elif surface["type"] == SURFACE_TORUS_Z:
             result = torus_z.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS:
+            result = torus.evaluate(particle_container, surface)
 
     if surface["moving"]:
         # Restore particle position
@@ -181,6 +185,8 @@ def get_normal_component(particle_container, speed, surface, data):
             result = torus_y.get_normal_component(particle_container, surface)
         elif surface["type"] == SURFACE_TORUS_Z:
             result = torus_z.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS:
+            result = torus.get_normal_component(particle_container, surface)
 
     if surface["moving"]:
         # Restore particle parameters
@@ -235,6 +241,8 @@ def reflect(particle_container, surface):
             return torus_y.reflect(particle_container, surface)
         elif surface["type"] == SURFACE_TORUS_Z:
             return torus_z.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS:
+            return torus.reflect(particle_container, surface)
 
 
 @njit
@@ -294,6 +302,8 @@ def _get_distance_static(particle_container, surface):
             return torus_y.get_distance(particle_container, surface)
         elif surface["type"] == SURFACE_TORUS_Z:
             return torus_z.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS:
+            return torus.get_distance(particle_container, surface)
 
 
 @njit
