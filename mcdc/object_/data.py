@@ -1,4 +1,6 @@
-from numpy import float64
+import numpy as np
+
+from numpy import float64, int64
 from numpy.typing import NDArray
 
 ####
@@ -7,11 +9,14 @@ from mcdc.constant import (
     DATA_NONE,
     DATA_TABLE,
     DATA_POLYNOMIAL,
+    INTERPOLATION_HISTOGRAM,
     INTERPOLATION_LINEAR,
+    INTERPOLATION_SEMILOGX,
+    INTERPOLATION_SEMILOGY,
     INTERPOLATION_LOG,
 )
 from mcdc.object_.base import ObjectPolymorphic
-from mcdc.print_ import print_1d_array
+from mcdc.print_ import print_1d_array, print_error
 
 # ======================================================================================
 # Data base class
@@ -69,25 +74,65 @@ class DataTable(DataBase):
     #
     x: NDArray[float64]
     y: NDArray[float64]
-    interpolation: int
+    interpolations: NDArray[int64]
+    interpolation_boundaries: NDArray[int64]
 
-    def __init__(self, x, y, interpolation=INTERPOLATION_LINEAR):
+    def __init__(self, x, y, interpolations, interpolation_boundaries=None):
         type_ = DATA_TABLE
         super().__init__(type_)
 
         self.x = x
         self.y = y
-        self.interpolation = interpolation
+
+        if isinstance(interpolations, int):
+            self.interpolations = np.array([interpolations], dtype=int)
+            self.interpolation_boundaries = np.array([len(x)], dtype=int)
+        else:
+            self.interpolations = np.array(interpolations, dtype=int)
+            if interpolation_boundaries is None:
+                print_error("Missing interpolation boundaries in tabulated data.")
+            else:
+                self.interpolation_boundaries = np.array(
+                    interpolation_boundaries, dtype=int
+                )
 
     def __repr__(self):
         text = super().__repr__()
         text += f"  - x {print_1d_array(self.x)}\n"
         text += f"  - y {print_1d_array(self.y)}\n"
-        if self.interpolation == INTERPOLATION_LINEAR:
-            text += f"  - Interpolation: linear\n"
-        elif self.interpolation == INTERPOLATION_LOG:
-            text += f"  - Interpolation: log\n"
+        if len(self.interpolations) == 1:
+            text += (
+                f"  - Interpolation: {decode_interpolation(self.interpolations[0])}\n"
+            )
+        else:
+            text += f"  - Interpolations: {[decode_interpolation(x) for x in set(self.interpolations)]}\n"
         return text
+
+
+def decode_interpolation(type_):
+    if type_ == INTERPOLATION_HISTOGRAM:
+        return "histogram"
+    elif type_ == INTERPOLATION_LINEAR:
+        return "linear"
+    elif type_ == INTERPOLATION_SEMILOGX:
+        return "semilog-x"
+    elif type_ == INTERPOLATION_SEMILOGY:
+        return "semilog-y"
+    elif type_ == INTERPOLATION_LOG:
+        return "log"
+
+
+def encode_interpolation(type_):
+    if type_ == "histogram":
+        return INTERPOLATION_HISTOGRAM
+    elif type_ == "linear":
+        return INTERPOLATION_LINEAR
+    elif type_ == "semilog-x":
+        return INTERPOLATION_SEMILOGX
+    elif type_ == "semilog-y":
+        return INTERPOLATION_SEMILOGY
+    elif type_ == "log":
+        return INTERPOLATION_LOG
 
 
 # ======================================================================================
