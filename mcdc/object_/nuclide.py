@@ -7,6 +7,7 @@ from numpy.typing import NDArray
 
 ####
 
+from mcdc.constant import INTERPOLATION_LINEAR
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.data import DataBase, DataPolynomial, DataTable
 from mcdc.object_.distribution import DistributionBase
@@ -249,7 +250,7 @@ def set_fission_multiplicity(h5_group):
     if multiplicity_type == "tabulated":
         x = h5_group["energy"][()] * 1e6  # MeV to eV
         y = h5_group["value"][()]
-        multiplicity = DataTable(x, y)
+        multiplicity = DataTable(x, y, INTERPOLATION_LINEAR)
 
     elif multiplicity_type == "polynomial":
         coefficient = h5_group["coefficient"][()]
