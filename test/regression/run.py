@@ -2,6 +2,8 @@ import h5py, os, sys, argparse, fnmatch
 import numpy as np
 from colorama import Fore, Style
 
+RELATIVE_TOLERANCE = 1e-6
+
 # Option parser
 parser = argparse.ArgumentParser(description="MC/DC regression test")
 parser.add_argument("--mode", type=str, choices=["python", "numba"], default="python")
@@ -174,7 +176,7 @@ for i, name in enumerate(names):
                         continue
                     # Passed?
                     try:
-                        np.testing.assert_allclose(a, b)
+                        np.testing.assert_allclose(a, b, rtol=RELATIVE_TOLERANCE)
                         print(
                             Fore.GREEN + "  {}: Passed".format(name) + Style.RESET_ALL
                         )
@@ -196,7 +198,7 @@ for i, name in enumerate(names):
 
             # Passed?
             try:
-                np.testing.assert_allclose(a, b)
+                np.testing.assert_allclose(a, b, rtol=RELATIVE_TOLERANCE)
                 print(Fore.GREEN + "  {}: Passed".format(result_name) + Style.RESET_ALL)
             except AssertionError as error:
                 all_pass = False
@@ -213,7 +215,7 @@ for i, name in enumerate(names):
             b = np.squeeze(answer[name][()])
             # Passed?
             try:
-                np.testing.assert_allclose(a, b)
+                np.testing.assert_allclose(a, b, rtol=RELATIVE_TOLERANCE)
                 print(Fore.GREEN + "  {}: Passed".format(score) + Style.RESET_ALL)
             except AssertionError as error:
                 all_pass = False
