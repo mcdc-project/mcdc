@@ -33,6 +33,7 @@ from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.cell import Region
 from mcdc.object_.tally import TallySurface
 from mcdc.object_.util import move_object
+from mcdc.print_ import print_error
 
 # ======================================================================================
 # Surface
@@ -990,13 +991,17 @@ class Surface(ObjectNonSingleton):
         Surface
             General torus surface.
         """
-        type_ = SURFACE_TORUS
-        surface = cls(type_, name, boundary_condition)
-        surface.linear = False
-
         x, y, z = center
         ax, ay, az = axis
         norm = (ax**2 + ay**2 + az**2) ** 0.5
+
+        # if the axis is zero, we will get a division by zero when we try to normalize it
+        if norm == 0.0:
+            print_error("Torus axis must be a nonzero vector.")
+
+        type_ = SURFACE_TORUS
+        surface = cls(type_, name, boundary_condition)
+        surface.linear = False
 
         surface.A = x
         surface.B = y
