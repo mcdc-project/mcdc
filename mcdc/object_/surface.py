@@ -27,6 +27,7 @@ from mcdc.constant import (
     SURFACE_TORUS_X,
     SURFACE_TORUS_Y,
     SURFACE_TORUS_Z,
+    SURFACE_TORUS,
 )
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.cell import Region
@@ -841,7 +842,7 @@ class Surface(ObjectNonSingleton):
         boundary_condition: str = "none",
     ):
         """
-        Create a torus radially symmetric around the x axis:
+        Create a torus on the y-z plane radially symmetric around the x axis:
             f(x, y, z) = ( sqrt[(y - B)^2 + (z - C)^2] - R )^2 + (x - A)^2 - r^2
 
         Parameters
@@ -884,7 +885,7 @@ class Surface(ObjectNonSingleton):
         boundary_condition: str = "none",
     ):
         """
-        Create a torus radially symmetric around the y axis:
+        Create a torus on the x-z plane radially symmetric around the y axis:
             f(x, y, z) = ( sqrt[(x - A)^2 + (z - C)^2] - R )^2 + (y - B)^2 - r^2
 
         Parameters
@@ -927,7 +928,7 @@ class Surface(ObjectNonSingleton):
         boundary_condition: str = "none",
     ):
         """
-        Create a torus radially symmetric around the z axis:
+        Create a torus on the x-y plane radially symmetric around the z axis:
             f(x, y, z) = ( sqrt[(x - A)^2 + (y - B)^2] - R )^2 + (z - C)^2 - r^2
 
         Parameters
@@ -953,6 +954,56 @@ class Surface(ObjectNonSingleton):
         surface.A = A
         surface.B = B
         surface.C = C
+        surface.R = R
+        surface.r = r
+
+        return surface
+
+    @classmethod
+    def Torus(
+        cls,
+        name: str = "",
+        center: Iterable[float] = [0.0, 0.0, 0.0],
+        axis: Iterable[float] = [0.0, 0.0, 1.0],
+        R: float = 0.0,
+        r: float = 0.0,
+        boundary_condition: str = "none",
+    ):
+        """
+        Create a general torus with an arbitrary axis.
+
+        Parameters
+        ----------
+        name : str, optional
+        center : (3,) array_like of float
+            Torus center (cm).
+        axis : (3,) array_like of float
+            Direction vector of the torus axis (normalized automatically).
+        R : float
+            Major radius.
+        r : float
+            Minor radius of the tube.
+        boundary_condition : {"none","vacuum","reflective"}, optional
+
+        Returns
+        -------
+        Surface
+            General torus surface.
+        """
+        type_ = SURFACE_TORUS
+        surface = cls(type_, name, boundary_condition)
+        surface.linear = False
+
+        x, y, z = center
+        ax, ay, az = axis
+        norm = (ax**2 + ay**2 + az**2) ** 0.5
+
+        surface.A = x
+        surface.B = y
+        surface.C = z
+        surface.nx = ax / norm
+        surface.ny = ay / norm
+        surface.nz = az / norm
         surface.R = R
         surface.r = r
 
@@ -1056,6 +1107,8 @@ def decode_type(type_):
         return "Torus-Y surface"
     elif type_ == SURFACE_TORUS_Z:
         return "Torus-Z surface"
+    elif type_ == SURFACE_TORUS:
+        return "General torus surface"
 
 
 def decode_BC_type(type_):
