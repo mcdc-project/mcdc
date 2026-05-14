@@ -454,12 +454,54 @@ def surface_crossing(P_arr, simulation, data):
     for i in range(surface["N_tally"]):
         tally_ID = int(mcdc_get.surface.tally_IDs(i, surface, data))
         tally = simulation["surface_tallies"][tally_ID]
+
+        # Optional bounded surface tally: score only if the crossing point is
+        # within the specified in-plane bounds.
+        if tally["filter_surface_bounds"]:
+            if not _surface_tally_crossing_in_bounds(P, surface, tally):
+                continue
+
         tally_module.score.surface_tally(P_arr, surface, tally, simulation, data)
 
     # Need to check new cell later?
     if P["alive"] and not BC == BC_REFLECTIVE:
         P["cell_ID"] = -1
         P["material_ID"] = -1
+
+
+@njit
+def _surface_tally_crossing_in_bounds(P, surface, tally):
+    surface_type = surface["type"]
+
+    if surface_type == SURFACE_PLANE_X:
+        if tally["has_y_bounds"]:
+            if P["y"] < tally["y_min"] or P["y"] > tally["y_max"]:
+                return False
+        if tally["has_z_bounds"]:
+            if P["z"] < tally["z_min"] or P["z"] > tally["z_max"]:
+                return False
+        return True
+
+    if surface_type == SURFACE_PLANE_Y:
+        if tally["has_x_bounds"]:
+            if P["x"] < tally["x_min"] or P["x"] > tally["x_max"]:
+                return False
+        if tally["has_z_bounds"]:
+            if P["z"] < tally["z_min"] or P["z"] > tally["z_max"]:
+                return False
+        return True
+
+    if surface_type == SURFACE_PLANE_Z:
+        if tally["has_x_bounds"]:
+            if P["x"] < tally["x_min"] or P["x"] > tally["x_max"]:
+                return False
+        if tally["has_y_bounds"]:
+            if P["y"] < tally["y_min"] or P["y"] > tally["y_max"]:
+                return False
+        return True
+
+    # Constructor validation should prevent non-planar bounded surface tallies.
+    return True
 
 
 # ======================================================================================

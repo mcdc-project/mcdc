@@ -675,6 +675,16 @@ surface = into_dtype([
 
 surface_tally = into_dtype([
     ('surface_ID', int64),
+    ('filter_surface_bounds', bool),
+    ('has_x_bounds', bool),
+    ('has_y_bounds', bool),
+    ('has_z_bounds', bool),
+    ('x_min', float64),
+    ('x_max', float64),
+    ('y_min', float64),
+    ('y_max', float64),
+    ('z_min', float64),
+    ('z_max', float64),
     ('ID', int64),
     ('parent_ID', int64),
 ])

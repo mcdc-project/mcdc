@@ -35,6 +35,9 @@ from mcdc.constant import (
     SPATIAL_FILTER_CELL,
     SPATIAL_FILTER_MESH,
     SPATIAL_FILTER_NONE,
+    SURFACE_PLANE_X,
+    SURFACE_PLANE_Y,
+    SURFACE_PLANE_Z,
     TALLY_SURFACE,
     TALLY_COLLISION,
     TALLY_TRACKLENGTH,
@@ -91,6 +94,9 @@ class Tally(ObjectPolymorphic):
         polar_reference: Iterable[float] | NoneType = None,
         energy: Iterable[float] | str | NoneType = None,
         time: Iterable[float] | NoneType = None,
+        x: Iterable[float] | NoneType = None,
+        y: Iterable[float] | NoneType = None,
+        z: Iterable[float] | NoneType = None,
     ) -> TallySurface | TallyTracklength | TallyCollision:
         # Determine type and create the tally self based on the provided
         # spatial filters and scores
@@ -137,6 +143,9 @@ class Tally(ObjectPolymorphic):
         polar_reference: Iterable[float] | NoneType = None,
         energy: Iterable[float] | str | NoneType = None,
         time: Iterable[float] | NoneType = None,
+        x: Iterable[float] | NoneType = None,
+        y: Iterable[float] | NoneType = None,
+        z: Iterable[float] | NoneType = None,
         spatial_shape: tuple[int] | NoneType = None,
     ):
         # Set name
@@ -299,6 +308,16 @@ class TallySurface(Tally):
     label: str = "surface_tally"
     #
     surface: Surface
+    filter_surface_bounds: bool
+    has_x_bounds: bool
+    has_y_bounds: bool
+    has_z_bounds: bool
+    x_min: float
+    x_max: float
+    y_min: float
+    y_max: float
+    z_min: float
+    z_max: float
 
     def __init__(
         self,
@@ -310,6 +329,9 @@ class TallySurface(Tally):
         polar_reference: Iterable[float] | NoneType = None,
         energy: Iterable[float] | str | NoneType = None,
         time: Iterable[float] | NoneType = None,
+        x: Iterable[float] | NoneType = None,
+        y: Iterable[float] | NoneType = None,
+        z: Iterable[float] | NoneType = None,
     ):
         type_ = TALLY_SURFACE
         super(Tally, self).__init__(type_)
@@ -332,6 +354,64 @@ class TallySurface(Tally):
         # Set surface and attach tally to the surface
         self.surface = surface
         surface.tallies.append(self)
+
+        # Optional bounds for axis-aligned planar surface tallies.
+        self.filter_surface_bounds = False
+        self.has_x_bounds = False
+        self.has_y_bounds = False
+        self.has_z_bounds = False
+        self.x_min = -INF
+        self.x_max = INF
+        self.y_min = -INF
+        self.y_max = INF
+        self.z_min = -INF
+        self.z_max = INF
+
+        if x is not None:
+            x = np.array(x, dtype=float)
+            if len(x) != 2:
+                print_error(
+                    "Surface tally bound x must have exactly two values [min, max]."
+                )
+            self.has_x_bounds = True
+            self.x_min = min(x[0], x[1])
+            self.x_max = max(x[0], x[1])
+
+        if y is not None:
+            y = np.array(y, dtype=float)
+            if len(y) != 2:
+                print_error(
+                    "Surface tally bound y must have exactly two values [min, max]."
+                )
+            self.has_y_bounds = True
+            self.y_min = min(y[0], y[1])
+            self.y_max = max(y[0], y[1])
+
+        if z is not None:
+            z = np.array(z, dtype=float)
+            if len(z) != 2:
+                print_error(
+                    "Surface tally bound z must have exactly two values [min, max]."
+                )
+            self.has_z_bounds = True
+            self.z_min = min(z[0], z[1])
+            self.z_max = max(z[0], z[1])
+
+        self.filter_surface_bounds = (
+            self.has_x_bounds or self.has_y_bounds or self.has_z_bounds
+        )
+
+        if self.filter_surface_bounds:
+            if surface.type not in (SURFACE_PLANE_X, SURFACE_PLANE_Y, SURFACE_PLANE_Z):
+                print_error(
+                    "Bounded surface tally currently supports only PlaneX, PlaneY, and PlaneZ surfaces."
+                )
+            if surface.type == SURFACE_PLANE_X and self.has_x_bounds:
+                print_error("PlaneX surface tally bounds may only use y and/or z.")
+            if surface.type == SURFACE_PLANE_Y and self.has_y_bounds:
+                print_error("PlaneY surface tally bounds may only use x and/or z.")
+            if surface.type == SURFACE_PLANE_Z and self.has_z_bounds:
+                print_error("PlaneZ surface tally bounds may only use x and/or y.")
 
     def __repr__(self):
         text = super().__repr__()
