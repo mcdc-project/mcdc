@@ -1,12 +1,12 @@
 """
-Torus: Implicit equation of a torus radially symmetric about the z-axis in the cartesian plane
+Torus: Implicit equation of a torus radially symmetric about the y-axis
 
-f(x, y, z) = ( sqrt[(x - A)^2 + (y - B)^2] - R )^2 + (z - C)^2 - r^2
+f(x, y, z) = ( sqrt[(x - A)^2 + (z - C)^2] - R )^2 + (y - B)^2 - r^2
 
 Where R is the radius of the shape as a whole, and r is the radius of the circle that is revolved to create the donut
 
 Removing the square roots leaves you with the following equation:
-f (x, y, z) = ( x^2 + y^2 + z^2 + R^2 - r^2 )^2 - 4R^2 * (x^2 + y^2)
+f (x, y, z) = ( x^2 + y^2 + z^2 + R^2 - r^2 )^2 - 4R^2 * (x^2 + z^2)
 """
 
 import math
@@ -52,7 +52,7 @@ def evaluate(particle_container, surface):
     z -= C
 
     return ((x * x + y * y + z * z + R * R - r * r) ** 2) - (
-        4 * R * R * (x * x + y * y)
+        4 * R * R * (x * x + z * z)
     )
 
 
@@ -81,8 +81,8 @@ def reflect(particle_container, surface):
 
     # Taking the partial derivatives of the expanded form of the implicit torus equation
     dx = 4 * x * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
-    dy = 4 * y * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
-    dz = 4 * z * (-(r**2) + (R**2) + (x**2) + (y**2) + (z**2))
+    dy = 4 * y * (-(r**2) + (R**2) + (x**2) + (y**2) + (z**2))
+    dz = 4 * z * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
 
     # Surface Normal
     norm = math.sqrt(dx**2 + dy**2 + dz**2)
@@ -124,8 +124,8 @@ def get_normal_component(particle_container, surface):
 
     # Taking the partial derivatives of the expanded form of the implicit torus equation
     dx = 4 * x * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
-    dy = 4 * y * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
-    dz = 4 * z * (-(r**2) + (R**2) + (x**2) + (y**2) + (z**2))
+    dy = 4 * y * (-(r**2) + (R**2) + (x**2) + (y**2) + (z**2))
+    dz = 4 * z * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
 
     # Surface Normal
     norm = math.sqrt(dx**2 + dy**2 + dz**2)
@@ -176,9 +176,9 @@ def get_distance(particle_container, surface):
     H = 2.0 * (x * ux + y * uy + z * uz)
     I = x * x + y * y + z * z
 
-    J = ux * ux + uy * uy
-    K = 2.0 * (x * ux + y * uy)
-    L = x * x + y * y
+    J = ux * ux + uz * uz
+    K = 2.0 * (x * ux + z * uz)
+    L = x * x + z * z
 
     # Quartic coefficients from substituting (i = origin_i + direction_i * t) into each axis for i (x,y,z)
     a4 = G * G

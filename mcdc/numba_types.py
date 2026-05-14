@@ -654,6 +654,8 @@ surface = into_dtype([
     ('R', float64),
     ('r', float64),
     ('linear', bool),
+    ('quadric', bool),
+    ('quartic', bool),
     ('nx', float64),
     ('ny', float64),
     ('nz', float64),
