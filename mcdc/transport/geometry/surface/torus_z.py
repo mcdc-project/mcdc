@@ -79,7 +79,7 @@ def reflect(particle_container, surface):
     y -= B
     z -= C
 
-    # Taking the partial derivitives of the expanded form of the implicit torus equation
+    # Taking the partial derivatives of the expanded form of the implicit torus equation
     dx = 4 * x * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
     dy = 4 * y * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
     dz = 4 * z * (-(r**2) + (R**2) + (x**2) + (y**2) + (z**2))
@@ -93,7 +93,7 @@ def reflect(particle_container, surface):
     # Reflect
     c = 2.0 * (
         nx * ux + ny * uy + nz * uz
-    )  # Magnitutde component of the projection of the particle onto the surface normal
+    )  # Magnitude component of the projection of the particle onto the surface normal
     particle["ux"] -= c * nx
     particle["uy"] -= c * ny
     particle["uz"] -= c * nz
@@ -122,7 +122,7 @@ def get_normal_component(particle_container, surface):
     y -= B
     z -= C
 
-    # Taking the partial derivitives of the expanded form of the implicit torus equation
+    # Taking the partial derivatives of the expanded form of the implicit torus equation
     dx = 4 * x * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
     dy = 4 * y * (-(r**2) - (R**2) + (x**2) + (y**2) + (z**2))
     dz = 4 * z * (-(r**2) + (R**2) + (x**2) + (y**2) + (z**2))

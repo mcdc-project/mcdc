@@ -25,19 +25,23 @@ velocities = np.zeros((3, 3))
 velocities[:, 1] = np.array([-1.0, 2.0, -3.0])
 
 # Test object: static surface
-static_surface = mcdc.Surface.TorusX(A=A, B=B, C=C, R=R, r=r)
+static_surface_obj = mcdc.Surface.TorusX(A=A, B=B, C=C, R=R, r=r)
 
 # Test object: moving surface
-moving_surface = mcdc.Surface.TorusX(A=A, B=B, C=C, R=R, r=r)
-moving_surface.move(velocities, durations)
+moving_surface_obj = mcdc.Surface.TorusX(A=A, B=B, C=C, R=R, r=r)
+moving_surface_obj.move(velocities, durations)
+
+# Save IDs before preparation()
+static_surface_id = static_surface_obj.ID
+moving_surface_id = moving_surface_obj.ID
 
 # Create the dummy simulation structure and data
 structure_container, data = preparation()
 structure = structure_container[0]
 
-# Get the "compiled" test objects
-static_surface = structure["surfaces"][0]
-moving_surface = structure["surfaces"][1]
+# Get the compiled test objects using stable IDs
+static_surface = structure["surfaces"][static_surface_id]
+moving_surface = structure["surfaces"][moving_surface_id]
 
 # Particle object for testing
 import mcdc.numba_types as type_
@@ -155,7 +159,7 @@ def test_get_distance():
         result = torus_x.get_distance(particle_container, static_surface)
         assert np.isclose(result, answer)
 
-    # Outside Tours
+    # Outside Torus
     y = R
     z = 0.0
     x = r + 1

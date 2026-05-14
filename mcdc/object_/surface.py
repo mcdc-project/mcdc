@@ -20,10 +20,10 @@ from mcdc.constant import (
     SURFACE_PLANE_Z,
     SURFACE_PLANE,
     SURFACE_SPHERE,
-    SURFACE_QUADRIC,
     SURFACE_CONE_X,
     SURFACE_CONE_Y,
     SURFACE_CONE_Z,
+    SURFACE_QUADRIC,
     SURFACE_TORUS_X,
     SURFACE_TORUS_Y,
     SURFACE_TORUS_Z,
@@ -71,7 +71,11 @@ class Surface(ObjectNonSingleton):
     A,B,C,D,E,F,G,H,I,J : float
         Quadric coefficients defining the implicit surface.
     linear : bool
-        True for linear (plane) surfaces; False for general quadrics.
+        True for linear (plane) surfaces.
+    quadric : bool
+        True for quadric (e.g.,cylinder) surfaces.
+    quartic : bool
+        True for quartic (e.g., torus) surfaces.
     nx, ny, nz : float
         Outward normal components for linear planes.
     moving : bool
@@ -116,6 +120,8 @@ class Surface(ObjectNonSingleton):
     R: float
     r: float
     linear: bool
+    quadric: bool
+    quartic: bool
     nx: float
     ny: float
     nz: float
@@ -164,6 +170,8 @@ class Surface(ObjectNonSingleton):
 
         # Helpers
         self.linear = True
+        self.quadric = False
+        self.quartic = False
 
         # Surface normal direction (if linear)
         self.nx = 0.0
@@ -228,6 +236,10 @@ class Surface(ObjectNonSingleton):
             r = (x**2 + y**2 - self.J) ** 0.5
             text += f"  - Center (x, y): ({x}, {y}) cm\n"
             text += f"  - Radius: {r} cm\n"
+        elif self.type == SURFACE_CYLINDER:
+            text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
+            text += f"             {self.D}, {self.E}, {self.F},\n"
+            text += f"             {self.G}, {self.H}, {self.I}, {self.J}\n"
         elif self.type == SURFACE_SPHERE:
             x = -0.5 * self.G
             y = -0.5 * self.H
@@ -235,10 +247,6 @@ class Surface(ObjectNonSingleton):
             r = (x**2 + y**2 + z**2 - self.J) ** 0.5
             text += f"  - Center (x, y, z): ({x}, {y}, {z}) cm\n"
             text += f"  - Radius: {r} cm\n"
-        elif self.type == SURFACE_CYLINDER:
-            text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
-            text += f"             {self.D}, {self.E}, {self.F},\n"
-            text += f"             {self.G}, {self.H}, {self.I}, {self.J}\n"
         elif self.type == SURFACE_CONE_X:
             t_sq = -self.A
             y0 = -0.5 * self.H
@@ -264,7 +272,22 @@ class Surface(ObjectNonSingleton):
             text += f"  - Coeffs.: {self.A}, {self.B}, {self.C},\n"
             text += f"             {self.D}, {self.E}, {self.F},\n"
             text += f"             {self.G}, {self.H}, {self.I}, {self.J}\n"
-
+        elif self.type == SURFACE_TORUS_X:
+            text += f"  - A, B, C: {self.A}, {self.B}, {self.C}\n"
+            text += f"  - R: {self.R} cm\n"
+            text += f"  - r: {self.r} cm\n"
+        elif self.type == SURFACE_TORUS_Y:
+            text += f"  - A, B, C: {self.A}, {self.B}, {self.C}\n"
+            text += f"  - R: {self.R} cm\n"
+            text += f"  - r: {self.r} cm\n"
+        elif self.type == SURFACE_TORUS_Z:
+            text += f"  - A, B, C: {self.A}, {self.B}, {self.C}\n"
+            text += f"  - R: {self.R} cm\n"
+            text += f"  - r: {self.r} cm\n"
+        elif self.type == SURFACE_TORUS:
+            text += f"  - A, B, C: {self.A}, {self.B}, {self.C}\n"
+            text += f"  - R: {self.R} cm\n"
+            text += f"  - r: {self.r} cm\n"
         if len(self.tallies) > 0:
             text += f"  - Tallies: {[x.ID for x in self.tallies]}\n"
 
@@ -297,6 +320,9 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = True
+        surface.quadric = False
+        surface.quartic = False
+
         surface.G = 1.0
         surface.J = -x
         surface.nx = 1.0
@@ -326,6 +352,9 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = True
+        surface.quadric = False
+        surface.quartic = False
+
         surface.H = 1.0
         surface.J = -y
         surface.ny = 1.0
@@ -355,6 +384,9 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = True
+        surface.quadric = False
+        surface.quartic = False
+
         surface.I = 1.0
         surface.J = -z
         surface.nz = 1.0
@@ -394,6 +426,8 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = True
+        surface.quadric = False
+        surface.quartic = False
 
         # Normalize
         norm = (A**2 + B**2 + C**2) ** 0.5
@@ -445,6 +479,8 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
+        surface.quadric = True
+        surface.quartic = False
 
         # Center and radius
         y, z = center
@@ -489,6 +525,8 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
+        surface.quadric = True
+        surface.quartic = False
 
         # Center and radius
         x, z = center
@@ -531,7 +569,10 @@ class Surface(ObjectNonSingleton):
         """
         type_ = SURFACE_CYLINDER_Z
         surface = cls(type_, name, boundary_condition)
+
         surface.linear = False
+        surface.quadric = True
+        surface.quartic = False
 
         # Center and radius
         x, y = center
@@ -576,7 +617,10 @@ class Surface(ObjectNonSingleton):
         """
         type_ = SURFACE_CYLINDER
         surface = cls(type_, name, boundary_condition)
+
         surface.linear = False
+        surface.quadric = True
+        surface.quartic = False
 
         # Axis and point
         ax, ay, az = axis
@@ -634,6 +678,8 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
+        surface.quadric = True
+        surface.quartic = False
 
         # Center and radius
         x, y, z = center
@@ -679,7 +725,10 @@ class Surface(ObjectNonSingleton):
         """
         type_ = SURFACE_CONE_X
         surface = cls(type_, name, boundary_condition)
+
         surface.linear = False
+        surface.quadric = True
+        surface.quartic = False
 
         x0, y0, z0 = apex
 
@@ -722,7 +771,10 @@ class Surface(ObjectNonSingleton):
         """
         type_ = SURFACE_CONE_Y
         surface = cls(type_, name, boundary_condition)
+
         surface.linear = False
+        surface.quadric = True
+        surface.quartic = False
 
         x0, y0, z0 = apex
 
@@ -765,7 +817,10 @@ class Surface(ObjectNonSingleton):
         """
         type_ = SURFACE_CONE_Z
         surface = cls(type_, name, boundary_condition)
+
         surface.linear = False
+        surface.quadric = True
+        surface.quartic = False
 
         x0, y0, z0 = apex
 
@@ -817,6 +872,8 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
+        surface.quadric = True
+        surface.quartic = False
 
         # Coefficients
         surface.A = A
@@ -850,7 +907,7 @@ class Surface(ObjectNonSingleton):
         ----------
         name : str, optional
         A,B,C,R,r : float
-            A, B, C are displacement values for the torus in the x, y, z directions respectfully
+            A, B, C are displacement values for the torus in the x, y, z directions respectively
             R is the radius around which a circle is revolved about the axis of revolution (parallel with the x-axis)
             r is the radius of the circle that is being revolved
         boundary_condition : {"none","vacuum","reflective"}, optional
@@ -864,6 +921,8 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
+        surface.quadric = False
+        surface.quartic = True
 
         # Coefficients
         surface.A = A
@@ -893,7 +952,7 @@ class Surface(ObjectNonSingleton):
         ----------
         name : str, optional
         A,B,C,R,r : float
-            A, B, C are displacement values for the torus in the x, y, z directions respectfully
+            A, B, C are displacement values for the torus in the x, y, z directions respectively
             R is the radius around which a circle is revolved about the axis of revolution (parallel with the y-axis)
             r is the radius of the circle that is being revolved
         boundary_condition : {"none","vacuum","reflective"}, optional
@@ -907,6 +966,8 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
+        surface.quadric = False
+        surface.quartic = True
 
         # Coefficients
         surface.A = A
@@ -936,7 +997,7 @@ class Surface(ObjectNonSingleton):
         ----------
         name : str, optional
         A,B,C,R,r : float
-            A, B, C are displacement values for the torus in the x, y, z directions respectfully
+            A, B, C are displacement values for the torus in the x, y, z directions respectively
             R is the radius around which a circle is revolved about the axis of revolution (parallel with the z-axis)
             r is the radius of the circle that is being revolved
         boundary_condition : {"none","vacuum","reflective"}, optional
@@ -950,6 +1011,8 @@ class Surface(ObjectNonSingleton):
         surface = cls(type_, name, boundary_condition)
 
         surface.linear = False
+        surface.quadric = False
+        surface.quartic = True
 
         # Coefficients
         surface.A = A
@@ -1001,7 +1064,10 @@ class Surface(ObjectNonSingleton):
 
         type_ = SURFACE_TORUS
         surface = cls(type_, name, boundary_condition)
+
         surface.linear = False
+        surface.quadric = False
+        surface.quartic = True
 
         surface.A = x
         surface.B = y
@@ -1098,14 +1164,14 @@ def decode_type(type_):
         return "General cylinder surface"
     elif type_ == SURFACE_SPHERE:
         return "Sphere surface"
-    elif type_ == SURFACE_QUADRIC:
-        return "Quadric surface"
     elif type_ == SURFACE_CONE_X:
         return "Infinite cone-X surface"
     elif type_ == SURFACE_CONE_Y:
         return "Infinite cone-Y surface"
     elif type_ == SURFACE_CONE_Z:
         return "Infinite cone-Z surface"
+    elif type_ == SURFACE_QUADRIC:
+        return "Quadric surface"
     elif type_ == SURFACE_TORUS_X:
         return "Torus-X surface"
     elif type_ == SURFACE_TORUS_Y:
