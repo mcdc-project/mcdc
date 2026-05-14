@@ -221,6 +221,10 @@ def build_gpu_progs(input_deck, args):
     @njit
     def real_setup_gpu(mcdc_array, data_tally):
         mcdc = mcdc_array[0]
+
+        print("STATE POINTER {mcdc['gpu_meta']['state_pointer']}")
+        print("GLOBAL POINTER {mcdc['gpu_meta']['global_pointer']}")
+        print("TALLY POINTER {mcdc['gpu_meta']['tally_pointer']}")
         src_set_device(device_id)
         arena_size = ARENA_SIZE
         mcdc["gpu_meta"]["state_pointer"] = adapt.cast_voidptr_to_uintp(alloc_state())

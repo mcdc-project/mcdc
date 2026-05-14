@@ -37,6 +37,18 @@ type_map = {
     np.str_: "U32",
 }
 
+size_map = {
+    bool: 1,
+    float: 8,
+    int: 8,
+    str: 32,
+    np.bool_: 1,
+    np.float64: 8,
+    np.int64: 8,
+    np.uint64:8,
+    np.str_: 32,
+}
+
 bank_names = ["bank_active", "bank_census", "bank_source", "bank_future"]
 
 # ======================================================================================
@@ -253,8 +265,10 @@ def generate_numba_objects(simulation):
         set_object(object_, annotations, structures, records, data)
     set_object(simulation, annotations, structures, records, data)
 
+    print("\n\n\nA\n\n\n",flush=True)
     # Allocate the flattened data and re-set the objects
-    data["array"], data["pointer"] = create_data_array(data["size"], type_map[float])
+    data["array"], data["pointer"] = create_data_array(data["size"], type_map[float],size_map[float])
+    print("\n\n\nB\n\n\n",flush=True)
 
     data["size"] = 0
     records = {}
@@ -348,6 +362,8 @@ def generate_numba_objects(simulation):
         into_dtype(structures["simulation"])
     )
     mcdc_simulation = mcdc_simulation_arr[0]
+    mcdc_simulation["gpu_meta"]["global_pointer"] = mcdc_simulation_pointer
+    mcdc_simulation["gpu_meta"]["data_pointer"] = data["pointer"]
 
     record = records["simulation"]
     structure = structures["simulation"]
@@ -642,15 +658,20 @@ def set_object(
 # =============================================================================
 
 
-def create_data_array(size, dtype):
+def create_data_array(size, dtype, itemsize):
     if config.target == "gpu":
         import mcdc.code_factory.gpu.adapt as adapt
         import harmonize, numba
 
+        print("\n\n\nW\n\n\n",flush=True)
+        print(f"Tally size is {size} with itemsize {itemsize}",flush=True)
         if config.gpu_state_storage == "managed":
-            data_tally_ptr = harmonize.alloc_managed_bytes(size)
+            print("\n\n\nX\n\n\n",flush=True)
+            data_tally_ptr = harmonize.alloc_managed_bytes(size*itemsize)
         else:
-            data_tally_ptr = harmonize.alloc_device_bytes(size)
+            print("\n\n\nY\n\n\n",flush=True)
+            data_tally_ptr = harmonize.alloc_device_bytes(size*itemsize)
+        print("\n\n\nZ\n\n\n",flush=True)
         data_tally_uint = adapt.voidptr_to_uintp(data_tally_ptr)
         data_tally = numba.carray(data_tally_ptr, (size,), dtype)
         return data_tally, data_tally_uint
