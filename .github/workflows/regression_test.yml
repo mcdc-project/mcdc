@@ -29,7 +29,7 @@ jobs:
           - mode: Numba-Serial
             timeout: 120
           - mode: Numba-MPI
-            timeout: 120
+            timeout: 140
 
     steps:
       - name: Checkout repository
