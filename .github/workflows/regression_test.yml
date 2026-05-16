@@ -1,9 +1,8 @@
 # =============================================================================
 # Regression Tests
 # =============================================================================
-# Runs regression tests directly on the runner across multiple
-# Python versions. Complements the Docker workflow by validating native
-# installs and broader Python version coverage.
+# Runs regression tests directly on the runner across Python 3.13
+# Complements the Docker workflow by validating native installs.
 # =============================================================================
 
 name: Regression Tests
@@ -31,29 +30,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Lightweight modes: run on both Python versions for compatibility coverage
-          - mode: Python-Serial
-            python-version: '3.10'
-            run_cmd: "python run.py"
-            timeout: 10
+          # Python modes:
           - mode: Python-Serial
             python-version: '3.13'
             run_cmd: "python run.py"
             timeout: 10
-          - mode: Python-MPI
-            python-version: '3.10'
-            run_cmd: |
-              python run.py --mpiexec=4
-              python run.py --mpiexec=16 --name=slab_reed_dd_3d
-            timeout: 30
           - mode: Python-MPI
             python-version: '3.13'
             run_cmd: |
               python run.py --mpiexec=4
               python run.py --mpiexec=16 --name=slab_reed_dd_3d
             timeout: 30
-          # Heavy Numba modes: single Python version only (Numba uses its own LLVM backend,
-          # so cross-version coverage gives diminishing returns vs. runner-minute cost)
+          # Numba modes:
           - mode: Numba-Serial
             python-version: '3.13'
             run_cmd: "python run.py --mode numba"
