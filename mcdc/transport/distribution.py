@@ -329,12 +329,15 @@ def _sample_multi_table(E, rng_state, multi_table, data, scale):
             val0 = mcdc_get.multi_table_distribution.value(idx, multi_table, data)
             val1 = mcdc_get.multi_table_distribution.value(idx + 1, multi_table, data)
 
-            frac = (xi - c0) / (c1 - c0)
-            if frac < 0.0:
-                frac = 0.0
-            elif frac > 1.0:
-                frac = 1.0
-            sample = val0 + frac * (val1 - val0)
+            if c0 == c1:
+                sample = val0
+            else:
+                frac = (xi - c0) / (c1 - c0)
+                if frac < 0.0:
+                    frac = 0.0
+                elif frac > 1.0:
+                    frac = 1.0
+                sample = val0 + frac * (val1 - val0)
 
         # PDF-based mode: used by neutron data and PyEPICS libraries
         else:
@@ -346,8 +349,13 @@ def _sample_multi_table(E, rng_state, multi_table, data, scale):
             val0 = mcdc_get.multi_table_distribution.value(idx, multi_table, data)
             val1 = mcdc_get.multi_table_distribution.value(idx + 1, multi_table, data)
 
-            m = (p1 - p0) / (val1 - val0)
-            sample = val0 + 1.0 / m * (math.sqrt(p0**2 + 2 * m * (xi - c)) - p0)
+            if p0 == p1:
+                sample = val0 + (xi - c) / p0
+            else:
+                m = (p1 - p0) / (val1 - val0)
+                sample = val0 + 1.0 / m * (
+                    math.sqrt(p0**2 + 2 * m * (xi - c)) - p0
+                )
 
     if not scale:
         return sample
