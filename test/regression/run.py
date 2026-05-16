@@ -2,6 +2,8 @@ import h5py, os, sys, argparse, fnmatch
 import numpy as np
 from colorama import Fore, Style
 
+RELATIVE_TOLERANCE = 1e-6
+
 # Option parser
 parser = argparse.ArgumentParser(description="MC/DC regression test")
 parser.add_argument("--mode", type=str, choices=["python", "numba"], default="python")
@@ -173,22 +175,16 @@ for i, name in enumerate(names):
                     if ("uq_var" in result) and (args.target == "gpu"):
                         continue
                     # Passed?
-                    if np.isclose(a, b).all():
+                    try:
+                        np.testing.assert_allclose(a, b, rtol=RELATIVE_TOLERANCE)
                         print(
                             Fore.GREEN + "  {}: Passed".format(name) + Style.RESET_ALL
                         )
-                    else:
+                    except AssertionError as error:
                         all_pass = False
                         error_msgs[-1].append(
                             "Differences in %s"
-                            % (
-                                name
-                                + "/"
-                                + result
-                                + "\n"
-                                + "{}\n".format(a - b)
-                                + "Max difference: {}".format(np.max(np.abs(a - b)))
-                            )
+                            % (name + "/" + result + "\n" + "{}\n".format(error))
                         )
                         print(Fore.RED + "  {}: Failed".format(name) + Style.RESET_ALL)
 
@@ -201,12 +197,13 @@ for i, name in enumerate(names):
             b = answer[result_name][()]
 
             # Passed?
-            if np.isclose(a, b).all():
+            try:
+                np.testing.assert_allclose(a, b, rtol=RELATIVE_TOLERANCE)
                 print(Fore.GREEN + "  {}: Passed".format(result_name) + Style.RESET_ALL)
-            else:
+            except AssertionError as error:
                 all_pass = False
                 error_msgs[-1].append(
-                    "Differences in {}\n{}".format(result_name, a - b)
+                    "Differences in {}\n{}".format(result_name, error)
                 )
                 print(Fore.RED + "  {}: Failed".format(result_name) + Style.RESET_ALL)
 
@@ -216,12 +213,11 @@ for i, name in enumerate(names):
             name = f"iqmc/tally/{score}/mean"
             a = np.squeeze(output[name][()])
             b = np.squeeze(answer[name][()])
-            if np.isnan(b).all():
-                continue
             # Passed?
-            if np.isclose(a, b).all():
+            try:
+                np.testing.assert_allclose(a, b, rtol=RELATIVE_TOLERANCE)
                 print(Fore.GREEN + "  {}: Passed".format(score) + Style.RESET_ALL)
-            else:
+            except AssertionError as error:
                 all_pass = False
                 error_msgs[-1].append("Differences in {}\n{}".format(score, a - b))
                 print(Fore.RED + "  {}: Failed".format(score) + Style.RESET_ALL)

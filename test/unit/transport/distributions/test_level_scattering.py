@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 import mcdc.transport.distribution as dist
 
@@ -12,4 +13,4 @@ def test_level_scattering_sample():
     level = {"C1": 1.0, "C2": 0.5}
     sampled_E = dist.sample_level_scattering(5.0, level)
     expected_E = 2.0
-    assert math.isclose(sampled_E, expected_E, rel_tol=0.0, abs_tol=1e-12)
+    np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)

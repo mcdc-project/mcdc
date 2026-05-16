@@ -1,0 +1,22 @@
+# Source and docs use LF
+*.py   text eol=lf
+*.sh   text eol=lf
+*.md   text eol=lf
+*.rst  text eol=lf
+*.toml text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.txt  text eol=lf
+*.bib  text eol=lf
+*.cff  text eol=lf
+Makefile text eol=lf
+Dockerfile text eol=lf
+
+# Binary files
+*.h5   binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.pdf  binary

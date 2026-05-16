@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 import mcdc.transport.distribution as dist
 from mcdc.constant import DISTRIBUTION_N_BODY
@@ -33,5 +34,5 @@ def test_nbody_sample_correlated(rng_sequence, rng_state):
     expected_E = 2.0 + (0.2 - 0.0) * (4.0 - 2.0) / (0.4 - 0.0)
     expected_mu = 2.0 * 0.75 - 1.0
 
-    assert math.isclose(sampled_E, expected_E, rel_tol=0.0, abs_tol=1e-12)
-    assert math.isclose(sampled_mu, expected_mu, rel_tol=0.0, abs_tol=1e-12)
+    np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)
+    np.testing.assert_allclose(sampled_mu, expected_mu, rtol=0.0, atol=1e-12)

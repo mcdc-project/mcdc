@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 import mcdc.transport.distribution as dist
 
@@ -27,4 +28,4 @@ def test_multi_table_distribution_sample(rng_sequence, rng_state):
     #   E_out = E_1 + (E' - E_l,1) * (E_K - E_1) / (E_l,K - E_l,1)
     expected_E = 55.0 + (E_prime - 100.0) * (165.0 - 55.0) / (300.0 - 100.0)
 
-    assert math.isclose(sampled_E, expected_E, rel_tol=0.0, abs_tol=1e-12)
+    np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)
