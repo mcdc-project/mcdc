@@ -7,10 +7,20 @@ import mcdc.mcdc_get as mcdc_get
 from mcdc.constant import (
     DATA_POLYNOMIAL,
     DATA_TABLE,
+    INTERPOLATION_HISTOGRAM,
     INTERPOLATION_LINEAR,
+    INTERPOLATION_SEMILOGX,
+    INTERPOLATION_SEMILOGY,
     INTERPOLATION_LOG,
 )
-from mcdc.transport.util import find_bin, linear_interpolation, log_interpolation
+from mcdc.transport.util import (
+    find_bin,
+    histogram_interpolation,
+    linear_interpolation,
+    semilogx_interpolation,
+    semilogy_interpolation,
+    log_interpolation,
+)
 
 
 @njit
@@ -40,9 +50,25 @@ def evaluate_table(x, table, data):
     y1 = mcdc_get.table_data.y(idx, table, data)
     y2 = mcdc_get.table_data.y(idx + 1, table, data)
 
-    if table["interpolation"] == INTERPOLATION_LINEAR:
+    # Get interpolation index
+    idx_int = 0
+    idx_int = 0
+    while True:
+        if idx + 1 < mcdc_get.table_data.interpolation_boundaries(idx_int, table, data):
+            break
+        idx_int += 1
+
+    interpolation = mcdc_get.table_data.interpolations(idx_int, table, data)
+
+    if interpolation == INTERPOLATION_HISTOGRAM:
+        return histogram_interpolation(x, x1, x2, y1, y2)
+    elif interpolation == INTERPOLATION_LINEAR:
         return linear_interpolation(x, x1, x2, y1, y2)
-    elif table["interpolation"] == INTERPOLATION_LOG:
+    elif interpolation == INTERPOLATION_SEMILOGX:
+        return semilogx_interpolation(x, x1, x2, y1, y2)
+    elif interpolation == INTERPOLATION_SEMILOGY:
+        return semilogy_interpolation(x, x1, x2, y1, y2)
+    elif interpolation == INTERPOLATION_LOG:
         return log_interpolation(x, x1, x2, y1, y2)
 
 

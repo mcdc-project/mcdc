@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 import mcdc.transport.distribution as dist
 
@@ -26,4 +27,4 @@ def test_evaporation_sample(rng_sequence, rng_state):
     # Since T(E_in) = 1.0 here, the prefactor is omitted in the simplified form below.
     expected_E = -math.log((1.0 - g * xi1) * (1.0 - g * xi2))
 
-    assert math.isclose(sampled_E, expected_E, rel_tol=0.0, abs_tol=1e-12)
+    np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)

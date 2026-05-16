@@ -59,7 +59,7 @@ preserving the expected weight (unbiased).
 
 .. code-block:: python3
 
-   mcdc.simulation.weight_roulette(weight_threshold=0.25, weight_target=1.0)
+   mcdc.simulation.global_weight_roulette(weight_threshold=0.25, weight_target=1.0)
 
 ``weight_threshold`` and ``weight_target`` should be chosen so that
 :math:`w_{\text{thresh}} < w_{\text{target}}`; a common ratio is
@@ -131,7 +131,7 @@ setup might use:
 .. code-block:: python3
 
    mcdc.simulation.implicit_capture()
-   mcdc.simulation.weight_roulette(weight_threshold=0.25, weight_target=1.0)
+   mcdc.simulation.global_weight_roulette(weight_threshold=0.25, weight_target=1.0)
 
 For time-dependent fission problems:
 

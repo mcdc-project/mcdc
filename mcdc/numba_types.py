@@ -150,7 +150,10 @@ table_data = into_dtype([
     ('x_length', int64),
     ('y_offset', int64),
     ('y_length', int64),
-    ('interpolation', int64),
+    ('interpolations_offset', int64),
+    ('interpolations_length', int64),
+    ('interpolation_boundaries_offset', int64),
+    ('interpolation_boundaries_length', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])
@@ -561,6 +564,12 @@ settings = into_dtype([
     ('gpu_storage', int64),
 ])
 
+global_weight_roulette = into_dtype([
+    ('active', bool),
+    ('weight_threshold', float64),
+    ('weight_target', float64),
+])
+
 implicit_capture = into_dtype([
     ('active', bool),
 ])
@@ -569,9 +578,21 @@ population_control = into_dtype([
     ('active', bool),
 ])
 
-weight_roulette = into_dtype([
-    ('weight_threshold', float64),
-    ('weight_target', float64),
+weight_windows = into_dtype([
+    ('active', bool),
+    ('energy_bounds_offset', int64),
+    ('energy_bounds_length', int64),
+    ('Ne', int64),
+    ('mesh_ID', int64),
+    ('Nx', int64),
+    ('Ny', int64),
+    ('Nz', int64),
+    ('lower_weights_offset', int64),
+    ('lower_weights_length', int64),
+    ('target_weights_offset', int64),
+    ('target_weights_length', int64),
+    ('upper_weights_offset', int64),
+    ('upper_weights_length', int64),
 ])
 
 weighted_emission = into_dtype([
@@ -633,6 +654,8 @@ surface = into_dtype([
     ('R', float64),
     ('r', float64),
     ('linear', bool),
+    ('quadric', bool),
+    ('quartic', bool),
     ('nx', float64),
     ('ny', float64),
     ('nz', float64),
@@ -814,7 +837,8 @@ def set_simulation(N: dict):
         ('settings', settings),
         ('implicit_capture', implicit_capture),
         ('weighted_emission', weighted_emission),
-        ('weight_roulette', weight_roulette),
+        ('global_weight_roulette', global_weight_roulette),
+        ('weight_windows', weight_windows),
         ('population_control', population_control),
         ('gpu_meta', gpu_meta),
         ('bank_future', bank_future),

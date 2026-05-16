@@ -10,6 +10,7 @@ from mcdc.constant import (
     ELECTRON_REACTION_EXCITATION,
     ELECTRON_REACTION_ELASTIC_SCATTERING,
     ELECTRON_REACTION_IONIZATION,
+    INTERPOLATION_LINEAR,
     MU_CUTOFF,
     REFERENCE_FRAME_COM,
     REFERENCE_FRAME_LAB,
@@ -112,7 +113,11 @@ class ElectronReactionIonization(ElectronReactionBase):
 
             # Subshell cross section table (each has its own energy grid)
             subshell_xs.append(
-                DataTable(subshell["energy_grid"][()], subshell["xs"][()])
+                DataTable(
+                    subshell["energy_grid"][()],
+                    subshell["xs"][()],
+                    INTERPOLATION_LINEAR,
+                )
             )
 
             # Secondary electron energy distribution
@@ -189,7 +194,9 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
         MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
         large_angle = h5_group["large_angle"]
-        xs_large = DataTable(large_angle["xs_energy"][()], large_angle["xs"][()])
+        xs_large = DataTable(
+            large_angle["xs_energy"][()], large_angle["xs"][()], INTERPOLATION_LINEAR
+        )
 
         mu_group = large_angle["scattering_cosine"]
         if "CDF" in mu_group:
@@ -238,7 +245,7 @@ class ElectronReactionBremsstrahlung(ElectronReactionBase):
         MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
         base = h5_group["energy_loss"]
-        eloss = DataTable(base["energy"][()], base["value"][()])
+        eloss = DataTable(base["energy"][()], base["value"][()], INTERPOLATION_LINEAR)
 
         return cls(MT, xs, xs_offset, reference_frame, eloss)
 
@@ -269,7 +276,7 @@ class ElectronReactionExcitation(ElectronReactionBase):
         MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
         base = h5_group["energy_loss"]
-        eloss = DataTable(base["energy"][()], base["value"][()])
+        eloss = DataTable(base["energy"][()], base["value"][()], INTERPOLATION_LINEAR)
 
         return cls(MT, xs, xs_offset, reference_frame, eloss)
 

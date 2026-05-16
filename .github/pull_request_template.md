@@ -5,13 +5,13 @@
 
 ## Types of changes
 <!---
-    What types of changes does your code introduce? Put an `x` in all the boxes that apply:
+    What types of changes does your code introduce?
 -->
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to change)
-- [ ] Organization and beautification (changes which improve readability and/or accessibility)
+- Bug fix (non-breaking change which fixes an issue) <!-- Delete if not applicable -->
+- New feature (non-breaking change which adds functionality) <!-- Delete if not applicable -->
+- Breaking change (fix or feature that would cause existing functionality to change) <!-- Delete if not applicable -->
+- Organization and beautification (changes which improve readability and/or accessibility) <!-- Delete if not applicable -->
 
 ## Developer Checklist
 <!---
