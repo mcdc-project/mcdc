@@ -353,9 +353,7 @@ def _sample_multi_table(E, rng_state, multi_table, data, scale):
                 sample = val0 + (xi - c) / p0
             else:
                 m = (p1 - p0) / (val1 - val0)
-                sample = val0 + 1.0 / m * (
-                    math.sqrt(p0**2 + 2 * m * (xi - c)) - p0
-                )
+                sample = val0 + 1.0 / m * (math.sqrt(p0**2 + 2 * m * (xi - c)) - p0)
 
     if not scale:
         return sample
