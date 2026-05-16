@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 import mcdc.transport.distribution as dist
 
@@ -34,5 +35,5 @@ def test_tabulated_energy_angle_sample(rng_sequence, rng_state):
     # used. Sampling that table gives mu = -1 + xi_3 / 0.5.
     expected_mu = -1.0 + (xi3 - 0.0) / 0.5
 
-    assert math.isclose(sampled_E, expected_E, rel_tol=0.0, abs_tol=1e-12)
-    assert math.isclose(sampled_mu, expected_mu, rel_tol=0.0, abs_tol=1e-12)
+    np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)
+    np.testing.assert_allclose(sampled_mu, expected_mu, rtol=0.0, atol=1e-12)
