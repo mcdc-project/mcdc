@@ -12,6 +12,7 @@ authors = [
   { name = "Joanna Morgan", email = "morgan83@llnl.gov" },
   { name = "Kayla Clements", email = "clemekay@oregonstate.edu" },
   { name = "Braxton Cuneo", email = "bcuneo@seattleu.edu" },
+  { name = "Melek Derman", email = "dermanm@oregonstate.edu" },
   { name = "Caleb Shaw" },
   { name = "Rohan Pankaj" },
   { name = "Alexander Mote" },
@@ -24,7 +25,6 @@ authors = [
   { name = "C. T. Kelley" },
   { name = "Camille J. Palmer" },
   { name = "Kyle E. Niemeyer" }
-  { name = "Melek Derman", email = "dermanm@oregonstate.edu" },
 ]
 
 maintainers = [
