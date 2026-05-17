@@ -109,7 +109,9 @@ for ace_name in pbar:
     # Atomic number and weight ratio
     atomic_number = ace_table.atom_number
     atomic_weight_ratio = ace_table.atomic_weight_ratio
+    mass_number = ace_table.mass_number
     file.create_dataset("atomic_number", data=atomic_number)
+    file.create_dataset("mass_number", data=mass_number)
     file.create_dataset("atomic_weight_ratio", data=atomic_weight_ratio)
 
     # Fissionable?
