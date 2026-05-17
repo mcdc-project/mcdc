@@ -1,17 +1,12 @@
-# =============================================================================
-# Docker Build, Test, and Publish
-# =============================================================================
-# Builds the CPU Docker image, runs the full test suite inside it,
-# and publishes to GHCR on pushes to main/dev (i.e., after PR merge).
-# =============================================================================
-
-name: Docker Build, Test, and Publish
-
 on:
   push:
     branches: [dev, main]
   pull_request:
     branches: [dev, main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,16 +19,38 @@ env:
 jobs:
 
   # ---------------------------------------------------------------------------
-  # Stage 1: Build the image
+  # Stage 0: Detect what changed (drives downstream job decisions)
+  # ---------------------------------------------------------------------------
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      docker_relevant: ${{ steps.filter.outputs.docker_relevant }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            docker_relevant:
+              - 'containers/**'
+              - 'Dockerfile*'
+              - 'pyproject.toml'
+              - 'requirements*.txt'
+              - '.dockerignore'
+              - '.github/workflows/docker.yml'
+
+  # ---------------------------------------------------------------------------
+  # Stage 1: Build — runs on EVERY PR (cheap sanity check)
   # ---------------------------------------------------------------------------
   build:
     name: Build Docker image
+    needs: changes
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.determine-tag.outputs.tag }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Determine image tag
         id: determine-tag
@@ -44,11 +61,8 @@ jobs:
             echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      # IMPROVEMENT: Added fallback cache-from to read from main branch scope.
-      # This ensures PRs don't start with a cold cache.
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
@@ -61,26 +75,23 @@ jobs:
           cache-to: type=gha,mode=max
           outputs: type=docker,dest=/tmp/mcdc-image.tar
 
-      - name: Upload image artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: mcdc-image
           path: /tmp/mcdc-image.tar
           retention-days: 1
 
   # ---------------------------------------------------------------------------
-  # Stage 2: Test suite (runs in parallel after build)
+  # Stage 2a: Unit tests — runs on EVERY PR (cheap, ~5 min)
   # ---------------------------------------------------------------------------
   unit-test:
     name: Unit tests (Docker)
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Download image artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: mcdc-image
           path: /tmp
@@ -90,37 +101,36 @@ jobs:
 
       - name: Verify MC/DC import
         run: |
-          docker run --rm mcdc:${{ needs.build.outputs.image_tag }} python -c "import mcdc; print('MC/DC import OK')"
+          docker run --rm mcdc:${{ needs.build.outputs.image_tag }} \
+            python -c "import mcdc; print('MC/DC import OK')"
 
-      # FIX: Added isolated smoke test WITHOUT workspace mounting.
-      # Verifies that the built-in MC/DC code inside the image actually works.
-      - name: Smoke test image contents (No Mount)
+      - name: Smoke test image contents (no mount)
         run: |
           docker run --rm \
             -w /opt/mcdc/test/unit \
             mcdc:${{ needs.build.outputs.image_tag }} python run.py
 
-      # This one keeps testing PR-specific code changes via volume mount
-      - name: Run unit tests (With Workspace Mount)
+      - name: Run unit tests (with workspace mount)
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/opt/mcdc \
             -w /opt/mcdc/test/unit \
             mcdc:${{ needs.build.outputs.image_tag }} python run.py
 
+  # ---------------------------------------------------------------------------
+  # Stage 2b: Regression — only on push, or on PRs touching docker-relevant files
+  # ---------------------------------------------------------------------------
   regression-test:
     name: Regression – ${{ matrix.mode }}
-    needs: build
+    needs: [changes, build]
+    if: |
+      github.event_name == 'push' ||
+      needs.changes.outputs.docker_relevant == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
       matrix:
-        mode:
-          - Python-Serial
-          - Python-MPI
-          - Numba-Serial
-          - Numba-MPI
         include:
           - mode: Python-Serial
             run_cmd: "python run.py"
@@ -140,19 +150,16 @@ jobs:
             timeout: 120
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # FIX 1: Pull test data on host to avoid Git lock inside Docker
-      - name: Checkout Regression Test Data
+      - name: Checkout regression test data
         uses: actions/checkout@v4
         with:
           repository: mcdc-project/mcdc-regression_test_data
           path: test/regression/mcdc-regression_test_data
           depth: 1
 
-      - name: Download image artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: mcdc-image
           path: /tmp
@@ -171,7 +178,7 @@ jobs:
             '
 
   # ---------------------------------------------------------------------------
-  # Stage 3: Publish (only on push to dev/main, after all tests pass)
+  # Stage 3: Publish — only on push to dev/main, after all tests pass
   # ---------------------------------------------------------------------------
   publish:
     name: Publish to GHCR
@@ -183,8 +190,7 @@ jobs:
       packages: write
 
     steps:
-      - name: Download image artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: mcdc-image
           path: /tmp
@@ -192,7 +198,7 @@ jobs:
       - name: Load Docker image
         run: docker load -i /tmp/mcdc-image.tar
 
-      - name: Login to GitHub Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -206,15 +212,12 @@ jobs:
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           FULL_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-          # Tag with branch name (dev or main)
           docker tag mcdc:${BRANCH} ${FULL_IMAGE}:${BRANCH}
           docker push ${FULL_IMAGE}:${BRANCH}
 
-          # Tag with branch, date and short commit SHA for traceability
           docker tag mcdc:${BRANCH} ${FULL_IMAGE}:${BRANCH}-${DATE}-${SHA}
           docker push ${FULL_IMAGE}:${BRANCH}-${DATE}-${SHA}
 
-          # If pushing to main, also update the 'latest' tag
           if [ "${BRANCH}" == "main" ]; then
             docker tag mcdc:${BRANCH} ${FULL_IMAGE}:latest
             docker push ${FULL_IMAGE}:latest
