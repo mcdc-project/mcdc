@@ -1,3 +1,12 @@
+# =============================================================================
+# Docker Build, Test, and Publish
+# =============================================================================
+# Builds the CPU Docker image, runs the full test suite inside it,
+# and publishes to GHCR on pushes to main/dev (i.e., after PR merge).
+# =============================================================================
+
+name: Docker Build, Test, and Publish
+
 on:
   push:
     branches: [dev, main]
