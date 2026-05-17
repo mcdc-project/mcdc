@@ -689,6 +689,12 @@ surface_tally = into_dtype([
     ('parent_ID', int64),
 ])
 
+cell_tally = into_dtype([
+    ('cell_ID', int64),
+    ('ID', int64),
+    ('parent_ID', int64),
+])
+
 collision_tally = into_dtype([
     ('spatial_filter_type', int64),
     ('spatial_filter_ID', int64),
@@ -838,6 +844,8 @@ def set_simulation(N: dict):
         ('N_tally', int64),
         ('surface_tallies', surface_tally, (N['surface_tally'])),
         ('N_surface_tally', int64),
+        ('cell_tallies', cell_tally, (N['cell_tally'])),
+        ('N_cell_tally', int64),
         ('collision_tallies', collision_tally, (N['collision_tally'])),
         ('N_collision_tally', int64),
         ('tracklength_tallies', tracklength_tally, (N['tracklength_tally'])),

@@ -102,6 +102,8 @@ import mcdc.mcdc_set.surface as surface
 
 import mcdc.mcdc_set.surface_tally as surface_tally
 
+import mcdc.mcdc_set.cell_tally as cell_tally
+
 import mcdc.mcdc_set.collision_tally as collision_tally
 
 import mcdc.mcdc_set.tracklength_tally as tracklength_tally

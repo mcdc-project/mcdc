@@ -32,12 +32,15 @@ from mcdc.constant import (
     SCORE_FISSION,
     SCORE_NET_CURRENT,
     SCORE_ENERGY_DEPOSITION,
+    SCORE_CURRENT_IN,
+    SCORE_CURRENT_OUT,
     SPATIAL_FILTER_CELL,
     SPATIAL_FILTER_MESH,
     SPATIAL_FILTER_NONE,
     SURFACE_PLANE_X,
     SURFACE_PLANE_Y,
     SURFACE_PLANE_Z,
+    TALLY_CELL,
     TALLY_SURFACE,
     TALLY_COLLISION,
     TALLY_TRACKLENGTH,
@@ -48,6 +51,7 @@ from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
 
 SURFACE_SCORES = set(["net-current"])
+CELL_CURRENT_SCORES = set(["net-current", "current-in", "current-out"])
 TRACKLENGTH_SCORES = set(["flux", "density", "collision", "capture", "fission"])
 COLLISION_SCORES = set(["energy_deposition"])
 
@@ -97,19 +101,47 @@ class Tally(ObjectPolymorphic):
         x: Iterable[float] | NoneType = None,
         y: Iterable[float] | NoneType = None,
         z: Iterable[float] | NoneType = None,
-    ) -> TallySurface | TallyTracklength | TallyCollision:
+    ) -> TallySurface | TallyCell | TallyTracklength | TallyCollision:
         # Determine type and create the tally self based on the provided
         # spatial filters and scores
 
-        # Surface tally
+        has_cell_current_score = any(score in CELL_CURRENT_SCORES for score in scores)
+
+        # Surface/cell net-current tally
+        if has_cell_current_score:
+            for score in scores:
+                if score not in CELL_CURRENT_SCORES:
+                    print_error(
+                        "Cannot mix cell-current scores with non-current scores "
+                        f"in one tally. Cell-current scores: {CELL_CURRENT_SCORES}."
+                    )
+
+            if surface is not None and cell is not None:
+                print_error(
+                    "Net-current tally must specify exactly one of surface or cell."
+                )
+
+            if surface is None and cell is None:
+                print_error(
+                    "Scoring 'net-current' needs either a surface or a cell tally."
+                )
+
+            if surface is not None:
+                if not set(scores) <= SURFACE_SCORES:
+                    print_error(
+                        "Surface tally currently supports only "
+                        "scores=['net-current']."
+                    )
+                return super().__new__(TallySurface)
+            return super().__new__(TallyCell)
+
+        # Unsupported score for explicit surface selector
         if surface is not None:
             for score in scores:
-                if not score in SURFACE_SCORES:
-                    print_error(
-                        f"Scoring '{score}' with surface tally is not supported. "
-                        f"Supported surface tally scores: {SURFACE_SCORES}."
-                    )
-            return super().__new__(TallySurface)
+                print_error(
+                    f"Scoring '{score}' with surface tally is not supported. "
+                    f"Supported surface tally scores: {SURFACE_SCORES}."
+                )
 
         # Collision tally
         if set(scores) <= COLLISION_SCORES:
@@ -118,11 +150,6 @@ class Tally(ObjectPolymorphic):
         # Tracklength tally
         if set(scores) <= TRACKLENGTH_SCORES:
             return super().__new__(TallyTracklength)
-
-        # Error: Missing surface for surface score
-        for score in scores:
-            if score in SURFACE_SCORES and surface is None:
-                print_error(f"Scoring '{score}' needs a surface tally.")
 
         # Error: Unsupported score combination
         print_error(
@@ -169,6 +196,10 @@ class Tally(ObjectPolymorphic):
                 self.scores.append(SCORE_FISSION)
             elif score == "net-current":
                 self.scores.append(SCORE_NET_CURRENT)
+            elif score == "current-in":
+                self.scores.append(SCORE_CURRENT_IN)
+            elif score == "current-out":
+                self.scores.append(SCORE_CURRENT_OUT)
             elif score == "energy_deposition":
                 self.scores.append(SCORE_ENERGY_DEPOSITION)
             else:
@@ -277,6 +308,8 @@ def decode_type(type_):
         return "Tracklength tally"
     elif type_ == TALLY_SURFACE:
         return "Surface tally"
+    elif type_ == TALLY_CELL:
+        return "Cell tally"
     elif type_ == TALLY_COLLISION:
         return "Collision tally"
 
@@ -296,6 +329,66 @@ def decode_score_type(type_, lower_case=False):
         return "Net current" if not lower_case else "net-current"
     elif type_ == SCORE_ENERGY_DEPOSITION:
         return "Energy deposition" if not lower_case else "energy_deposition"
+    elif type_ == SCORE_CURRENT_IN:
+        return "Current in" if not lower_case else "current-in"
+    elif type_ == SCORE_CURRENT_OUT:
+        return "Current out" if not lower_case else "current-out"
+
+
+# ======================================================================================
+# Cell tally
+# ======================================================================================
+
+
+class TallyCell(Tally):
+    # Annotations for Numba mode
+    label: str = "cell_tally"
+    #
+    cell: Cell
+
+    def __init__(
+        self,
+        cell: Cell,
+        name: str = "",
+        scores: list[str] = ["net-current"],
+        mu: Iterable[float] | NoneType = None,
+        azi: Iterable[float] | NoneType = None,
+        polar_reference: Iterable[float] | NoneType = None,
+        energy: Iterable[float] | str | NoneType = None,
+        time: Iterable[float] | NoneType = None,
+    ):
+        type_ = TALLY_CELL
+        super(Tally, self).__init__(type_)
+        super().__init__(
+            name,
+            scores,
+            mu=mu,
+            azi=azi,
+            polar_reference=polar_reference,
+            energy=energy,
+            time=time,
+        )
+
+        if not set(self.scores) <= {
+            SCORE_NET_CURRENT,
+            SCORE_CURRENT_IN,
+            SCORE_CURRENT_OUT,
+        }:
+            print_error(
+                "Cell tally currently supports only "
+                "scores=['net-current', 'current-in', 'current-out']."
+            )
+
+        # Set cell and attach tally to the cell.
+        self.cell = cell
+        cell.tallies.append(self)
+
+    def __repr__(self):
+        text = super().__repr__()
+        text += f"  - Cell: {self.cell.name}\n"
+        text += super()._phasespace_filter_text()
+        text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
+        return text
 
 
 # ======================================================================================

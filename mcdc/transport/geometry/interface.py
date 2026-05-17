@@ -441,10 +441,17 @@ def distance_to_nearest_surface(particle_container, cell, simulation, data):
 @njit
 def surface_crossing(P_arr, simulation, data):
     P = P_arr[0]
+    crossed_surface_ID = P["surface_ID"]
+
+    # Determine pre/post top-cell IDs for non-reflective transfers.
+    pre_cell_ID = -1
+    post_cell_ID = -1
+    surface = simulation["surfaces"][crossed_surface_ID]
+    BC = surface["boundary_condition"]
+    if BC != BC_REFLECTIVE:
+        pre_cell_ID, post_cell_ID = _get_crossing_top_cell_IDs(P_arr, simulation, data)
 
     # Apply BC
-    surface = simulation["surfaces"][P["surface_ID"]]
-    BC = surface["boundary_condition"]
     if BC == BC_VACUUM:
         P["alive"] = False
     elif BC == BC_REFLECTIVE:
@@ -463,10 +470,58 @@ def surface_crossing(P_arr, simulation, data):
 
         tally_module.score.surface_tally(P_arr, surface, tally, simulation, data)
 
+    # Score cell net-current tallies tied to this crossed surface.
+    if BC != BC_REFLECTIVE:
+        for i in range(simulation["N_cell_tally"]):
+            tally = simulation["cell_tallies"][i]
+            cell = simulation["cells"][tally["cell_ID"]]
+            if not _cell_has_surface(cell, crossed_surface_ID, data):
+                continue
+            tally_module.score.cell_tally(
+                P_arr, tally, pre_cell_ID, post_cell_ID, simulation, data
+            )
+
     # Need to check new cell later?
     if P["alive"] and not BC == BC_REFLECTIVE:
         P["cell_ID"] = -1
         P["material_ID"] = -1
+
+
+@njit
+def _get_crossing_top_cell_IDs(particle_container, simulation, data):
+    P = particle_container[0]
+    x = P["x"]
+    y = P["y"]
+    z = P["z"]
+    ux = P["ux"]
+    uy = P["uy"]
+    uz = P["uz"]
+
+    epsilon = 10.0 * COINCIDENCE_TOLERANCE
+
+    P["x"] = x - epsilon * ux
+    P["y"] = y - epsilon * uy
+    P["z"] = z - epsilon * uz
+    pre_cell_ID = get_cell(particle_container, UNIVERSE_ROOT, simulation, data)
+
+    P["x"] = x + epsilon * ux
+    P["y"] = y + epsilon * uy
+    P["z"] = z + epsilon * uz
+    post_cell_ID = get_cell(particle_container, UNIVERSE_ROOT, simulation, data)
+
+    P["x"] = x
+    P["y"] = y
+    P["z"] = z
+
+    return pre_cell_ID, post_cell_ID
+
+
+@njit
+def _cell_has_surface(cell, surface_ID, data):
+    for i in range(cell["N_surface"]):
+        if int(mcdc_get.cell.surface_IDs(i, cell, data)) == surface_ID:
+            return True
+    return False
 
 
 @njit

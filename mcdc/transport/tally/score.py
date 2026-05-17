@@ -25,6 +25,8 @@ from mcdc.constant import (
     SCORE_FISSION,
     SCORE_NET_CURRENT,
     SCORE_ENERGY_DEPOSITION,
+    SCORE_CURRENT_IN,
+    SCORE_CURRENT_OUT,
     SPATIAL_FILTER_MESH,
 )
 from mcdc.transport.geometry.surface import get_normal_component
@@ -73,6 +75,64 @@ def surface_tally(particle_container, surface, tally, simulation, data):
             mu = get_normal_component(particle_container, speed, surface, data)
             score = flux * mu
         util.atomic_add(data, idx_base + i_score, score)
+
+
+@njit
+def cell_tally(
+    particle_container,
+    tally,
+    pre_cell_ID,
+    post_cell_ID,
+    simulation,
+    data,
+):
+    particle = particle_container[0]
+    tally_base = simulation["tallies"][tally["parent_ID"]]
+
+    # Get filter indices
+    MG_mode = simulation["settings"]["neutron_multigroup_mode"]
+    i_mu, i_azi, i_energy, i_time = get_filter_indices(
+        particle_container, tally_base, data, MG_mode
+    )
+
+    # No score if outside non-changing phase-space bins
+    if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
+        return
+
+    # Incoming/outgoing event flags
+    target_cell_ID = tally["cell_ID"]
+    entered = pre_cell_ID != target_cell_ID and post_cell_ID == target_cell_ID
+    exited = pre_cell_ID == target_cell_ID and post_cell_ID != target_cell_ID
+    if not entered and not exited:
+        return
+
+    # Tally index
+    idx_base = (
+        tally_base["bin_offset"]
+        + i_mu * tally_base["stride_mu"]
+        + i_azi * tally_base["stride_azi"]
+        + i_energy * tally_base["stride_energy"]
+        + i_time * tally_base["stride_time"]
+    )
+
+    # Score
+    for i_score in range(tally_base["scores_length"]):
+        score_type = mcdc_get.tally.scores(i_score, tally_base, data)
+        score = 0.0
+        if score_type == SCORE_NET_CURRENT:
+            if entered:
+                score = particle["w"]
+            elif exited:
+                score = -particle["w"]
+        elif score_type == SCORE_CURRENT_IN:
+            if entered:
+                score = particle["w"]
+        elif score_type == SCORE_CURRENT_OUT:
+            if exited:
+                score = -particle["w"]
+
+        if score != 0.0:
+            util.atomic_add(data, idx_base + i_score, score)
 
 
 # ======================================================================================
