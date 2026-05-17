@@ -11,6 +11,9 @@ from tqdm import tqdm
 import util
 from util import print_error
 
+import sys
+sys.path.append("/Users/melekderman/Documents/GitHub/branch/Acetk-e/ACEtk/build/python")
+
 parser = argparse.ArgumentParser(description="MC/DC electron data generator")
 parser.add_argument("--rewrite", dest="rewrite", action="store_true", default=False)
 parser.add_argument("--verbose", dest="verbose", action="store_true", default=False)
@@ -91,7 +94,8 @@ for zaid, Z, symbol, mcdc_name in pbar:
     # Elastic scattering : MT-526
     # Excitation         : MT-528
     # Bremsstrahlung     : MT-527
-    # Ionization         : MT-534 (all subshells grouped under one reaction)
+    # Ionization         : MT-522 (sum of subshells)
+    # Ionization shells  : MT-534+ (one MT per subshell)
 
     reactions = file.create_group("electron_reactions")
 
@@ -100,25 +104,31 @@ for zaid, Z, symbol, mcdc_name in pbar:
     bremsstrahlung_group = reactions.create_group("bremsstrahlung")
     ionization_group = reactions.create_group("ionization")
 
-    elastic_MT = elastic_group.create_group("MT-526")
-    elastic_MT.attrs["MT"] = 526
-    excitation_MT = excitation_group.create_group("MT-528")
-    excitation_MT.attrs["MT"] = 528
-    bremsstrahlung_MT = bremsstrahlung_group.create_group("MT-527")
-    bremsstrahlung_MT.attrs["MT"] = 527
-    ionization_MT = ionization_group.create_group("MT-534")
-    ionization_MT.attrs["MT"] = 534
+    elastic_mt = util.get_electron_mt("elastic")
+    excitation_mt = util.get_electron_mt("excitation")
+    bremsstrahlung_mt = util.get_electron_mt("bremsstrahlung")
+    ionization_mt = util.get_electron_mt("ionization")
+    large_angle_elastic_mt = util.get_electron_mt("large_angle_elastic")
+
+    elastic_MT = util.create_mt_group(elastic_group, elastic_mt)
+    excitation_MT = util.create_mt_group(excitation_group, excitation_mt)
+    bremsstrahlung_MT = util.create_mt_group(bremsstrahlung_group, bremsstrahlung_mt)
+    ionization_MT = util.create_mt_group(ionization_group, ionization_mt)
 
     subsh_block = ace_table.electron_subshell_block
     N_subshells = subsh_block.number_electron_subshells
-    ionization_MTs = [533 + subsh_block.designator(i + 1) for i in range(N_subshells)]
+    subshell_designators = [
+        subsh_block.designator(i + 1) for i in range(N_subshells)
+    ]
+    ionization_MTs = util.get_electron_subshell_mts(subshell_designators)
 
     if verbose:
         print(f"  Reaction group MTs")
-        print(f"    - Elastic scattering MT : [526]")
-        print(f"    - Excitation MT         : [528]")
-        print(f"    - Bremsstrahlung MT     : [527]")
-        print(f"    - Ionization MT         : [534]")
+        print(f"    - Elastic scattering MT : [{elastic_mt}]")
+        print(f"    - Excitation MT         : [{excitation_mt}]")
+        print(f"    - Bremsstrahlung MT     : [{bremsstrahlung_mt}]")
+        print(f"    - Ionization MT         : [{ionization_mt}]")
+        print(f"    - Large-angle elastic MT: [{large_angle_elastic_mt}]")
         print(f"    - Ionization subshells  : {ionization_MTs}")
 
     # All electron reactions are tabulated in the laboratory frame
@@ -156,6 +166,7 @@ for zaid, Z, symbol, mcdc_name in pbar:
 
     elastic_xs_block = ace_table.electron_elastic_cross_section_block
     large_angle_group = elastic_MT.create_group("large_angle")
+    large_angle_group.attrs["MT"] = large_angle_elastic_mt
 
     dataset = large_angle_group.create_dataset("xs_energy", data=xs_energy)
     dataset.attrs["unit"] = "MeV"
@@ -211,10 +222,11 @@ for zaid, Z, symbol, mcdc_name in pbar:
 
     subshells_group = ionization_MT.create_group("subshells")
 
-    for i, MT in enumerate(ionization_MTs):
+    for i, (MT, designator) in enumerate(zip(ionization_MTs, subshell_designators)):
         idx = i + 1
-        subshell_group = subshells_group.create_group(f"subshell-{idx:03}")
-        subshell_group.attrs["MT"] = MT
+        subshell_group = util.create_mt_group(subshells_group, MT)
+        subshell_group.attrs["subshell_designator"] = designator
+        subshell_group.attrs["subshell"] = util.get_electron_subshell_name(designator)
 
         dataset = subshell_group.create_dataset("energy_grid", data=xs_energy)
         dataset.attrs["unit"] = "MeV"
@@ -240,11 +252,13 @@ for zaid, Z, symbol, mcdc_name in pbar:
     relax_block = ace_table.subshell_transition_data_block
     relaxation_group = file.create_group("atomic_relaxation")
 
-    for i, MT in enumerate(ionization_MTs):
+    for i, (MT, designator) in enumerate(zip(ionization_MTs, subshell_designators)):
         idx = i + 1
         td = relax_block.transition_data(idx)
         MT_group = relaxation_group.create_group(f"MT-{MT:03}")
         MT_group.attrs["MT"] = MT
+        MT_group.attrs["subshell_designator"] = designator
+        MT_group.attrs["subshell"] = util.get_electron_subshell_name(designator)
 
         N_transitions = td.number_transitions
         MT_group.create_dataset("number_of_transitions", data=N_transitions)

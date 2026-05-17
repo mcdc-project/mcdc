@@ -34,7 +34,7 @@ For each element (Z=1 to Z=100) in the EPRDATA14 library, the generator:
 4. Extracts the excitation average energy loss as a function of incident energy (MT-528).
 5. Extracts the bremsstrahlung average energy loss as a function of incident energy (MT-527).
 6. Extracts per-subshell ionization cross sections, binding energies, and knock-on
-   electron energy CDFs, grouped under one ionization reaction (MT-534).
+   electron energy CDFs, grouped under the total ionization reaction (MT-522).
 7. Extracts atomic relaxation (fluorescence and Auger) transition data per subshell.
 8. Writes a single HDF5 file per element (e.g., `Al.h5`).
 
@@ -53,7 +53,7 @@ only CDFs for EPRDATA14; sampling from the CDF is handled on the MC/DC side.
 │   │   └── MT-526/                             (attr: MT)
 │   │       ├── reference_frame                 (string: "LAB")
 │   │       ├── xs                              (1-D array, barns; attr: offset)
-│   │       └── large_angle/
+│   │       └── large_angle/                     (attr: MT = 525)
 │   │           ├── xs_energy                   (1-D array, MeV)
 │   │           ├── transport                   (1-D array, barns)
 │   │           ├── total                       (1-D array, barns)
@@ -77,11 +77,11 @@ only CDFs for EPRDATA14; sampling from the CDF is handled on the MC/DC side.
 │   │           ├── energy                      (1-D array, MeV)
 │   │           └── value                       (1-D array, MeV)
 │   └── ionization/
-│       └── MT-534/                             (attr: MT; all subshells grouped here)
+│       └── MT-522/                             (attr: MT; all subshells grouped here)
 │           ├── reference_frame                 (string: "LAB")
 │           ├── xs                              (1-D array, barns; attr: offset; sum over subshells)
 │           └── subshells/
-│               └── subshell-NNN/               (attr: MT = ENDF subshell MT, 534+)
+│               └── MT-NNN/                     (attrs: MT = ENDF subshell MT, 534+; subshell)
 │                   ├── energy_grid             (1-D array, MeV)
 │                   ├── xs                      (1-D array, barns)
 │                   ├── binding_energy          (float, MeV)
@@ -91,7 +91,7 @@ only CDFs for EPRDATA14; sampling from the CDF is handled on the MC/DC side.
 │                       ├── value               (1-D array, MeV)
 │                       └── cdf                 (1-D array)
 └── atomic_relaxation/
-    └── MT-NNN/                                 (attr: MT; one per ionization subshell, 534+)
+    └── MT-NNN/                                 (attrs: MT; subshell; one per ionization subshell, 534+)
         ├── number_of_transitions               (int)
         ├── primary_designator                  (1-D array, int)   [if number_of_transitions > 0]
         ├── secondary_designator                (1-D array, int)   [if number_of_transitions > 0]
