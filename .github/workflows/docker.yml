@@ -165,7 +165,10 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/opt/mcdc \
             -w /opt/mcdc/test/regression \
-            mcdc:${{ needs.build.outputs.image_tag }} bash -c '${{ matrix.run_cmd }}'
+            mcdc:${{ needs.build.outputs.image_tag }} bash -lc '
+              git config --global --add safe.directory /opt/mcdc/test/regression/mcdc-regression_test_data
+              ${{ matrix.run_cmd }}
+            '
 
   # ---------------------------------------------------------------------------
   # Stage 3: Publish (only on push to dev/main, after all tests pass)
