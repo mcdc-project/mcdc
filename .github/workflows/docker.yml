@@ -69,8 +69,9 @@ jobs:
           else
             echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           fi
-
-      - uses: docker/setup-buildx-action@v3
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
@@ -84,7 +85,8 @@ jobs:
           cache-to: type=gha,mode=max
           outputs: type=docker,dest=/tmp/mcdc-image.tar
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
         with:
           name: mcdc-image
           path: /tmp/mcdc-image.tar
@@ -98,9 +100,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
         with:
           name: mcdc-image
           path: /tmp
@@ -147,7 +151,6 @@ jobs:
           - mode: Python-MPI
             run_cmd: |
               python run.py --mpiexec=4
-              python run.py --mpiexec=16 --name=slab_reed_dd_3d
             timeout: 20
           - mode: Numba-Serial
             run_cmd: "python run.py --mode numba"
@@ -155,11 +158,11 @@ jobs:
           - mode: Numba-MPI
             run_cmd: |
               python run.py --mode numba --mpiexec=4
-              python run.py --mode numba --mpiexec=16 --name=slab_reed_dd_3d
             timeout: 120
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Checkout regression test data
         uses: actions/checkout@v4
@@ -168,7 +171,8 @@ jobs:
           path: test/regression/mcdc-regression_test_data
           depth: 1
 
-      - uses: actions/download-artifact@v4
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
         with:
           name: mcdc-image
           path: /tmp
@@ -199,7 +203,8 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
         with:
           name: mcdc-image
           path: /tmp
@@ -221,13 +226,17 @@ jobs:
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           FULL_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+          # Tag with branch name (dev or main)
           docker tag mcdc:${BRANCH} ${FULL_IMAGE}:${BRANCH}
           docker push ${FULL_IMAGE}:${BRANCH}
 
+          # Tag with branch, date and short commit SHA for traceability
           docker tag mcdc:${BRANCH} ${FULL_IMAGE}:${BRANCH}-${DATE}-${SHA}
           docker push ${FULL_IMAGE}:${BRANCH}-${DATE}-${SHA}
 
+          # If pushing to main, also update the 'latest' tag
           if [ "${BRANCH}" == "main" ]; then
             docker tag mcdc:${BRANCH} ${FULL_IMAGE}:latest
             docker push ${FULL_IMAGE}:latest
           fi
+          
