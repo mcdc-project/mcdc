@@ -31,7 +31,7 @@ from mcdc.transport.physics.util import (
     evaluate_electron_xs_energy_grid,
     scatter_direction,
 )
-from mcdc.transport.util import linear_interpolation, local_array
+from mcdc.transport.util import linear_interpolation
 
 # ======================================================================================
 # Particle attributes
@@ -440,7 +440,11 @@ def ionization(
     N = int(reaction["N_subshell"])
     total = 0.0
     for i in range(N):
-        xs_sub_ID = int(mcdc_get.electron_ionization_reaction.subshell_x_IDs(i, reaction, data))
+        xs_sub_ID = int(
+            mcdc_get.electron_ionization_reaction.subshell_x_IDs(
+                i, reaction, data
+            )
+        )
         xs_sub_table = simulation["data"][xs_sub_ID]
         total += evaluate_data(E, xs_sub_table, simulation, data)
 
@@ -448,7 +452,11 @@ def ionization(
     total_acc = 0.0
     chosen = 0
     for i in range(N):
-        xs_sub_ID = int(mcdc_get.electron_ionization_reaction.subshell_x_IDs(i, reaction, data))
+        xs_sub_ID = int(
+            mcdc_get.electron_ionization_reaction.subshell_x_IDs(
+                i, reaction, data
+            )
+        )
         xs_sub_table = simulation["data"][xs_sub_ID]
         total_acc += evaluate_data(E, xs_sub_table, simulation, data)
         if total_acc >= xi:
@@ -519,7 +527,7 @@ def ionization(
             particle["uz"] = pz_after / norm
 
     # Add secondary particle to bank
-    particle_container_new = local_array(1, type_.particle_data)
+    particle_container_new = util.local_array(1, type_.particle_data)
     particle_new = particle_container_new[0]
     particle_module.copy_as_child(particle_container_new, particle_container)
 
