@@ -160,7 +160,11 @@ for zaid, Z, symbol, mcdc_name in pbar:
     dataset = large_angle_group.create_dataset("xs_energy", data=xs_energy)
     dataset.attrs["unit"] = "MeV"
     dataset = large_angle_group.create_dataset(
-        "xs", data=np.array(elastic_xs_block.total)
+        "transport", data=np.array(elastic_xs_block.transport)
+    )
+    dataset.attrs["unit"] = "barns"
+    dataset = large_angle_group.create_dataset(
+        "total", data=np.array(elastic_xs_block.total)
     )
     dataset.attrs["unit"] = "barns"
 

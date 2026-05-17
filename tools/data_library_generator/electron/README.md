@@ -27,15 +27,19 @@ python generate.py --verbose    # Print detailed per-element info
 ## What it Does
 For each element (Z=1 to Z=100) in the EPRDATA14 library, the generator:
 1. Loads all elemental tables from the single concatenated EPRDATA14 file.
-2. Extracts the principal cross section energy grid and pointwise cross sections
-   (elastic, bremsstrahlung, excitation, ionization) for all reaction channels.
-3. Extracts tabulated elastic angular distributions (cosine CDFs) per incident energy (MT-526).
-4. Extracts excitation energy loss as a function of incident energy (MT-528).
-5. Extracts bremsstrahlung outgoing photon energy distributions per incident energy (MT-527).
-6. Extracts per-subshell ionization cross sections and knock-on electron
-   energy distributions (MT-534 for K-shell, MT-535+ for higher shells).
+2. Extracts the shared cross section energy grid and pointwise cross sections
+   (elastic, excitation, bremsstrahlung, and total ionization summed over subshells).
+3. Extracts the transport and total elastic cross sections and the tabulated
+   elastic scattering cosine CDFs per incident energy (MT-526).
+4. Extracts the excitation average energy loss as a function of incident energy (MT-528).
+5. Extracts the bremsstrahlung average energy loss as a function of incident energy (MT-527).
+6. Extracts per-subshell ionization cross sections, binding energies, and knock-on
+   electron energy CDFs, grouped under one ionization reaction (MT-534).
 7. Extracts atomic relaxation (fluorescence and Auger) transition data per subshell.
 8. Writes a single HDF5 file per element (e.g., `Al.h5`).
+
+Energy distributions store the cumulative distribution (CDF), since ACEtk exposes
+only CDFs for EPRDATA14; sampling from the CDF is handled on the MC/DC side.
 
 ## Output HDF5 Schema
 ```
@@ -46,43 +50,53 @@ For each element (Z=1 to Z=100) in the EPRDATA14 library, the generator:
 ├── electron_reactions/
 │   ├── xs_energy_grid                          (1-D array, MeV)
 │   ├── elastic_scattering/
-│   │   └── MT-526/
-│   │       ├── xs                              (1-D array, barns)
-│   │       └── angular_cosine_distribution/
-│   │           ├── energy                      (1-D array, MeV)
-│   │           ├── offset                      (1-D array, int)
-│   │           ├── cosine                      (1-D array)
-│   │           └── cdf                         (1-D array)
+│   │   └── MT-526/                             (attr: MT)
+│   │       ├── reference_frame                 (string: "LAB")
+│   │       ├── xs                              (1-D array, barns; attr: offset)
+│   │       └── large_angle/
+│   │           ├── xs_energy                   (1-D array, MeV)
+│   │           ├── transport                   (1-D array, barns)
+│   │           ├── total                       (1-D array, barns)
+│   │           └── scattering_cosine/
+│   │               ├── energy_grid             (1-D array, MeV)
+│   │               ├── energy_offset           (1-D array, int)
+│   │               ├── value                   (1-D array, cosine)
+│   │               └── cdf                     (1-D array)
 │   ├── excitation/
-│   │   └── MT-528/
-│   │       ├── xs                              (1-D array, barns)
+│   │   └── MT-528/                             (attr: MT)
+│   │       ├── reference_frame                 (string: "LAB")
+│   │       ├── xs                              (1-D array, barns; attr: offset)
 │   │       └── energy_loss/
 │   │           ├── energy                      (1-D array, MeV)
-│   │           └── excitation_energy_loss      (1-D array, MeV)
+│   │           └── value                       (1-D array, MeV)
 │   ├── bremsstrahlung/
-│   │   └── MT-527/
-│   │       ├── xs                              (1-D array, barns)
-│   │       └── energy_distribution/
+│   │   └── MT-527/                             (attr: MT)
+│   │       ├── reference_frame                 (string: "LAB")
+│   │       ├── xs                              (1-D array, barns; attr: offset)
+│   │       └── energy_loss/
 │   │           ├── energy                      (1-D array, MeV)
-│   │           ├── offset                      (1-D array, int)
-│   │           ├── energy_out                  (1-D array, MeV)
-│   │           └── cdf                         (1-D array)
+│   │           └── value                       (1-D array, MeV)
 │   └── ionization/
-│       └── MT-534/  (K-shell; MT-535, MT-536, ... for higher shells)
-│           ├── xs                              (1-D array, barns)
-│           ├── binding_energy                  (float, MeV)
-│           └── energy_distribution/
-│               ├── energy                      (1-D array, MeV)
-│               ├── offset                      (1-D array, int)
-│               ├── energy_out                  (1-D array, MeV)
-│               └── cdf                         (1-D array)
+│       └── MT-534/                             (attr: MT; all subshells grouped here)
+│           ├── reference_frame                 (string: "LAB")
+│           ├── xs                              (1-D array, barns; attr: offset; sum over subshells)
+│           └── subshells/
+│               └── subshell-NNN/               (attr: MT = ENDF subshell MT, 534+)
+│                   ├── energy_grid             (1-D array, MeV)
+│                   ├── xs                      (1-D array, barns)
+│                   ├── binding_energy          (float, MeV)
+│                   └── product/
+│                       ├── energy_grid         (1-D array, MeV)
+│                       ├── energy_offset       (1-D array, int)
+│                       ├── value               (1-D array, MeV)
+│                       └── cdf                 (1-D array)
 └── atomic_relaxation/
-    └── MT-534/  (K-shell; MT-535, MT-536, ... for higher shells)
+    └── MT-NNN/                                 (attr: MT; one per ionization subshell, 534+)
         ├── number_of_transitions               (int)
-        ├── primary_designator                  (1-D array, int)
-        ├── secondary_designator                (1-D array, int)
-        ├── energy                              (1-D array, MeV)
-        └── probability                         (1-D array)
+        ├── primary_designator                  (1-D array, int)   [if number_of_transitions > 0]
+        ├── secondary_designator                (1-D array, int)   [if number_of_transitions > 0]
+        ├── energy                              (1-D array, MeV)   [if number_of_transitions > 0]
+        └── probability                         (1-D array)        [if number_of_transitions > 0]
 ```
 
 ## See Also
