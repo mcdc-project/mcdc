@@ -441,9 +441,7 @@ def ionization(
     total = 0.0
     for i in range(N):
         xs_sub_ID = int(
-            mcdc_get.electron_ionization_reaction.subshell_x_IDs(
-                i, reaction, data
-            )
+            mcdc_get.electron_ionization_reaction.subshell_x_IDs(i, reaction, data)
         )
         xs_sub_table = simulation["data"][xs_sub_ID]
         total += evaluate_data(E, xs_sub_table, simulation, data)
@@ -453,9 +451,7 @@ def ionization(
     chosen = 0
     for i in range(N):
         xs_sub_ID = int(
-            mcdc_get.electron_ionization_reaction.subshell_x_IDs(
-                i, reaction, data
-            )
+            mcdc_get.electron_ionization_reaction.subshell_x_IDs(i, reaction, data)
         )
         xs_sub_table = simulation["data"][xs_sub_ID]
         total_acc += evaluate_data(E, xs_sub_table, simulation, data)
