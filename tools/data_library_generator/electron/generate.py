@@ -12,6 +12,7 @@ import util
 from util import print_error
 
 import sys
+
 sys.path.append("/Users/melekderman/Documents/GitHub/branch/Acetk-e/ACEtk/build/python")
 
 parser = argparse.ArgumentParser(description="MC/DC electron data generator")
@@ -117,9 +118,7 @@ for zaid, Z, symbol, mcdc_name in pbar:
 
     subsh_block = ace_table.electron_subshell_block
     N_subshells = subsh_block.number_electron_subshells
-    subshell_designators = [
-        subsh_block.designator(i + 1) for i in range(N_subshells)
-    ]
+    subshell_designators = [subsh_block.designator(i + 1) for i in range(N_subshells)]
     ionization_MTs = util.get_electron_subshell_mts(subshell_designators)
 
     if verbose:
