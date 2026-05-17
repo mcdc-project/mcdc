@@ -91,7 +91,7 @@ for zaid, Z, symbol, mcdc_name in pbar:
     # Elastic scattering : MT-526
     # Excitation         : MT-528
     # Bremsstrahlung     : MT-527
-    # Ionization  : MT-534 (K), MT-535 (L1), MT-536 (L2), ...
+    # Ionization         : MT-534 (all subshells grouped under one reaction)
 
     reactions = file.create_group("electron_reactions")
 
@@ -100,27 +100,35 @@ for zaid, Z, symbol, mcdc_name in pbar:
     bremsstrahlung_group = reactions.create_group("bremsstrahlung")
     ionization_group = reactions.create_group("ionization")
 
-    elastic_group.create_group("MT-526").attrs["MT"] = 526
-    excitation_group.create_group("MT-528").attrs["MT"] = 528
-    bremsstrahlung_group.create_group("MT-527").attrs["MT"] = 527
+    elastic_MT = elastic_group.create_group("MT-526")
+    elastic_MT.attrs["MT"] = 526
+    excitation_MT = excitation_group.create_group("MT-528")
+    excitation_MT.attrs["MT"] = 528
+    bremsstrahlung_MT = bremsstrahlung_group.create_group("MT-527")
+    bremsstrahlung_MT.attrs["MT"] = 527
+    ionization_MT = ionization_group.create_group("MT-534")
+    ionization_MT.attrs["MT"] = 534
 
     subsh_block = ace_table.electron_subshell_block
     N_subshells = subsh_block.number_electron_subshells
     ionization_MTs = [533 + subsh_block.designator(i + 1) for i in range(N_subshells)]
-
-    for MT in ionization_MTs:
-        ionization_group.create_group(f"MT-{MT:03}").attrs["MT"] = MT
 
     if verbose:
         print(f"  Reaction group MTs")
         print(f"    - Elastic scattering MT : [526]")
         print(f"    - Excitation MT         : [528]")
         print(f"    - Bremsstrahlung MT     : [527]")
-        print(f"    - Ionization MTs : {ionization_MTs}")
+        print(f"    - Ionization MT         : [534]")
+        print(f"    - Ionization subshells  : {ionization_MTs}")
+
+    # All electron reactions are tabulated in the laboratory frame
+    for MT_group in [elastic_MT, excitation_MT, bremsstrahlung_MT, ionization_MT]:
+        MT_group.create_dataset("reference_frame", data="LAB")
 
     # ==================================================================================
     # Cross sections
     # ==================================================================================
+    # xs_energy_grid: shared electron XS energy grid (MeV) used for all reactions
 
     xs0_block = ace_table.electron_cross_section_block
 
@@ -128,32 +136,37 @@ for zaid, Z, symbol, mcdc_name in pbar:
     dataset = reactions.create_dataset("xs_energy_grid", data=xs_energy)
     dataset.attrs["unit"] = "MeV"
 
-    xs = elastic_group.create_dataset("MT-526/xs", data=np.array(xs0_block.elastic))
-    xs.attrs["unit"] = "barns"
+    electroionisation = [
+        np.array(xs0_block.electroionisation(i + 1)) for i in range(N_subshells)
+    ]
 
-    xs = excitation_group.create_dataset(
-        "MT-528/xs", data=np.array(xs0_block.excitation)
-    )
-    xs.attrs["unit"] = "barns"
-
-    xs = bremsstrahlung_group.create_dataset(
-        "MT-527/xs", data=np.array(xs0_block.bremsstrahlung)
-    )
-    xs.attrs["unit"] = "barns"
-
-    for i, MT in enumerate(ionization_MTs):
-        xs = ionization_group.create_dataset(
-            f"MT-{MT:03}/xs", data=np.array(xs0_block.electroionisation(i + 1))
-        )
+    for MT_group, xs_data in [
+        (elastic_MT, np.array(xs0_block.elastic)),
+        (excitation_MT, np.array(xs0_block.excitation)),
+        (bremsstrahlung_MT, np.array(xs0_block.bremsstrahlung)),
+        (ionization_MT, np.sum(electroionisation, axis=0)),
+    ]:
+        xs = MT_group.create_dataset("xs", data=xs_data)
+        xs.attrs["offset"] = 0
         xs.attrs["unit"] = "barns"
 
     # ==================================================================================
-    # Elastic angular distribution
+    # Elastic large-angle cross section and scattering cosine distribution
     # ==================================================================================
 
-    angle_group = elastic_group.create_group("MT-526/angular_cosine_distribution")
+    elastic_xs_block = ace_table.electron_elastic_cross_section_block
+    large_angle_group = elastic_MT.create_group("large_angle")
+
+    dataset = large_angle_group.create_dataset("xs_energy", data=xs_energy)
+    dataset.attrs["unit"] = "MeV"
+    dataset = large_angle_group.create_dataset(
+        "xs", data=np.array(elastic_xs_block.total)
+    )
+    dataset.attrs["unit"] = "barns"
+
+    cosine_group = large_angle_group.create_group("scattering_cosine")
     util.load_elastic_angular_distribution(
-        ace_table.electron_elastic_angular_distribution_block, angle_group
+        ace_table.electron_elastic_angular_distribution_block, cosine_group
     )
 
     # ==================================================================================
@@ -161,42 +174,59 @@ for zaid, Z, symbol, mcdc_name in pbar:
     # ==================================================================================
 
     excit_block = ace_table.electron_excitation_energy_loss_block
-    excit_group = excitation_group.create_group("MT-528/energy_loss")
+    excit_group = excitation_MT.create_group("energy_loss")
 
     dataset = excit_group.create_dataset("energy", data=np.array(excit_block.energies))
     dataset.attrs["unit"] = "MeV"
 
     dataset = excit_group.create_dataset(
-        "excitation_energy_loss", data=np.array(excit_block.excitation_energy_loss)
+        "value", data=np.array(excit_block.excitation_energy_loss)
     )
     dataset.attrs["unit"] = "MeV"
 
     # ==================================================================================
-    # Bremsstrahlung energy distribution
+    # Bremsstrahlung energy loss
     # ==================================================================================
 
-    brems_group = bremsstrahlung_group.create_group("MT-527/energy_distribution")
-    util.load_bremsstrahlung(
-        ace_table.bremsstrahlung_energy_distribution_block, brems_group
+    breml_block = ace_table.electron_energy_after_bremsstrahlung_block
+    breml_energy = np.array(breml_block.energies)
+    brems_group = bremsstrahlung_MT.create_group("energy_loss")
+
+    dataset = brems_group.create_dataset("energy", data=breml_energy)
+    dataset.attrs["unit"] = "MeV"
+
+    dataset = brems_group.create_dataset(
+        "value", data=breml_energy - np.array(breml_block.energy_after_bremsstrahlung)
     )
+    dataset.attrs["unit"] = "MeV"
 
     # ==================================================================================
-    # Ionization: binding energy and knock-on electron energy distributions
+    # Ionization: per-subshell cross section, binding energy, and knock-on
+    # electron energy distributions
     # ==================================================================================
+
+    subshells_group = ionization_MT.create_group("subshells")
 
     for i, MT in enumerate(ionization_MTs):
         idx = i + 1
-        MT_group = ionization_group[f"MT-{MT:03}"]
+        subshell_group = subshells_group.create_group(f"subshell-{idx:03}")
+        subshell_group.attrs["MT"] = MT
 
-        dataset = MT_group.create_dataset(
+        dataset = subshell_group.create_dataset("energy_grid", data=xs_energy)
+        dataset.attrs["unit"] = "MeV"
+
+        dataset = subshell_group.create_dataset("xs", data=electroionisation[i])
+        dataset.attrs["unit"] = "barns"
+
+        dataset = subshell_group.create_dataset(
             "binding_energy", data=subsh_block.binding_energy(idx)
         )
         dataset.attrs["unit"] = "MeV"
 
-        energy_dist_group = MT_group.create_group("energy_distribution")
+        product_group = subshell_group.create_group("product")
         util.load_electroionization_subshell(
             ace_table.electroionisation_energy_distribution_block(idx),
-            energy_dist_group,
+            product_group,
         )
 
     # ==================================================================================
