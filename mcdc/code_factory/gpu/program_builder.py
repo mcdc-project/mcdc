@@ -19,7 +19,7 @@ src_free_program = lambda pointer: None
 free_state = lambda pointer: None
 
 
-def build_gpu_program(mcdc_container, data):
+def build_gpu_program():
     global src_free_program, free_state
 
     # Compilation check
@@ -177,6 +177,7 @@ def build_gpu_program(mcdc_container, data):
         overwrite_func(impl, impl)
     """
 
+def setup_gpu_program(mcdc_container, data):
     # ==================================================================================
     # Setup
     # ==================================================================================

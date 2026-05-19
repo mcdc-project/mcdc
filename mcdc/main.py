@@ -205,6 +205,15 @@ def preparation():
     simulation.bank_future.size[0] = size_future
 
     # ==================================================================================
+    # Platform targeting, adapters, and toggles for portability
+    # ==================================================================================
+
+    import mcdc.config as config
+    # Build GPU program if desired
+    if config.target == "gpu":
+        from mcdc.code_factory.gpu.program_builder import build_gpu_program
+    
+    # ==================================================================================
     # Generate Numba-supported "Objects"
     # ==================================================================================
 
@@ -241,7 +250,6 @@ def preparation():
         physics.neutron.collision = physics.neutron.multigroup.collision
 
     # Pick Python-version RNG if needed
-    import mcdc.config as config
     import mcdc.transport.rng as rng
 
     if config.mode == "python":
@@ -280,14 +288,12 @@ def preparation():
         MPI.COMM_WORLD.Barrier()
 
     # ==================================================================================
-    # Platform targeting, adapters, and toggles for portability
+    # Setup GPU-Related Data Structures, if Necessary
     # ==================================================================================
 
-    # Build GPU program if desired
     if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import build_gpu_program
-
-        build_gpu_program(mcdc_container, data)
+        setup_gpu_program(mcdc_container, data)
 
     # ==================================================================================
     # Finalize
