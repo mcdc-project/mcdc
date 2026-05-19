@@ -9,16 +9,21 @@ from typing import Annotated, Iterable
 
 import mcdc.object_.distribution as distribution
 
-from mcdc.constant import PARTICLE_NEUTRON, INF, PI
+from mcdc.constant import PARTICLE_NEUTRON, PARTICLE_ELECTRON, PARTICLE_PROTON, INF, PI
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.distribution import DistributionTabulated, DistributionPMF
 from mcdc.object_.simulation import simulation
 from mcdc.object_.util import move_object
+from mcdc.print_ import print_error
 
 
 def decode_particle_type(type_):
     if type_ == PARTICLE_NEUTRON:
         return "Neutron"
+    elif type_ == PARTICLE_ELECTRON:
+        return "Electron"
+    elif type_ == PARTICLE_PROTON:
+        return "Proton"
 
 
 # ======================================================================================
@@ -27,6 +32,46 @@ def decode_particle_type(type_):
 
 
 class Source(ObjectNonSingleton):
+    """
+    Define a particle source.
+
+    Parameters
+    ----------
+    name : str, optional
+        User label.
+    position : array_like of float, optional
+        Point-source position ``[x, y, z]`` in cm.
+    x : array_like of float, optional
+        Source extent along x: ``[x_min, x_max]`` in cm.
+    y : array_like of float, optional
+        Source extent along y: ``[y_min, y_max]`` in cm.
+    z : array_like of float, optional
+        Source extent along z: ``[z_min, z_max]`` in cm.
+    direction : array_like of float, optional
+        Mono-directional source direction ``[ux, uy, uz]``.
+    white_direction : array_like of float, optional
+        White (cosine-weighted) boundary source normal direction.
+    isotropic : bool, optional
+        If True, source emits isotropically.
+    polar_cosine : array_like of float, optional
+        Polar cosine bounds ``[mu_min, mu_max]``.
+    azimuthal : array_like of float, optional
+        Azimuthal angle bounds ``[azi_min, azi_max]``.
+    energy : float or ndarray, optional
+        Source energy in eV (mono-energetic) or a tabulated PDF.
+    energy_group : int or ndarray, optional
+        Energy group index (mono-group) or a PMF array.
+    time : float or array_like of float, optional
+        Emission time (s) or time range ``[t_min, t_max]``.
+    probability : float, optional
+        Relative source probability weight.
+
+    Returns
+    -------
+    Source
+        The source object.
+    """
+
     # Annotations for Numba mode
     label: str = "source"
     #
@@ -83,6 +128,9 @@ class Source(ObjectNonSingleton):
         energy_group: int | NDArray[int64] | NoneType = None,
         #
         time: float | Iterable[float] = 0.0,
+        #
+        particle_type: str = "neutron",
+        #
         probability: float = 1.0,
     ):
 
@@ -152,7 +200,7 @@ class Source(ObjectNonSingleton):
                 self.z = np.array(z)
 
         # Direction
-        if isotropic is not None:
+        if isotropic is not None and isotropic:
             pass
         elif direction is not None:
             self.isotropic_direction = False
@@ -194,6 +242,16 @@ class Source(ObjectNonSingleton):
         else:
             self.discrete_time = False
             self.time_range = np.array(time)
+
+        # Particle type
+        if particle_type == "neutron":
+            self.particle_type = PARTICLE_NEUTRON
+        elif particle_type == "electron":
+            self.particle_type = PARTICLE_ELECTRON
+        elif particle_type == "proton":
+            self.particle_type = PARTICLE_PROTON
+        else:
+            print_error(rf"Unsupported particle types: {particle_type}")
 
         # Moving source parameters
         self.moving = False

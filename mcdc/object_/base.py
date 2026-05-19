@@ -64,13 +64,15 @@ def register_object(object_):
     from mcdc.object_.universe import Universe, Lattice
     from mcdc.object_.data import DataBase
     from mcdc.object_.distribution import DistributionBase
+    from mcdc.object_.element import Element
+    from mcdc.object_.electron_reaction import ElectronReactionBase
     from mcdc.object_.material import MaterialBase
     from mcdc.object_.mesh import MeshBase
     from mcdc.object_.nuclide import Nuclide
-    from mcdc.object_.reaction import ReactionBase
+    from mcdc.object_.neutron_reaction import NeutronReactionBase
     from mcdc.object_.source import Source
     from mcdc.object_.surface import Surface
-    from mcdc.object_.tally import TallyBase
+    from mcdc.object_.tally import Tally
 
     object_list = []
     if isinstance(object_, Cell):
@@ -85,17 +87,21 @@ def register_object(object_):
         object_list = simulation.materials
     elif isinstance(object_, MeshBase):
         object_list = simulation.meshes
+    elif isinstance(object_, Element):
+        object_list = simulation.elements
+    elif isinstance(object_, ElectronReactionBase):
+        object_list = simulation.electron_reactions
     elif isinstance(object_, Nuclide):
         object_list = simulation.nuclides
-    elif isinstance(object_, ReactionBase):
-        object_list = simulation.reactions
+    elif isinstance(object_, NeutronReactionBase):
+        object_list = simulation.neutron_reactions
     elif isinstance(object_, Region):
         object_list = simulation.regions
     elif isinstance(object_, Source):
         object_list = simulation.sources
     elif isinstance(object_, Surface):
         object_list = simulation.surfaces
-    elif isinstance(object_, TallyBase):
+    elif isinstance(object_, Tally):
         object_list = simulation.tallies
     elif isinstance(object_, Universe):
         object_list = simulation.universes

@@ -4,18 +4,21 @@ from typing import TYPE_CHECKING, Annotated
 from mcdc.object_.technique import (
     ImplicitCapture,
     PopulationControl,
-    WeightRoulette,
+    GlobalWeightRoulette,
+    WeightWindows,
     WeightedEmission,
 )
 
 if TYPE_CHECKING:
     from mcdc.object_.cell import Cell, Region
+    from mcdc.object_.element import Element
+    from mcdc.object_.electron_reaction import ElectronReactionBase
     from mcdc.object_.material import MaterialBase
     from mcdc.object_.nuclide import Nuclide
-    from mcdc.object_.reaction import ReactionBase
+    from mcdc.object_.neutron_reaction import NeutronReactionBase
     from mcdc.object_.source import Source
     from mcdc.object_.surface import Surface
-    from mcdc.object_.tally import TallyBase
+    from mcdc.object_.tally import Tally
 
 ####
 
@@ -31,7 +34,7 @@ from mcdc.object_.base import ObjectSingleton
 from mcdc.object_.data import DataBase, DataNone
 from mcdc.object_.distribution import DistributionBase, DistributionNone
 from mcdc.object_.gpu_tools import GPUMeta
-from mcdc.object_.mesh import MeshBase
+from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.object_.particle import ParticleBank
 from mcdc.object_.settings import Settings
 from mcdc.object_.universe import Universe, Lattice
@@ -56,8 +59,10 @@ class Simulation(ObjectSingleton):
     data: list[DataBase]
     distributions: list[DistributionBase]
     materials: list[MaterialBase]
+    elements: list[Element]
+    electron_reactions: list[ElectronReactionBase]
     nuclides: list[Nuclide]
-    reactions: list[ReactionBase]
+    neutron_reactions: list[NeutronReactionBase]
     sources: list[Source]
 
     # Geometry
@@ -69,7 +74,7 @@ class Simulation(ObjectSingleton):
     meshes: list[MeshBase]
 
     # Tallies
-    tallies: list[TallyBase]
+    tallies: list[Tally]
 
     # Settings
     settings: Settings
@@ -77,7 +82,8 @@ class Simulation(ObjectSingleton):
     # Techniques
     implicit_capture: ImplicitCapture
     weighted_emission: WeightedEmission
-    weight_roulette: WeightRoulette
+    global_weight_roulette: GlobalWeightRoulette
+    weight_windows: WeightWindows
     population_control: PopulationControl
 
     # Particle banks
@@ -126,6 +132,7 @@ class Simulation(ObjectSingleton):
 
     # GPU metadata
     gpu_meta: GPUMeta
+    source_seed: int
 
     def __init__(self):
         super().__init__()
@@ -138,8 +145,10 @@ class Simulation(ObjectSingleton):
         self.data = [DataNone()]
         self.distributions = [DistributionNone()]
         self.materials = []
+        self.elements = []
+        self.electron_reactions = []
         self.nuclides = []
-        self.reactions = []
+        self.neutron_reactions = []
         self.sources = []
 
         # Geometry
@@ -159,7 +168,8 @@ class Simulation(ObjectSingleton):
         # Techniques
         self.implicit_capture = ImplicitCapture()
         self.weighted_emission = WeightedEmission()
-        self.weight_roulette = WeightRoulette()
+        self.global_weight_roulette = GlobalWeightRoulette()
+        self.weight_windows = WeightWindows()
         self.population_control = PopulationControl()
 
         # ==============================================================================
@@ -223,6 +233,7 @@ class Simulation(ObjectSingleton):
 
         # GPU metadata
         self.gpu_meta = GPUMeta()
+        self.source_seed = 0
 
     def set_root_universe(self, cells=[]):
         self.universes[0].cells = cells

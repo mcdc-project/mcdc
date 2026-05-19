@@ -52,7 +52,7 @@ mcdc.Source(
 # ======================================================================================
 
 # Tallies
-mcdc.TallyGlobal(
+mcdc.Tally(
     scores=["flux"],
     time=np.insert(np.logspace(-8, 1, 100), 0, 0.0),
     energy="all_groups",

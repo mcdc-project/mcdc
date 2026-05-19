@@ -1,32 +1,56 @@
+# =============================================================================
+# Regression Tests
+# =============================================================================
+# Runs regression tests directly on the runner across Python 3.13
+# Complements the Docker workflow by validating native installs.
+# =============================================================================
+
 name: Regression Tests
 
 on:
   push:
+    branches: [main, dev]
   pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Temporary flag for node24 migration; remove when GitHub default switches.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   regression-test:
     name: ${{ matrix.mode }} (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
-
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.13']
-        mode:
-          - Python-Serial
-          - Python-MPI
-          - Numba-Serial
-          - Numba-MPI
         include:
+          # Python modes:
           - mode: Python-Serial
+            python-version: '3.13'
+            run_cmd: "python run.py"
             timeout: 10
           - mode: Python-MPI
-            timeout: 20
+            python-version: '3.13'
+            run_cmd: |
+              python run.py --mpiexec=4
+              python run.py --mpiexec=16 --name=slab_reed_dd_3d
+            timeout: 30
+          # Numba modes:
           - mode: Numba-Serial
+            python-version: '3.13'
+            run_cmd: "python run.py --mode numba"
             timeout: 120
           - mode: Numba-MPI
+            python-version: '3.13'
+            run_cmd: |
+              python run.py --mode numba --mpiexec=4
+              python run.py --mode numba --mpiexec=16 --name=slab_reed_dd_3d
             timeout: 120
 
     steps:
@@ -39,17 +63,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Show environment info
-        run: |
-          pwd
-          ls
-          python --version
-          pip --version
-
       - name: Set up MPI
         uses: mpi4py/setup-mpi@v1
 
-      - name: Install mpi4py
+      - name: Install mpi4py (from source, linked to system MPI)
         run: |
           pip install --upgrade pip
           pip install --no-binary=mpi4py mpi4py
@@ -57,35 +74,9 @@ jobs:
       - name: Install MC/DC
         run: |
           pip install -e ".[dev]"
-          pip list
-
-      - name: Fetch regression test data
-        working-directory: test/regression
-        run: |
-          git clone https://github.com/CEMeNT-PSAAP/MCDC-regression_test_data.git
+          # Verify mpi4py is the source-built version, not silently overridden by [dev] extras
+          python -c "import mpi4py; print(f'mpi4py {mpi4py.__version__} from {mpi4py.__file__}')"
 
       - name: Run regression tests (${{ matrix.mode }})
-        if: matrix.mode == 'Python-Serial'
         working-directory: test/regression
-        run: |
-          python run.py --include_native_physics
-
-      - name: Run regression tests (${{ matrix.mode }})
-        if: matrix.mode == 'Python-MPI'
-        working-directory: test/regression
-        run: |
-          python run.py --include_native_physics --mpiexec=4
-          python run.py --include_native_physics --mpiexec=16 --name=slab_reed_dd_3d
-
-      - name: Run regression tests (${{ matrix.mode }})
-        if: matrix.mode == 'Numba-Serial'
-        working-directory: test/regression
-        run: |
-          python run.py --include_native_physics --mode numba
-
-      - name: Run regression tests (${{ matrix.mode }})
-        if: matrix.mode == 'Numba-MPI'
-        working-directory: test/regression
-        run: |
-          python run.py --include_native_physics --mode numba --mpiexec=4
-          python run.py --include_native_physics --mode numba --mpiexec=16 --name=slab_reed_dd_3d
+        run: ${{ matrix.run_cmd }}

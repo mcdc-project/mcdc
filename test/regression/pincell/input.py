@@ -2,7 +2,7 @@ import mcdc
 import numpy as np
 import os
 
-os.environ["MCDC_LIB"] = "../MCDC-regression_test_data/"
+os.environ["MCDC_LIB"] = "../mcdc-regression_test_data/"
 
 # Material
 fuel = mcdc.Material(
@@ -46,6 +46,6 @@ e_min, e_max = 1e-5, 20.0e6
 groups = 500
 energies = np.logspace(np.log10(e_min), np.log10(e_max), groups + 1)
 
-mcdc.TallyGlobal(scores=["flux"], time=t_grid, energy=energies)
+mcdc.Tally(scores=["flux"], time=t_grid, energy=energies)
 
 mcdc.run()

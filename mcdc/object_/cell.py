@@ -31,7 +31,7 @@ from mcdc.constant import (
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.material import MaterialBase
 from mcdc.object_.simulation import simulation
-from mcdc.object_.tally import TallyCell
+from mcdc.object_.tally import Tally
 from mcdc.object_.universe import Universe, Lattice
 from mcdc.print_ import print_error
 
@@ -103,6 +103,29 @@ class Region(ObjectNonSingleton):
 
 
 class Cell(ObjectNonSingleton):
+    """
+    Define a cell from a region and a fill.
+
+    Parameters
+    ----------
+    region : Region, optional
+        The spatial region defining the cell boundaries.
+        Constructed using ``+surface`` / ``-surface`` half-space operators.
+    fill : Material or MaterialMG or Universe or Lattice, optional
+        The material or universe that fills the cell.
+    name : str, optional
+        User label.
+    translation : array_like of float, optional
+        Translation vector ``[tx, ty, tz]`` in cm.
+    rotation : array_like of float, optional
+        Rotation angles ``[rx, ry, rz]`` in degrees.
+
+    See Also
+    --------
+    mcdc.Surface : Creates surfaces that can be used to define cell regions.
+    mcdc.Universe : Groups cells into a universe.
+    """
+
     # Annotations for Numba mode
     label: str = "cell"
     non_numba: list[str] = ["region", "fill", "region_RPN"]
@@ -117,7 +140,7 @@ class Cell(ObjectNonSingleton):
     region_RPN_tokens: list[int]
     region_RPN: Boolean
     surfaces: list[Surface]
-    tallies: list[TallyCell]
+    tallies: list[Tally]
     #
     fill_type: int
     fill_ID: int

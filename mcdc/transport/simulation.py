@@ -15,6 +15,7 @@ import mcdc.transport.physics as physics
 import mcdc.transport.rng as rng
 import mcdc.transport.tally as tally_module
 import mcdc.transport.technique as technique
+import mcdc.transport.util as util
 
 from mcdc.constant import *
 from mcdc.print_ import (
@@ -29,13 +30,13 @@ from mcdc.transport.source import source_particle
 # ======================================================================================
 
 
-def fixed_source_simulation(mcdc_arr, data):
+def fixed_source_simulation(simulation_container, data):
     # Ensure `mcdc` exist for the lifetime of the program by intentionally leaking their memory
-    # adapt.leak(mcdc_arr)
-    mcdc = mcdc_arr[0]
+    # adapt.leak(simulation_container)
+    simulation = simulation_container[0]
 
     # Get some settings
-    settings = mcdc["settings"]
+    settings = simulation["settings"]
     N_batch = settings["N_batch"]
     N_particle = settings["N_particle"]
     N_census = settings["N_census"]
@@ -43,11 +44,11 @@ def fixed_source_simulation(mcdc_arr, data):
 
     # Loop over batches
     for idx_batch in range(N_batch):
-        mcdc["idx_batch"] = idx_batch
+        simulation["idx_batch"] = idx_batch
         seed_batch = rng.split_seed(uint64(idx_batch), settings["rng_seed"])
 
         # Distribute work
-        mpi.distribute_work(N_particle, mcdc)
+        mpi.distribute_work(N_particle, simulation)
 
         # Print multi-batch header
         if N_batch > 1:
@@ -56,104 +57,104 @@ def fixed_source_simulation(mcdc_arr, data):
 
         # Loop over time censuses
         for idx_census in range(N_census):
-            mcdc["idx_census"] = idx_census
+            simulation["idx_census"] = idx_census
             seed_census = rng.split_seed(uint64(seed_batch), rng.SEED_SPLIT_CENSUS)
 
             # Reset tally time filters if census-based tally is used
             if use_census_based_tally:
-                tally_module.filter.set_census_based_time_grid(mcdc, data)
+                tally_module.filter.set_census_based_time_grid(simulation, data)
 
             # Accordingly promote future particles to censused particles
-            if particle_bank_module.get_bank_size(mcdc["bank_future"]) > 0:
-                particle_bank_module.promote_future_particles(mcdc, data)
+            if particle_bank_module.get_bank_size(simulation["bank_future"]) > 0:
+                particle_bank_module.promote_future_particles(simulation, data)
 
             # Loop over source particles
             seed_source = rng.split_seed(uint64(seed_census), rng.SEED_SPLIT_SOURCE)
-            source_loop(uint64(seed_source), mcdc, data)
+            source_loop(uint64(seed_source), simulation, data)
 
             # Manage particle banks: population control and work rebalance
-            particle_bank_module.manage_particle_banks(mcdc)
+            particle_bank_module.manage_particle_banks(simulation)
 
             # Time census-based tally closeout
             if use_census_based_tally:
-                tally_module.closeout.reduce(mcdc, data)
-                tally_module.closeout.accumulate(mcdc, data)
-                if mcdc["mpi_master"]:
+                tally_module.closeout.reduce(simulation, data)
+                tally_module.closeout.accumulate(simulation, data)
+                if simulation["mpi_master"]:
                     with objmode():
-                        output_module.generate_census_based_tally(mcdc, data)
-                tally_module.closeout.reset_sum_bins(mcdc, data)
+                        output_module.generate_census_based_tally(simulation, data)
+                tally_module.closeout.reset_sum_bins(simulation, data)
 
             # Terminate census loop if all banks are empty
             if (
                 idx_census > 0
-                and particle_bank_module.total_size(mcdc["bank_source"]) == 0
-                and particle_bank_module.total_size(mcdc["bank_census"]) == 0
-                and particle_bank_module.total_size(mcdc["bank_future"]) == 0
+                and particle_bank_module.total_size(simulation["bank_source"]) == 0
+                and particle_bank_module.total_size(simulation["bank_census"]) == 0
+                and particle_bank_module.total_size(simulation["bank_future"]) == 0
             ):
                 break
 
         # Multi-batch closeout
         if N_batch > 1:
             # Reset banks
-            particle_bank_module.set_bank_size(mcdc["bank_active"], 0)
-            particle_bank_module.set_bank_size(mcdc["bank_census"], 0)
-            particle_bank_module.set_bank_size(mcdc["bank_source"], 0)
-            particle_bank_module.set_bank_size(mcdc["bank_future"], 0)
+            particle_bank_module.set_bank_size(simulation["bank_active"], 0)
+            particle_bank_module.set_bank_size(simulation["bank_census"], 0)
+            particle_bank_module.set_bank_size(simulation["bank_source"], 0)
+            particle_bank_module.set_bank_size(simulation["bank_future"], 0)
 
             if not use_census_based_tally:
                 # Tally history closeout
-                tally_module.closeout.reduce(mcdc, data)
-                tally_module.closeout.accumulate(mcdc, data)
+                tally_module.closeout.reduce(simulation, data)
+                tally_module.closeout.accumulate(simulation, data)
 
     # Tally closeout
     if not use_census_based_tally:
-        tally_module.closeout.finalize(mcdc, data)
+        tally_module.closeout.finalize(simulation, data)
 
 
-def eigenvalue_simulation(mcdc_arr, data):
+def eigenvalue_simulation(simulation_container, data):
     # Ensure `mcdc` exist for the lifetime of the program
     # by intentionally leaking their memory
-    # adapt.leak(mcdc_arr)
-    mcdc = mcdc_arr[0]
+    # adapt.leak(simulation_container)
+    simulation = simulation_container[0]
 
     # Get some settings
-    settings = mcdc["settings"]
+    settings = simulation["settings"]
     N_inactive = settings["N_inactive"]
     N_cycle = settings["N_cycle"]
     N_particle = settings["N_particle"]
 
     # Distribute work
-    mpi.distribute_work(N_particle, mcdc)
+    mpi.distribute_work(N_particle, simulation)
 
     # Loop over power iteration cycles
     for idx_cycle in range(N_cycle):
-        mcdc["idx_cycle"] = idx_cycle
+        simulation["idx_cycle"] = idx_cycle
         seed_cycle = rng.split_seed(uint64(idx_cycle), settings["rng_seed"])
 
         # Loop over source particles
-        source_loop(uint64(seed_cycle), mcdc, data)
+        source_loop(uint64(seed_cycle), simulation, data)
 
         # Tally "history" closeout
-        tally_module.closeout.eigenvalue_cycle(mcdc, data)
-        if mcdc["cycle_active"]:
-            tally_module.closeout.reduce(mcdc, data)
-            tally_module.closeout.accumulate(mcdc, data)
+        tally_module.closeout.eigenvalue_cycle(simulation, data)
+        if simulation["cycle_active"]:
+            tally_module.closeout.reduce(simulation, data)
+            tally_module.closeout.accumulate(simulation, data)
 
         # Manage particle banks: population control and work rebalance
-        particle_bank_module.manage_particle_banks(mcdc)
+        particle_bank_module.manage_particle_banks(simulation)
 
         # Print progress
         with objmode():
-            print_progress_eigenvalue(mcdc, data)
+            print_progress_eigenvalue(simulation, data)
 
         # Entering active cycle?
-        mcdc["idx_cycle"] += 1
-        if mcdc["idx_cycle"] >= N_inactive:
-            mcdc["cycle_active"] = True
+        simulation["idx_cycle"] += 1
+        if simulation["idx_cycle"] >= N_inactive:
+            simulation["cycle_active"] = True
 
     # Tally closeout
-    tally_module.closeout.finalize(mcdc, data)
-    tally_module.closeout.eigenvalue_simulation(mcdc)
+    tally_module.closeout.finalize(simulation, data)
+    tally_module.closeout.eigenvalue_simulation(simulation)
 
 
 # =============================================================================
@@ -162,41 +163,44 @@ def eigenvalue_simulation(mcdc_arr, data):
 
 
 @njit
-def source_loop(seed, mcdc, data):
+def source_loop(seed, simulation, data):
     # Progress bar indicator
     N_prog = 0
 
     # Loop over particle sources
-    work_start = mcdc["mpi_work_start"]
-    work_size = mcdc["mpi_work_size"]
+    work_start = simulation["mpi_work_start"]
+    work_size = simulation["mpi_work_size"]
 
     for idx_work in range(work_size):
-        mcdc["idx_work"] = work_start + idx_work
-        generate_source_particle(work_start, idx_work, seed, mcdc, data)
+        simulation["idx_work"] = work_start + idx_work
+        generate_source_particle(work_start, idx_work, seed, simulation, data)
 
         # Run the source particle and its secondaries
-        exhaust_active_bank(mcdc, data)
+        exhaust_active_bank(simulation, data)
 
-        source_closeout(mcdc, idx_work, N_prog, data)
+        source_closeout(simulation, idx_work, N_prog, data)
 
 
 @njit
-def generate_source_particle(work_start, idx_work, seed, mcdc, data):
+def generate_source_particle(work_start, idx_work, seed, program, data):
     """Get a source particle and put into one of the banks"""
-    settings = mcdc["settings"]
-
-    particle_container = np.zeros(1, type_.particle_data)
-    particle = particle_container[0]
+    simulation = util.access_simulation(program)
+    settings = simulation["settings"]
 
     # Get from fixed-source?
-    if particle_bank_module.get_bank_size(mcdc["bank_source"]) == 0:
+    if particle_bank_module.get_bank_size(simulation["bank_source"]) == 0:
+        particle_container = util.local_array(1, type_.particle_data)
+        particle = particle_container[0]
+
         # Sample source
         seed_work = rng.split_seed(work_start + idx_work, seed)
-        source_particle(particle_container, seed_work, mcdc, data)
+        source_particle(particle_container, seed_work, simulation, data)
 
     # Get from source bank
     else:
-        particle_container = mcdc["bank_source"]["particles"][idx_work : (idx_work + 1)]
+        particle_container = simulation["bank_source"]["particle_data"][
+            idx_work : (idx_work + 1)
+        ]
         particle = particle_container[0]
 
     # Skip if beyond time boundary
@@ -206,7 +210,7 @@ def generate_source_particle(work_start, idx_work, seed, mcdc, data):
     # Check if it is beyond current or next census times
     hit_census = False
     hit_next_census = False
-    idx_census = mcdc["idx_census"]
+    idx_census = simulation["idx_census"]
 
     if idx_census < settings["N_census"] - 1:
         if particle["t"] > mcdc_get.settings.census_time(
@@ -219,49 +223,45 @@ def generate_source_particle(work_start, idx_work, seed, mcdc, data):
 
     # Put into the right bank
     if not hit_census:
-        particle_bank_module.bank_active_particle(particle_container, mcdc)
+        particle_bank_module.bank_active_particle(particle_container, program)
     elif not hit_next_census:
         # Particle will participate after the current census
-        particle_bank_module.bank_census_particle(particle_container, mcdc)
+        particle_bank_module.bank_census_particle(particle_container, program)
     else:
         # Particle will participate in the future
-        particle_bank_module.bank_future_particle(particle_container, mcdc)
+        particle_bank_module.bank_future_particle(particle_container, program)
 
 
 @njit
-def exhaust_active_bank(mcdc, data):
-    particle_container = np.zeros(1, type_.particle)
+def exhaust_active_bank(simulation, data):
+    particle_container = util.local_array(1, type_.particle)
     particle = particle_container[0]
 
     # Loop until active bank is exhausted
-    while particle_bank_module.get_bank_size(mcdc["bank_active"]) > 0:
+    while particle_bank_module.get_bank_size(simulation["bank_active"]) > 0:
         # Get particle from active bank
-        particle_bank_module.pop_particle(particle_container, mcdc["bank_active"])
-
-        prep_particle(particle_container, mcdc)
+        particle_bank_module.pop_particle(particle_container, simulation["bank_active"])
 
         # Particle loop
-        particle_loop(particle_container, mcdc, data)
+        particle_loop(particle_container, simulation, data)
 
 
 @njit
-def prep_particle(particle_container, mcdc):
-    particle = particle_container[0]
-
-
-@njit
-def source_closeout(mcdc, idx_work, N_prog, data):
+def source_closeout(simulation, idx_work, N_prog, data):
     # Tally history closeout for one-batch fixed-source simulation
-    if not mcdc["settings"]["eigenvalue_mode"] and mcdc["settings"]["N_batch"] == 1:
-        if not mcdc["settings"]["use_census_based_tally"]:
-            tally_module.closeout.accumulate(mcdc, data)
+    if (
+        not simulation["settings"]["neutron_eigenvalue_mode"]
+        and simulation["settings"]["N_batch"] == 1
+    ):
+        if not simulation["settings"]["use_census_based_tally"]:
+            tally_module.closeout.accumulate(simulation, data)
 
     # Progress printout
-    percent = (idx_work + 1.0) / mcdc["mpi_work_size"]
-    if mcdc["settings"]["use_progress_bar"] and int(percent * 100.0) > N_prog:
+    percent = (idx_work + 1.0) / simulation["mpi_work_size"]
+    if simulation["settings"]["use_progress_bar"] and int(percent * 100.0) > N_prog:
         N_prog += 1
         with objmode():
-            print_progress(percent, mcdc)
+            print_progress(percent, simulation)
 
 
 # ======================================================================================
@@ -270,19 +270,20 @@ def source_closeout(mcdc, idx_work, N_prog, data):
 
 
 @njit
-def particle_loop(particle_container, mcdc, data):
+def particle_loop(particle_container, simulation, data):
     particle = particle_container[0]
 
     while particle["alive"]:
-        step_particle(particle_container, mcdc, data)
+        step_particle(particle_container, simulation, data)
 
 
 @njit
-def step_particle(particle_container, mcdc, data):
+def step_particle(particle_container, program, data):
+    simulation = util.access_simulation(program)
     particle = particle_container[0]
 
     # Determine and move to event
-    move_to_event(particle_container, mcdc, data)
+    move_to_event(particle_container, simulation, data)
 
     # Execute events
     if particle["event"] == EVENT_LOST:
@@ -290,29 +291,81 @@ def step_particle(particle_container, mcdc, data):
 
     # Collision
     if particle["event"] & EVENT_COLLISION:
-        physics.collision(particle_container, mcdc, data)
+        collision_data_container = np.zeros(1, type_.collision_data)
+
+        # Execute the physics
+        physics.collision(particle_container, collision_data_container, program, data)
+
+        # Score collision tallies
+        if simulation["cycle_active"]:
+            # Cell tallies
+            cell = simulation["cells"][particle["cell_ID"]]
+            for i in range(cell["N_tally"]):
+                tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
+                tally_base = simulation["tallies"][tally_base_ID]
+
+                # Skip non-collision tallies
+                if tally_base["child_type"] != TALLY_COLLISION:
+                    continue
+
+                tally = simulation["collision_tallies"][tally_base["child_ID"]]
+                tally_module.score.collision_tally(
+                    particle_container,
+                    collision_data_container,
+                    tally,
+                    simulation,
+                    data,
+                )
+
+            # Other collision tallies
+            for i in range(simulation["N_collision_tally"]):
+                tally = simulation["collision_tallies"][i]
+
+                # Skip cell tallies
+                if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
+                    continue
+
+                tally_module.score.collision_tally(
+                    particle_container,
+                    collision_data_container,
+                    tally,
+                    simulation,
+                    data,
+                )
 
     # Surface and domain crossing
     if particle["event"] & EVENT_SURFACE_CROSSING:
-        geometry.surface_crossing(particle_container, mcdc, data)
+        geometry.surface_crossing(particle_container, simulation, data)
 
     # Census time crossing
     if particle["event"] & EVENT_TIME_CENSUS:
-        particle_bank_module.bank_census_particle(particle_container, mcdc)
+        particle_bank_module.bank_census_particle(particle_container, program)
         particle["alive"] = False
 
     # Time boundary crossing
     if particle["event"] & EVENT_TIME_BOUNDARY:
         particle["alive"] = False
 
-    # Weight roulette
-    if particle["alive"]:
-        technique.weight_roulette(particle_container, mcdc)
+    # ==================================================================================
+    # Apply techniques
+    # ==================================================================================
+
+    # Skip if not alive
+    if not particle["alive"]:
+        return
+
+    # Weight windows
+    if simulation["weight_windows"]["active"]:
+        technique.weight_windows(particle_container, program, data)
+
+    # Global weight roulette
+    if simulation["global_weight_roulette"]["active"]:
+        technique.global_weight_roulette(particle_container, simulation)
 
 
 @njit
-def move_to_event(particle_container, mcdc, data):
-    settings = mcdc["settings"]
+def move_to_event(particle_container, simulation, data):
+    settings = simulation["settings"]
 
     # ==================================================================================
     # Preparation (as needed)
@@ -321,10 +374,10 @@ def move_to_event(particle_container, mcdc, data):
 
     # Multigroup preparation
     #   In MG mode, particle speed is material-dependent.
-    if settings["multigroup_mode"]:
+    if settings["neutron_multigroup_mode"]:
         # If material is not identified yet, locate the particle
         if particle["material_ID"] == -1:
-            if not geometry.locate_particle(particle_container, mcdc, data):
+            if not geometry.locate_particle(particle_container, simulation, data):
                 # Particle is lost
                 particle["event"] = EVENT_LOST
                 return
@@ -337,7 +390,7 @@ def move_to_event(particle_container, mcdc, data):
     #   - Set particle boundary event (surface or lattice crossing, or lost)
     #   - Return distance to boundary (surface or lattice)
 
-    d_boundary = geometry.inspect_geometry(particle_container, mcdc, data)
+    d_boundary = geometry.inspect_geometry(particle_container, simulation, data)
 
     # Particle is lost?
     if particle["event"] == EVENT_LOST:
@@ -348,19 +401,19 @@ def move_to_event(particle_container, mcdc, data):
     # ==================================================================================
 
     # Distance to domain
-    speed = physics.particle_speed(particle_container, mcdc, data)
+    speed = physics.particle_speed(particle_container, simulation, data)
 
     # Distance to time boundary
     d_time_boundary = speed * (settings["time_boundary"] - particle["t"])
 
     # Distance to census time
-    idx = mcdc["idx_census"]
+    idx = simulation["idx_census"]
     d_time_census = speed * (
         mcdc_get.settings.census_time(idx, settings, data) - particle["t"]
     )
 
     # Distance to next collision
-    d_collision = physics.collision_distance(particle_container, mcdc, data)
+    d_collision = physics.collision_distance(particle_container, simulation, data)
 
     # ==================================================================================
     # Determine event(s)
@@ -396,32 +449,38 @@ def move_to_event(particle_container, mcdc, data):
     # ==================================================================================
 
     # Score tracklength tallies
-    if mcdc["cycle_active"]:
+    if simulation["cycle_active"]:
         # Cell tallies
-        cell = mcdc["cells"][particle["cell_ID"]]
+        cell = simulation["cells"][particle["cell_ID"]]
         for i in range(cell["N_tally"]):
-            tally_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-            tally = mcdc["cell_tallies"][tally_ID]
+            tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
+            tally_base = simulation["tallies"][tally_base_ID]
+
+            # Skip non-tracklength tallies
+            if tally_base["child_type"] != TALLY_TRACKLENGTH:
+                continue
+
+            tally = simulation["tracklength_tallies"][tally_base["child_ID"]]
             tally_module.score.tracklength_tally(
-                particle_container, distance, tally, mcdc, data
+                particle_container, distance, tally, simulation, data
             )
 
-        # Global tallies
-        for i in range(mcdc["N_global_tally"]):
-            tally = mcdc["global_tallies"][i]
+        # Other tracklength tallies
+        for i in range(simulation["N_tracklength_tally"]):
+            tally = simulation["tracklength_tallies"][i]
+
+            # Skip cell tallies
+            if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
+                continue
+
             tally_module.score.tracklength_tally(
-                particle_container, distance, tally, mcdc, data
+                particle_container, distance, tally, simulation, data
             )
 
-        # Mesh tallies
-        for i in range(mcdc["N_mesh_tally"]):
-            tally = mcdc["mesh_tallies"][i]
-            tally_module.score.mesh_tally(
-                particle_container, distance, tally, mcdc, data
-            )
-
-    if settings["eigenvalue_mode"]:
-        tally_module.score.eigenvalue_tally(particle_container, distance, mcdc, data)
+    if settings["neutron_eigenvalue_mode"]:
+        tally_module.score.eigenvalue_tally(
+            particle_container, distance, simulation, data
+        )
 
     # Move particle
-    particle_module.move(particle_container, distance, mcdc, data)
+    particle_module.move(particle_container, distance, simulation, data)

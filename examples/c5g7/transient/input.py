@@ -356,7 +356,7 @@ x = np.linspace(0.0, pitch * 17 * 2, Nx + 1)
 y = np.linspace(-pitch * 17 * 2, 0.0, Ny + 1)
 z = np.linspace(-core_height / 2, core_height / 2, Nz + 1)
 mesh = mcdc.MeshStructured(x=x, y=y, z=z)
-mcdc.TallyMesh(mesh=mesh, scores=["fission"], time=t)
+mcdc.Tally(mesh=mesh, scores=["fission"], time=t)
 
 # Settings
 mcdc.settings.N_particle = 10000

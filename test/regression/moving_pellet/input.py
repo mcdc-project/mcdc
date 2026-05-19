@@ -67,7 +67,7 @@ mesh = mcdc.MeshStructured(
     x=np.linspace(-5, 5, 101),
     z=np.linspace(-10, 10, 101),
 )
-mcdc.TallyMesh(mesh=mesh, scores=["fission"], time=np.linspace(0, 9, 46))
+mcdc.Tally(mesh=mesh, scores=["fission"], time=np.linspace(0, 9, 46))
 
 # Settings
 mcdc.settings.N_particle = 50

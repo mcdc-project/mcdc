@@ -1,13 +1,12 @@
 import math
+import numpy as np
 
 from numba import njit
 from typing import Sequence
 
 
 @njit
-def find_bin(
-    value: float, grid: Sequence[float], epsilon: float = 0.0, go_lower: bool = True
-) -> int:
+def find_bin_with_rules(value, grid, epsilon, go_lower):
     """
     Return the bin index i for which grid[i] <= value < grid[i+1], with optional
     epsilon tolerance and tie-breaking toward the lower/upper bin.
@@ -18,10 +17,10 @@ def find_bin(
         Query point.
     grid : Sequence[float]
         Monotonically increasing bin edges of length N_grid = N_bin + 1.
-    epsilon : float, optional (default: 0.0)
+    epsilon : float
         Tolerance to treat values as being exactly on a grid edge if
         |value - grid[k]| <= epsilon.
-    go_lower : bool, optional (default: True)
+    go_lower : bool
         Tie-breaking rule when value is at/within epsilon of a grid edge:
           - True  -> tie to the lower/left bin
           - False -> tie to the upper/right bin
@@ -96,8 +95,16 @@ def find_bin(
 
 
 @njit
-def atomic_add(array, idx, value):
-    array[idx] += value
+def find_bin(value, grid):
+    tolerance = 0.0
+    go_lower = True
+    return find_bin_with_rules(value, grid, tolerance, go_lower)
+
+
+@njit
+def find_bin_with_tolerance(value, grid, tolerance):
+    go_lower = True
+    return find_bin_with_rules(value, grid, tolerance, go_lower)
 
 
 # ======================================================================================
@@ -105,21 +112,55 @@ def atomic_add(array, idx, value):
 # ======================================================================================
 
 
+# INT = 1: histogram
+@njit
+def histogram_interpolation(x, x1, x2, y1, y2):
+    return y1
+
+
+# INT = 2: linear-linear
 @njit
 def linear_interpolation(x, x1, x2, y1, y2):
     return y1 + (x - x1) * (y2 - y1) / (x2 - x1)
 
 
+# INT = 3: linear-log / semilogx
+# linear in log(x), linear in y
+@njit
+def semilogx_interpolation(x, x1, x2, y1, y2):
+    return y1 + (math.log(x) - math.log(x1)) * (y2 - y1) / (math.log(x2) - math.log(x1))
+
+
+# INT = 4: log-linear / semilogy
+# linear in x, linear in log(y)
+@njit
+def semilogy_interpolation(x, x1, x2, y1, y2):
+    return y1 * (y2 / y1) ** ((x - x1) / (x2 - x1))
+
+
+# INT = 5: log-log
+# linear in log(x), linear in log(y)
 @njit
 def log_interpolation(x, x1, x2, y1, y2):
-    # Convert to logs
-    lx1, lx2 = math.log(x1), math.log(x2)
-    ly1, ly2 = math.log(y1), math.log(y2)
+    m = math.log(y2 / y1) / math.log(x2 / x1)
+    return y1 * (x / x1) ** m
 
-    # Slope in log–log space
-    m = (ly2 - ly1) / (lx2 - lx1)
 
-    # Interpolate log(y)
-    ly = ly1 + m * (math.log(x) - lx1)
+# ======================================================================================
+# Framework utilities
+# ======================================================================================
 
-    return math.exp(ly)
+
+@njit
+def atomic_add(array, idx, value):
+    array[idx] += value
+
+
+@njit
+def local_array(shape, dtype):
+    return np.zeros(shape, dtype=dtype)
+
+
+@njit
+def access_simulation(program):
+    return program

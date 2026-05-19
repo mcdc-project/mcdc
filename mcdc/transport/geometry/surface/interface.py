@@ -17,6 +17,10 @@ import mcdc.transport.geometry.surface.cylinder_y as cylinder_y
 import mcdc.transport.geometry.surface.cylinder_z as cylinder_z
 import mcdc.transport.geometry.surface.sphere as sphere
 import mcdc.transport.geometry.surface.quadric as quadric
+import mcdc.transport.geometry.surface.torus_x as torus_x
+import mcdc.transport.geometry.surface.torus_y as torus_y
+import mcdc.transport.geometry.surface.torus_z as torus_z
+import mcdc.transport.geometry.surface.torus as torus
 
 from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
@@ -29,9 +33,18 @@ from mcdc.constant import (
     SURFACE_CYLINDER_X,
     SURFACE_CYLINDER_Y,
     SURFACE_CYLINDER_Z,
+    SURFACE_CYLINDER,
     SURFACE_SPHERE,
+    SURFACE_QUADRIC,
+    SURFACE_CONE_X,
+    SURFACE_CONE_Y,
+    SURFACE_CONE_Z,
+    SURFACE_TORUS_X,
+    SURFACE_TORUS_Y,
+    SURFACE_TORUS_Z,
+    SURFACE_TORUS,
 )
-from mcdc.transport.util import find_bin
+from mcdc.transport.util import find_bin_with_rules
 
 
 @njit
@@ -79,17 +92,34 @@ def evaluate(particle_container, surface, data):
             result = plane_z.evaluate(particle_container, surface)
         elif surface["type"] == SURFACE_PLANE:
             result = plane.evaluate(particle_container, surface)
-    else:
+    if surface["quadric"]:
         if surface["type"] == SURFACE_CYLINDER_X:
             result = cylinder_x.evaluate(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER_Y:
             result = cylinder_y.evaluate(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER_Z:
             result = cylinder_z.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_CYLINDER:
+            result = quadric.evaluate(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             result = sphere.evaluate(particle_container, surface)
-        else:
+        elif surface["type"] == SURFACE_CONE_X:
             result = quadric.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_CONE_Y:
+            result = quadric.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_CONE_Z:
+            result = quadric.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_QUADRIC:
+            result = quadric.evaluate(particle_container, surface)
+    if surface["quartic"]:
+        if surface["type"] == SURFACE_TORUS_X:
+            result = torus_x.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Y:
+            result = torus_y.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Z:
+            result = torus_z.evaluate(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS:
+            result = torus.evaluate(particle_container, surface)
 
     if surface["moving"]:
         # Restore particle position
@@ -129,17 +159,34 @@ def get_normal_component(particle_container, speed, surface, data):
             result = plane_z.get_normal_component(particle_container, surface)
         elif surface["type"] == SURFACE_PLANE:
             result = plane.get_normal_component(particle_container, surface)
-    else:
+    if surface["quadric"]:
         if surface["type"] == SURFACE_CYLINDER_X:
             result = cylinder_x.get_normal_component(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER_Y:
             result = cylinder_y.get_normal_component(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER_Z:
             result = cylinder_z.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_CYLINDER:
+            result = quadric.get_normal_component(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             result = sphere.get_normal_component(particle_container, surface)
-        else:
+        elif surface["type"] == SURFACE_CONE_X:
             result = quadric.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_CONE_Y:
+            result = quadric.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_CONE_Z:
+            result = quadric.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_QUADRIC:
+            result = quadric.get_normal_component(particle_container, surface)
+    if surface["quartic"]:
+        if surface["type"] == SURFACE_TORUS_X:
+            result = torus_x.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Y:
+            result = torus_y.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Z:
+            result = torus_z.get_normal_component(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS:
+            result = torus.get_normal_component(particle_container, surface)
 
     if surface["moving"]:
         # Restore particle parameters
@@ -168,17 +215,34 @@ def reflect(particle_container, surface):
             return plane_z.reflect(particle_container, surface)
         elif surface["type"] == SURFACE_PLANE:
             return plane.reflect(particle_container, surface)
-    else:
+    if surface["quadric"]:
         if surface["type"] == SURFACE_CYLINDER_X:
             return cylinder_x.reflect(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER_Y:
             return cylinder_y.reflect(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER_Z:
             return cylinder_z.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_CYLINDER:
+            return quadric.reflect(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             return sphere.reflect(particle_container, surface)
-        else:
+        elif surface["type"] == SURFACE_CONE_X:
             return quadric.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_CONE_Y:
+            return quadric.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_CONE_Z:
+            return quadric.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_QUADRIC:
+            return quadric.reflect(particle_container, surface)
+    if surface["quartic"]:
+        if surface["type"] == SURFACE_TORUS_X:
+            return torus_x.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Y:
+            return torus_y.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Z:
+            return torus_z.reflect(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS:
+            return torus.reflect(particle_container, surface)
 
 
 @njit
@@ -212,17 +276,38 @@ def _get_distance_static(particle_container, surface):
             return plane.get_distance(particle_container, surface)
         else:
             return INF
-    else:
+    if surface["quadric"]:
         if surface["type"] == SURFACE_CYLINDER_X:
             return cylinder_x.get_distance(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER_Y:
             return cylinder_y.get_distance(particle_container, surface)
         elif surface["type"] == SURFACE_CYLINDER_Z:
             return cylinder_z.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_CYLINDER:
+            return quadric.get_distance(particle_container, surface)
         elif surface["type"] == SURFACE_SPHERE:
             return sphere.get_distance(particle_container, surface)
-        else:
+        elif surface["type"] == SURFACE_CONE_X:
             return quadric.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_CONE_Y:
+            return quadric.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_CONE_Z:
+            return quadric.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_QUADRIC:
+            return quadric.get_distance(particle_container, surface)
+        else:
+            return INF
+    if surface["quartic"]:
+        if surface["type"] == SURFACE_TORUS_X:
+            return torus_x.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Y:
+            return torus_y.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS_Z:
+            return torus_z.get_distance(particle_container, surface)
+        elif surface["type"] == SURFACE_TORUS:
+            return torus.get_distance(particle_container, surface)
+        else:
+            return INF
 
 
 @njit
@@ -309,8 +394,15 @@ def _get_move_idx(t, surface, data):
     """
     Get moving interval index wrt the given time
     """
-    time_grid = mcdc_get.surface.move_time_grid_all(surface, data)
-    idx = find_bin(t, time_grid, epsilon=COINCIDENCE_TOLERANCE_TIME, go_lower=False)
+    time_grid = data[
+        surface["move_time_grid_offset"] : (
+            surface["move_time_grid_offset"] + surface["N_move_grid"]
+        )
+    ]
+    # Above is equivalent to: time_grid = mcdc_get.surface.move_time_grid_all(surface, data)
+    tolerance = COINCIDENCE_TOLERANCE_TIME
+    go_lower = False
+    idx = find_bin_with_rules(t, time_grid, tolerance, go_lower)
 
     # Coinciding cases
     if abs(time_grid[idx + 1] - t) < COINCIDENCE_TOLERANCE:
@@ -326,10 +418,18 @@ def _translate_particle_position(particle_container, surface, idx, data):
     """
     particle = particle_container[0]
 
-    # Surface move translations, velocities, and time grid
-    trans_0 = mcdc_get.surface.move_translations_vector(idx, surface, data)
+    # Surface move translations
+    start = surface["move_translations_offset"] + idx * 3
+    trans_0 = data[start : start + 3]
+    # Above is equivalent to: trans_0 = mcdc_get.surface.move_translations_vector(idx, surface, data)
+
+    # Surface move velocities
+    start = surface["move_velocities_offset"] + idx * 3
+    V = data[start : start + 3]
+    # Above is equivalent to: V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
+
+    # Surface move time grid
     time_0 = mcdc_get.surface.move_time_grid(idx, surface, data)
-    V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
 
     # Translate the particle
     t_local = particle["t"] - time_0
@@ -345,8 +445,10 @@ def _translate_particle_direction(particle_container, speed, surface, idx, data)
     """
     particle = particle_container[0]
 
-    # Surface move translations, velocities, and time grid
-    V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
+    # Surface move velocities
+    start = surface["move_velocities_offset"] + idx * 3
+    V = data[start : start + 3]
+    # Above is equivalent to: V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
 
     # Translate the particle
     particle["ux"] -= V[0] / speed

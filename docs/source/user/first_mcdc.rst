@@ -9,7 +9,7 @@ This guide presupposes you are familiar with modeling nuclear systems using a Mo
 If you are completely new, we suggest checking out `OpenMC's theory guide <https://docs.openmc.org/en/stable/methods/introduction.htmll>`_ as most the basic underlying algorithms and core concepts are the same.
 Our input decks and keyword phrases are designed so that if you are familiar with tools like OpenMC or MCNP, you should be able to get up and running quickly.
 
-While this guide is a great place to start, the  next best place to look when getting started are our ``MCDC/examples`` or ``MCDC/testing`` directories.
+While this guide is a great place to start, the  next best place to look when getting started are our ``MCDC/examples`` or ``MCDC/test`` directories.
 Run a few problems there, change a few inputs around, and keep looking around until you get the general hang of what we are doing.
 Believe it or not, there is a method to all this madness.
 If you find yourself with errors you really don't know what to do with, take look at our `GitHub issues page <https://github.com/CEMeNT-PSAAP/MCDC/issues>`_.
@@ -33,10 +33,10 @@ Building an Input Script
 ------------------------
 
 Building an input deck can be a complicated and nuanced process. Depending on the type of simulation you need to build, you could end up touching most of the functions in MC/DC, or very few.
-Again, the best way to start building input decks is to look at what we have already done in the ``MCDC/examples`` or ``MCDC/testing`` directories.
+Again, the best way to start building input decks is to look at what we have already done in the ``MCDC/examples`` or ``MCDC/test`` directories.
 To see more on the available input functions, look through the :doc:`../pythonapi/index` section.
 
-As an example, we walk through building the input for the ``MCDC/examples/fixed_source/slab_absorbium`` problem, which simulates a three-region, purely absorbing, mono-energetic transient slab wall.
+As an example, we walk through building the input for the ``MCDC/test/regression/slab_absorbium`` problem, which simulates a three-region, purely absorbing, mono-energetic slab wall.
 
 We start with our imports:
 
@@ -52,27 +52,29 @@ Now, we define the materials for the problem:
 .. code-block:: python3
 
     # Set materials
-    m1 = mcdc.material(capture=np.array([1.0]))
-    m2 = mcdc.material(capture=np.array([1.5]))
-    m3 = mcdc.material(capture=np.array([2.0]))
+    m1 = mcdc.MaterialMG(capture=np.array([1.0]))
+    m2 = mcdc.MaterialMG(capture=np.array([1.5]))
+    m3 = mcdc.MaterialMG(capture=np.array([2.0]))
 
 In this problem we only have mono-energetic capture, but MC/DC has support for multi-group (capture, scatter, fission) and continuous energy (capture, scatter, fission).
-Multi-group data is written in a single numpy array; for example, a 3-group capture cross section would be ``capture=np.array([1.0, 1.1, 0.8])``.
+Multi-group materials are created with ``mcdc.MaterialMG``; for example, a 3-group capture cross section would be ``capture=np.array([1.0, 1.1, 0.8])``.
+Continuous-energy materials are created with ``mcdc.Material``.
 
 If you are a member of CEMeNT, we have internal repositories containing the data required for continuous-energy simulation.
 Unfortunately due to export controls we can not publicly distribute this data.
 If you are looking for cross-section data to plug into MC/DC, we recommend you look at OpenMC or `NJOY <http://www.njoy21.io/>`_.
 
-After setting material data, we define the problem space by setting up surfaces with their boundary conditions (bc).
-If no boundary condition is defined, the surface is assumed to be internal.
+After setting material data, we define the problem space by setting up surfaces with their boundary conditions.
+If no boundary condition is defined, the surface is assumed to be internal (``boundary_condition="none"``).
+Surfaces are created using class methods on ``mcdc.Surface`` (e.g., ``PlaneX``, ``PlaneY``, ``PlaneZ``, ``Sphere``, ``CylinderZ``).
 
 .. code-block:: python3
 
     # Set surfaces
-    s1 = mcdc.surface("plane-z", z=0.0, bc="vacuum")
-    s2 = mcdc.surface("plane-z", z=2.0)
-    s3 = mcdc.surface("plane-z", z=4.0)
-    s4 = mcdc.surface("plane-z", z=6.0, bc="vacuum")
+    s1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition="vacuum")
+    s2 = mcdc.Surface.PlaneZ(z=2.0)
+    s3 = mcdc.Surface.PlaneZ(z=4.0)
+    s4 = mcdc.Surface.PlaneZ(z=6.0, boundary_condition="vacuum")
 
 Remember that the radiation transport equation is a 7-dimensional integro-differential equation,
 so it's possible your problem will need both initial and boundary conditions.
@@ -84,40 +86,45 @@ We create problem geometry using cells, which are defined by the surfaces that c
 The ``+/-`` convention is used to indicate whether the cell volume is outside (+) or inside (-) a given surface.
 For example, below, the first cell is filled with material m2 and is positive with respect to s1, negative with respect to s2.
 This corresponds to being bound on the left by s1 and on the right by s2.
+Cells are created with ``mcdc.Cell``, using the ``region`` and ``fill`` keyword arguments.
 
 .. code-block:: python3
 
-    mcdc.cell([+s1, -s2], m2)
-    mcdc.cell([+s2, -s3], m3)
-    mcdc.cell([+s3, -s4], m1)
+    mcdc.Cell(region=+s1 & -s2, fill=m2)
+    mcdc.Cell(region=+s2 & -s3, fill=m3)
+    mcdc.Cell(region=+s3 & -s4, fill=m1)
 
 We define a uniform isotropic source throughout the domain:
 
 .. code-block:: python3
 
-    mcdc.source(z=[0.0, 6.0], isotropic=True)
+    mcdc.Source(z=[0.0, 6.0], isotropic=True, energy_group=0)
 
-Next we set tallies and specify the specific parameters of interest. Here, we're interested in the time- and space-averaged flux
-and current. We set up two meshes on which to tally, using Numpy arrays: along the z-axis from 0.0 to 6.0, and along the mu axis between -1 and 1.
+Next we set tallies and specify the specific parameters of interest. Here, we're interested in the space-averaged flux
+and collision rate. A mesh is created first, then a mesh-filtered ``Tally`` is constructed on that mesh.
+Direction bins can also be specified on the tally.
 Regardless of problem specifics, particles are simulated through all space, direction, and time;
 the tally definitions are used to indicate in which dimensions a record of particle behavior should be kept.
+Available scores include ``"flux"``, ``"density"``, ``"collision"``, ``"capture"``, ``"fission"``, and ``"net-current"``.
 
 .. code-block:: python3
 
-    # Tally: cell-average fluxes and currents
-    mcdc.tally(
-        scores=["flux", "current"],
-        z=np.linspace(0.0, 6.0, 61),
+    # Tally: cell-average fluxes and collisions
+    mesh = mcdc.MeshStructured(z=np.linspace(0.0, 6.0, 61))
+    mcdc.Tally(
+        mesh=mesh,
+        scores=["flux", "collision"],
         mu=np.linspace(-1.0, 1.0, 32 + 1),
     )
 
 Next we set simulation settings. The only required setting is the number of particles.
+Settings are configured by assigning attributes on the ``mcdc.settings`` singleton.
 Additional settings include, for example, the cycles to use for a k-eigenvalue problem
-or whether the MC/DC title should be disabled.
+(via ``mcdc.settings.set_eigenmode(...)``) or the output file name.
 
 .. code-block:: python3
 
-    mcdc.setting(N_particle=1e3)
+    mcdc.settings.N_particle = 1000
 
 Finally, execute the problem.
 
@@ -138,41 +145,42 @@ Put together, our example ``input.py`` file:
     # Three slab layers with different purely-absorbing materials
 
     # Set materials
-    m1 = mcdc.material(capture=np.array([1.0]))
-    m2 = mcdc.material(capture=np.array([1.5]))
-    m3 = mcdc.material(capture=np.array([2.0]))
+    m1 = mcdc.MaterialMG(capture=np.array([1.0]))
+    m2 = mcdc.MaterialMG(capture=np.array([1.5]))
+    m3 = mcdc.MaterialMG(capture=np.array([2.0]))
 
     # Set surfaces
-    s1 = mcdc.surface("plane-z", z=0.0, bc="vacuum")
-    s2 = mcdc.surface("plane-z", z=2.0)
-    s3 = mcdc.surface("plane-z", z=4.0)
-    s4 = mcdc.surface("plane-z", z=6.0, bc="vacuum")
+    s1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition="vacuum")
+    s2 = mcdc.Surface.PlaneZ(z=2.0)
+    s3 = mcdc.Surface.PlaneZ(z=4.0)
+    s4 = mcdc.Surface.PlaneZ(z=6.0, boundary_condition="vacuum")
 
     # Set cells
-    mcdc.cell([+s1, -s2], m2)
-    mcdc.cell([+s2, -s3], m3)
-    mcdc.cell([+s3, -s4], m1)
+    mcdc.Cell(region=+s1 & -s2, fill=m2)
+    mcdc.Cell(region=+s2 & -s3, fill=m3)
+    mcdc.Cell(region=+s3 & -s4, fill=m1)
 
     # =============================================================================
     # Set source
     # =============================================================================
     # Uniform isotropic source throughout the domain
 
-    mcdc.source(z=[0.0, 6.0], isotropic=True)
+    mcdc.Source(z=[0.0, 6.0], isotropic=True, energy_group=0)
 
     # =============================================================================
     # Set tally, setting, and run mcdc
     # =============================================================================
 
-    # Tally: cell-average fluxes and currents
-    mcdc.tally(
-        scores=["flux", "current"],
-        z=np.linspace(0.0, 6.0, 61),
+    # Tally: cell-average fluxes and collisions
+    mesh = mcdc.MeshStructured(z=np.linspace(0.0, 6.0, 61))
+    mcdc.Tally(
+        mesh=mesh,
+        scores=["flux", "collision"],
         mu=np.linspace(-1.0, 1.0, 32 + 1),
     )
 
     # Setting
-    mcdc.setting(N_particle=1e3)
+    mcdc.settings.N_particle = 1000
 
     # Run
     mcdc.run()
@@ -215,18 +223,20 @@ Data can be pulled from an ``.h5`` file using something like,
     import numpy as np
     # Load results
     with h5py.File("output.h5", "r") as f:
-        z = f["tally/grid/z"][:]
+        # The tally name matches the auto-generated name (e.g., "mesh_tally_0")
+        tally_name = list(f["tallies"].keys())[0]
+        tally = f[f"tallies/{tally_name}"]
+
+        z = tally["grid/z"][:]
         dz = z[1:] - z[:-1]
         z_mid = 0.5 * (z[:-1] + z[1:])
 
-        mu = f["tally/grid/mu"][:]
+        mu = tally["grid/mu"][:]
         dmu = mu[1:] - mu[:-1]
         mu_mid = 0.5 * (mu[:-1] + mu[1:])
 
-        psi = f["tally/flux/mean"][:]
-        psi_sd = f["tally/flux/sdev"][:]
-        J = f["tally/current/mean"][:, 2]
-        J_sd = f["tally/current/sdev"][:, 2]  
+        psi = tally["flux/mean"][:]
+        psi_sd = tally["flux/sdev"][:]
 
 While there can be some nuance to the dimensions of these data arrays, the folder structures should be evident from your tally settings.
 You can see the structure of the file layer-by-layer using the ``keys`` attribute of an h5 group.
@@ -234,13 +244,9 @@ For example, ``f.keys()`` will return
 
 .. code-block:: bash
 
-    <KeysViewHDF5 ['input_deck', 'runtime', 'tally']>
+    <KeysViewHDF5 ['runtime', 'tallies']>
 
-and ``f['tally'].keys()`` will return
-
-.. code-block:: bash
-
-    <KeysViewHDF5 ['current', 'flux', 'grid']>
+and ``f['tallies'].keys()`` will list all tally names.
 
 If needed, you can look around a ``.h5`` file using something like `h5Viewer <https://www.hdfgroup.org/download-hdfview/>`_ (which on linux can be installed with ``sudo apt-get install hdfview``).
 Otherwise these arrays can then be manipulated and modified like any other.
@@ -251,7 +257,7 @@ A tool like ``matplotlib`` will work great for plotting results.
 For more complex simulations, open source professional visualization software like
 `Paraview <https://www.paraview.org/>`_  or `Visit <https://sd.llnl.gov/simulation/computer-codes/visit>`_ are available.
 
-As the problem we ran above is pretty simple and has no scattering or fission, we have an `analytic solution we can import <https://github.com/CEMeNT-PSAAP/MCDC/blob/main/examples/fixed_source/slab_absorbium/reference.py>`_:
+As the problem we ran above is pretty simple and has no scattering or fission, we have an `analytic solution we can import <https://github.com/CEMeNT-PSAAP/MCDC/blob/main/test/regression/slab_absorbium/reference.py>`_:
 
 .. code-block:: python3
 
@@ -364,6 +370,27 @@ Here's results from the same simulation run with 1e6 particles:
 This is much better converged around the analytic solution.
 As with everything else, the best way to see what you can do is sniff around the examples.
 We have examples with animated solutions, subplots, moving regions and more!
+
+Additional Simulation Results
+-----------------------------
+
+- Neutron flux distribution on a shielded dog-leg vacuum channel after a neutron pulse is completed
+
+.. image:: ../images/user/kobayashi-white.png
+   :width: 266
+   :alt: Neutron flux distribution on a shielded dog-leg vacuum channel after a neutron pulse is completed
+
+- Bottom-view of a micro reactor fission rate distribution when a control rod-driven runaway prompt supercritical occurs
+
+.. image:: ../images/user/c5g7.png
+   :width: 266
+   :alt: Bottom-view of a micro reactor fission rate distribution when a control rod-driven runaway prompt supercritical occurs
+
+- Fission and flux bursts of a neutron excursion driven by a drop of highly-enriched uranium.
+
+.. image:: ../images/user/dragon.gif
+   :width: 266
+   :alt: Fission and flux bursts of a neutron excursion driven by a drop of highly-enriched uranium
 
 -------------------------------------
 MC/DC's built in model ``visualizer``

@@ -45,8 +45,8 @@ def visualize(
     global _visualize_cache
     if _visualize_cache is None:
         _visualize_cache = preparation()
-    mcdc_container, data = _visualize_cache
-    mcdc = mcdc_container[0]
+    simulation_container, data = _visualize_cache
+    simulation = simulation_container[0]
 
     # ==================================================================================
     # Numba-compiled functions
@@ -64,7 +64,7 @@ def visualize(
         reference_val,
         time_val,
         particle_arr,
-        mcdc,
+        simulation,
         data,
     ):
         """
@@ -88,7 +88,7 @@ def visualize(
             Time value for the visualization
         particle_arr : np.ndarray
             Particle array of size (1,) used for particle lookup.
-        mcdc : structured array
+        simulation : structured array
             MCDC simulation data
         data : structured array
             Additional simulation data
@@ -135,7 +135,7 @@ def visualize(
             particle["cell_ID"] = -1
             particle["material_ID"] = -1
 
-            if locate_particle(particle_arr, mcdc, data):
+            if locate_particle(particle_arr, simulation, data):
                 row_materials[j] = particle["material_ID"]
             else:
                 row_materials[j] = -1
@@ -152,7 +152,7 @@ def visualize(
         colors = new_colors
     else:
         colors = {}
-        for i in range(len(mcdc["materials"])):
+        for i in range(len(simulation["materials"])):
             colors[i] = plt.cm.Set1(i)[:-1]
     WHITE = mpl_colors.to_rgb("white")
 
@@ -222,7 +222,7 @@ def visualize(
                 reference,
                 t,
                 particle_arr,
-                mcdc,
+                simulation,
                 data,
             )
             material_ids[i, :] = row_materials

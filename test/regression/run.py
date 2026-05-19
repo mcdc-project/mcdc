@@ -2,6 +2,8 @@ import h5py, os, sys, argparse, fnmatch
 import numpy as np
 from colorama import Fore, Style
 
+RELATIVE_TOLERANCE = 1e-6
+
 # Option parser
 parser = argparse.ArgumentParser(description="MC/DC regression test")
 parser.add_argument("--mode", type=str, choices=["python", "numba"], default="python")
@@ -10,7 +12,6 @@ parser.add_argument("--mpiexec", type=int, default=0)
 parser.add_argument("--srun", type=int, default=0)
 parser.add_argument("--name", type=str, default="ALL")
 parser.add_argument("--skip", type=str, default="NONE")
-parser.add_argument("--include_native_physics", default=False, action="store_true")
 args, unargs = parser.parse_known_args()
 
 # Parse
@@ -20,9 +21,17 @@ mpiexec = args.mpiexec
 srun = args.srun
 name = args.name
 skip = args.skip
-include_native_physics = args.include_native_physics
 
-non_test_files = ["__pycache__", "MCDC-regression_test_data", "tmp"]
+regtest_data_name = "mcdc-regression_test_data"
+non_test_files = ["__pycache__", regtest_data_name, "tmp"]
+
+# Clone and update regression test data if needed
+if not os.path.isdir(regtest_data_name):
+    os.system(f"git clone https://github.com/mcdc-project/{regtest_data_name}.git")
+else:
+    os.chdir(regtest_data_name)
+    os.system("git pull")
+    os.chdir("..")
 
 # Get test names
 if name == "ALL":
@@ -40,14 +49,6 @@ if skip != "NONE":
     for name in skips:
         print(Fore.YELLOW + "Note: Skipping %s" % name + Style.RESET_ALL)
         names.remove(name)
-
-# Remove native physics if not incuded
-native_physics_tests = ["pincell", "pincell-k_eigenvalue"]
-if not include_native_physics:
-    for name in native_physics_tests:
-        print(Fore.YELLOW + "Note: Skipping %s" % name + Style.RESET_ALL)
-        if name in names:
-            names.remove(name)
 
 # Skip domain decomp tests unless there are 4 MPI processes
 temp = names.copy()
@@ -174,22 +175,16 @@ for i, name in enumerate(names):
                     if ("uq_var" in result) and (args.target == "gpu"):
                         continue
                     # Passed?
-                    if np.isclose(a, b).all():
+                    try:
+                        np.testing.assert_allclose(a, b, rtol=RELATIVE_TOLERANCE)
                         print(
                             Fore.GREEN + "  {}: Passed".format(name) + Style.RESET_ALL
                         )
-                    else:
+                    except AssertionError as error:
                         all_pass = False
                         error_msgs[-1].append(
                             "Differences in %s"
-                            % (
-                                name
-                                + "/"
-                                + result
-                                + "\n"
-                                + "{}\n".format(a - b)
-                                + "Max difference: {}".format(np.max(np.abs(a - b)))
-                            )
+                            % (name + "/" + result + "\n" + "{}\n".format(error))
                         )
                         print(Fore.RED + "  {}: Failed".format(name) + Style.RESET_ALL)
 
@@ -202,12 +197,13 @@ for i, name in enumerate(names):
             b = answer[result_name][()]
 
             # Passed?
-            if np.isclose(a, b).all():
+            try:
+                np.testing.assert_allclose(a, b, rtol=RELATIVE_TOLERANCE)
                 print(Fore.GREEN + "  {}: Passed".format(result_name) + Style.RESET_ALL)
-            else:
+            except AssertionError as error:
                 all_pass = False
                 error_msgs[-1].append(
-                    "Differences in {}\n{}".format(result_name, a - b)
+                    "Differences in {}\n{}".format(result_name, error)
                 )
                 print(Fore.RED + "  {}: Failed".format(result_name) + Style.RESET_ALL)
 
@@ -217,12 +213,11 @@ for i, name in enumerate(names):
             name = f"iqmc/tally/{score}/mean"
             a = np.squeeze(output[name][()])
             b = np.squeeze(answer[name][()])
-            if np.isnan(b).all():
-                continue
             # Passed?
-            if np.isclose(a, b).all():
+            try:
+                np.testing.assert_allclose(a, b, rtol=RELATIVE_TOLERANCE)
                 print(Fore.GREEN + "  {}: Passed".format(score) + Style.RESET_ALL)
-            else:
+            except AssertionError as error:
                 all_pass = False
                 error_msgs[-1].append("Differences in {}\n{}".format(score, a - b))
                 print(Fore.RED + "  {}: Failed".format(score) + Style.RESET_ALL)
