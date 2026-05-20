@@ -1,10 +1,5 @@
-import os
-
 import numpy as np
 import pytest
-
-# Match distribution tests: run Numba-decorated routines in pure Python for unit tests.
-os.environ.setdefault("NUMBA_DISABLE_JIT", "1")
 
 import mcdc
 import mcdc.numba_types as type_

@@ -1,19 +1,25 @@
 import math
+import numpy as np
 
+import mcdc.numba_types as type_
 import mcdc.transport.distribution as dist
 
 from .test_data import make_test_tabulated_energy_angle_data
 
 
-def test_tabulated_energy_angle_sample(rng_sequence, rng_state):
+def test_tabulated_energy_angle_sample(mock_rng_sequence, make_distribution_record):
     # MCNP Theory & User Manual §2.4.3.5.4.12 (Law 61: Correlated Energy-angle Scattering)
-    table, data = make_test_tabulated_energy_angle_data()
+    table_dict, data = make_test_tabulated_energy_angle_data()
+    table = make_distribution_record(
+        type_.tabulated_energy_angle_distribution, table_dict
+    )
+    data = np.asarray(data, dtype=np.float64)
 
     xi1, xi2, xi3 = 0.3, 0.1, 0.25
-    rng_sequence([xi1, xi2, xi3])
+    mock_rng = mock_rng_sequence(xi1, xi2, xi3)
 
     sampled_E, sampled_mu = dist.sample_tabulated_energy_angle(
-        2.0, rng_state, table, data
+        2.0, mock_rng, table, data
     )
 
     # Law 61 uses the Law 4 energy construction first.
