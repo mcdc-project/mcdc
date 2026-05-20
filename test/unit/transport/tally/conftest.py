@@ -28,6 +28,29 @@ def material_mg():
 
 
 @pytest.fixture
+def crossing_particle():
+    def _particle(surface_ID, x, ux, w=2.0):
+        particle_container = np.zeros(1, type_.particle)
+        particle = particle_container[0]
+        particle["alive"] = True
+        particle["particle_type"] = PARTICLE_NEUTRON
+        particle["surface_ID"] = surface_ID
+        particle["material_ID"] = 0
+        particle["g"] = 0
+        particle["x"] = x
+        particle["y"] = 0.0
+        particle["z"] = 0.0
+        particle["t"] = 0.0
+        particle["ux"] = ux
+        particle["uy"] = 0.0
+        particle["uz"] = 0.0
+        particle["w"] = w
+        return particle_container
+
+    return _particle
+
+
+@pytest.fixture
 def slab_plane_x(material_mg):
     # Two-cell 1D slab with shared interior PlaneX.
     s_left = mcdc.Surface.PlaneX(x=-1.0, boundary_condition="vacuum")

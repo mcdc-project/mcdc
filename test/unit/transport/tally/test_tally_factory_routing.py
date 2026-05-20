@@ -50,7 +50,7 @@ def test_tally_factory_routing_invalid_net_current_selectors(slab_plane_x, capsy
     with pytest.raises(SystemExit):
         mcdc.Tally(scores=["net-current"])
     out = capsys.readouterr().out
-    assert "needs either a surface or a cell tally" in out
+    assert "Current scores need either a surface or a cell tally" in out
 
 
 def test_surface_tally_rejects_current_in_out_scores(slab_plane_x, capsys):

@@ -50,10 +50,10 @@ from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
 
-SURFACE_SCORES = set(["net-current"])
-CELL_CURRENT_SCORES = set(["net-current", "current-in", "current-out"])
-TRACKLENGTH_SCORES = set(["flux", "density", "collision", "capture", "fission"])
-COLLISION_SCORES = set(["energy_deposition"])
+SURFACE_SCORES = {"net-current"}
+CELL_CURRENT_SCORES = {"net-current", "current-in", "current-out"}
+TRACKLENGTH_SCORES = {"flux", "density", "collision", "capture", "fission"}
+COLLISION_SCORES = {"energy_deposition"}
 
 
 class Tally(ObjectPolymorphic):
@@ -105,25 +105,25 @@ class Tally(ObjectPolymorphic):
         # Determine type and create the tally self based on the provided
         # spatial filters and scores
 
-        has_cell_current_score = any(score in CELL_CURRENT_SCORES for score in scores)
+        has_current_score = any(score in CELL_CURRENT_SCORES for score in scores)
 
-        # Surface/cell net-current tally
-        if has_cell_current_score:
+        # Surface/cell current tally
+        if has_current_score:
             for score in scores:
                 if score not in CELL_CURRENT_SCORES:
                     print_error(
-                        "Cannot mix cell-current scores with non-current scores "
-                        f"in one tally. Cell-current scores: {CELL_CURRENT_SCORES}."
+                        "Cannot mix current scores with non-current scores "
+                        f"in one tally. Current scores: {CELL_CURRENT_SCORES}."
                     )
 
             if surface is not None and cell is not None:
                 print_error(
-                    "Net-current tally must specify exactly one of surface or cell."
+                    "Current tally must specify exactly one of surface or cell."
                 )
 
             if surface is None and cell is None:
                 print_error(
-                    "Scoring 'net-current' needs either a surface or a cell tally."
+                    "Current scores need either a surface or a cell tally."
                 )
 
             if surface is not None:

@@ -129,7 +129,7 @@ def cell_tally(
                 score = particle["w"]
         elif score_type == SCORE_CURRENT_OUT:
             if exited:
-                score = -particle["w"]
+                score = particle["w"]
 
         if score != 0.0:
             util.atomic_add(data, idx_base + i_score, score)
