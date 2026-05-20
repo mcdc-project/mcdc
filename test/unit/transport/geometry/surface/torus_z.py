@@ -1,7 +1,6 @@
 import mcdc
 import math
 import numpy as np
-import pytest
 
 ####
 
@@ -9,7 +8,7 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
     INF,
 )
-import mcdc.numba_types as type_
+from mcdc.main import preparation
 
 # ======================================================================================
 # Setup
@@ -25,11 +24,26 @@ durations = np.array([5.0, 5.0, 5.0])
 velocities = np.zeros((3, 3))
 velocities[:, 0] = np.array([-1.0, 2.0, -3.0])
 
-static_surface = None
-moving_surface = None
-data = None
-particle_container = None
-particle = None
+# Test object: static surface
+static_surface = mcdc.Surface.TorusZ(A=A, B=B, C=C, R=R, r=r)
+
+# Test object: moving surface
+moving_surface = mcdc.Surface.TorusZ(A=A, B=B, C=C, R=R, r=r)
+moving_surface.move(velocities, durations)
+
+# Create the dummy simulation structure and data
+structure_container, data = preparation()
+structure = structure_container[0]
+
+# Get the "compiled" test objects
+static_surface = structure["surfaces"][0]
+moving_surface = structure["surfaces"][1]
+
+# Particle object for testing
+import mcdc.numba_types as type_
+
+particle_container = np.zeros(1, type_.particle_data)
+particle = particle_container[0]
 
 # Miscellanies
 TINY = COINCIDENCE_TOLERANCE * 0.1  # Tiny value within coincidence tolerance
@@ -39,22 +53,6 @@ from mcdc.transport.geometry.surface import (
     interface,
     torus_z,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup_geometry_case(compile_surfaces):
-    global static_surface, moving_surface, data, particle_container, particle
-
-    static_surface_obj = mcdc.Surface.TorusZ(A=A, B=B, C=C, R=R, r=r)
-    moving_surface_obj = mcdc.Surface.TorusZ(A=A, B=B, C=C, R=R, r=r)
-    moving_surface_obj.move(velocities, durations)
-
-    static_surface, moving_surface, data = compile_surfaces(
-        static_surface_obj, moving_surface_obj
-    )
-    particle_container = np.zeros(1, type_.particle_data)
-    particle = particle_container[0]
-
 
 # =====================================================================================
 # Torus-Z core functions

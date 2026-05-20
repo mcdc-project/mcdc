@@ -95,6 +95,5 @@ force-exclude = '''
   mcdc/numba_types\.py
   | mcdc/mcdc_get/
   | mcdc/mcdc_set/
-  | mcdc/lib/
 )
 '''
