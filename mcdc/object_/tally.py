@@ -122,9 +122,7 @@ class Tally(ObjectPolymorphic):
                 )
 
             if surface is None and cell is None:
-                print_error(
-                    "Current scores need either a surface or a cell tally."
-                )
+                print_error("Current scores need either a surface or a cell tally.")
 
             if surface is not None:
                 if not set(scores) <= SURFACE_SCORES:

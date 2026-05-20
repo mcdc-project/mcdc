@@ -56,7 +56,9 @@ def test_unbounded_surface_tally_scoring(
     assert np.isclose(bin_value(bounded_tally, mcdc_struct, data), expected_bounded)
 
 
-def test_surface_tally_scores_vacuum_boundary(material_mg, bin_value, crossing_particle):
+def test_surface_tally_scores_vacuum_boundary(
+    material_mg, bin_value, crossing_particle
+):
     s_left = mcdc.Surface.PlaneX(x=-1.0, boundary_condition="vacuum")
     s_right = mcdc.Surface.PlaneX(x=1.0, boundary_condition="vacuum")
     mcdc.Cell(region=+s_left & -s_right, fill=material_mg)
