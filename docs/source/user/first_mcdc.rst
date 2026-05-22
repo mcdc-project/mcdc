@@ -105,7 +105,12 @@ and collision rate. A mesh is created first, then a mesh-filtered ``Tally`` is c
 Direction bins can also be specified on the tally.
 Regardless of problem specifics, particles are simulated through all space, direction, and time;
 the tally definitions are used to indicate in which dimensions a record of particle behavior should be kept.
-Available scores include ``"flux"``, ``"density"``, ``"collision"``, ``"capture"``, ``"fission"``, and ``"net-current"``.
+Available tracklength scores include ``"flux"``, ``"density"``, ``"collision"``, ``"capture"``, and ``"fission"``.
+Current tallies can be attached to either a surface or a cell.
+Surface current tallies support ``"net-current"``, while cell current tallies support ``"net-current"``,
+``"current-in"``, and ``"current-out"``.
+The ``"current-in"`` and ``"current-out"`` scores are positive partial currents; ``"net-current"`` keeps the sign
+of the crossing direction.
 
 .. code-block:: python3
 
@@ -115,6 +120,12 @@ Available scores include ``"flux"``, ``"density"``, ``"collision"``, ``"capture"
         mesh=mesh,
         scores=["flux", "collision"],
         mu=np.linspace(-1.0, 1.0, 32 + 1),
+    )
+
+    # Tally: current crossing a cell boundary
+    mcdc.Tally(
+        cell=my_cell,
+        scores=["net-current", "current-in", "current-out"],
     )
 
 Next we set simulation settings. The only required setting is the number of particles.
