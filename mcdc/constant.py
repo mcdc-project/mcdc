@@ -89,6 +89,7 @@ EVENT_COLLISION = 1 << 4
 # Miscellanies
 EVENT_TIME_CENSUS = 1 << 5
 EVENT_TIME_BOUNDARY = 1 << 6
+EVENT_CSDA_EDEP = 1 << 7
 
 # Materials
 MATERIAL = 0
@@ -176,6 +177,7 @@ PI = math.pi
 PI_SQRT = math.sqrt(PI)
 PI_HALF = PI / 2.0
 BANKMAX = 100  # Default maximum active bank
+CSDA_MAX_FRACTIONAL_E_LOSS = 0.01
 
 # Axes
 AXIS_X = 0
