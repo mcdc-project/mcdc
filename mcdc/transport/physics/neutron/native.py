@@ -1,6 +1,5 @@
 import math
 
-from MCDC.mcdc.mcdc_get import simulation
 from numba import njit
 
 ####
