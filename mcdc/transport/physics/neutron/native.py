@@ -188,9 +188,7 @@ def _neutron_inelastic_scattering_production_xs(particle_container, simulation, 
                     j, nuclide, data
                 )
             )
-            reaction = simulation["neutron_inelastic_scattering_reactions"][
-                reaction_ID
-                ]
+            reaction = simulation["neutron_inelastic_scattering_reactions"][reaction_ID]
             reaction_base = simulation["neutron_reactions"][reaction["parent_ID"]]
 
             xs = reaction_micro_xs(E, reaction_base, nuclide, data)
