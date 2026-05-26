@@ -361,6 +361,52 @@ def step_particle(particle_container, program, data):
     # Global weight roulette
     if simulation["global_weight_roulette"]["active"]:
         technique.global_weight_roulette(particle_container, simulation)
+    # CSDA energy depostiion
+    if particle["event"] & EVENT_CSDA_EDEP:
+        collision_data_container = np.zeros(1, type_.collision_data)
+        physics.csda_edep(particle_container, collision_data_container, simulation, data)
+
+        # Score collision tallies
+        if simulation["cycle_active"]:
+            # Cell tallies
+            cell = simulation["cells"][particle["cell_ID"]]
+            for i in range(cell["N_tally"]):
+                tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
+                tally_base = simulation["tallies"][tally_base_ID]
+
+                # Skip non-collision tallies
+                if tally_base["child_type"] != TALLY_COLLISION:
+                    continue
+
+                tally = simulation["collision_tallies"][tally_base["child_ID"]]
+                tally_module.score.collision_tally(
+                    particle_container,
+                    collision_data_container,
+                    tally,
+                    simulation,
+                    data,
+                )
+
+            # Other collision tallies
+            for i in range(simulation["N_collision_tally"]):
+                tally = simulation["collision_tallies"][i]
+
+                # Skip cell tallies
+                if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
+                    continue
+
+                tally_module.score.collision_tally(
+                    particle_container,
+                    collision_data_container,
+                    tally,
+                    simulation,
+                    data,
+                )
+
+
+    # Weight roulette
+    if particle["alive"]:
+        technique.weight_roulette(particle_container, simulation)
 
 
 @njit
@@ -415,6 +461,9 @@ def move_to_event(particle_container, simulation, data):
     # Distance to next collision
     d_collision = physics.collision_distance(particle_container, simulation, data)
 
+    # Distance to max energy loss as dictated by CSDA
+    d_csda = physics.csda_distance(particle_container, simulation, data)
+
     # ==================================================================================
     # Determine event(s)
     # ==================================================================================
@@ -443,6 +492,15 @@ def move_to_event(particle_container, simulation, data):
         distance = d_time_boundary
         particle["event"] = EVENT_TIME_BOUNDARY
         particle["surface_ID"] = -1
+
+    # Check distance to max energy loss from CSDA
+    if d_csda < distance - COINCIDENCE_TOLERANCE:
+        distance = d_csda
+        particle["event"] = EVENT_CSDA_EDEP
+        particle["surface_ID"] = -1
+    elif geometry.check_coincidence(d_csda, distance):
+        particle["event"] += EVENT_CSDA_EDEP
+
 
     # ==================================================================================
     # Move particle

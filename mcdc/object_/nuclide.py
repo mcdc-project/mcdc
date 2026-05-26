@@ -50,6 +50,7 @@ class Nuclide(ObjectNonSingleton):
     neutron_capture_xs: NDArray[float64]
     neutron_inelastic_xs: NDArray[float64]
     neutron_fission_xs: NDArray[float64]
+    #
     proton_xs_energy_grid: NDArray[float64]
     proton_total_xs: NDArray[float64]
     proton_elastic_xs: NDArray[float64]
@@ -59,6 +60,7 @@ class Nuclide(ObjectNonSingleton):
     neutron_capture_reactions: list[NeutronReactionCapture]
     neutron_inelastic_scattering_reactions: list[NeutronReactionInelasticScattering]
     neutron_fission_reactions: list[NeutronReactionFission]
+    #
     proton_elastic_scattering_reactions: list[ProtonReactionElasticScattering]
     proton_nonelastic_reactions: list[ProtonReactionNonelasticReaction]
     proton_secondary_channels: dict[int, list[ProtonSecondaryChannel]]
@@ -70,6 +72,9 @@ class Nuclide(ObjectNonSingleton):
     neutron_fission_delayed_fractions: NDArray[float64]
     neutron_fission_delayed_decay_rates: NDArray[float64]
     neutron_fission_delayed_spectra: list[DistributionBase]
+    #
+    stopping_power: NDArray[float64]
+    stopping_power_energy_grid: NDArray[float64]
 
     def __init__(self, nuclide_name, temperature):
         super().__init__()
@@ -331,6 +336,14 @@ class Nuclide(ObjectNonSingleton):
                 h5_group = file[f"proton_reactions/{rx_name}/{MT}"]
                 reaction = rx_class.from_h5_group(h5_group)
                 rx_container.append(reaction)
+
+
+        # ==========================================================================
+        # Stopping power for protons
+        # ==========================================================================
+        self.stopping_power = file["stopping_power"]["total_stopping_power"][()]
+        self.stopping_power_energy_grid = file["stopping_power"]["energy"][()]
+
 
         # # ==========================================================================
         # # Secondary particles

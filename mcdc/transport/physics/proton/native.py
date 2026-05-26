@@ -30,6 +30,7 @@ from mcdc.constant import (
     PARTICLE_NEUTRON,
     PARTICLE_PROTON,
     PROTON_CUTOFF_ENERGY,
+    CSDA_MAX_FRACTIONAL_E_LOSS,
 )
 from mcdc.transport.data import evaluate_data
 from mcdc.transport.distribution import (
@@ -241,6 +242,31 @@ def collision(particle_container, collision_data_container, program, data):
                 return
 
 
+@njit
+def csda_edep(particle_container, collision_data_container, program, data):
+    simulation = util.access_simulation(program)
+    particle = particle_container[0]
+    collision_data = collision_data_container[0]
+    material = simulation["native_materials"][particle["material_ID"]]
+
+    # Particle properties
+    E = particle["E"]
+
+    # Check for cutoff energy
+    if E <= PROTON_CUTOFF_ENERGY:
+        collision_data["energy_deposition"] += E * particle["w"]
+        particle["alive"] = False
+        particle["E"] = 0.0
+        return
+    
+    # if particle makes it to this function, it will be losing CSDA_MAX_FRACTIONAL_E_LOSS of its energy
+    collision_data["energy_deposition"] += E * CSDA_MAX_FRACTIONAL_E_LOSS
+    particle["E"] -= E * CSDA_MAX_FRACTIONAL_E_LOSS
+
+    return
+
+    
+
 # ======================================================================================
 # Elastic scattering
 # ======================================================================================
@@ -261,6 +287,8 @@ def elastic_scattering(
 
     # Energy deposition
     collision_data["energy_deposition"] += E * particle["w"]
+    #print(f'\ndeposited {E * particle["w"]} eV at x={particle["x"]} from elastic scattering')
+
     # Note: Q-value is zero in elastic scattering
 
     # Sample nucleus thermal velocity
@@ -341,6 +369,7 @@ def elastic_scattering(
 
     # Subtract outgoing energy from energy deposition
     collision_data["energy_deposition"] -= particle["E"] * particle["w"]
+
 
 
 @njit
@@ -444,6 +473,8 @@ def nonelastic_reaction(
 
     # Energy deposition (will be adjusted as we create secondaries)
     collision_data["energy_deposition"] += total_energy * w
+    #print(f'\ndeposited {total_energy * particle["w"]} eV at x={particle["x"]} from nonelastic_rxn')
+
 
     # Create outgoing protons
     for n in range(N_proton):

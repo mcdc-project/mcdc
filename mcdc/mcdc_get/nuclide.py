@@ -552,3 +552,61 @@ def neutron_fission_delayed_spectrum_IDs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_fission_delayed_spectrum_IDs_offset"]
     end = start + length
     return data[start:end]
+
+
+@njit
+def stopping_power(index, nuclide, data):
+    offset = nuclide["stopping_power_offset"]
+    return data[offset + index]
+
+
+@njit
+def stopping_power_all(nuclide, data):
+    start = nuclide["stopping_power_offset"]
+    size = nuclide["stopping_power_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def stopping_power_last(nuclide, data):
+    start = nuclide["stopping_power_offset"]
+    size = nuclide["stopping_power_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def stopping_power_chunk(start, length, nuclide, data):
+    start += nuclide["stopping_power_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def stopping_power_energy_grid(index, nuclide, data):
+    offset = nuclide["stopping_power_energy_grid_offset"]
+    return data[offset + index]
+
+
+@njit
+def stopping_power_energy_grid_all(nuclide, data):
+    start = nuclide["stopping_power_energy_grid_offset"]
+    size = nuclide["stopping_power_energy_grid_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def stopping_power_energy_grid_last(nuclide, data):
+    start = nuclide["stopping_power_energy_grid_offset"]
+    size = nuclide["stopping_power_energy_grid_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def stopping_power_energy_grid_chunk(start, length, nuclide, data):
+    start += nuclide["stopping_power_energy_grid_offset"]
+    end = start + length
+    return data[start:end]

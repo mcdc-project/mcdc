@@ -447,6 +447,10 @@ nuclide = into_dtype([
     ('neutron_fission_delayed_decay_rates_length', int64),
     ('N_neutron_fission_delayed_spectrum', int64),
     ('neutron_fission_delayed_spectrum_IDs_offset', int64),
+    ('stopping_power_offset', int64),
+    ('stopping_power_length', int64),
+    ('stopping_power_energy_grid_offset', int64),
+    ('stopping_power_energy_grid_length', int64),
     ('ID', int64),
 ])
 
