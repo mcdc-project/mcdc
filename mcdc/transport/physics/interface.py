@@ -79,7 +79,7 @@ def csda_distance(particle_container, simulation, data):
         density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)
         total_rho += density_gcm3
 
-    print(f'dedx at energy {E} is {total_dedx}, max energy deposited is {E * CSDA_MAX_FRACTIONAL_E_LOSS}')
+    # print(f'dedx at energy {E} is {total_dedx}, max energy deposited is {E * CSDA_MAX_FRACTIONAL_E_LOSS}')
 
     return CSDA_MAX_FRACTIONAL_E_LOSS * E / total_dedx / total_rho
 
@@ -125,11 +125,11 @@ def collision(particle_container, collision_data_container, program, data):
 
 
 @njit
-def csda_edep(particle_container, collision_data_container, program, data):
+def csda_edep(particle_container, collision_data_container, distance, simulation, data):
     particle = particle_container[0]
     if particle["particle_type"] == PARTICLE_NEUTRON:
         raise ValueError("CSDA not supported for neutrons")
     if particle["particle_type"] == PARTICLE_ELECTRON:
         raise ValueError("CSDA not supported for electrons")
     if particle["particle_type"] == PARTICLE_PROTON:
-        proton.csda_edep(particle_container, collision_data_container, program, data)
+        proton.csda_edep(particle_container, collision_data_container, distance, simulation, data)

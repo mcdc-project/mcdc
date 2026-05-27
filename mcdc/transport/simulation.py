@@ -346,47 +346,8 @@ def step_particle(particle_container, program, data):
     if particle["event"] & EVENT_TIME_BOUNDARY:
         particle["alive"] = False
 
-    # CSDA energy depostiion
     if particle["event"] & EVENT_CSDA_EDEP:
-        collision_data_container = np.zeros(1, type_.collision_data)
-        physics.csda_edep(particle_container, collision_data_container, simulation, data)
-
-        # Score collision tallies
-        if simulation["cycle_active"]:
-            # Cell tallies
-            cell = simulation["cells"][particle["cell_ID"]]
-            for i in range(cell["N_tally"]):
-                tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-                tally_base = simulation["tallies"][tally_base_ID]
-
-                # Skip non-collision tallies
-                if tally_base["child_type"] != TALLY_COLLISION:
-                    continue
-
-                tally = simulation["collision_tallies"][tally_base["child_ID"]]
-                tally_module.score.collision_tally(
-                    particle_container,
-                    collision_data_container,
-                    tally,
-                    simulation,
-                    data,
-                )
-
-            # Other collision tallies
-            for i in range(simulation["N_collision_tally"]):
-                tally = simulation["collision_tallies"][i]
-
-                # Skip cell tallies
-                if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
-                    continue
-
-                tally_module.score.collision_tally(
-                    particle_container,
-                    collision_data_container,
-                    tally,
-                    simulation,
-                    data,
-                )
+        pass
 
 
     # Weight roulette
@@ -525,47 +486,52 @@ def move_to_event(particle_container, simulation, data):
             particle_container, distance, simulation, data
         )
 
-    # # CSDA for protons
-    # if particle["particle_type"] == PARTICLE_PROTON:
-    #     total_rho_gcm3 = 0.0
-    #     total_stopping_power = 0.0
-    #     material = simulation["native_materials"][particle["material_ID"]]
-    #     E = particle["E"]
-
-    #     for i in range(material["N_nuclide"]):
-    #         nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
-    #         nuclide = simulation["nuclides"][nuclide_ID]
-    #         dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
-    #         dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
-    #         dedx = np.interp(E/1e6, dedx_energies, dedx_values)
-    #         total_stopping_power += dedx
-
-    #         # print(f'dedx_energies = {dedx_energies}')
-    #         # print(f'dedx_values = {dedx_values}')
-
-    #         # Convert atoms/barn-cm to g/cm³:
-    #         atomic_mass = nuclide["atomic_weight_ratio"] # mass in amu
-    #         nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
-    #         density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)            
-    #         total_rho_gcm3 += density_gcm3
-
-
-    #     print(f'distance = {distance}, dE/dx = {total_stopping_power}, E = {particle["E"]}')
-    #     energy_loss = total_stopping_power * distance * total_rho_gcm3 * 1e6
-    #     collision_data = collision_data_container[0]
-
-    #     particle["E"] -= energy_loss
-    #     collision_data["energy_deposition"] += energy_loss * particle["w"]
-    #     print(f'\ndeposited {energy_loss * particle["w"]} eV at x={particle["x"]} from CSDA')
-
-    #     if E <= PROTON_CUTOFF_ENERGY:
-    #         collision_data["energy_deposition"] += particle["E"]
-    #         particle["alive"] = False
-    #         particle["E"] = 0.0
-    #         return
-
-    # # # Move particle through CSDA energy deposition
-    # # particle_module.csda_move(particle_container, distance, simulation, data)
 
     # Move particle
     particle_module.move(particle_container, distance, simulation, data)
+
+
+    # CSDA calculates energy loss after particle has moved
+    if True:
+    # TODO: implement the CSDA setting
+    # if settings["CSDA"]:
+        collision_data_container = np.zeros(1, type_.collision_data)
+        physics.csda_edep(particle_container, collision_data_container, distance, simulation, data)
+
+        # Score collision tallies (edep is a collision tally)
+        # TODO: maybe make edep a potential tracklength tally for CSDA?
+        if simulation["cycle_active"]:
+            # Cell tallies
+            cell = simulation["cells"][particle["cell_ID"]]
+            for i in range(cell["N_tally"]):
+                tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
+                tally_base = simulation["tallies"][tally_base_ID]
+
+                # Skip non-collision tallies
+                if tally_base["child_type"] != TALLY_COLLISION:
+                    continue
+
+                tally = simulation["collision_tallies"][tally_base["child_ID"]]
+                tally_module.score.collision_tally(
+                    particle_container,
+                    collision_data_container,
+                    tally,
+                    simulation,
+                    data,
+                )
+
+            # Other collision tallies
+            for i in range(simulation["N_collision_tally"]):
+                tally = simulation["collision_tallies"][i]
+
+                # Skip cell tallies
+                if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
+                    continue
+
+                tally_module.score.collision_tally(
+                    particle_container,
+                    collision_data_container,
+                    tally,
+                    simulation,
+                    data,
+                )
