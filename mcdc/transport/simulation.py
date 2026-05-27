@@ -486,15 +486,11 @@ def move_to_event(particle_container, simulation, data):
             particle_container, distance, simulation, data
         )
 
-
     # Move particle
     particle_module.move(particle_container, distance, simulation, data)
 
-
     # CSDA calculates energy loss after particle has moved
-    if True:
-    # TODO: implement the CSDA setting
-    # if settings["CSDA"]:
+    if settings["csda"]:
         collision_data_container = np.zeros(1, type_.collision_data)
         physics.csda_edep(particle_container, collision_data_container, distance, simulation, data)
 
