@@ -1,5 +1,5 @@
 import math
-
+import numpy as np
 from numba import njit
 
 ####
@@ -243,13 +243,10 @@ def collision(particle_container, collision_data_container, program, data):
 
 
 @njit
-def csda_edep(particle_container, collision_data_container, program, data):
-    simulation = util.access_simulation(program)
+def csda_edep(particle_container, collision_data_container, distance, simulation, data):
     particle = particle_container[0]
     collision_data = collision_data_container[0]
     material = simulation["native_materials"][particle["material_ID"]]
-
-    # Particle properties
     E = particle["E"]
 
     # Check for cutoff energy
@@ -259,10 +256,28 @@ def csda_edep(particle_container, collision_data_container, program, data):
         particle["E"] = 0.0
         return
     
-    # if particle makes it to this function, it will be losing CSDA_MAX_FRACTIONAL_E_LOSS of its energy
-    collision_data["energy_deposition"] += E * CSDA_MAX_FRACTIONAL_E_LOSS
-    particle["E"] -= E * CSDA_MAX_FRACTIONAL_E_LOSS
+    total_stopping_power = 0.0
+    total_rho_gcm3 = 0.0
+    # Find the total stopping power by summing over every nuclide in the material
+    for i in range(material["N_nuclide"]):
+        nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
+        nuclide = simulation["nuclides"][nuclide_ID]
+        dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
+        dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
+        
+        # TODO: replace np.interp with a non-numpy function??
+        dedx = np.interp(E/1e6, dedx_energies, dedx_values)
+        total_stopping_power += dedx
 
+        # Convert atoms/barn-cm to g/cm³:
+        atomic_mass = nuclide["atomic_weight_ratio"] # mass in amu
+        nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
+        density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)            
+        total_rho_gcm3 += density_gcm3
+
+    energy_loss = total_stopping_power * distance * total_rho_gcm3 * 1e6
+    particle["E"] -= energy_loss * particle["w"]
+    collision_data["energy_deposition"] += energy_loss * particle["w"]
     return
 
     
