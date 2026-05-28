@@ -79,9 +79,8 @@ def csda_distance(particle_container, simulation, data):
         density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)
         total_rho += density_gcm3
 
-    # print(f'dedx at energy {E} is {total_dedx}, max energy deposited is {E * CSDA_MAX_FRACTIONAL_E_LOSS}')
-
-    return CSDA_MAX_FRACTIONAL_E_LOSS * E / total_dedx / total_rho
+    max_fractional_e_loss = simulation["settings"]["csda_max_fractional_e_loss"]
+    return max_fractional_e_loss * E / total_dedx / total_rho
 
 
 # ======================================================================================

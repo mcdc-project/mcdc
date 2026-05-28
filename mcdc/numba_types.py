@@ -592,6 +592,7 @@ settings = into_dtype([
     ('output_name', 'U32'),
     ('use_progress_bar', bool),
     ('csda', bool),
+    ('csda_max_fractional_e_loss', float64),
     ('N_census', int64),
     ('census_time_offset', int64),
     ('census_time_length', int64),

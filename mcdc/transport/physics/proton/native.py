@@ -30,7 +30,6 @@ from mcdc.constant import (
     PARTICLE_NEUTRON,
     PARTICLE_PROTON,
     PROTON_CUTOFF_ENERGY,
-    CSDA_MAX_FRACTIONAL_E_LOSS,
 )
 from mcdc.transport.data import evaluate_data
 from mcdc.transport.distribution import (

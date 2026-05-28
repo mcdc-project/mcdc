@@ -349,7 +349,6 @@ def step_particle(particle_container, program, data):
     if particle["event"] & EVENT_CSDA_EDEP:
         pass
 
-
     # Weight roulette
     if particle["alive"]:
         technique.weight_roulette(particle_container, simulation)

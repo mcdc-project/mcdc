@@ -177,7 +177,7 @@ PI = math.pi
 PI_SQRT = math.sqrt(PI)
 PI_HALF = PI / 2.0
 BANKMAX = 100  # Default maximum active bank
-CSDA_MAX_FRACTIONAL_E_LOSS = 0.01
+# CSDA_MAX_FRACTIONAL_E_LOSS = 0.01
 
 # Axes
 AXIS_X = 0
