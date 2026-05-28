@@ -21,6 +21,7 @@ import mcdc.transport.geometry.surface.torus_x as torus_x
 import mcdc.transport.geometry.surface.torus_y as torus_y
 import mcdc.transport.geometry.surface.torus_z as torus_z
 import mcdc.transport.geometry.surface.torus as torus
+import mcdc.transport.util as util
 
 from mcdc.constant import (
     COINCIDENCE_TOLERANCE,

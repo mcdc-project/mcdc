@@ -438,8 +438,8 @@ def ionization(
     E = particle["E"]
 
     # Sample subshell
-    N = int(reaction["N_subshell"])
-    xs_vals = np.empty(N, dtype=np.float64)
+    N = 10
+    xs_vals = util.local_array(10, np.float64)
 
     total = 0.0
     for i in range(N):
@@ -524,7 +524,7 @@ def ionization(
             particle["uz"] = pz_after / norm
 
     # Add secondary particle to bank
-    particle_container_new = np.zeros(1, type_.particle_data)
+    particle_container_new = util.local_array(1, type_.particle_data)
     particle_new = particle_container_new[0]
     particle_module.copy_as_child(particle_container_new, particle_container)
 

@@ -1056,6 +1056,7 @@ def _accessor_1d_element(object_name, attribute_name, setter=False):
     return text
 
 
+
 def _accessor_1d_all(object_name, attribute_name, size, setter=False):
     text = f"@njit\n"
     if setter:
