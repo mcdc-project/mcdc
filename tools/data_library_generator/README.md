@@ -6,8 +6,12 @@ for continuous-energy neutron transport.
 ## Prerequisites
 
 ```bash
-pip install ACEtk h5py numpy tqdm
+pip install h5py numpy tqdm
 ```
+
+## Install ACEtk from source
+
+[ACEtk](https://github.com/njoy/ACEtk)
 
 You need a collection of ACE files (e.g., from NJOY or an ENDF/B distribution).
 
