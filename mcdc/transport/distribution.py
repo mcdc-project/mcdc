@@ -307,6 +307,7 @@ def _sample_multi_table(E, rng_state, multi_table, data, scale):
     # The CDF
     offset = multi_table["cdf_offset"]
     cdf = data[start + offset : start + offset + size]
+    # Above is equivalent to: cdf = mcdc_get.multi_table_distribution.cdf_chunk(start, size, multi_table, data)
 
     # Generate random number
     xi = rng.lcg(rng_state)
