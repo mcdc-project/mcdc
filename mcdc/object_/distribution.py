@@ -1,5 +1,6 @@
 import numpy as np
 
+from collections.abc import Sequence
 from numpy import float64, int64
 from numpy.typing import NDArray
 
@@ -117,26 +118,76 @@ class DistributionPMF(DistributionBase):
 
 
 class DistributionTabulated(DistributionBase):
+    """
+    One-dimensional tabulated probability distribution.
+
+    The distribution is represented internally by a normalized probability
+    density function (PDF) and its cumulative distribution function (CDF).
+    Interpolation laws define how the PDF is evaluated between tabulated
+    points.
+    """
+
     # Annotations for Numba mode
     label: str = "tabulated_distribution"
     #
-    value: NDArray[float64]
-    pdf: NDArray[float64]
+    pdf: DataTable
     cdf: NDArray[float64]
 
-    def __init__(self, value, pdf):
+    def __init__(
+        self,
+        values: NDArray[float64],
+        probabilities: NDArray[float64],
+        interpolations: int | Sequence[int],
+        interpolation_boundaries: Sequence[int] | None = None,
+    ) -> None:
+        """
+        Construct a tabulated probability distribution.
+
+        Parameters
+        ----------
+        probabilities : ndarray
+            Probability density values evaluated at the tabulated points.
+            The densities do not need to be normalized.
+        values : ndarray
+            Sample values corresponding to the tabulated density values.
+        interpolations : int or sequence of int
+            Interpolation law or interpolation laws used between tabulated
+            points.
+        interpolation_boundaries : sequence of int, optional
+            Interpolation region boundaries. Required when multiple
+            interpolation laws are specified.
+
+        Notes
+        -----
+        The supplied probability densities are automatically normalized.
+        The cumulative distribution function (CDF) is computed from the
+        normalized PDF and stored for sampling operations.
+        """
+
         type_ = DISTRIBUTION_TABULATED
         super().__init__(type_)
 
-        self.value = value
-        self.pdf = pdf
+        probabilities_normalized, self.cdf = cdf_from_pdf(values, probabilities)
 
-        self.pdf, self.cdf = cdf_from_pdf(value, pdf)
+        self.pdf = DataTable(
+            values,
+            probabilities_normalized,
+            interpolations,
+            interpolation_boundaries,
+        )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """
+        Return a human-readable summary of the distribution.
+
+        Returns
+        -------
+        str
+            String representation of the tabulated distribution.
+        """
         text = super().__repr__()
-        text += f"  - value {print_1d_array(self.value)}\n"
-        text += f"  - pdf {print_1d_array(self.pdf)}\n"
+        text += f"  - value {print_1d_array(self.pdf.x)}\n"
+        text += f"  - probability density {print_1d_array(self.pdf.y)}\n"
         return text
 
 

@@ -9,7 +9,14 @@ from typing import Annotated, Iterable
 
 import mcdc.object_.distribution as distribution
 
-from mcdc.constant import PARTICLE_NEUTRON, PARTICLE_ELECTRON, PARTICLE_PROTON, INF, PI
+from mcdc.constant import (
+    INTERPOLATION_LINEAR,
+    PARTICLE_NEUTRON,
+    PARTICLE_ELECTRON,
+    PARTICLE_PROTON,
+    INF,
+    PI,
+)
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.distribution import DistributionTabulated, DistributionPMF
 from mcdc.object_.simulation import simulation
@@ -169,7 +176,9 @@ class Source(ObjectNonSingleton):
         self.energy = 1.0e6
         self.energy_group_pmf = DistributionPMF(np.array([0.0]), np.array([1.0]))
         self.energy_pdf = DistributionTabulated(
-            np.array([1.0e6 - 1.0, 1.0e6 + 1.0]), np.array([1.0, 1.0])
+            np.array([1.0e6 - 1.0, 1.0e6 + 1.0]),
+            np.array([1.0, 1.0]),
+            INTERPOLATION_LINEAR,
         )
 
         # Time
@@ -234,7 +243,9 @@ class Source(ObjectNonSingleton):
                 self.energy = energy
             else:
                 self.mono_energetic = False
-                self.energy_pdf = DistributionTabulated(energy[0], energy[1])
+                self.energy_pdf = DistributionTabulated(
+                    np.array(energy[0]), np.array(energy[1]), INTERPOLATION_LINEAR
+                )
 
         # Time
         if type(time) == float:
