@@ -1,5 +1,6 @@
 import numpy as np
 
+from collections.abc import Sequence
 from numpy import float64, int64
 from numpy.typing import NDArray
 
@@ -69,6 +70,8 @@ class DataNone(DataBase):
 
 
 class DataTable(DataBase):
+    """Tabulated one-dimensional data with ENDF/ACE-style interpolation regions."""
+
     # Annotations for Numba mode
     label: str = "table_data"
     #
@@ -77,14 +80,44 @@ class DataTable(DataBase):
     interpolations: NDArray[int64]
     interpolation_boundaries: NDArray[int64]
 
-    def __init__(self, x, y, interpolations, interpolation_boundaries=None):
+    def __init__(
+        self,
+        x: NDArray[float64],
+        y: NDArray[float64],
+        interpolations: int | Sequence[int],
+        interpolation_boundaries: Sequence[int] | None = None,
+    ) -> None:
+        """
+        Create a tabulated data object.
+
+        Parameters
+        ----------
+        x : ndarray of float64
+            Independent variable values.
+        y : ndarray of float64
+            Dependent variable values.
+        interpolations : int or sequence of int
+            Interpolation law or list of interpolation laws.
+        interpolation_boundaries : sequence of int, optional
+            Region boundaries. Required when `interpolations` is a sequence.
+
+        Notes
+        -----
+        Boundaries are stored as Python-style exclusive upper indices.
+        Therefore the final boundary should be `len(x)`.
+        """
+
+        # Set type
         type_ = DATA_TABLE
         super().__init__(type_)
 
+        # Set the variables
         self.x = x
         self.y = y
 
+        # Set interpolations and the boundaries
         if isinstance(interpolations, int):
+            # Single interpolation type
             self.interpolations = np.array([interpolations], dtype=int)
             self.interpolation_boundaries = np.array([len(x)], dtype=int)
         else:
@@ -96,20 +129,40 @@ class DataTable(DataBase):
                     interpolation_boundaries, dtype=int
                 )
 
-    def __repr__(self):
+        # Size and value error checks
+        if len(self.x) != len(self.y):
+            print_error("x and y must have the same length.")
+        if len(self.interpolations) != len(self.interpolation_boundaries):
+            print_error(
+                "interpolations and interpolation_boundaries must have the same length."
+            )
+        if self.interpolation_boundaries[-1] != len(self.x):
+            print_error("Last interpolation boundary must equal len(x).")
+
+    def __repr__(self) -> str:
+        """Return a human-readable summary of the tabulated data."""
         text = super().__repr__()
         text += f"  - x {print_1d_array(self.x)}\n"
         text += f"  - y {print_1d_array(self.y)}\n"
         if len(self.interpolations) == 1:
             text += (
-                f"  - Interpolation: {decode_interpolation(self.interpolations[0])}\n"
+                f"  - Interpolation: "
+                f"{decode_interpolation(self.interpolations[0])}\n"
             )
         else:
-            text += f"  - Interpolations: {[decode_interpolation(x) for x in set(self.interpolations)]}\n"
+            text += "  - Interpolation regions:\n"
+            start = 0
+            for interp, end in zip(
+                self.interpolations,
+                self.interpolation_boundaries,
+            ):
+                text += f"    - [{start}, {end}): " f"{decode_interpolation(interp)}\n"
+                start = end
         return text
 
 
-def decode_interpolation(type_):
+def decode_interpolation(type_) -> str:
+    """Convert an interpolation integer code to its string name."""
     if type_ == INTERPOLATION_HISTOGRAM:
         return "histogram"
     elif type_ == INTERPOLATION_LINEAR:
@@ -120,9 +173,12 @@ def decode_interpolation(type_):
         return "semilog-y"
     elif type_ == INTERPOLATION_LOG:
         return "log"
+    else:
+        raise ValueError(f"Unknown interpolation type: {type_}")
 
 
-def encode_interpolation(type_):
+def encode_interpolation(type_) -> int:
+    """Convert an interpolation string name to its integer code."""
     if type_ == "histogram":
         return INTERPOLATION_HISTOGRAM
     elif type_ == "linear":
@@ -133,6 +189,8 @@ def encode_interpolation(type_):
         return INTERPOLATION_SEMILOGY
     elif type_ == "log":
         return INTERPOLATION_LOG
+    else:
+        raise ValueError(f"Unknown interpolation name: {type_}")
 
 
 # ======================================================================================
