@@ -122,8 +122,11 @@ class DistributionTabulated(DistributionBase):
     """
     One-dimensional tabulated probability distribution.
 
-    The distribution is represented internally by a normalized probability
-    density function (PDF) and its cumulative distribution function (CDF).
+    The distribution is represented by a DataTable whose independent variable
+    contains the sample values and whose dependent variable contains the
+    normalized probability density function (PDF). The cumulative distribution
+    function (CDF) is stored as auxiliary data and is used for sampling.
+
     Interpolation laws define how the PDF is evaluated between tabulated
     points.
     """
@@ -132,7 +135,6 @@ class DistributionTabulated(DistributionBase):
     label: str = "tabulated_distribution"
     #
     pdf: DataTable
-    cdf: NDArray[float64]
 
     def __init__(
         self,
@@ -162,33 +164,31 @@ class DistributionTabulated(DistributionBase):
         -----
         The supplied probability densities are automatically normalized.
         The cumulative distribution function (CDF) is computed from the
-        normalized PDF and stored for sampling operations.
+        normalized PDF and stored as auxiliary table data for sampling.
         """
 
         type_ = DISTRIBUTION_TABULATED
         super().__init__(type_)
 
-        probabilities_normalized, self.cdf = cdf_from_pdf(values, probabilities)
+        probabilities_normalized, cdf = cdf_from_pdf(values, probabilities)
 
         self.pdf = DataTable(
             values,
             probabilities_normalized,
             interpolations,
             interpolation_boundaries,
+            aux=cdf,
         )
 
     def __repr__(self) -> str:
-        """
-        Return a human-readable summary of the distribution.
+        """Return a human-readable summary of the distribution."""
 
-        Returns
-        -------
-        str
-            String representation of the tabulated distribution.
-        """
         text = super().__repr__()
+
         text += f"  - value {print_1d_array(self.pdf.x)}\n"
         text += f"  - probability density {print_1d_array(self.pdf.y)}\n"
+        text += f"  - cumulative distribution: " f"{print_1d_array(self.pdf.aux[0])}\n"
+
         return text
 
 
