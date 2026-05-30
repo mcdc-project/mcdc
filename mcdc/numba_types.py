@@ -220,10 +220,7 @@ multi_table_distribution = into_dtype([
 ])
 
 nbody_distribution = into_dtype([
-    ('value_offset', int64),
-    ('value_length', int64),
-    ('pdf_offset', int64),
-    ('pdf_length', int64),
+    ('pdf_ID', int64),
     ('cdf_offset', int64),
     ('cdf_length', int64),
     ('ID', int64),
@@ -247,10 +244,7 @@ pmf_distribution = into_dtype([
 ])
 
 tabulated_distribution = into_dtype([
-    ('value_offset', int64),
-    ('value_length', int64),
-    ('pdf_offset', int64),
-    ('pdf_length', int64),
+    ('pdf_ID', int64),
     ('cdf_offset', int64),
     ('cdf_length', int64),
     ('ID', int64),

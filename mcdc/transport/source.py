@@ -77,7 +77,7 @@ def source_particle(particle_container, seed, simulation, data):
         else:
             ID = source["energy_pdf_ID"]
             table = simulation["tabulated_distributions"][ID]
-            E = sample_tabulated(table, particle_container, data)
+            E = sample_tabulated(table, particle_container, simulation, data)
 
     # Time
     if source["discrete_time"]:

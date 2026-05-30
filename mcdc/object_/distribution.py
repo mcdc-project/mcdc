@@ -17,6 +17,7 @@ from mcdc.constant import (
     DISTRIBUTION_KALBACH_MANN,
     DISTRIBUTION_TABULATED_ENERGY_ANGLE,
     DISTRIBUTION_N_BODY,
+    INTERPOLATION_LINEAR,
 )
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.data import DataTable
@@ -455,21 +456,46 @@ class DistributionTabulatedEnergyAngle(DistributionBase):
 
 
 class DistributionNBody(DistributionBase):
+    """
+    N-body energy distribution represented by a tabulated PDF and CDF.
+
+    The input PDF is normalized internally, and the corresponding CDF is
+    constructed for sampling.
+    """
+
     # Annotations for Numba mode
     label: str = "nbody_distribution"
     #
-    value: NDArray[float64]
-    pdf: NDArray[float64]
+    pdf: DataTable
     cdf: NDArray[float64]
 
-    def __init__(self, value, pdf):
+    def __init__(
+        self,
+        values: NDArray[float64],
+        probabilities: NDArray[float64],
+    ) -> None:
+        """
+        Construct an N-body distribution from tabulated PDF values.
+
+        Parameters
+        ----------
+        value : ndarray
+            Tabulated sample values.
+        probabilities : ndarray
+            Probability density values at the tabulated sample values. The
+            values do not need to be normalized.
+        """
+
         type_ = DISTRIBUTION_N_BODY
         super().__init__(type_)
 
-        self.value = value
-        self.pdf = pdf
+        probabilities_normalized, self.cdf = cdf_from_pdf(values, probabilities)
 
-        self.pdf, self.cdf = cdf_from_pdf(value, pdf)
+        self.pdf = DataTable(
+            values,
+            probabilities_normalized,
+            INTERPOLATION_LINEAR,
+        )
 
     def __repr__(self):
         text = super().__repr__()

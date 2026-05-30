@@ -16,9 +16,15 @@ from mcdc.constant import (
     DISTRIBUTION_N_BODY,
     DISTRIBUTION_TABULATED,
     DISTRIBUTION_TABULATED_ENERGY_ANGLE,
+    INTERPOLATION_HISTOGRAM,
+    INTERPOLATION_LINEAR,
+    INTERPOLATION_LOG,
+    INTERPOLATION_SEMILOGX,
+    INTERPOLATION_SEMILOGY,
+    MAX_BISECTION_ITERATIONS,
     PI,
 )
-from mcdc.transport.data import evaluate_table
+from mcdc.transport.data import evaluate_table, get_table_interpolation_law
 from mcdc.transport.util import find_bin, linear_interpolation
 
 # ======================================================================================
@@ -43,7 +49,7 @@ def _sample_distribution(E, distribution, rng_state, simulation, data, scale):
 
     if distribution_type == DISTRIBUTION_TABULATED:
         table = simulation["tabulated_distributions"][ID]
-        return sample_tabulated(table, rng_state, data)
+        return sample_tabulated(table, rng_state, simulation, data)
 
     elif distribution_type == DISTRIBUTION_MULTITABLE:
         multi_table = simulation["multi_table_distributions"][ID]
@@ -99,7 +105,7 @@ def _sample_correlated_distribution(
 
     elif distribution_type == DISTRIBUTION_N_BODY:
         nbody = simulation["nbody_distributions"][ID]
-        E_out = sample_tabulated(nbody, rng_state, data)
+        E_out = sample_tabulated(nbody, rng_state, simulation, data)
         mu = sample_isotropic_cosine(rng_state)
         return E_out, mu
 
@@ -174,20 +180,125 @@ def sample_direction(polar_cosine, azimuthal, polar_coordinate, rng_state):
 
 
 @njit
-def sample_tabulated(table, rng_state, data):
+def sample_tabulated(table, rng_state, simulation, data):
+    """
+    Sample a value from a tabulated distribution.
+    """
+
     xi = rng.lcg(rng_state)
+
+    pdf = simulation["table_data"][table["pdf_ID"]]
 
     offset = table["cdf_offset"]
     length = table["cdf_length"]
     cdf = data[offset : offset + length]
     # Above is equivalent to: cdf = mcdc_get.tabulated_distribution.cdf_all(table, data)
 
+    # Locate the CDF interval containing xi.
     idx = find_bin(xi, cdf)
-    cdf_low = mcdc_get.tabulated_distribution.cdf(idx, table, data)
-    cdf_high = mcdc_get.tabulated_distribution.cdf(idx + 1, table, data)
-    value_low = mcdc_get.tabulated_distribution.value(idx, table, data)
-    value_high = mcdc_get.tabulated_distribution.value(idx + 1, table, data)
-    return linear_interpolation(xi, cdf_low, cdf_high, value_low, value_high)
+
+    c0 = mcdc_get.tabulated_distribution.cdf(idx, table, data)
+
+    p0 = mcdc_get.table_data.y(idx, pdf, data)
+    p1 = mcdc_get.table_data.y(idx + 1, pdf, data)
+
+    v0 = mcdc_get.table_data.x(idx, pdf, data)
+    v1 = mcdc_get.table_data.x(idx + 1, pdf, data)
+
+    interpolation = get_table_interpolation_law(idx, pdf, data)
+
+    return invert_tabulated_segment(
+        xi,
+        c0,
+        v0,
+        v1,
+        p0,
+        p1,
+        interpolation,
+    )
+
+
+@njit
+def invert_tabulated_segment(xi, c0, v0, v1, p0, p1, interpolation):
+    """
+    Invert a tabulated PDF segment and return the sampled value.
+
+    Parameters
+    ----------
+    xi : float
+        Uniform random number.
+    c0 : float
+        CDF at the lower tabulated point.
+    v0, v1 : float
+        Lower and upper tabulated values.
+    p0, p1 : float
+        PDF values at v0 and v1.
+    interpolation : int
+        Interpolation law for the segment.
+    """
+
+    # Local CDF increment within the interval.
+    s = xi - c0
+
+    if interpolation == INTERPOLATION_HISTOGRAM:
+        return v0 + s / p0
+
+    elif interpolation == INTERPOLATION_LINEAR:
+        # Linear PDF: solve a quadratic CDF.
+        dv = v1 - v0
+        dp = p1 - p0
+        if abs(dp) < 1.0e-14:
+            return v0 + s / p0
+        m = dp / dv
+        disc = p0 * p0 + 2.0 * m * s
+        if disc < 0.0:
+            disc = 0.0
+        return v0 + (-p0 + math.sqrt(disc)) / m
+
+    elif interpolation == INTERPOLATION_SEMILOGY:
+        # Exponential PDF.
+        dv = v1 - v0
+        if abs(p1 - p0) < 1.0e-14:
+            return v0 + s / p0
+        k = math.log(p1 / p0) / dv
+        if abs(k) < 1.0e-14:
+            return v0 + s / p0
+        return v0 + math.log(1.0 + k * s / p0) / k
+
+    elif interpolation == INTERPOLATION_LOG:
+        # Power-law PDF.
+        if abs(p1 - p0) < 1.0e-14:
+            return v0 + s / p0
+        a = math.log(p1 / p0) / math.log(v1 / v0)
+        if abs(a + 1.0) < 1.0e-14:
+            return v0 * math.exp(s / (p0 * v0))
+        return v0 * (1.0 + (a + 1.0) * s / (p0 * v0)) ** (1.0 / (a + 1.0))
+
+    elif interpolation == INTERPOLATION_SEMILOGX:
+        # No closed-form inverse. Solve by bisection.
+        if abs(p1 - p0) < 1.0e-14:
+            return v0 + s / p0
+        b = (p1 - p0) / math.log(v1 / v0)
+        lo = v0
+        hi = v1
+        for _ in range(MAX_BISECTION_ITERATIONS):
+            mid = 0.5 * (lo + hi)
+            area = p0 * (mid - v0) + b * (mid * math.log(mid / v0) - mid + v0)
+            if area < s:
+                lo = mid
+            else:
+                hi = mid
+        return 0.5 * (lo + hi)
+
+    else:
+        # Fallback to linear inverse CDF interpolation.
+        return linear_interpolation(
+            xi,
+            c0,
+            c0 + p0 * (v1 - v0),
+            v0,
+            v1,
+        )
 
 
 @njit
