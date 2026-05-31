@@ -178,7 +178,6 @@ class Source(ObjectNonSingleton):
         self.energy_pdf = DistributionTabulated(
             np.array([1.0e6 - 1.0, 1.0e6 + 1.0]),
             np.array([1.0, 1.0]),
-            INTERPOLATION_LINEAR,
         )
 
         # Time
@@ -244,7 +243,7 @@ class Source(ObjectNonSingleton):
             else:
                 self.mono_energetic = False
                 self.energy_pdf = DistributionTabulated(
-                    np.array(energy[0]), np.array(energy[1]), INTERPOLATION_LINEAR
+                    np.array(energy[0]), np.array(energy[1])
                 )
 
         # Time

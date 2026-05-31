@@ -141,19 +141,21 @@ class DataTable(DataBase):
 
         # Set auxiliary data
         if aux is None:
+            self.N_aux = 0
             self.aux = np.zeros((0, self.N), dtype=float)
         elif aux.ndim == 1:
+            self.N_aux = 1
             if len(aux) != self.N:
                 print_error("1D aux must have the same length as x.")
             self.aux = np.zeros((1, self.N), dtype=float)
             self.aux[0, :] = aux
         elif aux.ndim == 2:
+            self.N_aux = aux.shape[0]
             if aux.shape[1] != self.N:
                 print_error("2D aux must have shape (N_aux, len(x)).")
             self.aux = aux
         else:
             print_error("aux must be None, 1D, or 2D.")
-        self.N_aux = self.aux.shape[0]
 
         # Set interpolations and boundaries
         if isinstance(interpolations, int):
