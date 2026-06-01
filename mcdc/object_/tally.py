@@ -35,12 +35,12 @@ from mcdc.constant import (
     SCORE_CURRENT_IN,
     SCORE_CURRENT_OUT,
     SPATIAL_FILTER_CELL,
+    SPATIAL_FILTER_SURFACE,
     SPATIAL_FILTER_MESH,
     SPATIAL_FILTER_NONE,
     SURFACE_PLANE_X,
     SURFACE_PLANE_Y,
     SURFACE_PLANE_Z,
-    TALLY_CELL,
     TALLY_SURFACE,
     TALLY_COLLISION,
     TALLY_TRACKLENGTH,
@@ -101,7 +101,7 @@ class Tally(ObjectPolymorphic):
         x: Iterable[float] | NoneType = None,
         y: Iterable[float] | NoneType = None,
         z: Iterable[float] | NoneType = None,
-    ) -> TallySurface | TallyCell | TallyTracklength | TallyCollision:
+    ) -> TallySurface | TallyTracklength | TallyCollision:
         # Determine type and create the tally self based on the provided
         # spatial filters and scores
 
@@ -124,14 +124,13 @@ class Tally(ObjectPolymorphic):
             if surface is None and cell is None:
                 print_error("Current scores need either a surface or a cell tally.")
 
-            if surface is not None:
-                if not set(scores) <= SURFACE_SCORES:
-                    print_error(
-                        "Surface tally currently supports only "
-                        "scores=['net-current']."
-                    )
-                return super().__new__(TallySurface)
-            return super().__new__(TallyCell)
+            if surface is not None and not set(scores) <= SURFACE_SCORES:
+                print_error(
+                    "Surface tally currently supports only " "scores=['net-current']."
+                )
+
+            # Cell-filtered current tallies share the surface-crossing estimator.
+            return super().__new__(TallySurface)
 
         # Unsupported score for explicit surface selector
         if surface is not None:
@@ -306,8 +305,6 @@ def decode_type(type_):
         return "Tracklength tally"
     elif type_ == TALLY_SURFACE:
         return "Surface tally"
-    elif type_ == TALLY_CELL:
-        return "Cell tally"
     elif type_ == TALLY_COLLISION:
         return "Collision tally"
 
@@ -334,62 +331,6 @@ def decode_score_type(type_, lower_case=False):
 
 
 # ======================================================================================
-# Cell tally
-# ======================================================================================
-
-
-class TallyCell(Tally):
-    # Annotations for Numba mode
-    label: str = "cell_tally"
-    #
-    cell: Cell
-
-    def __init__(
-        self,
-        cell: Cell,
-        name: str = "",
-        scores: list[str] = ["net-current"],
-        mu: Iterable[float] | NoneType = None,
-        azi: Iterable[float] | NoneType = None,
-        polar_reference: Iterable[float] | NoneType = None,
-        energy: Iterable[float] | str | NoneType = None,
-        time: Iterable[float] | NoneType = None,
-    ):
-        type_ = TALLY_CELL
-        super(Tally, self).__init__(type_)
-        super().__init__(
-            name,
-            scores,
-            mu=mu,
-            azi=azi,
-            polar_reference=polar_reference,
-            energy=energy,
-            time=time,
-        )
-
-        if not set(self.scores) <= {
-            SCORE_NET_CURRENT,
-            SCORE_CURRENT_IN,
-            SCORE_CURRENT_OUT,
-        }:
-            print_error(
-                "Cell tally currently supports only "
-                "scores=['net-current', 'current-in', 'current-out']."
-            )
-
-        # Set cell and attach tally to the cell.
-        self.cell = cell
-        cell.tallies.append(self)
-
-    def __repr__(self):
-        text = super().__repr__()
-        text += f"  - Cell: {self.cell.name}\n"
-        text += super()._phasespace_filter_text()
-        text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
-        return text
-
-
-# ======================================================================================
 # Surface tally
 # ======================================================================================
 
@@ -397,7 +338,11 @@ class TallyCell(Tally):
 class TallySurface(Tally):
     # Annotations for Numba mode
     label: str = "surface_tally"
+    non_numba: list[str] = ["spatial_filter"]
     #
+    spatial_filter: Surface | Cell
+    spatial_filter_type: int
+    spatial_filter_ID: int
     surface: Surface
     filter_surface_bounds: bool
     has_x_bounds: bool
@@ -412,7 +357,8 @@ class TallySurface(Tally):
 
     def __init__(
         self,
-        surface: Surface,
+        surface: Surface | NoneType = None,
+        cell: Cell | NoneType = None,
         name: str = "",
         scores: list[str] = ["flux"],
         mu: Iterable[float] | NoneType = None,
@@ -442,9 +388,24 @@ class TallySurface(Tally):
                 "for this tally type."
             )
 
-        # Set surface and attach tally to the surface
-        self.surface = surface
-        surface.tallies.append(self)
+        if surface is not None and cell is not None:
+            print_error("Surface tally must specify exactly one of surface or cell.")
+        if surface is None and cell is None:
+            print_error("Surface tally requires either a surface or a cell.")
+
+        if surface is not None:
+            self.spatial_filter = surface
+            self.spatial_filter_type = SPATIAL_FILTER_SURFACE
+            self.spatial_filter_ID = surface.ID
+            self.surface = surface
+            surface.tallies.append(self)
+        else:
+            self.spatial_filter = cell
+            self.spatial_filter_type = SPATIAL_FILTER_CELL
+            self.spatial_filter_ID = cell.ID
+            self.surface = cell.surfaces[0]
+            for boundary_surface in cell.surfaces:
+                boundary_surface.tallies.append(self)
 
         # Optional bounds for axis-aligned planar surface tallies.
         self.filter_surface_bounds = False
@@ -457,6 +418,13 @@ class TallySurface(Tally):
         self.y_max = INF
         self.z_min = -INF
         self.z_max = INF
+
+        if self.spatial_filter_type == SPATIAL_FILTER_CELL and (
+            x is not None or y is not None or z is not None
+        ):
+            print_error(
+                "Cell-filtered surface current tally does not support explicit x/y/z bounds."
+            )
 
         if x is not None:
             x = np.array(x, dtype=float)
@@ -493,20 +461,27 @@ class TallySurface(Tally):
         )
 
         if self.filter_surface_bounds:
-            if surface.type not in (SURFACE_PLANE_X, SURFACE_PLANE_Y, SURFACE_PLANE_Z):
+            if self.surface.type not in (
+                SURFACE_PLANE_X,
+                SURFACE_PLANE_Y,
+                SURFACE_PLANE_Z,
+            ):
                 print_error(
                     "Bounded surface tally currently supports only PlaneX, PlaneY, and PlaneZ surfaces."
                 )
-            if surface.type == SURFACE_PLANE_X and self.has_x_bounds:
+            if self.surface.type == SURFACE_PLANE_X and self.has_x_bounds:
                 print_error("PlaneX surface tally bounds may only use y and/or z.")
-            if surface.type == SURFACE_PLANE_Y and self.has_y_bounds:
+            if self.surface.type == SURFACE_PLANE_Y and self.has_y_bounds:
                 print_error("PlaneY surface tally bounds may only use x and/or z.")
-            if surface.type == SURFACE_PLANE_Z and self.has_z_bounds:
+            if self.surface.type == SURFACE_PLANE_Z and self.has_z_bounds:
                 print_error("PlaneZ surface tally bounds may only use x and/or y.")
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Surface: {self.surface.name}\n"
+        if self.spatial_filter_type == SPATIAL_FILTER_SURFACE:
+            text += f"  - Surface: {self.spatial_filter.name}\n"
+        elif self.spatial_filter_type == SPATIAL_FILTER_CELL:
+            text += f"  - Cell filter: {self.spatial_filter.name}\n"
         text += super()._phasespace_filter_text()
         text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
         return text

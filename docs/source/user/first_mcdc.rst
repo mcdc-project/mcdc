@@ -107,8 +107,9 @@ Regardless of problem specifics, particles are simulated through all space, dire
 the tally definitions are used to indicate in which dimensions a record of particle behavior should be kept.
 Available tracklength scores include ``"flux"``, ``"density"``, ``"collision"``, ``"capture"``, and ``"fission"``.
 Current tallies can be attached to either a surface or a cell.
-Surface current tallies support ``"net-current"``, while cell current tallies support ``"net-current"``,
-``"current-in"``, and ``"current-out"``.
+Current scoring uses the surface-crossing estimator in both cases.
+For explicit surface filters, supported score is ``"net-current"``.
+For cell filters, supported scores are ``"net-current"``, ``"current-in"``, and ``"current-out"``.
 The ``"current-in"`` and ``"current-out"`` scores are positive partial currents; ``"net-current"`` keeps the sign
 of the crossing direction.
 

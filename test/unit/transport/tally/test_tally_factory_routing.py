@@ -3,7 +3,6 @@ import pytest
 import mcdc
 from mcdc.constant import SPATIAL_FILTER_NONE
 from mcdc.object_.tally import (
-    TallyCell,
     TallyCollision,
     TallySurface,
     TallyTracklength,
@@ -12,7 +11,9 @@ from mcdc.object_.tally import (
 
 def test_tally_factory_routing_surface_vs_tracklength_vs_collision(slab_plane_x):
     surface_tally = mcdc.Tally(surface=slab_plane_x["s_mid"], scores=["net-current"])
-    cell_tally = mcdc.Tally(cell=slab_plane_x["c_right"], scores=["net-current"])
+    surface_cell_filter_tally = mcdc.Tally(
+        cell=slab_plane_x["c_right"], scores=["net-current"]
+    )
     tracklength_tally = mcdc.Tally(scores=["flux"])
 
     mesh = mcdc.MeshUniform(
@@ -24,7 +25,7 @@ def test_tally_factory_routing_surface_vs_tracklength_vs_collision(slab_plane_x)
     collision_tally = mcdc.Tally(mesh=mesh, scores=["energy_deposition"])
 
     assert isinstance(surface_tally, TallySurface)
-    assert isinstance(cell_tally, TallyCell)
+    assert isinstance(surface_cell_filter_tally, TallySurface)
     assert isinstance(tracklength_tally, TallyTracklength)
     assert isinstance(collision_tally, TallyCollision)
     assert tracklength_tally.spatial_filter_type == SPATIAL_FILTER_NONE

@@ -452,6 +452,9 @@ def surface_crossing(P_arr, simulation, data):
     elif BC == BC_REFLECTIVE:
         reflect(P_arr, surface)
 
+    pre_cell_ID = -1
+    post_cell_ID = -1
+
     # Score tally
     for i in range(surface["N_tally"]):
         tally_ID = int(mcdc_get.surface.tally_IDs(i, surface, data))
@@ -463,21 +466,19 @@ def surface_crossing(P_arr, simulation, data):
             if not _surface_tally_crossing_in_bounds(P, surface, tally):
                 continue
 
-        tally_module.score.surface_tally(P_arr, surface, tally, simulation, data)
-
-    # Score cell net-current tallies tied to this crossed surface.
-    if BC != BC_REFLECTIVE:
-        if simulation["N_cell_tally"] > 0:
-            pre_cell_ID, post_cell_ID = _get_crossing_top_cell_IDs(
-                P_arr, simulation, data
-            )
-            _score_cell_current_tallies(
-                P_arr, pre_cell_ID, pre_cell_ID, post_cell_ID, simulation, data
-            )
-            if post_cell_ID != pre_cell_ID:
-                _score_cell_current_tallies(
-                    P_arr, post_cell_ID, pre_cell_ID, post_cell_ID, simulation, data
+        # Cell-filtered current tallies need crossing in/out context.
+        if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
+            if BC == BC_REFLECTIVE:
+                continue
+            # only compute this once for each iteration
+            if pre_cell_ID == -1 and post_cell_ID == -1:
+                pre_cell_ID, post_cell_ID = _get_crossing_top_cell_IDs(
+                    P_arr, simulation, data
                 )
+
+        tally_module.score.surface_tally(
+            P_arr, surface, tally, pre_cell_ID, post_cell_ID, simulation, data
+        )
 
     # Need to check new cell later?
     if P["alive"] and not BC == BC_REFLECTIVE:
@@ -512,31 +513,6 @@ def _get_crossing_top_cell_IDs(particle_container, simulation, data):
     P["z"] = z
 
     return pre_cell_ID, post_cell_ID
-
-
-@njit
-def _score_cell_current_tallies(
-    particle_container,
-    cell_ID,
-    pre_cell_ID,
-    post_cell_ID,
-    simulation,
-    data,
-):
-    if cell_ID < 0:
-        return
-
-    cell = simulation["cells"][cell_ID]
-    for i in range(cell["N_tally"]):
-        tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-        tally_base = simulation["tallies"][tally_base_ID]
-        if tally_base["child_type"] != TALLY_CELL:
-            continue
-
-        tally = simulation["cell_tallies"][tally_base["child_ID"]]
-        tally_module.score.cell_tally(
-            particle_container, tally, pre_cell_ID, post_cell_ID, simulation, data
-        )
 
 
 @njit

@@ -27,6 +27,8 @@ from mcdc.constant import (
     SCORE_ENERGY_DEPOSITION,
     SCORE_CURRENT_IN,
     SCORE_CURRENT_OUT,
+    SPATIAL_FILTER_CELL,
+    SPATIAL_FILTER_SURFACE,
     SPATIAL_FILTER_MESH,
 )
 from mcdc.transport.geometry.surface import get_normal_component
@@ -38,48 +40,9 @@ from mcdc.transport.tally.filter import get_filter_indices
 
 
 @njit
-def surface_tally(particle_container, surface, tally, simulation, data):
-    particle = particle_container[0]
-    tally_base = simulation["tallies"][tally["parent_ID"]]
-
-    # Get filter indices
-    MG_mode = simulation["settings"]["neutron_multigroup_mode"]
-    i_mu, i_azi, i_energy, i_time = get_filter_indices(
-        particle_container, tally_base, data, MG_mode
-    )
-
-    # No score if outside non-changing phase-space bins
-    if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
-        return
-
-    # Tally index
-    idx_base = (
-        tally_base["bin_offset"]
-        + i_mu * tally_base["stride_mu"]
-        + i_azi * tally_base["stride_azi"]
-        + i_energy * tally_base["stride_energy"]
-        + i_time * tally_base["stride_time"]
-    )
-
-    # Flux
-    speed = physics.particle_speed(particle_container, simulation, data)
-    mu = get_normal_component(particle_container, speed, surface, data)
-    flux = particle["w"] / abs(mu)
-
-    # Score
-    for i_score in range(tally_base["scores_length"]):
-        score_type = mcdc_get.tally.scores(i_score, tally_base, data)
-        score = 0.0
-        if score_type == SCORE_NET_CURRENT:
-            surface = simulation["surfaces"][particle["surface_ID"]]
-            mu = get_normal_component(particle_container, speed, surface, data)
-            score = flux * mu
-        util.atomic_add(data, idx_base + i_score, score)
-
-
-@njit
-def cell_tally(
+def surface_tally(
     particle_container,
+    surface,
     tally,
     pre_cell_ID,
     post_cell_ID,
@@ -99,13 +62,6 @@ def cell_tally(
     if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
         return
 
-    # Incoming/outgoing event flags
-    target_cell_ID = tally["cell_ID"]
-    entered = pre_cell_ID != target_cell_ID and post_cell_ID == target_cell_ID
-    exited = pre_cell_ID == target_cell_ID and post_cell_ID != target_cell_ID
-    if not entered and not exited:
-        return
-
     # Tally index
     idx_base = (
         tally_base["bin_offset"]
@@ -115,22 +71,42 @@ def cell_tally(
         + i_time * tally_base["stride_time"]
     )
 
+    is_cell_filtered = tally["spatial_filter_type"] == SPATIAL_FILTER_CELL
+    entered = False
+    exited = False
+    # check that particle is in correct cell
+    if is_cell_filtered:
+        target_cell_ID = tally["spatial_filter_ID"]
+        entered = pre_cell_ID != target_cell_ID and post_cell_ID == target_cell_ID
+        exited = pre_cell_ID == target_cell_ID and post_cell_ID != target_cell_ID
+        if not entered and not exited:
+            return
+
+    flux = 0.0
+    mu = 0.0
+    if tally["spatial_filter_type"] == SPATIAL_FILTER_SURFACE:
+        speed = physics.particle_speed(particle_container, simulation, data)
+        mu = get_normal_component(particle_container, speed, surface, data)
+        flux = particle["w"] / abs(mu)
+
     # Score
     for i_score in range(tally_base["scores_length"]):
         score_type = mcdc_get.tally.scores(i_score, tally_base, data)
         score = 0.0
         if score_type == SCORE_NET_CURRENT:
-            if entered:
-                score = particle["w"]
-            elif exited:
-                score = -particle["w"]
+            if is_cell_filtered:
+                if entered:
+                    score = particle["w"]
+                elif exited:
+                    score = -particle["w"]
+            else:
+                score = flux * mu
         elif score_type == SCORE_CURRENT_IN:
             if entered:
                 score = particle["w"]
         elif score_type == SCORE_CURRENT_OUT:
             if exited:
                 score = particle["w"]
-
         if score != 0.0:
             util.atomic_add(data, idx_base + i_score, score)
 
