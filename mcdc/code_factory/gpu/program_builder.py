@@ -269,6 +269,9 @@ def build_gpu_program(data_size):
     clear_flags = src_fns["clear_flags"]
     set_device = src_fns["set_device"]
 
+    alloc_managed_bytes = harmonize.alloc_managed_bytes
+    alloc_device_bytes  = harmonize.alloc_device_bytes
+
 
 # ======================================================================================
 # Setup GPU
