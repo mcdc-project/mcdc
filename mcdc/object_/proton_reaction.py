@@ -123,6 +123,7 @@ class ProtonReactionElasticScattering(ProtonReactionBase):
 # Proton nonelastic reaction
 # ======================================================================================
 
+
 class ProtonReactionNonelasticReaction(ProtonReactionBase):
     # Annotations for Numba mode
     label: str = "proton_nonelastic_reaction"
@@ -249,7 +250,7 @@ def set_angular_distribution(h5_group):
         mu = simulation.distributions[0]
     elif mu_type == "tabulated":
         angle_type = ANGLE_DISTRIBUTED
-        
+
         # Check if data is in flattened format or subgroup format
         if "energy" in h5_group:
             # Flattened format
@@ -260,12 +261,12 @@ def set_angular_distribution(h5_group):
         else:
             # Subgroup format: E_in_1, E_in_2, etc.
             incident_energies = h5_group["incident_energies"][()] * 1e6  # MeV to eV
-            
+
             # Collect all cosines and pdfs into flattened arrays
             cosines_list = []
             pdf_list = []
             offset = np.zeros(len(incident_energies), dtype=np.int32)
-            
+
             for i, energy in enumerate(incident_energies):
                 subgroup_name = f"E_in_{i + 1}"
                 if subgroup_name in h5_group:
@@ -276,19 +277,19 @@ def set_angular_distribution(h5_group):
                     else:
                         # Isotropic - use dummy values
                         cosines_list.extend([0.0])  # isotropic cosine
-                        pdf_list.extend([1.0])     # uniform pdf
+                        pdf_list.extend([1.0])  # uniform pdf
                 else:
                     # Missing subgroup - assume isotropic
                     cosines_list.extend([0.0])
                     pdf_list.extend([1.0])
-                
+
                 if i < len(incident_energies) - 1:
                     offset[i + 1] = len(cosines_list)
-            
+
             grid = incident_energies
             value = np.array(cosines_list)
             pdf = np.array(pdf_list)
-        
+
         mu = DistributionMultiTable(grid, offset, value, pdf)
 
     return angle_type, mu
@@ -384,12 +385,13 @@ class ProtonSecondaryChannel(ObjectPolymorphic):
     Data container for a proton secondary particle channel.
     Plain helper object.
     """
+
     particle_type: int
     MT: int
-    multiplicity: float64       # Multiplicity of particles produced per reaction
+    multiplicity: float64  # Multiplicity of particles produced per reaction
     production_xs: NDArray[float64]
     production_xs_offset_: int
-    reference_frame: int    # COM or LAB
+    reference_frame: int  # COM or LAB
     energy_spectrum: DistributionBase
 
     def __init__(
@@ -422,7 +424,7 @@ class ProtonSecondaryChannel(ObjectPolymorphic):
         particle_type = ZAP_TO_PARTICLE.get(zap)
         MT = h5_group.attrs["MT"]
         multiplicity = h5_group.attrs["multiplicity"]
-        
+
         reference_frame_str = h5_group.attrs["reference_frame"]
         if reference_frame_str == "LAB":
             reference_frame = REFERENCE_FRAME_LAB
@@ -430,7 +432,7 @@ class ProtonSecondaryChannel(ObjectPolymorphic):
             reference_frame = REFERENCE_FRAME_COM
         else:
             reference_frame = REFERENCE_FRAME_COM  # default
-        
+
         # Production cross section (optional)
         if "production_xs" in h5_group:
             production_xs = h5_group["production_xs"][()]
@@ -441,7 +443,7 @@ class ProtonSecondaryChannel(ObjectPolymorphic):
 
         # Energy spectrum (currently assume Kalbach-Mann)
         energy_spectrum = set_energy_distribution(h5_group["kalbach_mann"])
-        
+
         return cls(
             particle_type,
             MT,
@@ -453,7 +455,9 @@ class ProtonSecondaryChannel(ObjectPolymorphic):
         )
 
     def __repr__(self):
-        particle_name = "Neutron" if self.particle_type == PARTICLE_NEUTRON else "Proton"
+        particle_name = (
+            "Neutron" if self.particle_type == PARTICLE_NEUTRON else "Proton"
+        )
         text = "\n"
         text += f"Proton secondary channel ({particle_name})\n"
         text += f"  - ID: {self.ID}\n"

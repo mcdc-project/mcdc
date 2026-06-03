@@ -183,7 +183,6 @@ PI = math.pi
 PI_SQRT = math.sqrt(PI)
 PI_HALF = PI / 2.0
 BANKMAX = 100  # Default maximum active bank
-# CSDA_MAX_FRACTIONAL_E_LOSS = 0.01
 
 # Axes
 AXIS_X = 0
@@ -195,7 +194,7 @@ AXIS_T = 3
 LIGHT_SPEED = 2.99792458e10  # cm/s
 NEUTRON_MASS = 939.565413e6  # eV/c^2
 ELECTRON_MASS = 510.99895069e3  # eV/c^2
-PROTON_MASS = 938.27208943e6 # eV/c^2
+PROTON_MASS = 938.27208943e6  # eV/c^2
 BOLTZMANN_K = 8.61733326e-5  # eV/K
 ELECTRON_CUTOFF_ENERGY = 100  # eV
 PROTON_CUTOFF_ENERGY = 1000  # eV - this is dictated by the TENDL data; minimum of 1000 eV on the energy grid

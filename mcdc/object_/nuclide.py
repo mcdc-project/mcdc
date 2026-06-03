@@ -18,7 +18,7 @@ from mcdc.object_.neutron_reaction import (
     NeutronReactionInelasticScattering,
     set_energy_distribution,
 )
-from mcdc.object_.proton_reaction import(
+from mcdc.object_.proton_reaction import (
     ProtonReactionElasticScattering,
     ProtonReactionNonelasticReaction,
     ProtonSecondaryChannel,
@@ -308,11 +308,7 @@ class Nuclide(ObjectNonSingleton):
                 xs = file[f"proton_reactions/{rx_name}/{MT}/xs"]
                 xs_container[xs.attrs["offset"] :] += xs[()]
 
-        self.proton_total_xs = (
-            self.proton_elastic_xs
-            + self.proton_nonelastic_xs
-        )
-
+        self.proton_total_xs = self.proton_elastic_xs + self.proton_nonelastic_xs
 
         # ==========================================================================
         # The reactions
@@ -337,18 +333,16 @@ class Nuclide(ObjectNonSingleton):
                 reaction = rx_class.from_h5_group(h5_group)
                 rx_container.append(reaction)
 
-
         # ==========================================================================
         # Stopping power for protons
         # ==========================================================================
         self.stopping_power = file["stopping_power"]["total_stopping_power"][()]
         self.stopping_power_energy_grid = file["stopping_power"]["energy"][()]
 
-
         # # ==========================================================================
         # # Secondary particles
         # # ==========================================================================
-        
+
         # self.proton_secondary_channels = {}
         # if "secondary_particles" in file:
         #     sec_group = file["secondary_particles"]
@@ -357,23 +351,22 @@ class Nuclide(ObjectNonSingleton):
         #             continue
         #         zap = int(zap_name.split("_")[1])
         #         zap_group = sec_group[zap_name]
-                
+
         #         # Iterate over MT numbers for this secondary particle type
         #         for mt_name in zap_group.keys():
         #             if not mt_name.startswith("MT-"):
         #                 continue
         #             MT = int(mt_name.split("-")[1])
         #             mt_group = zap_group[mt_name]
-                    
+
         #             # Load secondary channel
         #             channel = ProtonSecondaryChannel.from_h5_group(mt_group, zap)
-                    
+
         #             if MT not in self.proton_secondary_channels:
         #                 self.proton_secondary_channels[MT] = []
         #             self.proton_secondary_channels[MT].append(channel)
 
         file.close()
-
 
     ## TODO: UPDATE this to handle protons as well as neutrons
     def __repr__(self):
