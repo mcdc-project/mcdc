@@ -17,7 +17,7 @@ from mcdc.constant import (
     PROTON_REACTION_TOTAL,
     PROTON_REACTION_ELASTIC_SCATTERING,
     PROTON_REACTION_NONELASTIC,
-    )
+)
 from mcdc.transport.physics.util import scatter_direction
 from mcdc.transport.distribution import sample_isotropic_direction
 

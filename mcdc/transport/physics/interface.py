@@ -71,8 +71,8 @@ def csda_distance(particle_container, simulation, data):
         nuclide = simulation["nuclides"][nuclide_ID]
         dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
         dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
-        dedx = np.interp(E/1e6, dedx_energies, dedx_values)
-        total_dedx += dedx*1e6
+        dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
+        total_dedx += dedx * 1e6
 
         atomic_mass = nuclide["atomic_weight_ratio"]
         nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
@@ -131,4 +131,6 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
     if particle["particle_type"] == PARTICLE_ELECTRON:
         raise ValueError("CSDA not supported for electrons")
     if particle["particle_type"] == PARTICLE_PROTON:
-        proton.csda_edep(particle_container, collision_data_container, distance, simulation, data)
+        proton.csda_edep(
+            particle_container, collision_data_container, distance, simulation, data
+        )

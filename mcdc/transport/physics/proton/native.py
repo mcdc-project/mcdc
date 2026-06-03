@@ -126,6 +126,7 @@ def reaction_micro_xs(E, reaction_base, nuclide, data):
     xs1 = mcdc_get.proton_reaction.xs(idx + 1, reaction_base, data)
     return linear_interpolation(E, E0, E1, xs0, xs1)
 
+
 # ======================================================================================
 # Collision
 # ======================================================================================
@@ -147,7 +148,7 @@ def collision(particle_container, collision_data_container, program, data):
         particle["alive"] = False
         particle["E"] = 0.0
         return
-    
+
     # ==================================================================================
     # Sample colliding nuclide
     # ==================================================================================
@@ -175,12 +176,8 @@ def collision(particle_container, collision_data_container, program, data):
     # Sample and perform reaction
     # ==================================================================================
 
-    sigma_elastic = total_micro_xs(
-        PROTON_REACTION_ELASTIC_SCATTERING, E, nuclide, data
-    )
-    sigma_nonelastic = total_micro_xs(
-        PROTON_REACTION_NONELASTIC, E, nuclide, data
-    )
+    sigma_elastic = total_micro_xs(PROTON_REACTION_ELASTIC_SCATTERING, E, nuclide, data)
+    sigma_nonelastic = total_micro_xs(PROTON_REACTION_NONELASTIC, E, nuclide, data)
     xi = rng.lcg(particle_container) * sigmaT
 
     # Elastic scattering
@@ -218,9 +215,7 @@ def collision(particle_container, collision_data_container, program, data):
         total -= sigma_nonelastic
         for i in range(nuclide["N_proton_nonelastic_reaction"]):
             reaction_ID = int(
-                mcdc_get.nuclide.proton_nonelastic_reaction_IDs(
-                    i, nuclide, data
-                )
+                mcdc_get.nuclide.proton_nonelastic_reaction_IDs(i, nuclide, data)
             )
             reaction = simulation["proton_nonelastic_reactions"][reaction_ID]
             reaction_base_ID = reaction["parent_ID"]
@@ -254,7 +249,7 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
         particle["alive"] = False
         particle["E"] = 0.0
         return
-    
+
     total_stopping_power = 0.0
     total_rho_gcm3 = 0.0
     # Find the total stopping power by summing over every nuclide in the material
@@ -263,15 +258,15 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
         nuclide = simulation["nuclides"][nuclide_ID]
         dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
         dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
-        
+
         # TODO: replace np.interp with a non-numpy function??
-        dedx = np.interp(E/1e6, dedx_energies, dedx_values)
+        dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
         total_stopping_power += dedx
 
         # Convert atoms/barn-cm to g/cm³:
-        atomic_mass = nuclide["atomic_weight_ratio"] # mass in amu
+        atomic_mass = nuclide["atomic_weight_ratio"]  # mass in amu
         nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
-        density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)            
+        density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)
         total_rho_gcm3 += density_gcm3
 
     energy_loss = total_stopping_power * distance * total_rho_gcm3 * 1e6
@@ -279,7 +274,6 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
     collision_data["energy_deposition"] += energy_loss * particle["w"]
     return
 
-    
 
 # ======================================================================================
 # Elastic scattering
@@ -301,7 +295,7 @@ def elastic_scattering(
 
     # Energy deposition
     collision_data["energy_deposition"] += E * particle["w"]
-    #print(f'\ndeposited {E * particle["w"]} eV at x={particle["x"]} from elastic scattering')
+    # print(f'\ndeposited {E * particle["w"]} eV at x={particle["x"]} from elastic scattering')
 
     # Note: Q-value is zero in elastic scattering
 
@@ -385,7 +379,6 @@ def elastic_scattering(
     collision_data["energy_deposition"] -= particle["E"] * particle["w"]
 
 
-
 @njit
 def sample_nucleus_velocity(A, particle_container):
     particle = particle_container[0]
@@ -443,10 +436,9 @@ def sample_nucleus_velocity(A, particle_container):
 def nonelastic_reaction(
     reaction, particle_container, collision_data_container, nuclide, program, data
 ):
-    
     """
     Proton nonelastic scattering with secondary particle production.
-    
+
     Samples:
     1. Outgoing proton from proton_reactions/inelastic/MT-005
     2. Secondary particles from secondary_particles/ZAP_x/MT-005
@@ -475,7 +467,7 @@ def nonelastic_reaction(
     # ===========================================================================
     # 1. Sample outgoing PROTON
     # ===========================================================================
-    
+
     # Number of outgoing protons and spectra
     N_proton = reaction["multiplicity"]
     N_spectrum = reaction["N_spectrum"]
@@ -487,8 +479,7 @@ def nonelastic_reaction(
 
     # Energy deposition (will be adjusted as we create secondaries)
     collision_data["energy_deposition"] += total_energy * w
-    #print(f'\ndeposited {total_energy * particle["w"]} eV at x={particle["x"]} from nonelastic_rxn')
-
+    # print(f'\ndeposited {total_energy * particle["w"]} eV at x={particle["x"]} from nonelastic_rxn')
 
     # Create outgoing protons
     for n in range(N_proton):
@@ -531,10 +522,8 @@ def nonelastic_reaction(
             xi = rng.lcg(particle_container_new)
             total = 0.0
             for j in range(N_spectrum):
-                probability = (
-                    mcdc_get.proton_nonelastic_reaction.spectrum_probability(
-                        probability_idx, j, reaction, data
-                    )
+                probability = mcdc_get.proton_nonelastic_reaction.spectrum_probability(
+                    probability_idx, j, reaction, data
                 )
                 total += probability
                 if xi < total:
@@ -602,11 +591,11 @@ def nonelastic_reaction(
     # ===========================================================================
     # 2. Sample SECONDARY PARTICLES from secondary_particles groups
     # ===========================================================================
-    
+
     # Get secondary channels for this MT (if any)
     # MT = int(reaction_base["MT"])
     # nuclide_ID = particle["nuclide_ID"]
-    
+
     # Check if nuclide has secondary particle data
     # (This requires access to nuclide secondary_channels dict, which needs to be added)
     # For now, we'll skip this part and it can be added when the data structure supports it

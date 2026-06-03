@@ -446,7 +446,6 @@ def move_to_event(particle_container, simulation, data):
     elif geometry.check_coincidence(d_csda, distance):
         particle["event"] += EVENT_CSDA_EDEP
 
-
     # ==================================================================================
     # Move particle
     # ==================================================================================
@@ -491,7 +490,9 @@ def move_to_event(particle_container, simulation, data):
     # CSDA calculates energy loss after particle has moved
     if settings["csda"]:
         collision_data_container = np.zeros(1, type_.collision_data)
-        physics.csda_edep(particle_container, collision_data_container, distance, simulation, data)
+        physics.csda_edep(
+            particle_container, collision_data_container, distance, simulation, data
+        )
 
         # Score collision tallies (edep is a collision tally)
         # TODO: maybe make edep a potential tracklength tally for CSDA?
