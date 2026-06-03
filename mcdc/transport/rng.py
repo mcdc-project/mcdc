@@ -2,7 +2,8 @@ import numba as nb
 import numpy as np
 
 from numba import uint64, njit
-#from mcdc.code_factory.jit import njit
+
+# from mcdc.code_factory.jit import njit
 
 # ======================================================================================
 # Random number generator

@@ -243,10 +243,11 @@ def preparation():
     # ==================================================================================
 
     import mcdc.config as config
+
     # Build GPU program if desired
     if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import build_gpu_program
-    
+
     # ==================================================================================
     # Generate Numba-supported "Objects"
     # ==================================================================================
@@ -326,8 +327,9 @@ def preparation():
 
     if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import setup_gpu_program
+
         setup_gpu_program(simulation_container, data)
-    
+
     # ==================================================================================
     # Finalize
     # ==================================================================================
