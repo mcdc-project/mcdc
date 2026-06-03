@@ -1,8 +1,8 @@
 # This script was written by ChatGPT with Ethan Lame's instructions
 import os
 
-input_file = "/home/ethan_lame/MCDC/acelib/endf70prot"   # your big file
-output_dir = "/home/ethan_lame/MCDC/acelib/"    # where split files go
+input_file = "/home/ethan_lame/MCDC/acelib/endf70prot"  # your big file
+output_dir = "/home/ethan_lame/MCDC/acelib/"  # where split files go
 
 os.makedirs(output_dir, exist_ok=True)
 
