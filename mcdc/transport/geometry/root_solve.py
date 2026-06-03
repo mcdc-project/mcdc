@@ -15,7 +15,12 @@ def modulus(x):
 def sqrt(x):
     return math.sqrt(x.real) * (x+x.real) / modulus(x+x.real)
 
-
+@njit()
+def power(x,n):
+    result = 1
+    for i in range(n):
+        result = result * x
+    return result
 
 @njit()
 def nth_root(x,n,index):
@@ -45,7 +50,7 @@ def solve_quadratic(coeff,roots):
     c = coeff[0]
     # standard quadratic formula, but with discriminant
     # calculated separately for re-use
-    discriminant = sqrt(b**2-4*a*c)
+    discriminant = sqrt(power(b,2)-4*a*c)
     roots[0] = ((-b) + discriminant) / (2*a)
     roots[1] = ((-b) - discriminant) / (2*a)
 
@@ -90,11 +95,11 @@ def solve_depressed_quartic(coeff,roots):
     # To solve the depressed quartic, one must first find one
     # root of a cubic polynomial.
  
-    p = (-(a**2)/12) - c
-    q = (-(a**3)/108) + (a*c/3) - ((b**2)/8)
+    p = (-power(a,2)/12) - c
+    q = (-power(a,3)/108) + (a*c/3) - (power(b,2)/8)
     
     cube_const = (-q/2) 
-    sqrt_body  = ((q**2)/4) + ((p**3)/27)
+    sqrt_body  = (power(q,2)/4) + (power(p,3)/27)
     w_pos = principal_nth_root( cube_const + sqrt(sqrt_body), 3)
     w_neg = principal_nth_root( cube_const - sqrt(sqrt_body), 3)
 
@@ -148,9 +153,9 @@ def solve_quartic(coeff,roots):
     sub_coeff = util.local_array(4,np.complex128)
     sub_coeff[4] = 1.0 + 0.0j
     sub_coeff[3] = 0.0j
-    sub_coeff[2] = (-3*(b**2)) / (8*(a**2)) + c/a
-    sub_coeff[1] = (b**3) / (8*(a**3)) - (b*c) / (2*(a**2)) + d/a
-    sub_coeff[0] = (-3*(b**4)) / (256*(a**4)) + (c*(b**2)) / (16*(a**3)) - (b*d) / (4*(a**2)) + e/a
+    sub_coeff[2] = (-3*power(b,2)) / (8*power(a,2)) + c/a
+    sub_coeff[1] = power(b,3) / (8*power(a,3)) - (b*c) / (2*power(a,2)) + d/a
+    sub_coeff[0] = (-3*power(b,4)) / (256*power(a,4)) + (c*power(b,2)) / (16*power(a,3)) - (b*d) / (4*power(a,2)) + e/a
 
     # Get roots of sub-solve
     sub_roots = util.local_array(4,np.complex128)
