@@ -20,7 +20,6 @@ from mcdc.object_.neutron_reaction import (
 from mcdc.object_.proton_reaction import (
     ProtonReactionElasticScattering,
     ProtonReactionNonelasticReaction,
-    ProtonSecondaryChannel,
     set_energy_distribution,
 )
 from mcdc.object_.simulation import simulation
@@ -61,8 +60,6 @@ class Nuclide(ObjectNonSingleton):
     #
     proton_elastic_scattering_reactions: list[ProtonReactionElasticScattering]
     proton_nonelastic_reactions: list[ProtonReactionNonelasticReaction]
-    proton_secondary_channels: dict[int, list[ProtonSecondaryChannel]]
-    non_numba: list[str] = ["proton_secondary_channels"]
     #
     neutron_fission_prompt_multiplicity: DataBase
     neutron_fission_delayed_multiplicity: DataBase
@@ -335,33 +332,6 @@ class Nuclide(ObjectNonSingleton):
         # ==========================================================================
         self.stopping_power = file["stopping_power"]["total_stopping_power"][()]
         self.stopping_power_energy_grid = file["stopping_power"]["energy"][()]
-
-        # # ==========================================================================
-        # # Secondary particles
-        # # ==========================================================================
-
-        # self.proton_secondary_channels = {}
-        # if "secondary_particles" in file:
-        #     sec_group = file["secondary_particles"]
-        #     for zap_name in sec_group.keys():
-        #         if not zap_name.startswith("ZAP_"):
-        #             continue
-        #         zap = int(zap_name.split("_")[1])
-        #         zap_group = sec_group[zap_name]
-
-        #         # Iterate over MT numbers for this secondary particle type
-        #         for mt_name in zap_group.keys():
-        #             if not mt_name.startswith("MT-"):
-        #                 continue
-        #             MT = int(mt_name.split("-")[1])
-        #             mt_group = zap_group[mt_name]
-
-        #             # Load secondary channel
-        #             channel = ProtonSecondaryChannel.from_h5_group(mt_group, zap)
-
-        #             if MT not in self.proton_secondary_channels:
-        #                 self.proton_secondary_channels[MT] = []
-        #             self.proton_secondary_channels[MT].append(channel)
 
         file.close()
 
