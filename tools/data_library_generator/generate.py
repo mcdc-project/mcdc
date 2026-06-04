@@ -32,10 +32,12 @@ os.makedirs(output_dir, exist_ok=True)
 print(f"\nACE directory: {ace_dir}")
 print(f"Output directory: {output_dir}\n")
 
-# Select the files
+# Get the files
 if rewrite:
+    # Get them all
     target_files = os.listdir(ace_dir)
 else:
+    # Just get the non-existent ones
     target_files = []
     for file_name in os.listdir(ace_dir):
         # File header
@@ -43,10 +45,7 @@ else:
             header = ACEtk.Header.from_string(f.readline())
 
         # Decode ACE name to MC/DC name
-        Z, A, S, T = util.decode_ace_name(header.zaid)
-        symbol = util.Z_TO_SYMBOL[Z]
-        nuclide_name = f"{symbol}{A}" if S == 0 else f"{symbol}{A}m{S}"
-        mcdc_name = f"{nuclide_name}-{T}K.h5"
+        mcdc_name, nuclide_name, Z, A, S, T = util.decode_name(header)
 
         if not os.path.exists(f"{output_dir}/{mcdc_name}"):
             target_files.append(file_name)
@@ -63,11 +62,9 @@ for ace_name in pbar:
         header = ACEtk.Header.from_string(f.readline())
 
     # Decode ACE name to MC/DC name
-    Z, A, S, T = util.decode_ace_name(header.zaid)
-    symbol = util.Z_TO_SYMBOL[Z]
-    nuclide_name = f"{symbol}{A}" if S == 0 else f"{symbol}{A}m{S}"
-    mcdc_name = f"{nuclide_name}-{T}K.h5"
+    mcdc_name, nuclide_name, Z, A, S, T = util.decode_name(header)
 
+    # Rewrite or skip?
     if not rewrite and os.path.exists(f"{output_dir}/{mcdc_name}"):
         continue
 
@@ -81,6 +78,14 @@ for ace_name in pbar:
     # ==================================================================================
     # Basic properties
     # ==================================================================================
+    """
+    The basic properties are
+        - File ACE source info: title, version, date, comments
+        - Nuclide name and excitation level
+        - Temperature
+        - Atomic number (Z) and weight ratio (A)
+        - Fissionable flag
+    """
 
     # Load ACE tables
     ace_table = ACEtk.ContinuousEnergyTable.from_file(f"{ace_dir}/{ace_name}")
@@ -104,7 +109,9 @@ for ace_name in pbar:
     # Atomic number and weight ratio
     atomic_number = ace_table.atom_number
     atomic_weight_ratio = ace_table.atomic_weight_ratio
+    mass_number = ace_table.mass_number
     file.create_dataset("atomic_number", data=atomic_number)
+    file.create_dataset("mass_number", data=mass_number)
     file.create_dataset("atomic_weight_ratio", data=atomic_weight_ratio)
 
     # Fissionable?
@@ -114,11 +121,14 @@ for ace_name in pbar:
     # ==================================================================================
     # Reaction groups
     # ==================================================================================
-    # Elastic scattering: MT=2
-    # Capture: Reactions with zero multiplicity
-    # Fission: MT=18 or MT=(19, 20, 21, and 38) if given
-    # Inelastic: Non-fission reactions with non-zero multiplicity
-    # Ignored: MT=(1, 3, 4, 10) and MT>117
+    """
+    The reaction groups are
+        - Elastic scat.  : MT=2
+        - Capture        : Reactions with zero multiplicity
+        - Fission        : MT=18 or MT=(19, 20, 21, and 38)
+        - Inelastic scat.: Non-fission reactions with non-zero multiplicity
+        - Ignored        : MT=(1, 3, 4, 10) and MT>117
+    """
 
     reactions = file.create_group("neutron_reactions")
 
@@ -208,6 +218,12 @@ for ace_name in pbar:
     # ==================================================================================
     # Cross-sections
     # ==================================================================================
+    """
+    xs_energy_grid: universal XS energy grid (MeV) used for all MTs
+    MT/xs         : XS for the MT (barns)
+    offset        : for reactions with energy threshold, so that we don't need to store 
+                    the zeros
+    """
 
     xs0_block = ace_table.principal_cross_section_block
     xs_block = ace_table.cross_section_block
@@ -242,6 +258,9 @@ for ace_name in pbar:
     # ==================================================================================
     # Q-value
     # ==================================================================================
+    """
+    MT/Q-value: the Q-value (MeV)
+    """
 
     q_value_block = ace_table.reaction_qvalue_block
 
@@ -265,7 +284,14 @@ for ace_name in pbar:
     # ==================================================================================
     # Reference frames and inelastic scattering multiplicities
     # ==================================================================================
-    # Elastic is always in COM frame (per ACE standard)
+    """
+    Reference frame
+        MT/reference_frame: either COM or LAB
+        Elastic is always in COM frame (per ACE standard).
+
+    Inelastic scattering multiplicities
+        MT/multiplicity
+    """
 
     # Elastic scattering reference frame
     for MT in elastic_MTs:
@@ -297,6 +323,9 @@ for ace_name in pbar:
     # ==================================================================================
     # Angular distributions
     # ==================================================================================
+    """
+    TODO
+    """
 
     angle_block = ace_table.angular_distribution_block
 
@@ -322,6 +351,9 @@ for ace_name in pbar:
     # ==================================================================================
     # Energy distributions
     # ==================================================================================
+    """
+    TODO
+    """
 
     energy_block = ace_table.energy_distribution_block
 
@@ -414,6 +446,9 @@ for ace_name in pbar:
     # ==================================================================================
     # Fission multiplicities and delayed neutron precursor fractions and decay rates
     # ==================================================================================
+    """
+    TODO
+    """
 
     prompt_block = ace_table.fission_multiplicity_block
     delayed_block = ace_table.delayed_fission_multiplicity_block
@@ -458,6 +493,9 @@ for ace_name in pbar:
     # ==================================================================================
     # Delayed fission spectra
     # ==================================================================================
+    """
+    TODO
+    """
 
     delayed_spectrum_block = ace_table.delayed_neutron_energy_distribution_block
     if dnp_block is not None:

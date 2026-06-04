@@ -92,11 +92,13 @@ import mcdc.mcdc_get.proton_reaction as proton_reaction
 
 import mcdc.mcdc_get.settings as settings
 
+import mcdc.mcdc_get.global_weight_roulette as global_weight_roulette
+
 import mcdc.mcdc_get.implicit_capture as implicit_capture
 
 import mcdc.mcdc_get.population_control as population_control
 
-import mcdc.mcdc_get.weight_roulette as weight_roulette
+import mcdc.mcdc_get.weight_windows as weight_windows
 
 import mcdc.mcdc_get.weighted_emission as weighted_emission
 

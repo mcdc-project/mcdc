@@ -59,3 +59,61 @@ def y_chunk(start, length, table_data, data):
     start += table_data["y_offset"]
     end = start + length
     return data[start:end]
+
+
+@njit
+def interpolations(index, table_data, data):
+    offset = table_data["interpolations_offset"]
+    return data[offset + index]
+
+
+@njit
+def interpolations_all(table_data, data):
+    start = table_data["interpolations_offset"]
+    size = table_data["interpolations_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def interpolations_last(table_data, data):
+    start = table_data["interpolations_offset"]
+    size = table_data["interpolations_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def interpolations_chunk(start, length, table_data, data):
+    start += table_data["interpolations_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def interpolation_boundaries(index, table_data, data):
+    offset = table_data["interpolation_boundaries_offset"]
+    return data[offset + index]
+
+
+@njit
+def interpolation_boundaries_all(table_data, data):
+    start = table_data["interpolation_boundaries_offset"]
+    size = table_data["interpolation_boundaries_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def interpolation_boundaries_last(table_data, data):
+    start = table_data["interpolation_boundaries_offset"]
+    size = table_data["interpolation_boundaries_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def interpolation_boundaries_chunk(start, length, table_data, data):
+    start += table_data["interpolation_boundaries_offset"]
+    end = start + length
+    return data[start:end]
