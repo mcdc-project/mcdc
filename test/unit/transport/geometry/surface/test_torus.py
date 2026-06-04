@@ -57,6 +57,7 @@ def setup_geometry_case():
     particle_container = np.zeros(1, type_.particle_data)
     particle = particle_container[0]
 
+
 # ======================================================================================
 # Surface creation
 # ======================================================================================
