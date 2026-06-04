@@ -350,6 +350,7 @@ def step_particle(particle_container, program, data):
     if particle["event"] & EVENT_CSDA_EDEP:
         pass
 
+<<<<<<< HEAD
     # ==================================================================================
     # Apply techniques
     # ==================================================================================
@@ -366,6 +367,8 @@ def step_particle(particle_container, program, data):
     if simulation["global_weight_roulette"]["active"]:
         technique.global_weight_roulette(particle_container, simulation)
 
+=======
+>>>>>>> 97028895 (added a setting to change csda max fractional energy loss in the input deck)
     # Weight roulette
     if particle["alive"]:
         technique.weight_roulette(particle_container, simulation)

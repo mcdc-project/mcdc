@@ -45,6 +45,7 @@ class Settings(ObjectSingleton):
     output_name: str = "output"
     use_progress_bar: bool = True
     csda: bool = True
+    csda_max_fractional_e_loss: float = 0.01
 
     # Time census
     N_census: int = 1
