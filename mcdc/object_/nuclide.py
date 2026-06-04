@@ -263,6 +263,9 @@ class Nuclide(ObjectNonSingleton):
         file_name = f"{nuclide_name}-{temperature}K.h5"
         file = h5py.File(f"{dir_name}/{file_name}", "r")
 
+        # TENDL data only handles elastic scattering rxns as a unique rxn.
+        # Everything else is grouped together, including nonelastic rxns
+        # and rxns that will produce secondary particles.
         rx_names = [
             "elastic_scattering",
             "nonelastic_reaction",

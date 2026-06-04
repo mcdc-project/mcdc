@@ -9,7 +9,7 @@ Usage
     python proton_ace_to_hdf5.py --ace_dir /path/to/ace --output_dir /path/to/hdf5 [--pstar_dir /path/to/pstar]
     python proton_ace_to_hdf5.py ...  --rewrite   # overwrite existing files
     python proton_ace_to_hdf5.py ...  --verbose   # per-reaction detail
-    
+
 
 Environment variable fallbacks:  $MCDC_ACELIB, $MCDC_LIB, $PSTAR_LIB
 

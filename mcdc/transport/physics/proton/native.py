@@ -236,6 +236,11 @@ def collision(particle_container, collision_data_container, program, data):
                 return
 
 
+# ======================================================================================
+# Continous Slowing Down Approximation
+# ======================================================================================
+
+
 @njit
 def csda_edep(particle_container, collision_data_container, distance, simulation, data):
     particle = particle_container[0]
