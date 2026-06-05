@@ -362,6 +362,9 @@ def step_particle(particle_container, program, data):
     if simulation["global_weight_roulette"]["active"]:
         technique.global_weight_roulette(particle_container, simulation)
 
+    if simulation["forced_collisions"]["active"]:
+        technique.forced_collision_roulette(particle_container, program, data)
+
 
 @njit
 def move_to_event(particle_container, simulation, data):
@@ -413,7 +416,12 @@ def move_to_event(particle_container, simulation, data):
     )
 
     # Distance to next collision
-    d_collision = physics.collision_distance(particle_container, simulation, data)
+    if technique.in_forced_collision_cell(particle_container, simulation, data):
+        d_collision = technique.forced_collisions(
+            particle_container, d_boundary, simulation, data
+        )
+    else:
+        d_collision = physics.collision_distance(particle_container, simulation, data)
 
     # ==================================================================================
     # Determine event(s)
@@ -447,40 +455,10 @@ def move_to_event(particle_container, simulation, data):
     # ==================================================================================
     # Move particle
     # ==================================================================================
-
     # Score tracklength tallies
-    if simulation["cycle_active"]:
-        # Cell tallies
-        cell = simulation["cells"][particle["cell_ID"]]
-        for i in range(cell["N_tally"]):
-            tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-            tally_base = simulation["tallies"][tally_base_ID]
-
-            # Skip non-tracklength tallies
-            if tally_base["child_type"] != TALLY_TRACKLENGTH:
-                continue
-
-            tally = simulation["tracklength_tallies"][tally_base["child_ID"]]
-            tally_module.score.tracklength_tally(
-                particle_container, distance, tally, simulation, data
-            )
-
-        # Other tracklength tallies
-        for i in range(simulation["N_tracklength_tally"]):
-            tally = simulation["tracklength_tallies"][i]
-
-            # Skip cell tallies
-            if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
-                continue
-
-            tally_module.score.tracklength_tally(
-                particle_container, distance, tally, simulation, data
-            )
-
-    if settings["neutron_eigenvalue_mode"]:
-        tally_module.score.eigenvalue_tally(
-            particle_container, distance, simulation, data
-        )
+    tally_module.score.score_tracklength_tallies(
+        particle_container, distance, simulation, data
+    )
 
     # Move particle
     particle_module.move(particle_container, distance, simulation, data)

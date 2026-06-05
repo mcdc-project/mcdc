@@ -2,15 +2,229 @@ import numpy as np
 import math
 
 from numba import njit
+import numba
 
 ####
 
 import mcdc.mcdc_get.weight_windows as ww_get
 import mcdc.numba_types as type_
+from mcdc.transport.mesh import get_indices as get_mesh_indices
+import mcdc.transport.geometry as geometry_module
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
+import mcdc.transport.tally as tally_module
 import mcdc.transport.rng as rng
+from mcdc.transport.physics import interface as physics
 import mcdc.transport.util as util
+import mcdc.mcdc_get as mcdc_get
+from mcdc.constant import PARTICLE_NEUTRON
+
+# ======================================================================================
+# Forced Collisions
+# ======================================================================================
+
+
+@njit
+def forced_collisions(particle_container, surface_distance, program, data):
+    """
+    Applies the method of forced collisions, splitting the source particle into a collided and transmitted particle. This method returns the distance for the collided particle to travel, letting the `simulation.move_to_event` handle the actual transport for the collided particle.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the original particle to copy over all data from.
+    surface_distance : float
+        The distance to the surface the transmitted particle will be moved to.
+    program : object
+        Program object containing simulation state with forced collision data.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    collision_distance : float
+        Distance for the collided component to travel.
+    """
+    simulation = util.access_simulation(program)
+
+    # find weight multiplier
+    SigmaT = physics.total_xs(particle_container, simulation, data)
+    weight_multiplier = math.exp(-surface_distance * SigmaT)
+
+    # transmitted particle
+    bank_transmitted_particle(
+        particle_container, weight_multiplier, surface_distance, program, data
+    )
+
+    # alias input particle as collided particle
+    collided_container = particle_container
+    # update collided particle
+    collided = collided_container[0]
+    collided["w"] *= 1 - weight_multiplier
+
+    # return distance to forced collision, let simulation handle the rest (tallies)
+    collision_distance = physics.forced_collision_distance(
+        collided_container, surface_distance, simulation, data
+    )
+    return collision_distance
+
+
+@njit
+def bank_transmitted_particle(
+    particle_container, weight_multiplier, surface_distance, program, data
+):
+    """
+    Helper for creating and banking the transmitted component. If the
+    transmitted particle leaves the simulation through a boundary surface, the
+    particle is not banked. Additionally, the particle is scored over all
+    tracklength tallies via the helper in `tally.score`.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the original particle to copy over all data from.
+    weight_multiplier : float
+        The multiplier to adjust the particle weight by.
+    surface_distance : float
+        The distance to the surface the transmitted particle will be moved to.
+    program : object
+        Program object containing simulation state with forced collision data.
+    data : object
+        Simulation data for array access.
+    """
+    simulation = util.access_simulation(program)
+
+    # create child copy of collided particle history
+    transmitted_container = util.local_array(1, type_.particle)
+    particle_module.copy_as_child(transmitted_container, particle_container)
+    particle_module.copy_run_state(transmitted_container, particle_container)
+
+    # assign weight
+    transmitted = transmitted_container[0]
+    transmitted["w"] *= weight_multiplier
+
+    # score tracklength tallies
+    tally_module.score.score_tracklength_tallies(
+        transmitted_container, surface_distance, simulation, data
+    )
+
+    # update position and perform surface crossing
+    particle_module.move(transmitted_container, surface_distance, simulation, data)
+    geometry_module.surface_crossing(transmitted_container, simulation, data)
+
+    # particle could leave through BC, so check if alive before banking
+    if transmitted["alive"]:
+        particle_bank_module.bank_active_particle(transmitted_container, program)
+
+
+@njit
+def forced_collision_roulette(particle_container, program, data):
+    """
+    Roulette procedure for forced collision. Particle is only rouletted if in a cell marked for forced collisions
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    program : object
+        Program object containing simulation state with forced collision data.
+    data : object
+        Simulation data for array access.
+    """
+    # skip if not a neutron
+    if particle_container[0]["particle_type"] != PARTICLE_NEUTRON:
+        return
+
+    simulation = util.access_simulation(program)
+    fc_object = simulation["forced_collisions"]
+
+    # check if particle is in a cell with forced collisions
+    if not in_forced_collision_cell(particle_container, simulation, data):
+        return
+
+    # get index into arrays
+    index = get_forced_collision_cell_index(particle_container, fc_object, data)
+    if index < 0:
+        return
+
+    # get weights
+    threshold = mcdc_get.forced_collisions.threshold_weights(index, fc_object, data)
+    target = mcdc_get.forced_collisions.target_weights(index, fc_object, data)
+
+    # roulette
+    weight_roulette(particle_container, threshold, target)
+
+
+@njit
+def get_forced_collision_cell_index(particle_container, fc_object, data):
+    """
+    Helper for getting the getter index for weight roulette parameters
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    fc_object : object
+        Forced collision object for use in mcdc_get methods.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    index : int
+        The flattened index for getting weight roulette parameters.
+    """
+    particle = particle_container[0]
+
+    # grab all cell ids
+    cell_ids = mcdc_get.forced_collisions.cell_IDs_all(fc_object, data)
+
+    # find the cell index
+    for index in range(len(cell_ids)):
+        if cell_ids[index] == particle["cell_ID"]:
+            return index
+
+    # should never hit this, but just to be safe
+    return -1
+
+
+@njit
+def in_forced_collision_cell(particle_container, simulation, data):
+    """
+    Check if particle is in a cell marked for forced collision
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    program : object
+        Program object containing simulation state with forced collision data.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    bool
+        True if particle in cell marked for forced collision.
+    """
+    # skip if not a neutron
+    if particle_container[0]["particle_type"] != PARTICLE_NEUTRON:
+        return False
+
+    fc_object = simulation["forced_collisions"]
+
+    # not active, dont need to query cells
+    if not fc_object["active"]:
+        return False
+
+    # active, need to check if in active cell
+    cell_ids = mcdc_get.forced_collisions.cell_IDs_all(fc_object, data)
+    if particle_container[0]["cell_ID"] in cell_ids:
+        return True
+
+    # not in active cell
+    return False
+
 
 from mcdc.transport.mesh import get_indices as get_mesh_indices
 

@@ -31,6 +31,35 @@ def particle_speed(particle_container, simulation, data):
 
 
 @njit
+def total_xs(particle_container, simulation, data):
+    """
+    Convenience helper for getting specifically the total cross section.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    simulation : object
+        Simulation object.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    float
+        Total macroscopic cross section.
+    """
+    particle = particle_container[0]
+    if particle["particle_type"] == PARTICLE_NEUTRON:
+        total = NEUTRON_REACTION_TOTAL
+        return neutron.macro_xs(total, particle_container, simulation, data)
+    elif particle["particle_type"] == PARTICLE_ELECTRON:
+        total = ELECTRON_REACTION_TOTAL
+        return electron.macro_xs(total, particle_container, simulation, data)
+    return 0.0
+
+
+@njit
 def macro_xs(reaction_type, particle_container, simulation, data):
     particle = particle_container[0]
     if particle["particle_type"] == PARTICLE_NEUTRON:
@@ -57,14 +86,8 @@ def neutron_production_xs(reaction_type, particle_container, simulation, data):
 
 @njit
 def collision_distance(particle_container, simulation, data):
-    particle = particle_container[0]
-
     # Get total cross-section
-    SigmaT = 0.0
-    if particle["particle_type"] == PARTICLE_NEUTRON:
-        SigmaT = macro_xs(NEUTRON_REACTION_TOTAL, particle_container, simulation, data)
-    elif particle["particle_type"] == PARTICLE_ELECTRON:
-        SigmaT = macro_xs(ELECTRON_REACTION_TOTAL, particle_container, simulation, data)
+    SigmaT = total_xs(particle_container, simulation, data)
 
     # Vacuum material?
     if SigmaT == 0.0:
@@ -73,6 +96,41 @@ def collision_distance(particle_container, simulation, data):
     # Sample collision distance
     xi = rng.lcg(particle_container)
     distance = -math.log(xi) / SigmaT
+    return distance
+
+
+@njit
+def forced_collision_distance(particle_container, surface_distance, simulation, data):
+    """
+    Method for finding the distance for a forced collision particle to travel.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    surface_distance:
+        The distance to the next surface along the particles direction.
+    simulation : object
+        Simulation object.
+    data : object
+        Simulation data for array access.
+
+    Returns
+    -------
+    distance : float
+        Distance for particle to travel.
+    """
+    # Get total cross-section
+    SigmaT = total_xs(particle_container, simulation, data)
+
+    # Vacuum material?
+    if SigmaT == 0.0:
+        return INF
+
+    # Sample collision distance
+    xi = rng.lcg(particle_container)
+
+    distance = -math.log(1 - xi * (1 - math.exp(-surface_distance * SigmaT))) / SigmaT
     return distance
 
 

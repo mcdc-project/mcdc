@@ -565,6 +565,16 @@ settings = into_dtype([
     ('gpu_storage', int64),
 ])
 
+forced_collisions = into_dtype([
+    ('active', bool),
+    ('cell_IDs_offset', int64),
+    ('cell_IDs_length', int64),
+    ('threshold_weights_offset', int64),
+    ('threshold_weights_length', int64),
+    ('target_weights_offset', int64),
+    ('target_weights_length', int64),
+])
+
 global_weight_roulette = into_dtype([
     ('active', bool),
     ('weight_threshold', float64),
@@ -837,6 +847,7 @@ def set_simulation(N: dict):
         ('N_tracklength_tally', int64),
         ('settings', settings),
         ('implicit_capture', implicit_capture),
+        ('forced_collisions', forced_collisions),
         ('weighted_emission', weighted_emission),
         ('global_weight_roulette', global_weight_roulette),
         ('weight_windows', weight_windows),

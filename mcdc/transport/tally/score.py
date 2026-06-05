@@ -26,6 +26,8 @@ from mcdc.constant import (
     SCORE_NET_CURRENT,
     SCORE_ENERGY_DEPOSITION,
     SPATIAL_FILTER_MESH,
+    SPATIAL_FILTER_CELL,
+    TALLY_TRACKLENGTH,
 )
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import get_filter_indices
@@ -138,6 +140,52 @@ def collision_tally(
 # ======================================================================================
 # Tracklength tally
 # ======================================================================================
+
+
+@njit
+def score_tracklength_tallies(particle_container, distance, simulation, data):
+    """
+    Helper for scoring traveled distance on all track length tallies in the simulation.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    distance:
+        The distance traveled to score.
+    simulation : object
+        Simulation object.
+    data : object
+        Simulation data for array access.
+    """
+    particle = particle_container[0]
+
+    if simulation["cycle_active"]:
+        # Cell tallies
+        cell = simulation["cells"][particle["cell_ID"]]
+        for i in range(cell["N_tally"]):
+            tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
+            tally_base = simulation["tallies"][tally_base_ID]
+
+            # Skip non-tracklength tallies
+            if tally_base["child_type"] != TALLY_TRACKLENGTH:
+                continue
+
+            tally = simulation["tracklength_tallies"][tally_base["child_ID"]]
+            tracklength_tally(particle_container, distance, tally, simulation, data)
+
+        # Other tracklength tallies
+        for i in range(simulation["N_tracklength_tally"]):
+            tally = simulation["tracklength_tallies"][i]
+
+            # Skip cell tallies
+            if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
+                continue
+
+            tracklength_tally(particle_container, distance, tally, simulation, data)
+
+    if simulation["settings"]["neutron_eigenvalue_mode"]:
+        eigenvalue_tally(particle_container, distance, simulation, data)
 
 
 @njit

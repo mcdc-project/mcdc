@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Annotated
 
 from mcdc.object_.technique import (
     ImplicitCapture,
+    ForcedCollisions,
     PopulationControl,
     GlobalWeightRoulette,
     WeightWindows,
@@ -81,6 +82,7 @@ class Simulation(ObjectSingleton):
 
     # Techniques
     implicit_capture: ImplicitCapture
+    forced_collisions: ForcedCollisions
     weighted_emission: WeightedEmission
     global_weight_roulette: GlobalWeightRoulette
     weight_windows: WeightWindows
@@ -167,6 +169,7 @@ class Simulation(ObjectSingleton):
 
         # Techniques
         self.implicit_capture = ImplicitCapture()
+        self.forced_collisions = ForcedCollisions()
         self.weighted_emission = WeightedEmission()
         self.global_weight_roulette = GlobalWeightRoulette()
         self.weight_windows = WeightWindows()

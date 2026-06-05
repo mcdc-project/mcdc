@@ -86,6 +86,8 @@ import mcdc.mcdc_get.particle_bank as particle_bank
 
 import mcdc.mcdc_get.settings as settings
 
+import mcdc.mcdc_get.forced_collisions as forced_collisions
+
 import mcdc.mcdc_get.global_weight_roulette as global_weight_roulette
 
 import mcdc.mcdc_get.implicit_capture as implicit_capture

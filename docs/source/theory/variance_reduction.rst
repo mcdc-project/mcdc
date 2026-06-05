@@ -42,6 +42,59 @@ effective in highly absorbing media.
    to eliminate very-low-weight particles, a memory overhead can build
    up over time.
 
+
+Forced Collisions
+------------------
+
+.. warning::
+
+   Forced collisions are currently valid only for neutral particles.
+
+Forced collisions force a neutral particle to undergo a collision within selected material cells before it reaches the next surface.
+This is done by splitting the incident particle into two components:
+
+- a transmitted component that travels to the next surface without collision, with weight
+
+  .. math::
+
+     w_{\text{trans}} = w_0 e^{-\Sigma_t d}
+
+- a collided component that undergoes a forced collision in the cell, with weight
+
+  .. math::
+
+     w_{\text{coll}} = w_0 \left(1 - e^{-\Sigma_t d}\right)
+
+where :math:`d` is the distance to the next surface and :math:`\Sigma_t` is the total macroscopic cross section.
+The collision distance is sampled from the following distribution:
+
+.. math::
+
+   s = -\frac{1}{\Sigma_t} \ln \left(1 - \xi \left(1 - e^{-\Sigma_t d}\right)\right)
+
+Additionally, collided particles are continually forced to undergo collisions in the cell of interest.
+To prevent tracking particles with extremely low weight, weight roulette is used.
+
+**Usage:**
+
+.. code-block:: python3
+
+  mcdc.simulation.forced_collisions(cells=[cell])
+
+Optional roulette parameters can be supplied for each forced-collision cell:
+
+.. code-block:: python3
+
+  mcdc.simulation.forced_collisions(
+      cells=[cell_1, cell_2],
+      threshold_weights=[0.25, 0.25],
+      target_weights=[1.0, 1.0]
+  )
+
+If ``threshold_weights`` or ``target_weights`` are omitted, default values of ``0.5`` and ``1.0`` are assumed for each cell.
+Forced collisions may only be enabled on cells with material fills.
+
+
 Weight Roulette
 ----------------
 

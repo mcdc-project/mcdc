@@ -1,8 +1,11 @@
+from typing import TYPE_CHECKING, Annotated
 from numpy.typing import NDArray
 import numpy as np
-from typing import Annotated
-from mcdc.constant import INF
+from mcdc.constant import FILL_MATERIAL, INF
 from mcdc.object_.base import ObjectSingleton
+
+if TYPE_CHECKING:
+    from mcdc.object_.cell import Cell
 from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.print_ import print_error
 
@@ -21,6 +24,47 @@ class ImplicitCapture(ObjectSingleton):
 
     def __call__(self, active: bool = True):
         self.active = active
+
+
+# ======================================================================================
+# ForcedCollisions
+# ======================================================================================
+
+
+class ForcedCollisions(ObjectSingleton):
+    # Annotations for Numba mode
+    label: str = "forced_collisions"
+    active: bool
+
+    cell_IDs: list[np.int64]
+    threshold_weights: list[float]
+    target_weights: list[float]
+
+    def __init__(self):
+        self.active = False
+        self.cell_IDs = []
+        self.threshold_weights = []
+        self.target_weights = []
+
+    def __call__(self, cells, threshold_weights=None, target_weights=None):
+        self.active = True
+        if threshold_weights is None:
+            threshold_weights = [0.5] * len(cells)
+        if target_weights is None:
+            target_weights = [1.0] * len(cells)
+        if len(cells) != len(threshold_weights) or len(cells) != len(target_weights):
+            print_error(
+                f"Expected cells, threshold_weights, and target_weights to be the same size, but got {len(cells)}, {len(threshold_weights)}, and {len(target_weights)} instead"
+            )
+
+        for cell in cells:
+            if cell.fill_type != FILL_MATERIAL:
+                print_error(
+                    f"Invalid cell fill on cell: \n{cell}\nForced collision technique is only valid on cells with material fill"
+                )
+            self.cell_IDs.append(cell.ID)
+        self.threshold_weights = threshold_weights
+        self.target_weights = target_weights
 
 
 # ======================================================================================
