@@ -336,8 +336,12 @@ class Nuclide(ObjectNonSingleton):
         # ==========================================================================
         # Stopping power for protons
         # ==========================================================================
-        self.stopping_power = file["stopping_power"]["total_stopping_power"][()]
-        self.stopping_power_energy_grid = file["stopping_power"]["energy"][()]
+        if file["stopping_power"]:
+            self.stopping_power = file["stopping_power"]["total_stopping_power"][()]
+            self.stopping_power_energy_grid = file["stopping_power"]["energy"][()]
+        else:
+            self.stopping_power = np.array([], dtype=float)
+            self.stopping_power_energy_grid = np.array([], dtype=float)
 
         file.close()
 

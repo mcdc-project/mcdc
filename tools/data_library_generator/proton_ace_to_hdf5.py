@@ -18,7 +18,7 @@ HDF5 layout
 <nuclide>-<T>K.h5
   attrs: source_title, source_version, source_date
   nuclide_name, excitation_level, temperature (K),
-  atomic_number, atomic_weight_ratio, fissionable
+  atomic_number, mass_number, atomic_weight_ratio, fissionable
 
   stopping_power/           (if PSTAR data available)
     energy (MeV), total_stopping_power (MeV cm2/g)
@@ -531,6 +531,7 @@ def process_ace_file(ace_path, output_dir, pstar_dir=None, verbose=False):
     file.create_dataset("excitation_level", data=S)
     file.create_dataset("temperature", data=T_kelvin).attrs["unit"] = "K"
     file.create_dataset("atomic_number", data=ace_table.atom_number)
+    file.create_dataset("mass_number", data=ace_table.mass_number)
     file.create_dataset("atomic_weight_ratio", data=ace_table.atomic_weight_ratio)
     fissionable = ace_table.fission_multiplicity_block is not None
     file.create_dataset("fissionable", data=fissionable)
