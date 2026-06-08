@@ -20,7 +20,7 @@ from mcdc.transport.mesh import get_indices as get_mesh_indices
 
 
 @njit
-def weight_roulette(particle_container, w_threshold, w_target):
+def weight_roulette(particle_container, simulation):
     """
     Russian roulette particle if weight is below threshold.
 
@@ -34,6 +34,8 @@ def weight_roulette(particle_container, w_threshold, w_target):
         Target weight assigned upon survival.
     """
     particle = particle_container[0]
+    w_threshold = simulation["global_weight_roulette"]["weight_threshold"]
+    w_target = simulation["global_weight_roulette"]["weight_target"]
     if particle["w"] < w_threshold:
         survival_probability = particle["w"] / w_target
         # sample random number to determine survival

@@ -427,7 +427,8 @@ def move_to_event(particle_container, simulation, data):
     d_collision = physics.collision_distance(particle_container, simulation, data)
 
     # Distance to max energy loss as dictated by CSDA
-    d_csda = physics.csda_distance(particle_container, simulation, data)
+    if settings["csda"]:
+        d_csda = physics.csda_distance(particle_container, simulation, data)
 
     # ==================================================================================
     # Determine event(s)
@@ -459,12 +460,13 @@ def move_to_event(particle_container, simulation, data):
         particle["surface_ID"] = -1
 
     # Check distance to max energy loss from CSDA
-    if d_csda < distance - COINCIDENCE_TOLERANCE:
-        distance = d_csda
-        particle["event"] = EVENT_CSDA_EDEP
-        particle["surface_ID"] = -1
-    elif geometry.check_coincidence(d_csda, distance):
-        particle["event"] += EVENT_CSDA_EDEP
+    if settings["csda"]:
+        if d_csda < distance - COINCIDENCE_TOLERANCE:
+            distance = d_csda
+            particle["event"] = EVENT_CSDA_EDEP
+            particle["surface_ID"] = -1
+        elif geometry.check_coincidence(d_csda, distance):
+            particle["event"] += EVENT_CSDA_EDEP
 
     # ==================================================================================
     # Move particle
