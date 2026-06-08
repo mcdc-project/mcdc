@@ -117,6 +117,9 @@ class Nuclide(ObjectNonSingleton):
         self.neutron_fission_delayed_fractions = np.zeros(0)
         self.neutron_fission_delayed_decay_rates = np.zeros(0)
         self.neutron_fission_delayed_spectra = []
+        # Stopping Power
+        self.stopping_power = np.zeros(0)
+        self.stopping_power_energy_grid = np.zeros(0)
 
     def set_neutron_data(self):
         nuclide_name = self.name
@@ -339,11 +342,8 @@ class Nuclide(ObjectNonSingleton):
         if "stopping_power" in file:
             self.stopping_power = file["stopping_power"]["total_stopping_power"][()]
             self.stopping_power_energy_grid = file["stopping_power"]["energy"][()]
-        else:
-            self.stopping_power = np.array([], dtype=float)
-            self.stopping_power_energy_grid = np.array([], dtype=float)
-            if simulation.settings.csda:
-                raise ValueError(f"CSDA cannot be used if no stopping power is provided for nuclide {self.name}")
+        elif simulation.settings.csda:
+            raise ValueError(f"CSDA cannot be used if no stopping power is provided for nuclide {self.name}")
 
         file.close()
 
