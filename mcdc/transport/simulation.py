@@ -369,11 +369,6 @@ def step_particle(particle_container, program, data):
     if simulation["global_weight_roulette"]["active"]:
         technique.global_weight_roulette(particle_container, simulation)
 
-    # Weight roulette
-    if particle["alive"]:
-        technique.weight_roulette(particle_container, simulation)
-
-
 @njit
 def move_to_event(particle_container, simulation, data):
     settings = simulation["settings"]
