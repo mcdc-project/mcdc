@@ -7,7 +7,7 @@ import mcdc
 # Proton beam, incident on a slab
 
 # Set materials (atom density in units of atoms/barn-cm)
-silicon = mcdc.Material("silicon", {"Si28": 0.05})
+silicon = mcdc.Material("silicon", {"C12": 0.05})
 
 # Set surfaces
 sx1 = mcdc.Surface.PlaneX(x=0.0, boundary_condition="vacuum")
@@ -87,7 +87,7 @@ mcdc.settings.set_transported_particles(["proton"])
 mcdc.settings.N_particle = 1_000
 mcdc.settings.N_batch = 1
 mcdc.settings.csda = True
-mcdc.settings.csda_max_fractional_e_loss = 0.001
+mcdc.settings.csda_max_fractional_e_loss = 0.01
 
 # Techniques
 mcdc.simulation.implicit_capture()
