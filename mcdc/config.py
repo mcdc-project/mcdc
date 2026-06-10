@@ -1,8 +1,11 @@
-import argparse, os, sys
-import importlib.metadata
+import argparse, os
 
-# Parse command-line arguments
 parser = argparse.ArgumentParser(description="MC/DC: Monte Carlo Dynamic Code")
+
+# ======================================================================================
+# Run mode
+# ======================================================================================
+
 parser.add_argument(
     "--mode",
     type=str,
@@ -15,16 +18,40 @@ parser.add_argument(
     "--target", type=str, help="Target", choices=["cpu", "gpu"], default="cpu"
 )
 
+# ======================================================================================
+# Settings
+# ======================================================================================
+
+parser.add_argument("--N_particle", type=int, help="Number of particles")
+parser.add_argument("--N_batch", type=int, help="Number of batches")
+parser.add_argument("--output", type=str, help="Output file name")
+parser.add_argument("--progress_bar", default=True, action="store_true")
+parser.add_argument("--no-progress_bar", dest="progress_bar", action="store_false")
+parser.add_argument("--runtime_output", default=False, action="store_true")
+
+
+# ======================================================================================
+# Numba
+# ======================================================================================
+
+parser.add_argument("--clear_cache", action="store_true")
+parser.add_argument("--caching", action="store_true", default=False)
+parser.add_argument("--no_caching", dest="caching", action="store_false")
+
+# ======================================================================================
+# GPU mode
+# ======================================================================================
+
 parser.add_argument(
     "--gpu_state_storage",
     type=str,
     help="Strategy used in GPU execution (event or async).",
-    choices=["separate","managed", "united"],
+    choices=["separate", "managed", "united"],
     default="separate",
 )
 
 parser.add_argument(
-    "--gpu_strat",
+    "--gpu_strategy",
     type=str,
     help="Strategy used in GPU execution (event or async).",
     choices=["async", "event"],
@@ -67,17 +94,11 @@ parser.add_argument(
 )
 
 
-parser.add_argument("--N_particle", type=int, help="Number of particles")
-parser.add_argument("--output", type=str, help="Output file name")
-parser.add_argument("--progress_bar", default=True, action="store_true")
-parser.add_argument("--no-progress_bar", dest="progress_bar", action="store_false")
-parser.add_argument("--clear_cache", action="store_true")
-parser.add_argument("--caching", action="store_true")
-parser.add_argument("--no_caching", dest="caching", action="store_false")
-parser.add_argument("--runtime_output", default=False, action="store_true")
-parser.set_defaults(caching=False)
-args, unargs = parser.parse_known_args()
+# ======================================================================================
+# Config processor
+# ======================================================================================
 
+args, unargs = parser.parse_known_args()
 
 mode = args.mode
 target = args.target
@@ -100,15 +121,8 @@ if ((caching == False) or (clear_cache == True)) and (MPI.COMM_WORLD.Get_rank() 
 if MPI.COMM_WORLD.Get_size() > 1:
     MPI.COMM_WORLD.Barrier()
 
-
-from mcdc.card import UniverseCard
 from mcdc.print_ import (
-    print_banner,
-    print_msg,
-    print_runtime,
-    print_header_eigenvalue,
     print_warning,
-    print_error,
 )
 import numba as nb
 

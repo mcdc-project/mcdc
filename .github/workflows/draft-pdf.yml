@@ -1,5 +1,7 @@
 name: Build JOSS paper, only on dispatch
-on: [workflow_dispatch]
+
+on:
+  workflow_dispatch:
 
 jobs:
   paper:

@@ -1,50 +1,46 @@
 import numpy as np
-import sys
-
 import mcdc
 
-
-# =============================================================================
+# ======================================================================================
 # Set model
-# =============================================================================
+# ======================================================================================
 # Three slab layers with different purely-absorbing materials
 
 # Set materials
-m1 = mcdc.material(capture=np.array([1.0]))
-m2 = mcdc.material(capture=np.array([1.5]))
-m3 = mcdc.material(capture=np.array([2.0]))
+m1 = mcdc.MaterialMG(capture=np.array([1.0]))
+m2 = mcdc.MaterialMG(capture=np.array([1.5]))
+m3 = mcdc.MaterialMG(capture=np.array([2.0]))
 
 # Set surfaces
-s1 = mcdc.surface("plane-z", z=0.0, bc="vacuum")
-s2 = mcdc.surface("plane-z", z=2.0)
-s3 = mcdc.surface("plane-z", z=4.0)
-s4 = mcdc.surface("plane-z", z=6.0, bc="vacuum")
+s1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition="vacuum")
+s2 = mcdc.Surface.PlaneZ(z=2.0)
+s3 = mcdc.Surface.PlaneZ(z=4.0)
+s4 = mcdc.Surface.PlaneZ(z=6.0, boundary_condition="vacuum")
 
 # Set cells
-mcdc.cell(+s1 & -s2, m2)
-mcdc.cell(+s2 & -s3, m3)
-mcdc.cell(+s3 & -s4, m1)
+mcdc.Cell(region=+s1 & -s2, fill=m2)
+mcdc.Cell(region=+s2 & -s3, fill=m3)
+mcdc.Cell(region=+s3 & -s4, fill=m1)
 
-# =============================================================================
+# ======================================================================================
 # Set source
-# =============================================================================
+# ======================================================================================
 # Uniform isotropic source throughout the domain
 
-mcdc.source(z=[0.0, 6.0], isotropic=True)
+mcdc.Source(z=[0.0, 6.0], isotropic=True, energy_group=0)
 
-# =============================================================================
-# Set tally, setting, and run mcdc
-# =============================================================================
+# ======================================================================================
+# Set tallies, settings, and run mcdc
+# ======================================================================================
 
-# Tally: cell-average and cell-edge angular fluxes and currents
-mcdc.tally.mesh_tally(
-    z=np.linspace(0.0, 6.0, 61),
-    mu=np.linspace(-1.0, 1.0, 32 + 1),
-    scores=["flux", "total"],
-)
+# Tallies
+mcdc.Tally(surface=s4, scores=["net-current"])
+mesh = mcdc.MeshStructured(z=np.linspace(0.0, 6.0, 61))
+mcdc.Tally(mesh=mesh, mu=np.linspace(-1.0, 1.0, 32 + 1), scores=["flux", "collision"])
 
-# Setting
-mcdc.setting(N_particle=100, N_batch=2)
+# Settings
+mcdc.settings.N_particle = 100
+mcdc.settings.N_batch = 2
 
 # Run
 mcdc.run()

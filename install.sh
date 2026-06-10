@@ -34,9 +34,6 @@ while [ $# -gt 0 ]; do
       rm -rf installs/
       ;;
 
-    --config_cont_lib)
-      bash config_cont_energy.sh
-  ;;
   esac
   shift
 done
@@ -46,6 +43,3 @@ pip install -e .
 
 # Install pre-commit hook
 pre-commit install
-
-# Installing visualization dependencies (required via pip for osx-arm64)
-pip install ngsolve distinctipy

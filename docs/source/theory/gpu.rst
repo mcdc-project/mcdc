@@ -1,4 +1,4 @@
-.. _gpu:
+.. _theory_gpu:
 
 =================
 GPU Functionality
@@ -36,7 +36,7 @@ Simple proxy example describing how to compile device functions in Numba-Python 
 
 We begin by
 
-#. Compiling Python device code to Nvidia PTX by ``numba.cuda.compile_ptx_for_current_device`` (which requires typed function signatures), then place that output into ``add`_one.ptx` file; next
+#. Compiling Python device code to Nvidia PTX by ``numba.cuda.compile_ptx_for_current_device`` (which requires typed function signatures), then place that output into ``add_one.ptx`` file; next
 #. Compiling PTX to relocatable device code using ``nvcc -rdc=true -dc -arch=<arch> --cudart shared --compiler-options -fPIC add.ptx -o add.o`` where ``-dc`` asks the compiler for device code, ``-rdc`` asks to make that device code relocatable, ``--cudart shared`` asks for shared CUDA runtime libraries and ``-fPIC`` generates position-independent code;
 #. Compiling that relocatable byte code into a library of executable device functions is done with ``nvcc -dlink add.o -arch=<arch> --cudart shared -o device.o --compiler-options -fPIC`` where ``-dlink`` asks the compiler for relocatable device code; and finally
 #. Compiling the C-CUDA file containing the global function and linking with the library of device functions originating from Python with ``nvcc -shared add.o device.o -arch=<arch> --cudart shared``.

@@ -1,12 +1,9 @@
 import numpy as np
-import sys
-
 import mcdc
 
-
-# =============================================================================
+# ======================================================================================
 # Set model
-# =============================================================================
+# ======================================================================================
 # The infinite homogenous medium is modeled with reflecting slab
 
 # Load material data
@@ -23,7 +20,7 @@ with np.load("SHEM-361.npz") as data:
     lamd = data["lamd"]
 
 # Set material
-m = mcdc.material(
+m = mcdc.MaterialMG(
     capture=SigmaC,
     scatter=SigmaS,
     fission=SigmaF,
@@ -34,29 +31,31 @@ m = mcdc.material(
 )
 
 # Set surfaces
-s1 = mcdc.surface("plane-x", x=-1e10, bc="reflective")
-s2 = mcdc.surface("plane-x", x=1e10, bc="reflective")
+s1 = mcdc.Surface.PlaneX(x=-1e10, boundary_condition="reflective")
+s2 = mcdc.Surface.PlaneX(x=1e10, boundary_condition="reflective")
 
 # Set cells
-c = mcdc.cell(+s1 & -s2, m)
+c = mcdc.Cell(region=+s1 & -s2, fill=m)
 
-# =============================================================================
-# Set initial source
-# =============================================================================
+# ======================================================================================
+# Set source
+# ======================================================================================
 
-energy = np.zeros(G)
-energy[-1] = 1.0
-source = mcdc.source(energy=energy)
+mcdc.Source(
+    position=(0.0, 0.0, 0.0), isotropic=True, energy_group=np.array([[360], [1.0]])
+)
 
-# =============================================================================
-# Set problem and tally, and then run mcdc
-# =============================================================================
+# ======================================================================================
+# Set tallies, settings, and run MC/DC
+# ======================================================================================
 
-# Tally
-mcdc.tally.mesh_tally(scores=["flux"], g="all")
+# Tallies
+mcdc.Tally(scores=["flux"], energy="all_groups")
 
-# Setting
-mcdc.setting(N_particle=40, active_bank_buff=1000, N_batch=2)
+# Swttings
+mcdc.settings.N_particle = 25
+mcdc.settings.N_batch = 2
+mcdc.settings.active_bank_buffer = 1000
 
 # Run
 mcdc.run()

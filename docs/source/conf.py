@@ -3,46 +3,27 @@
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-
 # -- Path setup --------------------------------------------------------------
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
+import os
+import sys
 
-import os, sys
-
-sys.path.insert(0, os.path.abspath("../.."))
-
-
-# On Read the Docs, need to mock any python packages that would require c
-from unittest.mock import MagicMock
-
-MOCK_MODULES = [
-    "mpi4py",
-    "colorama",
-    "cvxpy",
-    "mpi4py.util.dtlib",
-    "sympy",
-    "matplotlib.pyplot",
-]
-sys.modules.update((mod_name, MagicMock()) for mod_name in MOCK_MODULES)
-from mpi4py import MPI
-
-MPI.COMM_WORLD.Get_size.return_value = 1
+# Make sure the project root (containing the `mcdc/` package) is importable
+HERE = os.path.abspath(os.path.dirname(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 # -- Project information -----------------------------------------------------
-
 project = "MC/DC"
-copyright = "2025, Center for Exascale Monte Carlo Neutron Transport (CEMeNT)"
-author = "Center for Exascale Monte Carlo Neutron Transport (CEMeNT)"
+copyright = "2023-2026, Center for Exascale Monte Carlo Neutron Transport (CEMeNT), Center for Advancing the Radiation Resilience of Electronics (CARRE), and MC/DC contributors"
 
 # The full version, including alpha/beta/rc tags
 release = " "
 
-
 # -- General configuration ---------------------------------------------------
-
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
@@ -54,7 +35,7 @@ extensions = [
     "sphinx.ext.autosectionlabel",
 ]
 autosummary_generate = True
-
+autosectionlabel_prefix_document = True
 
 github_username = "CEMeNT-PSAAP"
 github_repository = "MCDC"
@@ -68,9 +49,7 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
-
 # -- Options for HTML output -------------------------------------------------
-
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
@@ -82,4 +61,5 @@ html_logo = "images/home/mcdc.svg"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+html_static_path = ["_static", "images/home"]
+html_css_files = ["custom.css"]
