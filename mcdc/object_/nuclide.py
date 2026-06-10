@@ -269,9 +269,28 @@ class Nuclide(ObjectNonSingleton):
         file_name = f"{nuclide_name}-{temperature}K.h5"
         file = h5py.File(f"{dir_name}/{file_name}", "r")
 
-        # TENDL data only handles elastic scattering rxns as a unique rxn.
-        # Everything else is grouped together, including nonelastic rxns
-        # and rxns that will produce secondary particles.
+        # ==========================================================================
+        # Stopping power for protons
+        # ==========================================================================
+        if "stopping_power" in file:
+            self.stopping_power = file["stopping_power"]["total_stopping_power"][()]
+            self.stopping_power_energy_grid = file["stopping_power"]["energy"][()]
+        elif simulation.settings.csda:
+            raise ValueError(f"CSDA cannot be used if no stopping power is provided for nuclide {self.name}")
+
+        # Only CSDA data available - no nuclear rxn xs
+        if "proton_reactions" not in file:
+            # Zero out all xs arrays
+            xs_energy = np.array([0, 1.0e10])
+            self.proton_xs_energy_grid = xs_energy
+
+            self.proton_total_xs = np.zeros_like(self.proton_xs_energy_grid)
+            self.proton_elastic_xs = np.zeros_like(self.proton_xs_energy_grid)
+            self.proton_nonelastic_xs = np.zeros_like(self.proton_xs_energy_grid)
+
+            file.close()
+            return
+
         rx_names = [
             "elastic_scattering",
             "nonelastic_reaction",
@@ -335,15 +354,6 @@ class Nuclide(ObjectNonSingleton):
                 h5_group = file[f"proton_reactions/{rx_name}/{MT}"]
                 reaction = rx_class.from_h5_group(h5_group)
                 rx_container.append(reaction)
-
-        # ==========================================================================
-        # Stopping power for protons
-        # ==========================================================================
-        if "stopping_power" in file:
-            self.stopping_power = file["stopping_power"]["total_stopping_power"][()]
-            self.stopping_power_energy_grid = file["stopping_power"]["energy"][()]
-        elif simulation.settings.csda:
-            raise ValueError(f"CSDA cannot be used if no stopping power is provided for nuclide {self.name}")
 
         file.close()
 
