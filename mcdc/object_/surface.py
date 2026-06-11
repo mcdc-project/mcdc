@@ -1,4 +1,4 @@
-from typing import Annotated, Iterable
+from typing import Annotated, Sequence
 import numpy as np
 
 from numpy import float64
@@ -414,7 +414,7 @@ class Surface(ObjectNonSingleton):
     def CylinderX(
         cls,
         name: str = "",
-        center: Iterable[float] = [0.0, 0.0],
+        center: Sequence[float] = [0.0, 0.0],
         radius: float = 0.0,
         boundary_condition: str = "none",
     ):
@@ -458,7 +458,7 @@ class Surface(ObjectNonSingleton):
     def CylinderY(
         cls,
         name: str = "",
-        center: Iterable[float] = [0.0, 0.0],
+        center: Sequence[float] = [0.0, 0.0],
         radius: float = 0.0,
         boundary_condition: str = "none",
     ):
@@ -502,7 +502,7 @@ class Surface(ObjectNonSingleton):
     def CylinderZ(
         cls,
         name: str = "",
-        center: Iterable[float] = [0.0, 0.0],
+        center: Sequence[float] = [0.0, 0.0],
         radius: float = 0.0,
         boundary_condition: str = "none",
     ):
@@ -547,8 +547,8 @@ class Surface(ObjectNonSingleton):
         cls,
         name: str = "",
         radius: float = 0.0,
-        axis: Iterable[float] = [0.0, 0.0, 1.0],
-        point: Iterable[float] = [0.0, 0.0, 0.0],
+        axis: Sequence[float] = [0.0, 0.0, 1.0],
+        point: Sequence[float] = [0.0, 0.0, 0.0],
         boundary_condition: str = "none",
     ):
         """
@@ -603,7 +603,7 @@ class Surface(ObjectNonSingleton):
     def Sphere(
         cls,
         name: str = "",
-        center: Iterable[float] = [0.0, 0.0, 0.0],
+        center: Sequence[float] = [0.0, 0.0, 0.0],
         radius: float = 0.0,
         boundary_condition: str = "none",
     ):
@@ -649,7 +649,7 @@ class Surface(ObjectNonSingleton):
     def ConeX(
         cls,
         name: str = "",
-        apex: Iterable[float] = [0.0, 0.0, 0.0],
+        apex: Sequence[float] = [0.0, 0.0, 0.0],
         t_sq: float = 1.0,
         boundary_condition: str = "none",
     ):
@@ -693,7 +693,7 @@ class Surface(ObjectNonSingleton):
     def ConeY(
         cls,
         name: str = "",
-        apex: Iterable[float] = [0.0, 0.0, 0.0],
+        apex: Sequence[float] = [0.0, 0.0, 0.0],
         t_sq: float = 1.0,
         boundary_condition: str = "none",
     ):
@@ -736,7 +736,7 @@ class Surface(ObjectNonSingleton):
     def ConeZ(
         cls,
         name: str = "",
-        apex: Iterable[float] = [0.0, 0.0, 0.0],
+        apex: Sequence[float] = [0.0, 0.0, 0.0],
         t_sq: float = 1.0,
         boundary_condition: str = "none",
     ):

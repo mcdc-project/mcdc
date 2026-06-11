@@ -13,7 +13,7 @@ from numpy import float64
 from numpy.typing import NDArray
 from operator import attrgetter
 from types import NoneType
-from typing import Annotated, Iterable
+from typing import Annotated, Sequence
 from sympy.logic.boolalg import Boolean
 
 ####
@@ -150,8 +150,8 @@ class Cell(ObjectNonSingleton):
         region: Region | NoneType = None,
         fill: MaterialBase | Universe | Lattice | NoneType = None,
         name: str = "",
-        translation: Iterable[float] = [0.0, 0.0, 0.0],
-        rotation: Iterable[float] = [0.0, 0.0, 0.0],
+        translation: Sequence[float] = [0.0, 0.0, 0.0],
+        rotation: Sequence[float] = [0.0, 0.0, 0.0],
     ):
         super().__init__()
 

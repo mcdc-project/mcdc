@@ -13,7 +13,7 @@ import operator
 from functools import reduce
 from numpy import float64
 from numpy.typing import NDArray
-from typing import Annotated, Iterable
+from typing import Annotated, Sequence
 from types import NoneType
 
 ####
@@ -93,14 +93,14 @@ class Tally(ObjectPolymorphic):
         surface: Surface | NoneType = None,
         cell: Cell | NoneType = None,
         mesh: MeshBase | NoneType = None,
-        mu: Iterable[float] | NoneType = None,
-        azi: Iterable[float] | NoneType = None,
-        polar_reference: Iterable[float] | NoneType = None,
-        energy: Iterable[float] | str | NoneType = None,
-        time: Iterable[float] | NoneType = None,
-        x: Iterable[float] | NoneType = None,
-        y: Iterable[float] | NoneType = None,
-        z: Iterable[float] | NoneType = None,
+        mu: Sequence[float] | NoneType = None,
+        azi: Sequence[float] | NoneType = None,
+        polar_reference: Sequence[float] | NoneType = None,
+        energy: Sequence[float] | str | NoneType = None,
+        time: Sequence[float] | NoneType = None,
+        x: Sequence[float] | NoneType = None,
+        y: Sequence[float] | NoneType = None,
+        z: Sequence[float] | NoneType = None,
     ) -> TallySurface | TallyTracklength | TallyCollision:
         # Determine type and create the tally self based on the provided
         # spatial filters and scores
@@ -162,14 +162,14 @@ class Tally(ObjectPolymorphic):
         surface: Surface | NoneType = None,
         cell: Cell | NoneType = None,
         mesh: MeshBase | NoneType = None,
-        mu: Iterable[float] | NoneType = None,
-        azi: Iterable[float] | NoneType = None,
-        polar_reference: Iterable[float] | NoneType = None,
-        energy: Iterable[float] | str | NoneType = None,
-        time: Iterable[float] | NoneType = None,
-        x: Iterable[float] | NoneType = None,
-        y: Iterable[float] | NoneType = None,
-        z: Iterable[float] | NoneType = None,
+        mu: Sequence[float] | NoneType = None,
+        azi: Sequence[float] | NoneType = None,
+        polar_reference: Sequence[float] | NoneType = None,
+        energy: Sequence[float] | str | NoneType = None,
+        time: Sequence[float] | NoneType = None,
+        x: Sequence[float] | NoneType = None,
+        y: Sequence[float] | NoneType = None,
+        z: Sequence[float] | NoneType = None,
         spatial_shape: tuple[int] | NoneType = None,
     ):
         # Set name
@@ -361,14 +361,14 @@ class TallySurface(Tally):
         cell: Cell | NoneType = None,
         name: str = "",
         scores: list[str] = ["flux"],
-        mu: Iterable[float] | NoneType = None,
-        azi: Iterable[float] | NoneType = None,
-        polar_reference: Iterable[float] | NoneType = None,
-        energy: Iterable[float] | str | NoneType = None,
-        time: Iterable[float] | NoneType = None,
-        x: Iterable[float] | NoneType = None,
-        y: Iterable[float] | NoneType = None,
-        z: Iterable[float] | NoneType = None,
+        mu: Sequence[float] | NoneType = None,
+        azi: Sequence[float] | NoneType = None,
+        polar_reference: Sequence[float] | NoneType = None,
+        energy: Sequence[float] | str | NoneType = None,
+        time: Sequence[float] | NoneType = None,
+        x: Sequence[float] | NoneType = None,
+        y: Sequence[float] | NoneType = None,
+        z: Sequence[float] | NoneType = None,
     ):
         type_ = TALLY_SURFACE
         super(Tally, self).__init__(type_)
@@ -511,11 +511,11 @@ class TallyCollision(Tally):
         mesh: MeshBase | NoneType = None,
         name: str = "",
         scores: list[str] = ["energy_deposition"],
-        mu: Iterable[float] | NoneType = None,
-        azi: Iterable[float] | NoneType = None,
-        polar_reference: Iterable[float] | NoneType = None,
-        energy: Iterable[float] | str | NoneType = None,
-        time: Iterable[float] | NoneType = None,
+        mu: Sequence[float] | NoneType = None,
+        azi: Sequence[float] | NoneType = None,
+        polar_reference: Sequence[float] | NoneType = None,
+        energy: Sequence[float] | str | NoneType = None,
+        time: Sequence[float] | NoneType = None,
     ):
         type_ = TALLY_COLLISION
         spatial_shape = None
@@ -619,11 +619,11 @@ class TallyTracklength(Tally):
         mesh: MeshBase | NoneType = None,
         name: str = "",
         scores: list[str] = ["flux"],
-        mu: Iterable[float] | NoneType = None,
-        azi: Iterable[float] | NoneType = None,
-        polar_reference: Iterable[float] | NoneType = None,
-        energy: Iterable[float] | str | NoneType = None,
-        time: Iterable[float] | NoneType = None,
+        mu: Sequence[float] | NoneType = None,
+        azi: Sequence[float] | NoneType = None,
+        polar_reference: Sequence[float] | NoneType = None,
+        energy: Sequence[float] | str | NoneType = None,
+        time: Sequence[float] | NoneType = None,
     ):
         type_ = TALLY_TRACKLENGTH
         spatial_shape = None
