@@ -1027,8 +1027,8 @@ class Surface(ObjectNonSingleton):
     def Torus(
         cls,
         name: str = "",
-        center: Iterable[float] = [0.0, 0.0, 0.0],
-        axis: Iterable[float] = [0.0, 0.0, 1.0],
+        center: Sequence[float] = [0.0, 0.0, 0.0],
+        axis: Sequence[float] = [0.0, 0.0, 1.0],
         R: float = 0.0,
         r: float = 0.0,
         boundary_condition: str = "none",
