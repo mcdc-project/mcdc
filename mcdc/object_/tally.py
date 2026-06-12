@@ -101,7 +101,7 @@ class Tally(ObjectPolymorphic):
         x: Sequence[float] | NoneType = None,
         y: Sequence[float] | NoneType = None,
         z: Sequence[float] | NoneType = None,
-    ) -> TallySurface | TallyTracklength | TallyCollision:
+    ) -> TallySurfaceCrossing | TallyTracklength | TallyCollision:
         # Determine type and create the tally self based on the provided
         # spatial filters and scores
 
@@ -130,7 +130,7 @@ class Tally(ObjectPolymorphic):
                 )
 
             # Cell-filtered current tallies share the surface-crossing estimator.
-            return super().__new__(TallySurface)
+            return super().__new__(TallySurfaceCrossing)
 
         # Unsupported score for explicit surface selector
         if surface is not None:
@@ -335,7 +335,7 @@ def decode_score_type(type_, lower_case=False):
 # ======================================================================================
 
 
-class TallySurface(Tally):
+class TallySurfaceCrossing(Tally):
     # Annotations for Numba mode
     label: str = "surface_tally"
     non_numba: list[str] = ["spatial_filter"]
