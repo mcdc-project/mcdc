@@ -4,7 +4,7 @@ import mcdc
 from mcdc.constant import SPATIAL_FILTER_NONE
 from mcdc.object_.tally import (
     TallyCollision,
-    TallySurface,
+    TallySurfaceCrossing,
     TallyTracklength,
 )
 
@@ -24,8 +24,8 @@ def test_tally_factory_routing_surface_vs_tracklength_vs_collision(slab_plane_x)
     )
     collision_tally = mcdc.Tally(mesh=mesh, scores=["energy_deposition"])
 
-    assert isinstance(surface_tally, TallySurface)
-    assert isinstance(surface_cell_filter_tally, TallySurface)
+    assert isinstance(surface_tally, TallySurfaceCrossing)
+    assert isinstance(surface_cell_filter_tally, TallySurfaceCrossing)
     assert isinstance(tracklength_tally, TallyTracklength)
     assert isinstance(collision_tally, TallyCollision)
     assert tracklength_tally.spatial_filter_type == SPATIAL_FILTER_NONE
