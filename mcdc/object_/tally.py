@@ -41,7 +41,7 @@ from mcdc.constant import (
     SURFACE_PLANE_X,
     SURFACE_PLANE_Y,
     SURFACE_PLANE_Z,
-    TALLY_SURFACE,
+    TALLY_SURFACE_CROSSING,
     TALLY_COLLISION,
     TALLY_TRACKLENGTH,
 )
@@ -303,8 +303,8 @@ class Tally(ObjectPolymorphic):
 def decode_type(type_):
     if type_ == TALLY_TRACKLENGTH:
         return "Tracklength tally"
-    elif type_ == TALLY_SURFACE:
-        return "Surface tally"
+    elif type_ == TALLY_SURFACE_CROSSING:
+        return "Surface crossing tally"
     elif type_ == TALLY_COLLISION:
         return "Collision tally"
 
@@ -370,7 +370,7 @@ class TallySurfaceCrossing(Tally):
         y: Sequence[float] | NoneType = None,
         z: Sequence[float] | NoneType = None,
     ):
-        type_ = TALLY_SURFACE
+        type_ = TALLY_SURFACE_CROSSING
         super(Tally, self).__init__(type_)
         super().__init__(
             name,
