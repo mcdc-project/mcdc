@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 import mcdc.transport.distribution as dist
 
@@ -31,5 +32,5 @@ def test_kalbach_mann_sample(rng_sequence, rng_state):
     #   mu = ln(T + sqrt(T^2 + 1)) / A = 0
     expected_mu = 0.0
 
-    assert math.isclose(sampled_E, expected_E, rel_tol=0.0, abs_tol=1e-12)
-    assert math.isclose(sampled_mu, expected_mu, rel_tol=0.0, abs_tol=1e-12)
+    np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)
+    np.testing.assert_allclose(sampled_mu, expected_mu, rtol=0.0, atol=1e-12)
