@@ -275,8 +275,22 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
         total_rho_gcm3 += density_gcm3
 
     energy_loss = total_stopping_power * distance * total_rho_gcm3 * 1e6
+    Z = nuclide["atomic_number"]
+    A = nuclide["mass_number"]
+
+    # Range straggling - modify energy loss to have some slight variations
+    # TODO: Insert different thickness regimes to sample from (e.g. Bohr, Landau, Vavilov)
+    gaussian_variance = 0.1569 * total_rho_gcm3 * Z / A * distance
+    
+    # TODO: Account for relativistic particles
+    # gaussian_variance *= (1-0.5*beta**2)/(1-beta**2)
+    
+    gaussian = np.random.normal(loc=0.0, scale=np.sqrt(gaussian_variance))
+    energy_loss += gaussian
     particle["E"] -= energy_loss * particle["w"]
     collision_data["energy_deposition"] += energy_loss * particle["w"]
+    if energy_loss * particle["w"] <= 0.0:
+        print(f'NEGATIVE: energy_loss = {energy_loss * particle["w"]}')
     return
 
 
