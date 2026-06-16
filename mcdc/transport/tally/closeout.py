@@ -137,7 +137,9 @@ def _finalize(tally, simulation, data):
         # Check for round-off error (TODO: Check why this is needed.)
         if abs(radicand) < 1e-16:
             data[offset_sum_square + i] = 0.0
-        else:
+        if radicand < 0.0 and abs(radicand) < 1e-6:
+            data[offset_sum_square + i] = 0.0
+        else: 
             data[offset_sum_square + i] = math.sqrt(radicand)
 
 
