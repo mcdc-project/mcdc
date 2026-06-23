@@ -458,7 +458,7 @@ def surface_crossing(P_arr, simulation, data):
     # Score tally
     for i in range(surface["N_tally"]):
         tally_ID = int(mcdc_get.surface.tally_IDs(i, surface, data))
-        tally = simulation["surface_tallies"][tally_ID]
+        tally = simulation["surface_crossing_tallies"][tally_ID]
 
         # Optional bounded surface tally: score only if the crossing point is
         # within the specified in-plane bounds.
@@ -476,7 +476,7 @@ def surface_crossing(P_arr, simulation, data):
                     P_arr, simulation, data
                 )
 
-        tally_module.score.surface_tally(
+        tally_module.score.surface_crossing_tally(
             P_arr, surface, tally, pre_cell_ID, post_cell_ID, simulation, data
         )
 

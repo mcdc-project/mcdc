@@ -27,14 +27,16 @@ from mcdc.transport.geometry import interface as geometry_interface
         "z_outside_upper",
     ],
 )
-def test_surface_bounds_edges(surface_tally_context, bin_value, y, z, expected_bounded):
-    data = surface_tally_context["data"]
-    mcdc_struct = surface_tally_context["mcdc_struct"]
-    particle = surface_tally_context["particle"]
-    particle_container = surface_tally_context["particle_container"]
-    s_mid = surface_tally_context["s_mid"]
-    unbounded_tally = surface_tally_context["unbounded_tally"]
-    bounded_tally = surface_tally_context["bounded_tally"]
+def test_surface_bounds_edges(
+    surface_crossing_tally_context, bin_value, y, z, expected_bounded
+):
+    data = surface_crossing_tally_context["data"]
+    mcdc_struct = surface_crossing_tally_context["mcdc_struct"]
+    particle = surface_crossing_tally_context["particle"]
+    particle_container = surface_crossing_tally_context["particle_container"]
+    s_mid = surface_crossing_tally_context["s_mid"]
+    unbounded_tally = surface_crossing_tally_context["unbounded_tally"]
+    bounded_tally = surface_crossing_tally_context["bounded_tally"]
 
     particle["alive"] = True
     particle["surface_ID"] = s_mid.ID

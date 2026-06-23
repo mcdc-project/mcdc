@@ -100,7 +100,7 @@ import mcdc.mcdc_set.source as source
 
 import mcdc.mcdc_set.surface as surface
 
-import mcdc.mcdc_set.surface_tally as surface_tally
+import mcdc.mcdc_set.surface_crossing_tally as surface_crossing_tally
 
 import mcdc.mcdc_set.collision_tally as collision_tally
 

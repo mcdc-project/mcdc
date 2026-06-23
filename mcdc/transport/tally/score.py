@@ -40,7 +40,7 @@ from mcdc.transport.tally.filter import get_filter_indices
 
 
 @njit
-def surface_tally(
+def surface_crossing_tally(
     particle_container,
     surface,
     tally,

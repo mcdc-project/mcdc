@@ -6,9 +6,9 @@ from mcdc.main import preparation
 from mcdc.transport.geometry import interface as geometry_interface
 
 
-def test_surface_tally_bounds_fields(surface_tally_context):
-    unbounded_tally = surface_tally_context["unbounded_tally"]
-    bounded_tally = surface_tally_context["bounded_tally"]
+def test_surface_crossing_tally_bounds_fields(surface_crossing_tally_context):
+    unbounded_tally = surface_crossing_tally_context["unbounded_tally"]
+    bounded_tally = surface_crossing_tally_context["bounded_tally"]
 
     assert unbounded_tally["filter_surface_bounds"] == 0
     assert bounded_tally["filter_surface_bounds"] == 1
@@ -27,8 +27,8 @@ def test_surface_tally_bounds_fields(surface_tally_context):
     ],
     ids=["inside_l2r", "inside_r2l", "outside_y_bounds", "outside_z_bounds"],
 )
-def test_unbounded_surface_tally_scoring(
-    surface_tally_context,
+def test_unbounded_surface_crossing_tally_scoring(
+    surface_crossing_tally_context,
     bin_value,
     ux,
     y,
@@ -36,13 +36,13 @@ def test_unbounded_surface_tally_scoring(
     expected_unbounded,
     expected_bounded,
 ):
-    data = surface_tally_context["data"]
-    mcdc_struct = surface_tally_context["mcdc_struct"]
-    particle = surface_tally_context["particle"]
-    particle_container = surface_tally_context["particle_container"]
-    s_mid = surface_tally_context["s_mid"]
-    unbounded_tally = surface_tally_context["unbounded_tally"]
-    bounded_tally = surface_tally_context["bounded_tally"]
+    data = surface_crossing_tally_context["data"]
+    mcdc_struct = surface_crossing_tally_context["mcdc_struct"]
+    particle = surface_crossing_tally_context["particle"]
+    particle_container = surface_crossing_tally_context["particle_container"]
+    s_mid = surface_crossing_tally_context["s_mid"]
+    unbounded_tally = surface_crossing_tally_context["unbounded_tally"]
+    bounded_tally = surface_crossing_tally_context["bounded_tally"]
 
     particle["alive"] = True
     particle["surface_ID"] = s_mid.ID
@@ -56,7 +56,7 @@ def test_unbounded_surface_tally_scoring(
     assert np.isclose(bin_value(bounded_tally, mcdc_struct, data), expected_bounded)
 
 
-def test_surface_tally_scores_vacuum_boundary(
+def test_surface_crossing_tally_scores_vacuum_boundary(
     material_mg, bin_value, crossing_particle
 ):
     s_left = mcdc.Surface.PlaneX(x=-1.0, boundary_condition="vacuum")
@@ -66,7 +66,7 @@ def test_surface_tally_scores_vacuum_boundary(
 
     mcdc_container, data = preparation()
     mcdc_struct = mcdc_container[0]
-    tally = mcdc_struct["surface_tallies"][tally_obj.child_ID]
+    tally = mcdc_struct["surface_crossing_tallies"][tally_obj.child_ID]
 
     particle_container = crossing_particle(s_right.ID, x=1.0, ux=0.5)
     particle = particle_container[0]
@@ -77,7 +77,7 @@ def test_surface_tally_scores_vacuum_boundary(
     assert np.isclose(bin_value(tally, mcdc_struct, data), 2.0)
 
 
-def test_surface_tally_scores_after_reflective_boundary(
+def test_surface_crossing_tally_scores_after_reflective_boundary(
     material_mg, bin_value, crossing_particle
 ):
     s_left = mcdc.Surface.PlaneX(x=-1.0, boundary_condition="vacuum")
@@ -87,7 +87,7 @@ def test_surface_tally_scores_after_reflective_boundary(
 
     mcdc_container, data = preparation()
     mcdc_struct = mcdc_container[0]
-    tally = mcdc_struct["surface_tallies"][tally_obj.child_ID]
+    tally = mcdc_struct["surface_crossing_tallies"][tally_obj.child_ID]
 
     particle_container = crossing_particle(s_right.ID, x=1.0, ux=0.5)
     particle = particle_container[0]

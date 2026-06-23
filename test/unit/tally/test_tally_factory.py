@@ -11,7 +11,7 @@ from mcdc.object_.tally import (
 
 
 def test_tally_factory_routing_surface_vs_tracklength_vs_collision(slab_plane_x):
-    surface_tally = mcdc.Tally(
+    surface_crossing_tally = mcdc.Tally(
         surface=slab_plane_x["s_mid"],
         scores=["current-net"],
     )
@@ -35,7 +35,7 @@ def test_tally_factory_routing_surface_vs_tracklength_vs_collision(slab_plane_x)
         scores=["energy_deposition"],
     )
 
-    assert isinstance(surface_tally, TallySurfaceCrossing)
+    assert isinstance(surface_crossing_tally, TallySurfaceCrossing)
     assert isinstance(surface_cell_filter_tally, TallySurfaceCrossing)
     assert isinstance(tracklength_tally, TallyTracklength)
     assert isinstance(collision_tally, TallyCollision)

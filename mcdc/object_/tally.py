@@ -346,7 +346,7 @@ def decode_score_type(type_, lower_case=False):
 
 class TallySurfaceCrossing(Tally):
     # Annotations for Numba mode
-    label: str = "surface_tally"
+    label: str = "surface_crossing_tally"
     non_numba: list[str] = ["spatial_filter"]
     #
     spatial_filter: Surface | Cell

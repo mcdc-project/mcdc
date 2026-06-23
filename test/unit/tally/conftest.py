@@ -68,7 +68,7 @@ def slab_plane_x(material_mg):
 
 
 @pytest.fixture
-def surface_tally_context(slab_plane_x):
+def surface_crossing_tally_context(slab_plane_x):
     s_mid = slab_plane_x["s_mid"]
 
     # Same surface, with and without explicit y/z bounds.
@@ -85,8 +85,10 @@ def surface_tally_context(slab_plane_x):
     mcdc_struct = mcdc_container[0]
 
     # Compiled tally handles.
-    unbounded_tally = mcdc_struct["surface_tallies"][unbounded_tally_obj.child_ID]
-    bounded_tally = mcdc_struct["surface_tallies"][bounded_tally_obj.child_ID]
+    unbounded_tally = mcdc_struct["surface_crossing_tallies"][
+        unbounded_tally_obj.child_ID
+    ]
+    bounded_tally = mcdc_struct["surface_crossing_tallies"][bounded_tally_obj.child_ID]
 
     # Particle for direct crossing-based tally-kernel testing.
     particle_container = np.zeros(1, type_.particle)
@@ -116,8 +118,8 @@ def surface_tally_context(slab_plane_x):
 
 @pytest.fixture
 def bin_value():
-    def _value(surface_tally, mcdc_struct, data):
-        tally_base = mcdc_struct["tallies"][surface_tally["parent_ID"]]
+    def _value(surface_crossing_tally, mcdc_struct, data):
+        tally_base = mcdc_struct["tallies"][surface_crossing_tally["parent_ID"]]
         return data[tally_base["bin_offset"]]
 
     return _value
