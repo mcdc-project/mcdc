@@ -30,7 +30,7 @@ from mcdc.constant import (
     SCORE_COLLISION,
     SCORE_CAPTURE,
     SCORE_FISSION,
-    SCORE_NET_CURRENT,
+    SCORE_CURRENT_NET,
     SCORE_ENERGY_DEPOSITION,
     SCORE_CURRENT_IN,
     SCORE_CURRENT_OUT,
@@ -201,7 +201,7 @@ class Tally(ObjectPolymorphic):
             elif score == "fission":
                 self.scores.append(SCORE_FISSION)
             elif score == "current-net":
-                self.scores.append(SCORE_NET_CURRENT)
+                self.scores.append(SCORE_CURRENT_NET)
             elif score == "current-in":
                 self.scores.append(SCORE_CURRENT_IN)
             elif score == "current-out":
@@ -329,7 +329,7 @@ def decode_score_type(type_, lower_case=False):
         return "Capture" if not lower_case else "capture"
     elif type_ == SCORE_FISSION:
         return "Fission" if not lower_case else "fission"
-    elif type_ == SCORE_NET_CURRENT:
+    elif type_ == SCORE_CURRENT_NET:
         return "Net current" if not lower_case else "current-net"
     elif type_ == SCORE_ENERGY_DEPOSITION:
         return "Energy deposition" if not lower_case else "energy_deposition"

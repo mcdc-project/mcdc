@@ -23,7 +23,7 @@ from mcdc.constant import (
     SCORE_COLLISION,
     SCORE_CAPTURE,
     SCORE_FISSION,
-    SCORE_NET_CURRENT,
+    SCORE_CURRENT_NET,
     SCORE_ENERGY_DEPOSITION,
     SCORE_CURRENT_IN,
     SCORE_CURRENT_OUT,
@@ -93,7 +93,7 @@ def surface_crossing_tally(
     for i_score in range(tally_base["scores_length"]):
         score_type = mcdc_get.tally.scores(i_score, tally_base, data)
         score = 0.0
-        if score_type == SCORE_NET_CURRENT:
+        if score_type == SCORE_CURRENT_NET:
             if is_cell_filtered:
                 if entered:
                     score = particle["w"]
