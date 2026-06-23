@@ -18,7 +18,7 @@ def _bin_value_score(surface_tally, mcdc_struct, data, score_idx):
 def test_surface_cell_filter_current_sign_for_incoming_and_outgoing(
     slab_plane_x, crossing_particle
 ):
-    current_tally_obj = mcdc.Tally(cell=slab_plane_x["c_right"], scores=["net-current"])
+    current_tally_obj = mcdc.Tally(cell=slab_plane_x["c_right"], scores=["current-net"])
     mcdc_container, data = preparation()
     mcdc_struct = mcdc_container[0]
     current_tally = mcdc_struct["surface_tallies"][current_tally_obj.child_ID]
@@ -39,7 +39,7 @@ def test_surface_cell_filter_current_records_in_and_out_separately(
 ):
     current_tally_obj = mcdc.Tally(
         cell=slab_plane_x["c_right"],
-        scores=["net-current", "current-in", "current-out"],
+        scores=["current-net", "current-in", "current-out"],
     )
     mcdc_container, data = preparation()
     mcdc_struct = mcdc_container[0]
@@ -51,8 +51,8 @@ def test_surface_cell_filter_current_records_in_and_out_separately(
     particle_container = crossing_particle(slab_plane_x["s_mid"].ID, x=0.0, ux=-0.5)
     geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
 
-    # Scores are in requested order: [net-current, current-in, current-out].
-    # Partial currents are positive; net-current carries the sign.
+    # Scores are in requested order: [current-net, current-in, current-out].
+    # Partial currents are positive; current-net carries the sign.
     assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 0), 0.0)
     assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 1), 2.0)
     assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 2), 2.0)
@@ -63,7 +63,7 @@ def test_surface_cell_filter_current_counts_outgoing_to_vacuum(
 ):
     current_tally_obj = mcdc.Tally(
         cell=slab_plane_x["c_right"],
-        scores=["net-current", "current-in", "current-out"],
+        scores=["current-net", "current-in", "current-out"],
     )
     mcdc_container, data = preparation()
     mcdc_struct = mcdc_container[0]
@@ -87,7 +87,7 @@ def test_surface_cell_filter_current_ignores_reflective_crossing(
     c_mid = mcdc.Cell(region=+s_left & -s_right, fill=material_mg)
     current_tally_obj = mcdc.Tally(
         cell=c_mid,
-        scores=["net-current", "current-in", "current-out"],
+        scores=["current-net", "current-in", "current-out"],
     )
 
     mcdc_container, data = preparation()
@@ -112,7 +112,7 @@ def test_surface_cell_filter_current_scores_curved_boundary(
     mcdc.Cell(region=+s_cyl, fill=material_mg)
     current_tally_obj = mcdc.Tally(
         cell=c_inner,
-        scores=["net-current", "current-in", "current-out"],
+        scores=["current-net", "current-in", "current-out"],
     )
 
     mcdc_container, data = preparation()

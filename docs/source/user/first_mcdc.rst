@@ -108,9 +108,9 @@ the tally definitions are used to indicate in which dimensions a record of parti
 Available tracklength scores include ``"flux"``, ``"density"``, ``"collision"``, ``"capture"``, and ``"fission"``.
 Current tallies can be attached to either a surface or a cell.
 Current scoring uses the surface-crossing estimator in both cases.
-For explicit surface filters, supported score is ``"net-current"``.
-For cell filters, supported scores are ``"net-current"``, ``"current-in"``, and ``"current-out"``.
-The ``"current-in"`` and ``"current-out"`` scores are positive partial currents; ``"net-current"`` keeps the sign
+For explicit surface filters, supported score is ``"current-net"``.
+For cell filters, supported scores are ``"current-net"``, ``"current-in"``, and ``"current-out"``.
+The ``"current-in"`` and ``"current-out"`` scores are positive partial currents; ``"current-net"`` keeps the sign
 of the crossing direction.
 
 .. code-block:: python3
@@ -126,7 +126,7 @@ of the crossing direction.
     # Tally: current crossing a cell boundary
     mcdc.Tally(
         cell=my_cell,
-        scores=["net-current", "current-in", "current-out"],
+        scores=["current-net", "current-in", "current-out"],
     )
 
 Next we set simulation settings. The only required setting is the number of particles.

@@ -34,6 +34,10 @@ from mcdc.constant import (
     SCORE_ENERGY_DEPOSITION,
     SCORE_CURRENT_IN,
     SCORE_CURRENT_OUT,
+    SUPPORTED_SCORES,
+    SUPPORTED_SCORES_SURFACE_CROSSING,
+    SUPPORTED_SCORES_TRACKLENGTH,
+    SUPPORTED_SCORES_COLLISION,
     SPATIAL_FILTER_CELL,
     SPATIAL_FILTER_SURFACE,
     SPATIAL_FILTER_MESH,
@@ -49,11 +53,6 @@ from mcdc.object_.mesh import MeshBase, MeshStructured, MeshUniform
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
-
-SURFACE_SCORES = {"net-current"}
-CELL_CURRENT_SCORES = {"net-current", "current-in", "current-out"}
-TRACKLENGTH_SCORES = {"flux", "density", "collision", "capture", "fission"}
-COLLISION_SCORES = {"energy_deposition"}
 
 
 class Tally(ObjectPolymorphic):
@@ -102,58 +101,68 @@ class Tally(ObjectPolymorphic):
         y: Sequence[float] | NoneType = None,
         z: Sequence[float] | NoneType = None,
     ) -> TallySurfaceCrossing | TallyTracklength | TallyCollision:
-        # Determine type and create the tally self based on the provided
-        # spatial filters and scores
+        # Determine tally estimator type and create the instance
+        # based on the provided spatial filter and scores
 
-        has_current_score = any(score in CELL_CURRENT_SCORES for score in scores)
+        # Check scores
+        if len(scores) == 0:
+            print_error(f"Tally needs a score.")
+        if not (set(scores) <= SUPPORTED_SCORES):
+            print_error(f"Unsupported tally scores: {set(scores) - SUPPORTED_SCORES}")
 
-        # Surface/cell current tally
-        if has_current_score:
-            for score in scores:
-                if score not in CELL_CURRENT_SCORES:
-                    print_error(
-                        "Cannot mix current scores with non-current scores "
-                        f"in one tally. Current scores: {CELL_CURRENT_SCORES}."
-                    )
+        # Check spatial filter
+        spatial_filter = SPATIAL_FILTER_NONE
+        if sum([True if x is not None else False for x in (surface, cell, mesh)]) > 1:
+            print_error(
+                "Tally only supports one spatial filter. Choose one of surface, cell, or mesh."
+            )
 
-            if surface is not None and cell is not None:
-                print_error(
-                    "Current tally must specify exactly one of surface or cell."
-                )
-
-            if surface is None and cell is None:
-                print_error("Current scores need either a surface or a cell tally.")
-
-            if surface is not None and not set(scores) <= SURFACE_SCORES:
-                print_error(
-                    "Surface tally currently supports only " "scores=['net-current']."
-                )
-
-            # Cell-filtered current tallies share the surface-crossing estimator.
-            return super().__new__(TallySurfaceCrossing)
-
-        # Unsupported score for explicit surface selector
+        # Set spatial filter
         if surface is not None:
-            for score in scores:
+            spatial_filter = SPATIAL_FILTER_SURFACE
+        if cell is not None:
+            spatial_filter = SPATIAL_FILTER_CELL
+        if mesh is not None:
+            spatial_filter = SPATIAL_FILTER_MESH
+
+        # Determine the tally type based on the provided scores
+        if set(scores) <= SUPPORTED_SCORES_SURFACE_CROSSING:
+            tally_type = TALLY_SURFACE_CROSSING
+        elif set(scores) <= SUPPORTED_SCORES_TRACKLENGTH:
+            tally_type = TALLY_TRACKLENGTH
+        elif set(scores) <= SUPPORTED_SCORES_COLLISION:
+            tally_type = TALLY_COLLISION
+        else:
+            # Gather different
+            print_error(
+                f"Cannot mix tally scores with different estimators.\n  Surfaces crossing: {set(scores) & SUPPORTED_SCORES_SURFACE_CROSSING}\n  Tracklength: {set(scores) & SUPPORTED_SCORES_TRACKLENGTH}\n  Collision: {set(scores) & SUPPORTED_SCORES_COLLISION}"
+            )
+            tally_type = -1
+
+        # Check scores and spatial filter combination support
+        if tally_type == TALLY_SURFACE_CROSSING:
+            if spatial_filter not in [SPATIAL_FILTER_SURFACE, SPATIAL_FILTER_CELL]:
                 print_error(
-                    f"Scoring '{score}' with surface tally is not supported. "
-                    f"Supported surface tally scores: {SURFACE_SCORES}."
+                    f"Tally scores {set(scores)} need either a surface or cell filter."
+                )
+        elif tally_type == TALLY_TRACKLENGTH:
+            if spatial_filter in [SPATIAL_FILTER_SURFACE]:
+                print_error(
+                    f"Tally scores {set(scores)} does not support surface filter."
+                )
+        elif tally_type == TALLY_COLLISION:
+            if spatial_filter in [SPATIAL_FILTER_SURFACE]:
+                print_error(
+                    f"Tally scores {set(scores)} does not support surface filter."
                 )
 
-        # Collision tally
-        if set(scores) <= COLLISION_SCORES:
-            return super().__new__(TallyCollision)
-
-        # Tracklength tally
-        if set(scores) <= TRACKLENGTH_SCORES:
-            return super().__new__(TallyTracklength)
-
-        # Error: Unsupported score combination
-        print_error(
-            "Cannot mix tracklength scores with collision ones."
-            f"\n  Tracklength scores: {TRACKLENGTH_SCORES}"
-            f"\n  Collision scores: {COLLISION_SCORES}"
-        )
+        # Create the instance based on the tally type
+        if tally_type == TALLY_SURFACE_CROSSING:
+            return object.__new__(TallySurfaceCrossing)
+        elif tally_type == TALLY_TRACKLENGTH:
+            return object.__new__(TallyTracklength)
+        else:  # tally_type == TALLY_COLLISION:
+            return object.__new__(TallyCollision)
 
     def __init__(
         self,
@@ -191,7 +200,7 @@ class Tally(ObjectPolymorphic):
                 self.scores.append(SCORE_CAPTURE)
             elif score == "fission":
                 self.scores.append(SCORE_FISSION)
-            elif score == "net-current":
+            elif score == "current-net":
                 self.scores.append(SCORE_NET_CURRENT)
             elif score == "current-in":
                 self.scores.append(SCORE_CURRENT_IN)
@@ -321,7 +330,7 @@ def decode_score_type(type_, lower_case=False):
     elif type_ == SCORE_FISSION:
         return "Fission" if not lower_case else "fission"
     elif type_ == SCORE_NET_CURRENT:
-        return "Net current" if not lower_case else "net-current"
+        return "Net current" if not lower_case else "current-net"
     elif type_ == SCORE_ENERGY_DEPOSITION:
         return "Energy deposition" if not lower_case else "energy_deposition"
     elif type_ == SCORE_CURRENT_IN:

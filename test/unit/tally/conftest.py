@@ -72,12 +72,12 @@ def surface_tally_context(slab_plane_x):
     s_mid = slab_plane_x["s_mid"]
 
     # Same surface, with and without explicit y/z bounds.
-    unbounded_tally_obj = mcdc.Tally(surface=s_mid, scores=["net-current"])
+    unbounded_tally_obj = mcdc.Tally(surface=s_mid, scores=["current-net"])
     bounded_tally_obj = mcdc.Tally(
         surface=s_mid,
         y=[-0.5, 0.5],
         z=[-0.25, 0.25],
-        scores=["net-current"],
+        scores=["current-net"],
     )
 
     # Build compiled structures.

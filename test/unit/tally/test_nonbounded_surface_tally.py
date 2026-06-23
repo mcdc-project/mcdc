@@ -62,7 +62,7 @@ def test_surface_tally_scores_vacuum_boundary(
     s_left = mcdc.Surface.PlaneX(x=-1.0, boundary_condition="vacuum")
     s_right = mcdc.Surface.PlaneX(x=1.0, boundary_condition="vacuum")
     mcdc.Cell(region=+s_left & -s_right, fill=material_mg)
-    tally_obj = mcdc.Tally(surface=s_right, scores=["net-current"])
+    tally_obj = mcdc.Tally(surface=s_right, scores=["current-net"])
 
     mcdc_container, data = preparation()
     mcdc_struct = mcdc_container[0]
@@ -83,7 +83,7 @@ def test_surface_tally_scores_after_reflective_boundary(
     s_left = mcdc.Surface.PlaneX(x=-1.0, boundary_condition="vacuum")
     s_right = mcdc.Surface.PlaneX(x=1.0, boundary_condition="reflective")
     mcdc.Cell(region=+s_left & -s_right, fill=material_mg)
-    tally_obj = mcdc.Tally(surface=s_right, scores=["net-current"])
+    tally_obj = mcdc.Tally(surface=s_right, scores=["current-net"])
 
     mcdc_container, data = preparation()
     mcdc_struct = mcdc_container[0]

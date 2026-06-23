@@ -39,6 +39,16 @@ SCORE_CURRENT_OUT = 102
 ## Collision
 SCORE_ENERGY_DEPOSITION = 200
 
+# Supported tally scores for estimator types
+SUPPORTED_SCORES_SURFACE_CROSSING = {"current-net", "current-in", "current-out"}
+SUPPORTED_SCORES_TRACKLENGTH = {"flux", "density", "collision", "capture", "fission"}
+SUPPORTED_SCORES_COLLISION = {"energy_deposition"}
+SUPPORTED_SCORES = (
+    SUPPORTED_SCORES_SURFACE_CROSSING
+    | SUPPORTED_SCORES_TRACKLENGTH
+    | SUPPORTED_SCORES_COLLISION
+)
+
 # Boundary condition
 BC_NONE = 0
 BC_VACUUM = 1
