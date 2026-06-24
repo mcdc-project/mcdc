@@ -62,29 +62,58 @@ def surface_IDs_chunk(start, length, cell, data):
 
 
 @njit
-def tally_IDs(index, cell, data):
-    offset = cell["tally_IDs_offset"]
+def collision_tally_IDs(index, cell, data):
+    offset = cell["collision_tally_IDs_offset"]
     return data[offset + index]
 
 
 @njit
-def tally_IDs_all(cell, data):
-    start = cell["tally_IDs_offset"]
-    size = cell["N_tally"]
+def collision_tally_IDs_all(cell, data):
+    start = cell["collision_tally_IDs_offset"]
+    size = cell["N_collision_tally"]
     end = start + size
     return data[start:end]
 
 
 @njit
-def tally_IDs_last(cell, data):
-    start = cell["tally_IDs_offset"]
-    size = cell["N_tally"]
+def collision_tally_IDs_last(cell, data):
+    start = cell["collision_tally_IDs_offset"]
+    size = cell["N_collision_tally"]
     end = start + size
     return data[end - 1]
 
 
 @njit
-def tally_IDs_chunk(start, length, cell, data):
-    start += cell["tally_IDs_offset"]
+def collision_tally_IDs_chunk(start, length, cell, data):
+    start += cell["collision_tally_IDs_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def tracklength_tally_IDs(index, cell, data):
+    offset = cell["tracklength_tally_IDs_offset"]
+    return data[offset + index]
+
+
+@njit
+def tracklength_tally_IDs_all(cell, data):
+    start = cell["tracklength_tally_IDs_offset"]
+    size = cell["N_tracklength_tally"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def tracklength_tally_IDs_last(cell, data):
+    start = cell["tracklength_tally_IDs_offset"]
+    size = cell["N_tracklength_tally"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def tracklength_tally_IDs_chunk(start, length, cell, data):
+    start += cell["tracklength_tally_IDs_offset"]
     end = start + length
     return data[start:end]

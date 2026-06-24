@@ -10,7 +10,9 @@ import mcdc.mcdc_set.lattice as lattice
 
 import mcdc.mcdc_set.material as material
 
-import mcdc.mcdc_set.tally as tally
+import mcdc.mcdc_set.collision_tally as collision_tally
+
+import mcdc.mcdc_set.tracklength_tally as tracklength_tally
 
 import mcdc.mcdc_set.universe as universe
 
@@ -102,9 +104,7 @@ import mcdc.mcdc_set.surface as surface
 
 import mcdc.mcdc_set.surface_crossing_tally as surface_crossing_tally
 
-import mcdc.mcdc_set.collision_tally as collision_tally
-
-import mcdc.mcdc_set.tracklength_tally as tracklength_tally
+import mcdc.mcdc_set.tally as tally
 
 import mcdc.mcdc_set.bank_active as bank_active
 

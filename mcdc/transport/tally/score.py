@@ -27,9 +27,6 @@ from mcdc.constant import (
     SCORE_CURRENT_IN,
     SCORE_CURRENT_OUT,
     SCORE_ENERGY_DEPOSITION,
-    SPATIAL_FILTER_CELL,
-    SPATIAL_FILTER_SURFACE,
-    SPATIAL_FILTER_MESH,
 )
 from mcdc.transport.geometry.interface import check_cell
 from mcdc.transport.geometry.surface import get_normal_component
@@ -75,9 +72,8 @@ def surface_crossing_tally(
     mu = get_normal_component(particle_container, speed, surface, data)
     flux = particle["w"] / abs(mu)
 
-    # Surface-filtered score
-    cell_filtered = tally["spatial_filter_type"] == SPATIAL_FILTER_CELL
-    if not cell_filtered:
+    # Non-cell-filtered score
+    if not tally["cell_filtered"]:
         for i_score in range(tally_base["scores_length"]):
             score_type = mcdc_get.tally.scores(i_score, tally_base, data)
 
@@ -96,7 +92,7 @@ def surface_crossing_tally(
 
     # Cell-filtered score
     previous_cell_ID = particle["cell_ID"]
-    filter_cell_ID = tally["spatial_filter_ID"]
+    filter_cell_ID = tally["cell_filter_ID"]
     filter_cell = simulation["cells"][filter_cell_ID]
     for i_score in range(tally_base["scores_length"]):
         score_type = mcdc_get.tally.scores(i_score, tally_base, data)
@@ -142,9 +138,8 @@ def collision_tally(
 
     # Mesh tally indices if needed
     i_x, i_y, i_z = 0, 0, 0
-    mesh_tally = tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
-    if mesh_tally:
-        mesh = simulation["meshes"][tally["spatial_filter_ID"]]
+    if tally["mesh_filtered"]:
+        mesh = simulation["meshes"][tally["mesh_filter_ID"]]
         i_x, i_y, i_z = mesh_module.get_indices(
             particle_container, mesh, simulation, data
         )
@@ -161,7 +156,7 @@ def collision_tally(
         + i_energy * tally_base["stride_energy"]
         + i_time * tally_base["stride_time"]
     )
-    if mesh_tally:
+    if tally["mesh_filtered"]:
         idx_base += (
             +i_x * tally["mesh_stride_x"]
             + i_y * tally["mesh_stride_y"]
@@ -229,13 +224,10 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
     #   - Get mesh bin indices
     #   - Return if it's outside mesh grid
 
-    # Flag if it's a mesh tally
-    mesh_tally = tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
-
     # Mesh axis indices
     i_x, i_y, i_z = 0, 0, 0
-    if mesh_tally:
-        mesh = simulation["meshes"][tally["spatial_filter_ID"]]
+    if tally["mesh_filtered"]:
+        mesh = simulation["meshes"][tally["mesh_filter_ID"]]
 
         # Mesh axis indices
         i_x, i_y, i_z = mesh_module.get_indices(
@@ -312,7 +304,7 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
         + i_energy * tally_base["stride_energy"]
         + i_time * tally_base["stride_time"]
     )
-    if mesh_tally:
+    if tally["mesh_filtered"]:
         idx_base += (
             i_x * tally["mesh_stride_x"]
             + i_y * tally["mesh_stride_y"]
@@ -337,8 +329,8 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
         #     axis is crossed
 
         axis_crossed = AXIS_T
-        if mesh_tally:
-            mesh = simulation["meshes"][tally["spatial_filter_ID"]]
+        if tally["mesh_filtered"]:
+            mesh = simulation["meshes"][tally["mesh_filter_ID"]]
 
             # x-direction
             if ux == 0.0:
@@ -416,7 +408,7 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
         distance_swept += distance_scored
 
         # Move the 4D position
-        if mesh_tally:
+        if tally["mesh_filtered"]:
             x += distance_scored * ux
             y += distance_scored * uy
             z += distance_scored * uz
@@ -428,8 +420,8 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
             idx_base += tally_base["stride_time"]
             if i_time == tally_base["time_length"] - 1:
                 return
-        elif mesh_tally:
-            mesh = simulation["meshes"][tally["spatial_filter_ID"]]
+        elif tally["mesh_filtered"]:
+            mesh = simulation["meshes"][tally["mesh_filter_ID"]]
             if axis_crossed == AXIS_X:
                 if ux > 0.0:
                     i_x += 1

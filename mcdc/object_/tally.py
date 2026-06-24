@@ -317,7 +317,7 @@ def decode_score_type(type_, lower_case=False):
 class TallySurfaceCrossing(Tally):
     # Annotations for Numba mode
     label: str = "surface_crossing_tally"
-    non_numba: list[str] = ["surface, cell"]
+    non_numba: list[str] = ["surface", "cell"]
 
     # Spatial filters
     surface: Surface | NoneType
@@ -458,6 +458,7 @@ class TallyCollision(Tally):
         self.cell_filter_ID = -1
         self.mesh_filtered = False
         self.mesh_filter_ID = -1
+        self.mesh_filter_type = -1
         self.mesh_stride_z = -1
         self.mesh_stride_y = -1
         self.mesh_stride_x = -1
@@ -468,7 +469,7 @@ class TallyCollision(Tally):
             self.cell_filter_ID = cell.ID
 
             # Attach to the cell
-            cell.tallies.append(self)
+            cell.collision_tallies.append(self)
 
         # Mesh filter
         if mesh is not None:
@@ -479,7 +480,7 @@ class TallyCollision(Tally):
             if isinstance(mesh, MeshStructured):
                 self.mesh_filter_type = MESH_STRUCTURED
             elif isinstance(mesh, MeshUniform):
-                self.spatial_filter_subtype = MESH_UNIFORM
+                self.mesh_filter_type = MESH_UNIFORM
 
             # Mesh strides
             N_score = len(self.scores)
@@ -490,7 +491,7 @@ class TallyCollision(Tally):
         # Attach to all cells if cell filter is not specified
         if cell is None:
             for cell_ in simulation.cells:
-                cell_.tallies.append(self)
+                cell_.collision_tallies.append(self)
 
     def __repr__(self):
         text = super().__repr__()
@@ -568,6 +569,7 @@ class TallyTracklength(Tally):
         self.cell_filter_ID = -1
         self.mesh_filtered = False
         self.mesh_filter_ID = -1
+        self.mesh_filter_type = -1
         self.mesh_stride_z = -1
         self.mesh_stride_y = -1
         self.mesh_stride_x = -1
@@ -578,7 +580,7 @@ class TallyTracklength(Tally):
             self.cell_filter_ID = cell.ID
 
             # Attach to the cell
-            cell.tallies.append(self)
+            cell.tracklength_tallies.append(self)
 
         # Mesh filter
         if mesh is not None:
@@ -589,7 +591,7 @@ class TallyTracklength(Tally):
             if isinstance(mesh, MeshStructured):
                 self.mesh_filter_type = MESH_STRUCTURED
             elif isinstance(mesh, MeshUniform):
-                self.spatial_filter_subtype = MESH_UNIFORM
+                self.mesh_filter_type = MESH_UNIFORM
 
             # Mesh strides
             N_score = len(self.scores)
@@ -600,7 +602,7 @@ class TallyTracklength(Tally):
         # Attach to all cells if cell filter is not specified
         if cell is None:
             for cell_ in simulation.cells:
-                cell_.tallies.append(self)
+                cell_.tracklength_tallies.append(self)
 
     def __repr__(self):
         text = super().__repr__()
