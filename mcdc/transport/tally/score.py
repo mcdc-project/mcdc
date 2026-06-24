@@ -31,6 +31,7 @@ from mcdc.constant import (
     SPATIAL_FILTER_SURFACE,
     SPATIAL_FILTER_MESH,
 )
+from mcdc.transport.geometry.interface import check_cell
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import get_filter_indices
 
@@ -44,8 +45,6 @@ def surface_crossing_tally(
     particle_container,
     surface,
     tally,
-    pre_cell_ID,
-    post_cell_ID,
     simulation,
     data,
 ):
@@ -71,44 +70,51 @@ def surface_crossing_tally(
         + i_time * tally_base["stride_time"]
     )
 
-    is_cell_filtered = tally["spatial_filter_type"] == SPATIAL_FILTER_CELL
-    entered = False
-    exited = False
-    # check that particle is in correct cell
-    if is_cell_filtered:
-        target_cell_ID = tally["spatial_filter_ID"]
-        entered = pre_cell_ID != target_cell_ID and post_cell_ID == target_cell_ID
-        exited = pre_cell_ID == target_cell_ID and post_cell_ID != target_cell_ID
-        if not entered and not exited:
-            return
+    # Flux
+    speed = physics.particle_speed(particle_container, simulation, data)
+    mu = get_normal_component(particle_container, speed, surface, data)
+    flux = particle["w"] / abs(mu)
 
-    flux = 0.0
-    mu = 0.0
-    if tally["spatial_filter_type"] == SPATIAL_FILTER_SURFACE:
-        speed = physics.particle_speed(particle_container, simulation, data)
-        mu = get_normal_component(particle_container, speed, surface, data)
-        flux = particle["w"] / abs(mu)
+    # Surface-filtered score
+    cell_filtered = tally["spatial_filter_type"] == SPATIAL_FILTER_CELL
+    if not cell_filtered:
+        for i_score in range(tally_base["scores_length"]):
+            score_type = mcdc_get.tally.scores(i_score, tally_base, data)
 
-    # Score
+            score = 0.0
+            if score_type == SCORE_CURRENT_NET:
+                score = flux * mu
+            elif score_type == SCORE_CURRENT_IN:
+                if mu < 0.0:
+                    score = particle["w"]
+            elif score_type == SCORE_CURRENT_OUT:
+                if mu > 0.0:
+                    score = particle["w"]
+
+            util.atomic_add(data, idx_base + i_score, score)
+        return
+
+    # Cell-filtered score
+    previous_cell_ID = particle["cell_ID"]
+    filter_cell_ID = tally["spatial_filter_ID"]
+    filter_cell = simulation["cells"][filter_cell_ID]
     for i_score in range(tally_base["scores_length"]):
         score_type = mcdc_get.tally.scores(i_score, tally_base, data)
+
         score = 0.0
         if score_type == SCORE_CURRENT_NET:
-            if is_cell_filtered:
-                if entered:
-                    score = particle["w"]
-                elif exited:
-                    score = -particle["w"]
-            else:
-                score = flux * mu
+            if filter_cell_ID == previous_cell_ID:
+                score = particle["w"]
+            elif check_cell(particle_container, filter_cell, simulation, data):
+                score = -particle["w"]
         elif score_type == SCORE_CURRENT_IN:
-            if entered:
+            if check_cell(particle_container, filter_cell, simulation, data):
                 score = particle["w"]
         elif score_type == SCORE_CURRENT_OUT:
-            if exited:
+            if filter_cell_ID == previous_cell_ID:
                 score = particle["w"]
-        if score != 0.0:
-            util.atomic_add(data, idx_base + i_score, score)
+
+        util.atomic_add(data, idx_base + i_score, score)
 
 
 # ======================================================================================

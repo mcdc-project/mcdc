@@ -3,7 +3,7 @@ import pytest
 
 import mcdc
 from mcdc.main import preparation
-from mcdc.transport.geometry import interface as geometry_interface
+from mcdc.transport.simulation import surface_crossing
 
 
 def test_surface_crossing_tally_bounds_fields(surface_crossing_tally_context):
@@ -50,7 +50,7 @@ def test_unbounded_surface_crossing_tally_scoring(
     particle["y"] = y
     particle["z"] = z
     particle["ux"] = ux
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
 
     assert np.isclose(bin_value(unbounded_tally, mcdc_struct, data), expected_unbounded)
     assert np.isclose(bin_value(bounded_tally, mcdc_struct, data), expected_bounded)
@@ -71,7 +71,7 @@ def test_surface_crossing_tally_scores_vacuum_boundary(
     particle_container = crossing_particle(s_right.ID, x=1.0, ux=0.5)
     particle = particle_container[0]
 
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
 
     assert not particle["alive"]
     assert np.isclose(bin_value(tally, mcdc_struct, data), 2.0)
@@ -92,7 +92,7 @@ def test_surface_crossing_tally_scores_after_reflective_boundary(
     particle_container = crossing_particle(s_right.ID, x=1.0, ux=0.5)
     particle = particle_container[0]
 
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
 
     assert particle["alive"]
     assert np.isclose(particle["ux"], -0.5)

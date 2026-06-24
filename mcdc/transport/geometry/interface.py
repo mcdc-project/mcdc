@@ -9,11 +9,10 @@ import mcdc.mcdc_get as mcdc_get
 import mcdc.literals as literals
 import mcdc.transport.mesh as mesh
 import mcdc.transport.physics as physics
-import mcdc.transport.tally as tally_module
 import mcdc.transport.util as util
 
 from mcdc.constant import *
-from mcdc.transport.geometry.surface import get_distance, check_sense, reflect
+from mcdc.transport.geometry.surface import get_distance, check_sense
 
 # ======================================================================================
 # Geometry inspection
@@ -436,118 +435,6 @@ def distance_to_nearest_surface(particle_container, cell, simulation, data):
             surface_ID = surface["ID"]
 
     return distance, surface_ID
-
-
-@njit
-def surface_crossing(P_arr, simulation, data):
-    P = P_arr[0]
-    crossed_surface_ID = P["surface_ID"]
-
-    surface = simulation["surfaces"][crossed_surface_ID]
-    BC = surface["boundary_condition"]
-
-    # Apply BC
-    if BC == BC_VACUUM:
-        P["alive"] = False
-    elif BC == BC_REFLECTIVE:
-        reflect(P_arr, surface)
-
-    pre_cell_ID = -1
-    post_cell_ID = -1
-
-    # Score tally
-    for i in range(surface["N_tally"]):
-        tally_ID = int(mcdc_get.surface.tally_IDs(i, surface, data))
-        tally = simulation["surface_crossing_tallies"][tally_ID]
-
-        # Optional bounded surface tally: score only if the crossing point is
-        # within the specified in-plane bounds.
-        if tally["filter_surface_bounds"]:
-            if not _surface_tally_crossing_in_bounds(P, surface, tally):
-                continue
-
-        # Cell-filtered current tallies need crossing in/out context.
-        if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
-            if BC == BC_REFLECTIVE:
-                continue
-            # only compute this once for each iteration
-            if pre_cell_ID == -1 and post_cell_ID == -1:
-                pre_cell_ID, post_cell_ID = _get_crossing_top_cell_IDs(
-                    P_arr, simulation, data
-                )
-
-        tally_module.score.surface_crossing_tally(
-            P_arr, surface, tally, pre_cell_ID, post_cell_ID, simulation, data
-        )
-
-    # Need to check new cell later?
-    if P["alive"] and not BC == BC_REFLECTIVE:
-        P["cell_ID"] = -1
-        P["material_ID"] = -1
-
-
-@njit
-def _get_crossing_top_cell_IDs(particle_container, simulation, data):
-    P = particle_container[0]
-    x = P["x"]
-    y = P["y"]
-    z = P["z"]
-    ux = P["ux"]
-    uy = P["uy"]
-    uz = P["uz"]
-
-    epsilon = 10.0 * COINCIDENCE_TOLERANCE
-
-    P["x"] = x - epsilon * ux
-    P["y"] = y - epsilon * uy
-    P["z"] = z - epsilon * uz
-    pre_cell_ID = get_cell(particle_container, UNIVERSE_ROOT, simulation, data)
-
-    P["x"] = x + epsilon * ux
-    P["y"] = y + epsilon * uy
-    P["z"] = z + epsilon * uz
-    post_cell_ID = get_cell(particle_container, UNIVERSE_ROOT, simulation, data)
-
-    P["x"] = x
-    P["y"] = y
-    P["z"] = z
-
-    return pre_cell_ID, post_cell_ID
-
-
-@njit
-def _surface_tally_crossing_in_bounds(P, surface, tally):
-    surface_type = surface["type"]
-
-    if surface_type == SURFACE_PLANE_X:
-        if tally["has_y_bounds"]:
-            if P["y"] < tally["y_min"] or P["y"] > tally["y_max"]:
-                return False
-        if tally["has_z_bounds"]:
-            if P["z"] < tally["z_min"] or P["z"] > tally["z_max"]:
-                return False
-        return True
-
-    if surface_type == SURFACE_PLANE_Y:
-        if tally["has_x_bounds"]:
-            if P["x"] < tally["x_min"] or P["x"] > tally["x_max"]:
-                return False
-        if tally["has_z_bounds"]:
-            if P["z"] < tally["z_min"] or P["z"] > tally["z_max"]:
-                return False
-        return True
-
-    if surface_type == SURFACE_PLANE_Z:
-        if tally["has_x_bounds"]:
-            if P["x"] < tally["x_min"] or P["x"] > tally["x_max"]:
-                return False
-        if tally["has_y_bounds"]:
-            if P["y"] < tally["y_min"] or P["y"] > tally["y_max"]:
-                return False
-        return True
-
-    # Constructor validation should prevent non-planar bounded surface tallies.
-    return True
 
 
 # ======================================================================================

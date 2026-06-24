@@ -8,6 +8,7 @@ import mcdc.mcdc_get as mcdc_get
 import mcdc.numba_types as type_
 import mcdc.output as output_module
 import mcdc.transport.geometry as geometry
+import mcdc.transport.geometry.surface as surface_module
 import mcdc.transport.mpi as mpi
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
@@ -335,7 +336,7 @@ def step_particle(particle_container, program, data):
 
     # Surface and domain crossing
     if particle["event"] & EVENT_SURFACE_CROSSING:
-        geometry.surface_crossing(particle_container, simulation, data)
+        surface_crossing(particle_container, simulation, data)
 
     # Census time crossing
     if particle["event"] & EVENT_TIME_CENSUS:
@@ -484,3 +485,32 @@ def move_to_event(particle_container, simulation, data):
 
     # Move particle
     particle_module.move(particle_container, distance, simulation, data)
+
+
+@njit
+def surface_crossing(P_arr, simulation, data):
+    P = P_arr[0]
+    crossed_surface_ID = P["surface_ID"]
+
+    surface = simulation["surfaces"][crossed_surface_ID]
+    BC = surface["boundary_condition"]
+
+    # Apply BC
+    if BC == BC_VACUUM:
+        P["alive"] = False
+    elif BC == BC_REFLECTIVE:
+        surface_module.reflect(P_arr, surface)
+        return  # No score
+
+    # Score tally
+    for i in range(surface["N_tally"]):
+        tally_ID = int(mcdc_get.surface.tally_IDs(i, surface, data))
+        tally = simulation["surface_crossing_tallies"][tally_ID]
+        tally_module.score.surface_crossing_tally(
+            P_arr, surface, tally, simulation, data
+        )
+
+    # Flag to check new cell later
+    if P["alive"]:
+        P["cell_ID"] = -1
+        P["material_ID"] = -1

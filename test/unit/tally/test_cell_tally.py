@@ -1,8 +1,9 @@
 import numpy as np
 
 import mcdc
+
 from mcdc.main import preparation
-from mcdc.transport.geometry import interface as geometry_interface
+from mcdc.transport.simulation import surface_crossing
 
 
 def _bin_value(surface_crossing_tally, mcdc_struct, data):
@@ -25,12 +26,12 @@ def test_surface_cell_filter_current_sign_for_incoming_and_outgoing(
 
     # Left -> right across the shared interior surface: incoming to c_right (+)
     particle_container = crossing_particle(slab_plane_x["s_mid"].ID, x=0.0, ux=0.5)
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
     assert np.isclose(_bin_value(current_tally, mcdc_struct, data), 2.0)
 
     # Right -> left across the shared interior surface: outgoing from c_right (-)
     particle_container = crossing_particle(slab_plane_x["s_mid"].ID, x=0.0, ux=-0.5)
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
     assert np.isclose(_bin_value(current_tally, mcdc_struct, data), 0.0)
 
 
@@ -47,9 +48,9 @@ def test_surface_cell_filter_current_records_in_and_out_separately(
 
     # One incoming and one outgoing crossing.
     particle_container = crossing_particle(slab_plane_x["s_mid"].ID, x=0.0, ux=0.5)
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
     particle_container = crossing_particle(slab_plane_x["s_mid"].ID, x=0.0, ux=-0.5)
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
 
     # Scores are in requested order: [current-net, current-in, current-out].
     # Partial currents are positive; current-net carries the sign.
@@ -72,7 +73,7 @@ def test_surface_cell_filter_current_counts_outgoing_to_vacuum(
     # c_right -> vacuum across the right boundary: outgoing (-)
     particle_container = crossing_particle(slab_plane_x["s_right"].ID, x=1.0, ux=0.5)
     particle = particle_container[0]
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
     assert not particle["alive"]
     assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 0), -2.0)
     assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 1), 0.0)
@@ -96,7 +97,7 @@ def test_surface_cell_filter_current_ignores_reflective_crossing(
 
     particle_container = crossing_particle(s_right.ID, x=1.0, ux=0.5)
     particle = particle_container[0]
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
     assert particle["alive"]
     assert np.isclose(particle["ux"], -0.5)
     assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 0), 0.0)
@@ -121,7 +122,7 @@ def test_surface_cell_filter_current_scores_curved_boundary(
 
     # Inner -> outer across the cylindrical surface: outgoing from c_inner (-)
     particle_container = crossing_particle(s_cyl.ID, x=1.0, ux=0.5)
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
 
     assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 0), -2.0)
     assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 1), 0.0)
@@ -129,7 +130,7 @@ def test_surface_cell_filter_current_scores_curved_boundary(
 
     # Outer -> inner across the same curved surface: incoming to c_inner (+)
     particle_container = crossing_particle(s_cyl.ID, x=1.0, ux=-0.5)
-    geometry_interface.surface_crossing(particle_container, mcdc_struct, data)
+    surface_crossing(particle_container, mcdc_struct, data)
 
     assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 0), 0.0)
     assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 1), 2.0)
