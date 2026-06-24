@@ -330,13 +330,13 @@ def decode_score_type(type_, lower_case=False):
     elif type_ == SCORE_FISSION:
         return "Fission" if not lower_case else "fission"
     elif type_ == SCORE_CURRENT_NET:
-        return "Net current" if not lower_case else "current-net"
-    elif type_ == SCORE_ENERGY_DEPOSITION:
-        return "Energy deposition" if not lower_case else "energy_deposition"
+        return "Current net" if not lower_case else "current-net"
     elif type_ == SCORE_CURRENT_IN:
         return "Current in" if not lower_case else "current-in"
     elif type_ == SCORE_CURRENT_OUT:
         return "Current out" if not lower_case else "current-out"
+    elif type_ == SCORE_ENERGY_DEPOSITION:
+        return "Energy deposition" if not lower_case else "energy_deposition"
 
 
 # ======================================================================================
@@ -352,7 +352,6 @@ class TallySurfaceCrossing(Tally):
     spatial_filter: Surface | Cell
     spatial_filter_type: int
     spatial_filter_ID: int
-    surface: Surface
     filter_surface_bounds: bool
     has_x_bounds: bool
     has_y_bounds: bool
@@ -391,30 +390,21 @@ class TallySurfaceCrossing(Tally):
             time=time,
         )
 
-        if SCORE_ENERGY_DEPOSITION in self.scores:
-            print_error(
-                "Score 'energy_deposition' uses the collision estimator and is not supported "
-                "for this tally type."
-            )
-
-        if surface is not None and cell is not None:
-            print_error("Surface tally must specify exactly one of surface or cell.")
-        if surface is None and cell is None:
-            print_error("Surface tally requires either a surface or a cell.")
-
+        # Set spatial filter
         if surface is not None:
             self.spatial_filter = surface
             self.spatial_filter_type = SPATIAL_FILTER_SURFACE
             self.spatial_filter_ID = surface.ID
-            self.surface = surface
             surface.tallies.append(self)
-        else:
+        elif cell is not None:
             self.spatial_filter = cell
             self.spatial_filter_type = SPATIAL_FILTER_CELL
             self.spatial_filter_ID = cell.ID
-            self.surface = cell.surfaces[0]
             for boundary_surface in cell.surfaces:
                 boundary_surface.tallies.append(self)
+        else:
+            # Unreachable
+            pass
 
         # Optional bounds for axis-aligned planar surface tallies.
         self.filter_surface_bounds = False

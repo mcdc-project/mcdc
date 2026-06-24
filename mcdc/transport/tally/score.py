@@ -24,9 +24,9 @@ from mcdc.constant import (
     SCORE_CAPTURE,
     SCORE_FISSION,
     SCORE_CURRENT_NET,
-    SCORE_ENERGY_DEPOSITION,
     SCORE_CURRENT_IN,
     SCORE_CURRENT_OUT,
+    SCORE_ENERGY_DEPOSITION,
     SPATIAL_FILTER_CELL,
     SPATIAL_FILTER_SURFACE,
     SPATIAL_FILTER_MESH,
@@ -35,7 +35,7 @@ from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import get_filter_indices
 
 # ======================================================================================
-# Surface tally
+# Surface crossing tally
 # ======================================================================================
 
 

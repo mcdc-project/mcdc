@@ -679,7 +679,6 @@ surface = into_dtype([
 surface_crossing_tally = into_dtype([
     ('spatial_filter_type', int64),
     ('spatial_filter_ID', int64),
-    ('surface_ID', int64),
     ('filter_surface_bounds', bool),
     ('has_x_bounds', bool),
     ('has_y_bounds', bool),
