@@ -8,8 +8,8 @@ from tqdm import tqdm
 
 ####
 
-import tools.data_library_generator.neutron.util as util
-from tools.data_library_generator.neutron.util import print_error
+import util
+from util import print_error, print_note
 
 parser = argparse.ArgumentParser(description="MC/DC data generator")
 parser.add_argument("--rewrite", dest="rewrite", action="store_true", default=False)
@@ -19,13 +19,13 @@ rewrite = args.rewrite
 verbose = args.verbose
 
 # Directories
-output_dir = os.getenv("MCDC_LIB_NEUTRON")
-ace_dir = os.getenv("MCDC_ACELIB_NEUTRON")
+output_dir = os.getenv("MCDC_LIB")
+ace_dir = os.getenv("MCDC_ACELIB")
 
 if output_dir is None:
-    print_error("Environment variable $MCDC_LIB_NEUTRON is not set")
+    print_error("Environment variable $MCDC_LIB is not set")
 if ace_dir is None:
-    print_error("Environment variable $MCDC_ACELIB_NEUTRON is not set")
+    print_error("Environment variable $MCDC_ACELIB is not set")
 
 # Create output directory if needed
 os.makedirs(output_dir, exist_ok=True)
