@@ -117,3 +117,26 @@ def interpolation_boundaries_chunk(start, length, table_data, data, value):
     start += table_data["interpolation_boundaries_offset"]
     end = start + length
     data[start:end] = value
+
+
+@njit
+def aux_vector(index_1, table_data, data, value):
+    offset = table_data["aux_offset"]
+    stride = table_data["N"]
+    start = offset + index_1 * stride
+    end = start + stride
+    data[start:end] - value
+
+
+@njit
+def aux(index_1, index_2, table_data, data, value):
+    offset = table_data["aux_offset"]
+    stride = table_data["N"]
+    data[offset + index_1 * stride + index_2] = value
+
+
+@njit
+def aux_chunk(start, length, table_data, data, value):
+    start += table_data["aux_offset"]
+    end = start + length
+    data[start:end] = value

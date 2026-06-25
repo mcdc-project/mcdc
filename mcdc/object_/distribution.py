@@ -1,5 +1,6 @@
 import numpy as np
 
+from collections.abc import Sequence
 from numpy import float64, int64
 from numpy.typing import NDArray
 
@@ -16,11 +17,18 @@ from mcdc.constant import (
     DISTRIBUTION_KALBACH_MANN,
     DISTRIBUTION_TABULATED_ENERGY_ANGLE,
     DISTRIBUTION_N_BODY,
+    INTERPOLATION_HISTOGRAM,
+    INTERPOLATION_LINEAR,
 )
 from mcdc.object_.base import ObjectPolymorphic
 from mcdc.object_.data import DataTable
-from mcdc.object_.util import cdf_from_pdf, multi_cdf_from_pdf, cmf_from_pmf
-from mcdc.print_ import print_1d_array
+from mcdc.object_.util import (
+    cdf_from_pdf,
+    pdf_from_cdf,
+    multi_cdf_from_pdf,
+    cmf_from_pmf,
+)
+from mcdc.print_ import print_1d_array, print_error
 
 # ======================================================================================
 # Distribution base class
@@ -117,26 +125,80 @@ class DistributionPMF(DistributionBase):
 
 
 class DistributionTabulated(DistributionBase):
+    """
+    One-dimensional tabulated probability distribution.
+
+    The distribution is stored as a DataTable whose independent variable is the
+    sample value and whose dependent variable is the normalized PDF. The CDF is
+    stored as auxiliary table data and is used for sampling.
+
+    If constructed from a PDF, the PDF is assumed to be piecewise linear.
+    If constructed from a CDF, the CDF is assumed to be piecewise linear, which
+    implies a histogram PDF.
+    """
+
     # Annotations for Numba mode
     label: str = "tabulated_distribution"
     #
-    value: NDArray[float64]
-    pdf: NDArray[float64]
-    cdf: NDArray[float64]
+    pdf: DataTable
 
-    def __init__(self, value, pdf):
+    def __init__(
+        self,
+        value: NDArray[float64],
+        pdf: NDArray[float64] | None = None,
+        cdf: NDArray[float64] | None = None,
+    ) -> None:
+        """
+        Construct a tabulated probability distribution from either a PDF or CDF.
+
+        Parameters
+        ----------
+        value : ndarray of float64
+            Sample values.
+        pdf : ndarray of float64, optional
+            Probability density values at the sample values. If provided, the
+            PDF is normalized and the CDF is computed by trapezoidal
+            integration.
+        cdf : ndarray of float64, optional
+            Cumulative distribution values at the sample values. If provided,
+            the CDF is normalized and a histogram PDF is derived from it.
+
+        Notes
+        -----
+        Exactly one of `pdf` or `cdf` must be provided. PDF input uses linear
+        interpolation. CDF input uses histogram interpolation for the derived
+        PDF.
+        """
+
         type_ = DISTRIBUTION_TABULATED
         super().__init__(type_)
 
-        self.value = value
-        self.pdf = pdf
+        if (pdf is None) == (cdf is None):
+            print_error("Exactly one of pdf or cdf must be provided.")
 
-        self.pdf, self.cdf = cdf_from_pdf(value, pdf)
+        if pdf is not None:
+            interpolation = INTERPOLATION_LINEAR
+            pdf_normalized, cdf_normalized = cdf_from_pdf(value, pdf)
+        else:
+            interpolation = INTERPOLATION_HISTOGRAM
+            pdf_normalized, cdf_normalized = pdf_from_cdf(value, cdf)
 
-    def __repr__(self):
+        self.pdf = DataTable(
+            value,
+            pdf_normalized,
+            interpolation,
+            aux=cdf_normalized,
+        )
+
+    def __repr__(self) -> str:
+        """Return a human-readable summary of the distribution."""
+
         text = super().__repr__()
-        text += f"  - value {print_1d_array(self.value)}\n"
-        text += f"  - pdf {print_1d_array(self.pdf)}\n"
+
+        text += f"  - value {print_1d_array(self.pdf.x)}\n"
+        text += f"  - probability density {print_1d_array(self.pdf.y)}\n"
+        text += f"  - cumulative distribution: " f"{print_1d_array(self.pdf.aux[0])}\n"
+
         return text
 
 
@@ -146,37 +208,110 @@ class DistributionTabulated(DistributionBase):
 
 
 class DistributionMultiTable(DistributionBase):
+    """
+    Distribution represented by multiple tabulated distributions on a grid.
+
+    Each grid point owns one DistributionTabulated object. The flattened
+    `value` array is split into per-grid tables using `offset`.
+    """
+
     # Annotations for Numba mode
     label: str = "multi_table_distribution"
     #
     grid: NDArray[float64]
-    offset: NDArray[int64]
-    value: NDArray[float64]
-    pdf: NDArray[float64]
-    cdf: NDArray[float64]
+    tables: list[DistributionTabulated]
 
-    def __init__(self, grid, offset, value, pdf=None, cdf=None):
+    def __init__(
+        self,
+        grid: NDArray[float64],
+        offset: NDArray[int64],
+        value: NDArray[float64],
+        pdf: NDArray[float64] | None = None,
+        cdf: NDArray[float64] | None = None,
+    ) -> None:
+        """
+        Construct a multi-table distribution.
+
+        Parameters
+        ----------
+        grid : ndarray of float64
+            Grid values associated with the tabulated distributions.
+        offset : ndarray of int64
+            Starting index of each table in the flattened `value` array.
+        value : ndarray of float64
+            Flattened sample values for all tables.
+        pdf : ndarray of float64, optional
+            Flattened PDF values. Exactly one of `pdf` or `cdf` must be given.
+        cdf : ndarray of float64, optional
+            Flattened CDF values. Exactly one of `pdf` or `cdf` must be given.
+        """
+
         type_ = DISTRIBUTION_MULTITABLE
         super().__init__(type_)
 
+        if (pdf is None) == (cdf is None):
+            print_error("Exactly one of pdf or cdf must be provided.")
+
+        if len(grid) != len(offset):
+            print_error("grid and offset must have the same length.")
+
+        if len(grid) == 0:
+            print_error("grid must contain at least one value.")
+
+        if offset[0] != 0:
+            print_error("offset[0] must be zero.")
+
+        if len(value) == 0:
+            print_error("value must contain at least one value.")
+
+        if pdf is not None and len(pdf) != len(value):
+            print_error("pdf and value must have the same length.")
+
+        if cdf is not None and len(cdf) != len(value):
+            print_error("cdf and value must have the same length.")
+
         self.grid = grid
-        self.offset = offset
-        self.value = value
 
-        if cdf is not None:
-            # Direct-CDF mode for electron data
-            self.pdf = np.array([], dtype=float64)
-            self.cdf = cdf
-        else:
-            self.pdf = pdf
-            self.pdf, self.cdf = multi_cdf_from_pdf(offset, value, pdf)
+        stop = np.empty(len(offset), dtype=int)
+        stop[:-1] = offset[1:]
+        stop[-1] = len(value)
 
-    def __repr__(self):
+        self.tables = []
+
+        for i in range(len(grid)):
+            start_i = offset[i]
+            stop_i = stop[i]
+
+            if stop_i <= start_i:
+                print_error("Each table must contain at least one value.")
+
+            if pdf is not None:
+                # Piecewise linear PDF
+                new_table = DistributionTabulated(
+                    value[start_i:stop_i],
+                    pdf=pdf[start_i:stop_i],
+                )
+            else:
+                # Piecewise linear CDF
+                new_table = DistributionTabulated(
+                    value[start_i:stop_i],
+                    cdf=cdf[start_i:stop_i],
+                )
+
+            self.tables.append(new_table)
+
+    def __repr__(self) -> str:
+        """Return a human-readable summary of the multi-table distribution."""
+
         text = super().__repr__()
-        text += f"  - grid {print_1d_array(self.grid)}\n"
-        text += f"  - offset {print_1d_array(self.offset)}\n"
-        text += f"  - value {print_1d_array(self.value)}\n"
-        text += f"  - pdf {print_1d_array(self.pdf)}\n"
+        text += f"  - grid: {print_1d_array(self.grid)}\n"
+        text += f"  - tables: {len(self.tables)}\n"
+
+        for i, table in enumerate(self.tables):
+            text += (
+                f"    - table[{i}] " f"(grid={self.grid[i]:.6g}, " f"N={table.pdf.N})\n"
+            )
+
         return text
 
 
@@ -404,21 +539,46 @@ class DistributionTabulatedEnergyAngle(DistributionBase):
 
 
 class DistributionNBody(DistributionBase):
+    """
+    N-body energy distribution represented by a tabulated PDF and CDF.
+
+    The input PDF is normalized internally, and the corresponding CDF is
+    constructed for sampling.
+    """
+
     # Annotations for Numba mode
     label: str = "nbody_distribution"
     #
-    value: NDArray[float64]
-    pdf: NDArray[float64]
+    pdf: DataTable
     cdf: NDArray[float64]
 
-    def __init__(self, value, pdf):
+    def __init__(
+        self,
+        values: NDArray[float64],
+        probabilities: NDArray[float64],
+    ) -> None:
+        """
+        Construct an N-body distribution from tabulated PDF values.
+
+        Parameters
+        ----------
+        value : ndarray
+            Tabulated sample values.
+        probabilities : ndarray
+            Probability density values at the tabulated sample values. The
+            values do not need to be normalized.
+        """
+
         type_ = DISTRIBUTION_N_BODY
         super().__init__(type_)
 
-        self.value = value
-        self.pdf = pdf
+        probabilities_normalized, self.cdf = cdf_from_pdf(values, probabilities)
 
-        self.pdf, self.cdf = cdf_from_pdf(value, pdf)
+        self.pdf = DataTable(
+            values,
+            probabilities_normalized,
+            INTERPOLATION_LINEAR,
+        )
 
     def __repr__(self):
         text = super().__repr__()

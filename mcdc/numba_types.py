@@ -146,6 +146,7 @@ polynomial_data = into_dtype([
 ])
 
 table_data = into_dtype([
+    ('N', int64),
     ('x_offset', int64),
     ('x_length', int64),
     ('y_offset', int64),
@@ -154,6 +155,9 @@ table_data = into_dtype([
     ('interpolations_length', int64),
     ('interpolation_boundaries_offset', int64),
     ('interpolation_boundaries_length', int64),
+    ('N_aux', int64),
+    ('aux_offset', int64),
+    ('aux_length', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])
@@ -207,23 +211,14 @@ maxwellian_distribution = into_dtype([
 multi_table_distribution = into_dtype([
     ('grid_offset', int64),
     ('grid_length', int64),
-    ('offset_offset', int64),
-    ('offset_length', int64),
-    ('value_offset', int64),
-    ('value_length', int64),
-    ('pdf_offset', int64),
-    ('pdf_length', int64),
-    ('cdf_offset', int64),
-    ('cdf_length', int64),
+    ('N_table', int64),
+    ('table_IDs_offset', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])
 
 nbody_distribution = into_dtype([
-    ('value_offset', int64),
-    ('value_length', int64),
-    ('pdf_offset', int64),
-    ('pdf_length', int64),
+    ('pdf_ID', int64),
     ('cdf_offset', int64),
     ('cdf_length', int64),
     ('ID', int64),
@@ -247,12 +242,7 @@ pmf_distribution = into_dtype([
 ])
 
 tabulated_distribution = into_dtype([
-    ('value_offset', int64),
-    ('value_length', int64),
-    ('pdf_offset', int64),
-    ('pdf_length', int64),
-    ('cdf_offset', int64),
-    ('cdf_length', int64),
+    ('pdf_ID', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])

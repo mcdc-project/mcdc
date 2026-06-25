@@ -1,10 +1,11 @@
-from numpy.typing import NDArray
 import numpy as np
-from typing import Annotated
+
 from mcdc.constant import INF
 from mcdc.object_.base import ObjectSingleton
 from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.print_ import print_error
+from numpy.typing import NDArray
+from typing import Annotated
 
 # ======================================================================================
 # Implicit capture

@@ -179,6 +179,7 @@ PI = math.pi
 PI_SQRT = math.sqrt(PI)
 PI_HALF = PI / 2.0
 BANKMAX = 100  # Default maximum active bank
+MAX_BISECTION_ITERATIONS = 48
 
 # Axes
 AXIS_X = 0
