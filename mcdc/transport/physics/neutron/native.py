@@ -188,10 +188,8 @@ def _neutron_inelastic_scattering_production_xs(particle_container, simulation, 
                     j, nuclide, data
                 )
             )
-            reaction_base = simulation["neutron_reactions"][reaction_ID]
-            reaction = simulation["neutron_inelastic_scattering_reactions"][
-                reaction_base["child_ID"]
-            ]
+            reaction = simulation["neutron_inelastic_scattering_reactions"][reaction_ID]
+            reaction_base = simulation["neutron_reactions"][reaction["parent_ID"]]
 
             xs = reaction_micro_xs(E, reaction_base, nuclide, data)
             nu = reaction["multiplicity"]
@@ -223,7 +221,8 @@ def _neutron_fission_production_xs(particle_container, simulation, data):
             reaction_ID = int(
                 mcdc_get.nuclide.neutron_fission_reaction_IDs(j, nuclide, data)
             )
-            reaction_base = simulation["neutron_reactions"][reaction_ID]
+            reaction = simulation["neutron_fission_reactions"][reaction_ID]
+            reaction_base = simulation["neutron_reactions"][reaction["parent_ID"]]
 
             xs = reaction_micro_xs(E, reaction_base, nuclide, data)
             nu_p = neutron_fission_prompt_multiplicity(E, nuclide, simulation, data)

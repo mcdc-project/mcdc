@@ -12,6 +12,7 @@ authors = [
   { name = "Joanna Morgan", email = "morgan83@llnl.gov" },
   { name = "Kayla Clements", email = "clemekay@oregonstate.edu" },
   { name = "Braxton Cuneo", email = "bcuneo@seattleu.edu" },
+  { name = "Melek Derman", email = "dermanm@oregonstate.edu" },
   { name = "Caleb Shaw" },
   { name = "Rohan Pankaj" },
   { name = "Alexander Mote" },
@@ -23,7 +24,7 @@ authors = [
   { name = "Dmitriy Y. Anistratov" },
   { name = "C. T. Kelley" },
   { name = "Camille J. Palmer" },
-  { name = "Kyle E. Niemeyer" },
+  { name = "Kyle E. Niemeyer" }
 ]
 
 maintainers = [
@@ -32,9 +33,10 @@ maintainers = [
   { name = "Kayla Clements", email = "clemekay@oregonstate.edu" },
   { name = "Joanna Piper Morgan", email = "morgan83@llnl.gov" },
   { name = "Kyle E. Niemeyer", email = "kyle.niemeyer@oregonstate.edu" },
+  { name = "Melek Derman", email = "dermanm@oregonstate.edu" },
 ]
 
-description = "MC/DC (Monte Carlo Dynamic Code): a performant, scalable, and machine-portable Python-based Monte Carlo neutron transport package"
+description = "MC/DC (Monte Carlo Dynamic Code): a performant, scalable, and machine-portable Python-based Monte Carlo radiation transport package"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -42,7 +44,7 @@ license = { file = "LICENSE" }
 keywords = [
   "Monte Carlo",
   "nuclear engineering",
-  "neutron transport",
+  "radiation transport",
   "HPC",
   "GPU",
   "numba",
@@ -85,9 +87,9 @@ dev = [
 
 [project.urls]
 Homepage = "https://cement-psaap.github.io/"
-Repository = "https://github.com/CEMeNT-PSAAP/MCDC"
-Documentation = "https://mcdc.readthedocs.io/en/latest/"
-Issues = "https://github.com/CEMeNT-PSAAP/MCDC/issues"
+Repository = "https://github.com/mcdc-project/mcdc"
+Documentation = "https://mcdc.readthedocs.io/"
+Issues = "https://github.com/mcdc-project/mcdc/issues"
 
 [tool.black]
 force-exclude = '''

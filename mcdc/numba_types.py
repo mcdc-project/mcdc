@@ -392,6 +392,7 @@ nuclide = into_dtype([
     ('name', 'U32'),
     ('temperature', float64),
     ('atomic_number', int64),
+    ('mass_number', int64),
     ('atomic_weight_ratio', float64),
     ('fissionable', bool),
     ('excitation_level', int64),
