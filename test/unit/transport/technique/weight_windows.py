@@ -42,12 +42,15 @@ def make_ww_model_params(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
 
     mesh, N = make_mesh()
     Ne = 1
+    Nt = 1
+    Nmu = 1
+    Na = 1
 
     if mess_up_size:
-        ww_array = np.ones((Ne, N, N, 4, 3))
+        ww_array = np.ones((Nt, Ne, Nmu, Na, N, N, 4, 3))
     else:
         # global assign for simplicity
-        ww_array = np.ones((Ne, N, N, N, 3))
+        ww_array = np.ones((Nt, Ne, Nmu, Na, N, N, N, 3))
         ww_array[..., 0] = lower
         ww_array[..., 1] = target
         ww_array[..., 2] = upper
@@ -64,20 +67,40 @@ def make_ww_model_distinct():
     mesh, N = make_mesh()
     energy = np.linspace(0.0, 6.0, 7)
     Ne = 6
+    time = np.linspace(0.0, 4.0, 5)
+    Nt = 4
+    mu = np.linspace(-1.0, 1.0, 5)
+    Nmu = 4
+    azimuthal = np.linspace(-np.pi, np.pi, 5)
+    Na = 4
 
-    ww_array = np.empty((Ne, N, N, N, 3))
+    ww_array = np.empty((Nt, Ne, Nmu, Na, N, N, N, 3))
 
     # value at index is related to index, easy to predict during later test
-    for e in range(Ne):
-        for i in range(N):
-            for j in range(N):
-                for k in range(N):
-                    val = 1000 * e + 100 * i + 10 * j + k + 1
-                    ww_array[e, i, j, k, 0] = val
-                    ww_array[e, i, j, k, 1] = 10000 + val
-                    ww_array[e, i, j, k, 2] = 20000 + val
+    for t in range(Nt):
+        for e in range(Ne):
+            for m in range(Nmu):
+                for a in range(Na):
+                    for i in range(N):
+                        for j in range(N):
+                            for k in range(N):
+                                val = (
+                                    1_000_000 * t
+                                    + 100_000 * e
+                                    + 10_000 * m
+                                    + 1_000 * a
+                                    + 100 * i
+                                    + 10 * j
+                                    + k
+                                    + 1
+                                )
+                                ww_array[t, e, m, a, i, j, k, 0] = val
+                                ww_array[t, e, m, a, i, j, k, 1] = 10_000_000 + val
+                                ww_array[t, e, m, a, i, j, k, 2] = 20_000_000 + val
 
-    mcdc.simulation.weight_windows(ww_array, mesh=mesh, energy=energy)
+    mcdc.simulation.weight_windows(
+        ww_array, mesh=mesh, energy=energy, time=time, mu=mu, azimuthal=azimuthal
+    )
 
     mcdc_container, data = preparation()
     return mcdc_container[0], data
@@ -94,7 +117,7 @@ def make_ww_model_distinct():
         # incorrect size
         (
             {"mess_up_size": True},
-            "Weight window array has shape (1, 3, 3, 4, 3), but expected (1, 3, 3, 3, 3)",
+            "Weight window array has shape (1, 1, 1, 1, 3, 3, 4, 3), but expected (1, 1, 1, 1, 3, 3, 3, 3)",
         ),
         # negative lower
         (
@@ -207,26 +230,47 @@ def test_query_weight_window():
     dx, dy, dz = pitch / N, pitch / N, height / N
 
     # hardcode energy params
+    times = np.linspace(0.5, 3.5, 4)
     energies = np.linspace(0.5, 5.5, 6)
+    mus = np.linspace(-0.75, 0.75, 4)
+    azimuthals = np.linspace(-3.0 * np.pi / 4.0, 3.0 * np.pi / 4.0, 4)
 
     # loop over all bins, check query against expected ww
-    for ne, energy in enumerate(energies):
-        for ix in range(nx):
-            for iy in range(ny):
-                for iz in range(nz):
-                    # put particle in center of current mesh bin
-                    p[0]["x"] = xmin + dx * (ix + 0.5)
-                    p[0]["y"] = ymin + dy * (iy + 0.5)
-                    p[0]["z"] = zmin + dz * (iz + 0.5)
-                    # assign energy to be in center of bins
-                    p[0]["E"] = energy
+    for it, time in enumerate(times):
+        for ie, energy in enumerate(energies):
+            for imu, mu in enumerate(mus):
+                for ia, azimuthal in enumerate(azimuthals):
+                    for ix in range(nx):
+                        for iy in range(ny):
+                            for iz in range(nz):
+                                # put particle in center of current mesh bin
+                                p[0]["x"] = xmin + dx * (ix + 0.5)
+                                p[0]["y"] = ymin + dy * (iy + 0.5)
+                                p[0]["z"] = zmin + dz * (iz + 0.5)
+                                # assign params to be in center of bins
+                                p[0]["t"] = time
+                                p[0]["E"] = energy
+                                p[0]["ux"] = np.sqrt(1.0 - mu**2) * np.cos(azimuthal)
+                                p[0]["uy"] = np.sqrt(1.0 - mu**2) * np.sin(azimuthal)
+                                p[0]["uz"] = mu
 
-                    # query and predict
-                    lower, target, upper = query_weight_window(p, simulation, data)
-                    exp_lower = 1000 * ne + 100 * ix + 10 * iy + iz + 1
-                    exp_target = 10000 + exp_lower
-                    exp_upper = 20000 + exp_lower
+                                # query and predict
+                                lower, target, upper = query_weight_window(
+                                    p, simulation, data
+                                )
+                                exp_lower = (
+                                    1_000_000 * it
+                                    + 100_000 * ie
+                                    + 10_000 * imu
+                                    + 1_000 * ia
+                                    + 100 * ix
+                                    + 10 * iy
+                                    + iz
+                                    + 1
+                                )
+                                exp_target = 10_000_000 + exp_lower
+                                exp_upper = 20_000_000 + exp_lower
 
-                    assert lower == exp_lower
-                    assert target == exp_target
-                    assert upper == exp_upper
+                                assert lower == exp_lower
+                                assert target == exp_target
+                                assert upper == exp_upper

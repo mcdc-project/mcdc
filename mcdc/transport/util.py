@@ -147,6 +147,104 @@ def log_interpolation(x, x1, x2, y1, y2):
 
 
 # ======================================================================================
+# Angle conversion utilities
+# ======================================================================================
+
+
+@njit
+def calculate_angles(particle_container, polar_reference):
+    """
+    Calculate particle mu and azimuthal angle from given reference vector
+
+    Parameters
+    ----------
+    particle_container : ndarray
+      Container holding the particle.
+    polar_reference : ndarray
+      3D polar reference vector
+
+    Returns
+    -------
+    mu : float
+      Mu of particle relative to reference vector
+    azimuthal : float
+      Azimuthal angle of particle relative to reference vector
+    """
+    particle = particle_container[0]
+    ux = particle["ux"]
+    uy = particle["uy"]
+    uz = particle["uz"]
+
+    px = polar_reference[0]
+    py = polar_reference[1]
+    pz = polar_reference[2]
+
+    mu = ux * px + uy * py + uz * pz
+
+    azimuthal = _calculate_azimuthal(ux, uy, uz, px, py, pz)
+
+    return mu, azimuthal
+
+@njit
+def _calculate_azimuthal(ux, uy, uz, px, py, pz):
+    """
+    Calculates the azimuthal angle of a particle relative to a reference vector.
+    This is done by finding two orthonormal basis vectors perpendicular to the reference vector.
+    The first orthonormal vector, u1, is found using the graham-schmidt procedure.
+    The second, u2, is found from the cross product of the reference vector and u1.
+
+    Parameters
+    ----------
+    ux : float
+      X-component of particle's direction
+    uy : float
+      Y-component of particle's direction
+    uz : float
+      Z-component of particle's direction
+    px : float
+      X-component of reference vector
+    py : float
+      Y-component of reference vector
+    pz : float
+      Z-component of reference vector
+
+    Returns
+    -------
+    azimuthal : float
+      Azimuthal angle of particle relative to reference vector
+    """
+    # get two orthonormal basis vectors u1, u2 perpendicular to p
+    # u1 done via gram-schmidt, u2 done via cross product
+
+    # choose arbitrary guess v1, check to make sure its not accidentally parallel to p
+    if px < 0.9:
+        v1x, v1y, v1z = 1.0, 0.0, 0.0
+    else:
+        v1x, v1y, v1z = 0.0, 1.0, 0.0
+
+    # u1 = (v1 - proj(v1, p)) / ||u1||
+    v1dotp = v1x * px + v1y * py + v1z * pz
+    u1x = v1x - v1dotp * px
+    u1y = v1y - v1dotp * py
+    u1z = v1z - v1dotp * pz
+    u1norm = math.sqrt(u1x * u1x + u1y * u1y + u1z * u1z)
+    u1x /= u1norm
+    u1y /= u1norm
+    u1z /= u1norm
+
+    # u2 = p x u1
+    u2x = py * u1z - pz * u1y
+    u2y = pz * u1x - px * u1z
+    u2z = px * u1y - py * u1x
+
+    # particle vector in terms of u1 and u2 (dot products)
+    rel_ux = ux * u1x + uy * u1y + uz * u1z
+    rel_uy = ux * u2x + uy * u2y + uz * u2z
+
+    return math.atan2(rel_uy, rel_ux)
+
+
+# ======================================================================================
 # Framework utilities
 # ======================================================================================
 
