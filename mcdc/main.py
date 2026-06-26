@@ -37,13 +37,13 @@ def run():
     override_settings()
 
     # Generate the program state:
-    #   - `simulation`: the simulation, storing fixed side data and meta data that
-    #                   describes arbitrarily-sized data
+    #   - `simulation`: the simulation structure, storing fixed side data and meta data
+    #                   that describes arbitrarily-sized data
     #   - `data`: a long 1D array storing arbitrarily-sized data of the simulation
-    # NOTE: The simulation structure to be generated in a container, which is a
-    #       a one-sized array that stores the structure. The container is needed to
-    #       ensure proper mutability and tracking of the structure when running in
-    #       different kinds of machines supported by the Numba compilation framework.
+    # NOTE: The simulation structure is generated in a one-sized array container.
+    #       The use of container is necessary to ensure proper mutability and tracking
+    #       of the structure when running in different kinds of machines supported by
+    #       the Numba-based compilation framework.
     simulation_container, data = preparation()
     simulation = simulation_container[0]
 
