@@ -219,8 +219,6 @@ multi_table_distribution = into_dtype([
 
 nbody_distribution = into_dtype([
     ('pdf_ID', int64),
-    ('cdf_offset', int64),
-    ('cdf_length', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])

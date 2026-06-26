@@ -550,7 +550,6 @@ class DistributionNBody(DistributionBase):
     label: str = "nbody_distribution"
     #
     pdf: DataTable
-    cdf: NDArray[float64]
 
     def __init__(
         self,
@@ -572,12 +571,13 @@ class DistributionNBody(DistributionBase):
         type_ = DISTRIBUTION_N_BODY
         super().__init__(type_)
 
-        probabilities_normalized, self.cdf = cdf_from_pdf(values, probabilities)
+        pdf_normalized, cdf_normalized = cdf_from_pdf(values, probabilities)
 
         self.pdf = DataTable(
             values,
-            probabilities_normalized,
+            pdf_normalized,
             INTERPOLATION_LINEAR,
+            aux=cdf_normalized,
         )
 
     def __repr__(self):
