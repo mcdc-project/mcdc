@@ -19,9 +19,9 @@ jobs:
           days-before-issue-close: -1
           stale-issue-label: stale
           stale-issue-message: >
-            This issue is marked as stale as it has had no activity in the past 90 days.
-            Please close this issue if no further response or action is needed.
-            Otherwise, please respond with any updates and confirm that this issue still needs to be addressed.
+            This issue has had no activity in the past 90 days and has been marked as stale.
+            If this issue is still relevant, please leave a comment with any updates so we know it still needs attention.
+            Otherwise, maintainers may close this issue in the future. Thank you for your contribution!
 
           # Do not stale PRs
           days-before-pr-stale: -1
