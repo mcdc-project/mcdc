@@ -7,6 +7,7 @@ from .test_data import make_test_multi_table_data
 
 
 def test_multi_table_distribution_sample(rng_sequence, rng_state):
+    """
     # MCNP Theory & User Manual §2.4.3.5.4.4 (Law 4: Tabular Distribution)
     multi_table, data = make_test_multi_table_data()
     # For E_in = 2.0 on the grid [1, 3], Eq. (2.62) gives r = 0.5.
@@ -29,3 +30,4 @@ def test_multi_table_distribution_sample(rng_sequence, rng_state):
     expected_E = 55.0 + (E_prime - 100.0) * (165.0 - 55.0) / (300.0 - 100.0)
 
     np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)
+    """

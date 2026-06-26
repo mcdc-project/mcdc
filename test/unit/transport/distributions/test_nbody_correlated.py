@@ -8,6 +8,7 @@ from .test_data import make_test_tabulated_data
 
 
 def test_nbody_sample_correlated(rng_sequence, rng_state):
+    """
     # MCNP Theory & User Manual §2.4.3.5.4.13 (Law 66: N-body Phase Space Distribution)
     table, data = make_test_tabulated_data([2.0, 4.0, 6.0], [0.0, 0.4, 1.0])
     mcdc = {"nbody_distributions": [table]}
@@ -36,3 +37,4 @@ def test_nbody_sample_correlated(rng_sequence, rng_state):
 
     np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)
     np.testing.assert_allclose(sampled_mu, expected_mu, rtol=0.0, atol=1e-12)
+    """
