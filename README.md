@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 MC/DC is a performant, scalable, and machine-portable Python-based Monte Carlo 
-neutron transport software, initiated by the Center for Exascale Monte Carlo 
+radiation transport software, initiated by the Center for Exascale Monte Carlo 
 Neutron Transport ([CEMeNT](https://cement-psaap.github.io/)), and currently 
 in active development in the Center for Advancing the Radiation Resilience of 
 Electronics ([CARRE](https://carre-psaapiv.org)).
