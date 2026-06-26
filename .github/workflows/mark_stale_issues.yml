@@ -1,0 +1,28 @@
+name: Mark stale issues
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          days-before-issue-stale: 90
+          days-before-issue-close: -1
+          stale-issue-label: stale
+          stale-issue-message: >
+            This issue is marked as stale as it has had no activity in the past 90 days.
+            Please close this issue if no further response or action is needed.
+            Otherwise, please respond with any updates and confirm that this issue still needs to be addressed.
+
+          # Do not stale PRs
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
