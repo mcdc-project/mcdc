@@ -410,7 +410,7 @@ def set_energy_distribution(h5_group):
 
     elif spectrum_type == "N-body":
         value = h5_group["value"][()] * 1e6  # MeV to eV
-        pdf = h5_group["pdf"][()] / 1e6  # /MeV to /eV
+        pdf = h5_group["pdf"][()] / 1e6  # MeV to eV
 
         energy_spectrum = DistributionNBody(value, pdf)
 

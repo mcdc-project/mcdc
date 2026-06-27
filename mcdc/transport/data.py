@@ -50,16 +50,10 @@ def evaluate_table(x, table, data):
     y1 = mcdc_get.table_data.y(idx, table, data)
     y2 = mcdc_get.table_data.y(idx + 1, table, data)
 
-    # Get interpolation index
-    idx_int = 0
-    idx_int = 0
-    while True:
-        if idx + 1 < mcdc_get.table_data.interpolation_boundaries(idx_int, table, data):
-            break
-        idx_int += 1
+    # Get interpolation law
+    interpolation = get_table_interpolation_law(idx, table, data)
 
-    interpolation = mcdc_get.table_data.interpolations(idx_int, table, data)
-
+    # Perform interpolation
     if interpolation == INTERPOLATION_HISTOGRAM:
         return histogram_interpolation(x, x1, x2, y1, y2)
     elif interpolation == INTERPOLATION_LINEAR:
@@ -70,6 +64,29 @@ def evaluate_table(x, table, data):
         return semilogy_interpolation(x, x1, x2, y1, y2)
     elif interpolation == INTERPOLATION_LOG:
         return log_interpolation(x, x1, x2, y1, y2)
+
+
+@njit
+def get_table_interpolation_law(idx, table, data) -> int:
+    """Return the interpolation law for interval [idx, idx + 1]."""
+    offset = table["interpolation_boundaries_offset"]
+    length = table["interpolation_boundaries_length"]
+    boundaries = data[offset : offset + length]
+    # Above is equivalent to: boundaries = mcdc_get.table_data.interpolation_boundaries_all(table, data)
+
+    offset = table["interpolations_offset"]
+    length = table["interpolations_length"]
+    interpolations = data[offset : offset + length]
+    # Above is equivalent to: interpolations = mcdc_get.table_data.interpolations_all(table, data)
+
+    # Boundaries are exclusive upper point indices.
+    upper_point = idx + 1
+
+    I = len(boundaries)
+    for i in range(I):
+        if upper_point < boundaries[i]:
+            return interpolations[i]
+    return interpolations[-1]
 
 
 @njit

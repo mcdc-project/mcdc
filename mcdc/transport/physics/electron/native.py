@@ -296,7 +296,7 @@ def elastic_scattering(reaction, particle_container, element, simulation, data):
         # ---------------------------------------------------------------------
 
         multi_table = simulation["multi_table_distributions"][reaction["mu_ID"]]
-        mu0 = sample_multi_table(E, particle_container, multi_table, data)
+        mu0 = sample_multi_table(E, particle_container, multi_table, simulation, data)
 
     else:
         # ---------------------------------------------------------------------
