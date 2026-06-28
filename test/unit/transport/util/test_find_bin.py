@@ -5,15 +5,12 @@ import pytest
 
 from mcdc.transport.util import find_bin, find_bin_with_rules
 
+EPS = 1e-5
+
 
 @pytest.fixture
 def grid():
     return np.array([0.0, 1.0, 2.0, 5.0, 10.0])
-
-
-@pytest.fixture
-def eps():
-    return 1e-5
 
 
 def test_inside_bins(grid):
@@ -40,21 +37,21 @@ def test_last_edge(grid):
     assert find_bin_with_rules(10.0, grid, 0.0, False) == -1
 
 
-def test_near_interior_edges_with_epsilon(grid, eps):
-    assert find_bin_with_rules(1.0 - 1e-6, grid, eps, True) == 0
-    assert find_bin_with_rules(1.0 - 1e-6, grid, eps, False) == 1
-    assert find_bin_with_rules(1.0 + 1e-6, grid, eps, True) == 0
-    assert find_bin_with_rules(1.0 + 1e-6, grid, eps, False) == 1
+def test_near_interior_edges_with_epsilon(grid):
+    assert find_bin_with_rules(1.0 - 1e-6, grid, EPS, True) == 0
+    assert find_bin_with_rules(1.0 - 1e-6, grid, EPS, False) == 1
+    assert find_bin_with_rules(1.0 + 1e-6, grid, EPS, True) == 0
+    assert find_bin_with_rules(1.0 + 1e-6, grid, EPS, False) == 1
 
 
-def test_near_first_edge_with_epsilon(grid, eps):
-    assert find_bin_with_rules(0.0 + 1e-6, grid, eps, True) == -1
-    assert find_bin_with_rules(0.0 + 1e-6, grid, eps, False) == 0
+def test_near_first_edge_with_epsilon(grid):
+    assert find_bin_with_rules(0.0 + 1e-6, grid, EPS, True) == -1
+    assert find_bin_with_rules(0.0 + 1e-6, grid, EPS, False) == 0
 
 
-def test_near_last_edge_with_epsilon(grid, eps):
-    assert find_bin_with_rules(10.0 - 1e-6, grid, eps, True) == 3
-    assert find_bin_with_rules(10.0 - 1e-6, grid, eps, False) == -1
+def test_near_last_edge_with_epsilon(grid):
+    assert find_bin_with_rules(10.0 - 1e-6, grid, EPS, True) == 3
+    assert find_bin_with_rules(10.0 - 1e-6, grid, EPS, False) == -1
 
 
 def test_out_of_range(grid):

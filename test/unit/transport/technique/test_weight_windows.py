@@ -1,7 +1,6 @@
 import mcdc
 import numpy as np
 import pytest
-import os
 
 from mcdc.main import preparation
 import mcdc.numba_types as type_
@@ -9,10 +8,8 @@ from mcdc.transport.technique import (
     weight_roulette,
     split_from_weight_window,
     query_weight_window,
-    weight_windows,
     particle_bank_module,
 )
-from mcdc.transport.mesh.interface import get_indices
 from mcdc.constant import TINY
 import mcdc.transport.util as util
 
@@ -38,8 +35,6 @@ def make_mesh():
 
 
 def make_ww_model_params(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
-    import mcdc
-
     mesh, N = make_mesh()
     Ne = 1
 
@@ -59,8 +54,6 @@ def make_ww_model_params(lower=0.1, target=1.0, upper=1.0, mess_up_size=False):
 
 
 def make_ww_model_distinct():
-    import mcdc
-
     mesh, N = make_mesh()
     energy = np.linspace(0.0, 6.0, 7)
     Ne = 6
@@ -129,8 +122,9 @@ def test_error_throw(capsys, kwargs, expected_msg):
 def test_roulette_from_weight_bounds():
     # because of rng, want to loop over to hit both branches
     for _ in range(10):
-        particles = np.zeros(1, type_.particle_data)
+        particles = np.zeros(1, type_.particle)
         particles[0]["w"] = 0.1
+        particles[0]["alive"] = True
         target = 0.2
         threshold = 0.1 + TINY
 
@@ -141,14 +135,12 @@ def test_roulette_from_weight_bounds():
 
 def test_split_from_weight_window():
     program, data = make_ww_model_distinct()
-    simulation = util.access_simulation(program)
-    bank = simulation["bank_active"]
 
     def run_split(initial_weight, w_upper=1.0, w_target=0.5, w_lower=0.0):
         particles = np.zeros(1, type_.particle)
         particles[0]["w"] = initial_weight
         particles[0]["alive"] = True
-        init_bank_size = particle_bank_module.get_bank_size(bank)
+        init_bank_size = particle_bank_module.get_bank_size(program["bank_active"])
 
         split_from_weight_window(
             particles,
@@ -158,8 +150,10 @@ def test_split_from_weight_window():
             program=program,
         )
 
-        final_bank_size = particle_bank_module.get_bank_size(bank)
-        banked_particles = bank["particle_data"][init_bank_size:final_bank_size]
+        final_bank_size = particle_bank_module.get_bank_size(program["bank_active"])
+        banked_particles = program["bank_active"]["particle_data"][
+            init_bank_size:final_bank_size
+        ]
         return particles[0], banked_particles
 
     # No split occurs when particle weight is at the upper bound.

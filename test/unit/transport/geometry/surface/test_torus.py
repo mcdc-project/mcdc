@@ -5,7 +5,6 @@ import mcdc
 import mcdc.numba_types as type_
 
 from mcdc.constant import INF
-from mcdc.main import preparation
 from mcdc.transport.geometry.surface import interface, torus, torus_z
 
 # ======================================================================================
@@ -18,37 +17,46 @@ C = 0.0
 R = 1.0
 r = 0.5
 
-axis_aligned_surface_obj = mcdc.Surface.Torus(
-    center=[A, B, C],
-    axis=[0.0, 0.0, 1.0],
-    R=R,
-    r=r,
-)
-reference_surface_obj = mcdc.Surface.TorusZ(A=A, B=B, C=C, R=R, r=r)
+axis_aligned_surface = None
+reference_surface = None
+oblique_surface = None
+data = None
+particle_container = None
+particle = None
 
-# The x-axis is perpendicular to the axis [0, 1, 1], so points on the x-axis
-# give a simple analytic slice through the arbitrary-axis torus.
-oblique_surface_obj = mcdc.Surface.Torus(
-    center=[A, B, C],
-    axis=[0.0, 1.0, 1.0],
-    R=R,
-    r=r,
-)
 
-axis_aligned_surface_id = axis_aligned_surface_obj.ID
-reference_surface_id = reference_surface_obj.ID
-oblique_surface_id = oblique_surface_obj.ID
+@pytest.fixture(autouse=True)
+def setup_geometry_case():
+    global axis_aligned_surface, reference_surface, oblique_surface
+    global data, particle_container, particle
 
-structure_container, data = preparation()
-structure = structure_container[0]
+    axis_aligned_surface_obj = mcdc.Surface.Torus(
+        center=[A, B, C],
+        axis=[0.0, 0.0, 1.0],
+        R=R,
+        r=r,
+    )
+    reference_surface_obj = mcdc.Surface.TorusZ(A=A, B=B, C=C, R=R, r=r)
 
-# Use object IDs
-axis_aligned_surface = structure["surfaces"][axis_aligned_surface_id]
-reference_surface = structure["surfaces"][reference_surface_id]
-oblique_surface = structure["surfaces"][oblique_surface_id]
+    # The x-axis is perpendicular to the axis [0, 1, 1], so points on the x-axis
+    # give a simple analytic slice through the arbitrary-axis torus.
+    oblique_surface_obj = mcdc.Surface.Torus(
+        center=[A, B, C],
+        axis=[0.0, 1.0, 1.0],
+        R=R,
+        r=r,
+    )
 
-particle_container = np.zeros(1, type_.particle_data)
-particle = particle_container[0]
+    from mcdc.main import preparation
+
+    structure_container, data = preparation()
+    structure = structure_container[0]
+    axis_aligned_surface = structure["surfaces"][axis_aligned_surface_obj.ID]
+    reference_surface = structure["surfaces"][reference_surface_obj.ID]
+    oblique_surface = structure["surfaces"][oblique_surface_obj.ID]
+    particle_container = np.zeros(1, type_.particle_data)
+    particle = particle_container[0]
+
 
 # ======================================================================================
 # Surface creation
