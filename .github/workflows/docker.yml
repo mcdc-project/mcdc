@@ -121,14 +121,14 @@ jobs:
         run: |
           docker run --rm \
             -w /opt/mcdc/test/unit \
-            mcdc:${{ needs.build.outputs.image_tag }} python run.py
+            mcdc:${{ needs.build.outputs.image_tag }} python -m pytest test/unit
 
       - name: Run unit tests (with workspace mount)
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/opt/mcdc \
             -w /opt/mcdc/test/unit \
-            mcdc:${{ needs.build.outputs.image_tag }} python run.py
+            mcdc:${{ needs.build.outputs.image_tag }} python -m pytest test/unit
 
   # ---------------------------------------------------------------------------
   # Stage 2b: Regression — only on push, or on PRs touching docker-relevant files
