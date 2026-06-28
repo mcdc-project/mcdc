@@ -20,7 +20,8 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
+permissions:
+  contents: read
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: mcdc-project/mcdc
@@ -79,10 +80,8 @@ jobs:
           context: .
           file: containers/Dockerfile
           tags: mcdc:${{ steps.determine-tag.outputs.tag }}
-          cache-from: |
-            type=gha
-            type=gha,scope=main
-          cache-to: type=gha,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
           outputs: type=docker,dest=/tmp/mcdc-image.tar
 
       - name: Upload image artifact
@@ -150,14 +149,14 @@ jobs:
             timeout: 10
           - mode: Python-MPI
             run_cmd: |
-              python run.py --mpiexec=4
+              python run.py --mpiexec=2
             timeout: 20
           - mode: Numba-Serial
             run_cmd: "python run.py --mode numba"
             timeout: 120
           - mode: Numba-MPI
             run_cmd: |
-              python run.py --mode numba --mpiexec=4
+              python run.py --mode numba --mpiexec=2
             timeout: 120
 
     steps:
@@ -169,7 +168,7 @@ jobs:
         with:
           repository: mcdc-project/mcdc-regression_test_data
           path: test/regression/mcdc-regression_test_data
-          depth: 1
+          fetch-depth: 1
 
       - name: Download image artifact
         uses: actions/download-artifact@v4
@@ -186,6 +185,7 @@ jobs:
             -v ${{ github.workspace }}:/opt/mcdc \
             -w /opt/mcdc/test/regression \
             mcdc:${{ needs.build.outputs.image_tag }} bash -lc '
+              git config --global --add safe.directory /opt/mcdc
               git config --global --add safe.directory /opt/mcdc/test/regression/mcdc-regression_test_data
               ${{ matrix.run_cmd }}
             '
