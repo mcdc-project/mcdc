@@ -22,7 +22,7 @@
 - [ ] My code follows the [code style](https://mcdc.readthedocs.io/en/latest/contribution/index.html#code-styling) of this project.
 - [ ] I have updated the documentation accordingly. <!-- Delete if not applicable -->
 - [ ] I have added tests to cover my changes. <!-- Delete if not applicable -->
-- [ ] All new and existing tests pass <!-- Delete if not applicable -->
+- [ ] All new and existing tests pass
 
 ## Associated Issues and PRs
 <!--
