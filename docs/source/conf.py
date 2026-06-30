@@ -29,6 +29,7 @@ release = " "
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "sphinx_toolbox.github",
     "sphinx_toolbox.sidebar_links",
