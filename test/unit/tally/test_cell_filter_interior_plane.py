@@ -39,7 +39,7 @@ def test_cell_filter_ignores_redundant_interior_surface_crossing(
 
 def _build_cube_with_interior_plane(material_mg):
     x_min = mcdc.Surface.PlaneX(x=-1.0)
-    x_mid = mcdc.Surface.PlaneX(x=0.0) # middle union between two halves
+    x_mid = mcdc.Surface.PlaneX(x=0.0)  # middle union between two halves
     x_max = mcdc.Surface.PlaneX(x=1.0)
     y_min = mcdc.Surface.PlaneY(y=-1.0)
     y_max = mcdc.Surface.PlaneY(y=1.0)
