@@ -35,5 +35,4 @@ jobs:
       run: |
           pwd
           source ../ci_testing/bin/activate
-          cd test/regression
-          python run.py --mode=numba --target=gpu
+          python -m pytest test/regression --mode=numba --target=gpu

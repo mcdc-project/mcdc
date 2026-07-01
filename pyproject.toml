@@ -108,3 +108,20 @@ force-exclude = '''
   | mcdc/mcdc_set/
 )
 '''
+
+[tool.pytest.ini_options]
+testpaths = ["test/unit"]
+# The slow suite is selected by path (`pytest test/regression`); keep the cloned
+# regression data out of pytest's collection without replacing pytest's defaults.
+norecursedirs = [
+  "*.egg",
+  ".*",
+  "_darcs",
+  "build",
+  "CVS",
+  "dist",
+  "node_modules",
+  "venv",
+  "{arch}",
+  "mcdc-regression_test_data",
+]

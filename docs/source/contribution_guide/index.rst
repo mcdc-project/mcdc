@@ -141,19 +141,33 @@ Our github based CI runs for,
 
 while we do not have continuous integration we have validated MC/DC on other systems.
 
-To run the regression tests locally, navigate to ``MCDC/test/regression`` and run,
+To run the default fast unit-test suite locally, run,
 
 .. code-block:: sh
 
+    python -m pytest
 
-    python run.py <OPTION_FLAG(s)>
+To run the full unit-test suite in both Python and Numba mode, run,
+
+.. code-block:: sh
+
+    python -m pytest test/unit
+
+To run the regression tests locally, run,
+
+.. code-block:: sh
+
+    python -m pytest test/regression <OPTION_FLAG(s)>
 
 
 and all the tests will run. Various option ``OPTION_FLAG`` are accepted to control the tests ran,
 
-* Run a specific test (with wildcard ``*`` support): ``--name=<test_name>`` 
+* Run a specific test (with wildcard ``*`` support): ``--name=<test_name>``
+* Skip a specific test (with wildcard ``*`` support): ``--skip=<test_name>``
 * Run in Numba mode: ``--mode=numba``
+* Run against the GPU target: ``--target=gpu``
 * Run in multiple MPI ranks (currently support ``mpiexec`` and ``srun``): ``--mpiexec=<number of ranks>``
+* Run with Slurm ``srun`` instead of ``mpiexec``: ``--srun=<number of ranks>``
 
 Note that flags can be combined. To add a new test:
 
@@ -169,7 +183,6 @@ See the (``.github/workflows``) for examples.
 
 If a new simulation type is added (e.g. quasi montecarlo w/ davidson's method, residual monte carlo, intrusive uq) more regression tests should be added with your PR.
 If you are wondering accommodations.
-
 
 --------------------
 Adding Documentation
