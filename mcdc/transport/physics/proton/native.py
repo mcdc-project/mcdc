@@ -246,6 +246,7 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
     particle = particle_container[0]
     collision_data = collision_data_container[0]
     material = simulation["native_materials"][particle["material_ID"]]
+    # print(f'material = {material}, type = {type(material)}, {material.dtype.names}')
     E = particle["E"]
 
     # Check for cutoff energy
@@ -254,43 +255,61 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
         particle["alive"] = False
         particle["E"] = 0.0
         return
-
+ 
     total_stopping_power = 0.0
     total_rho_gcm3 = 0.0
+    total_Z = 0.0
+    total_A = 0.0
     # Find the total stopping power by summing over every nuclide in the material
     for i in range(material["N_nuclide"]):
         nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
         nuclide = simulation["nuclides"][nuclide_ID]
-        dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
-        dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
 
-        # TODO: replace np.interp with a non-numpy function??
-        dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
-        total_stopping_power += dedx
+        # If no stopping power provided, we calculate it ourselves here
+        if not material["stopping_power_provided"]:
+            dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
+            dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
 
-        # Convert atoms/barn-cm to g/cm³:
+            # TODO: replace np.interp with a non-numpy function??
+            dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
+            total_stopping_power += dedx * 1e6
+
+        # Convert atoms/barn-cm to g/cm3:
         atomic_mass = nuclide["atomic_weight_ratio"]  # mass in amu
         nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
         density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)
         total_rho_gcm3 += density_gcm3
 
-    energy_loss = total_stopping_power * distance * total_rho_gcm3 * 1e6
-    Z = nuclide["atomic_number"]
-    A = nuclide["mass_number"]
+        total_Z += nuclide["atomic_number"]
+        total_A += nuclide["mass_number"]
+    
+    Z = total_Z / material["N_nuclide"]
+    A = total_A / material["N_nuclide"]
+
+    if material["stopping_power_provided"]:
+        dedx_values = mcdc_get.native_material.stopping_power_all(material, data)
+        dedx_energies = mcdc_get.native_material.stopping_power_energy_grid_all(material, data)
+
+        dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
+        total_stopping_power = dedx * 1e6
+
+    energy_loss = total_stopping_power * total_rho_gcm3 * distance
 
     # Range straggling - modify energy loss to have some slight variations
     # TODO: Insert different thickness regimes to sample from (e.g. Bohr, Landau, Vavilov)
     gaussian_variance = 0.1569 * total_rho_gcm3 * Z / A * distance
     
-    # TODO: Account for relativistic particles
-    # gaussian_variance *= (1-0.5*beta**2)/(1-beta**2)
-    
     gaussian = np.random.normal(loc=0.0, scale=np.sqrt(gaussian_variance))
     energy_loss += gaussian
-    particle["E"] -= energy_loss * particle["w"]
+    particle["E"] -= energy_loss
     collision_data["energy_deposition"] += energy_loss * particle["w"]
+
     if energy_loss * particle["w"] <= 0.0:
+        print(f'total density = {total_rho_gcm3}')
+        print(f'stopping_power = {total_stopping_power}')
+        print(f'distance = {distance}')
         print(f'NEGATIVE: energy_loss = {energy_loss * particle["w"]}')
+        raise ValueError('negative energy loss')
     return
 
 

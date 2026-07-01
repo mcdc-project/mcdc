@@ -67,13 +67,11 @@ import ACEtk
 # -- Constants -----------------------------------------------------------------
 
 ZAP_NAMES = {
-    0:    "photon",
-    1:    "neutron",
-    1001: "proton",
-    1002: "deuteron",
-    1003: "triton",
-    2003: "He3",
-    2004: "alpha",
+    1:  "neutron",
+    31: "deuteron",
+    32: "triton",
+    33: "He3",
+    34: "alpha",
 }
 
 Z_TO_SYMBOL = {
@@ -119,6 +117,7 @@ def print_error(msg):
     print(f"\n[ERROR] {msg}", file=sys.stderr)
     sys.exit(1)
 
+
 def print_note(msg):
     print(f"  [note] {msg}")
 
@@ -135,7 +134,7 @@ def decode_ace_zaid(zaid):
 
 def load_pstar_file(filepath):
     """
-    Load a two-column PSTAR file (Energy MeV, Stopping power MeV cm2/g).
+    Load a two-column PSTAR file (Energy MeV, Stopping power MeV cm^2/g).
     Returns (energies, stopping_powers) as float64 arrays.
     """
     energies, sps = [], []

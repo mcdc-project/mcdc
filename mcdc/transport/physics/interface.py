@@ -76,6 +76,8 @@ def collision_distance(particle_container, simulation, data):
     elif particle["particle_type"] == PARTICLE_PROTON:
         SigmaT = macro_xs(PROTON_REACTION_TOTAL, particle_container, simulation, data)
 
+    # print(f'SigmaT = {SigmaT}, E = {particle["E"]}')
+
     # Vacuum material?
     if SigmaT == 0.0:
         return INF
@@ -114,16 +116,25 @@ def csda_distance(particle_container, simulation, data):
     for i in range(material["N_nuclide"]):
         nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
         nuclide = simulation["nuclides"][nuclide_ID]
-        dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
-        dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
-        dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
-        total_dedx += dedx * 1e6
+
+        if not material["stopping_power_provided"]:
+            dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
+            dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
+            dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
+            total_dedx += dedx * 1e6            
 
         atomic_mass = nuclide["atomic_weight_ratio"]
         nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
         density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)
         total_rho += density_gcm3
+    
+    if material["stopping_power_provided"]:
+        dedx_values = mcdc_get.native_material.stopping_power_all(material, data)
+        dedx_energies = mcdc_get.native_material.stopping_power_energy_grid_all(material, data)
+        dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
+        total_dedx = dedx * 1e6
 
+    
     max_fractional_e_loss = simulation["settings"]["csda_max_fractional_e_loss"]
     return max_fractional_e_loss * E / total_dedx / total_rho
 

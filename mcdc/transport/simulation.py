@@ -463,6 +463,9 @@ def move_to_event(particle_container, simulation, data):
         elif geometry.check_coincidence(d_csda, distance):
             particle["event"] += EVENT_CSDA_EDEP
 
+    if distance < 0.0:
+        raise ValueError(f"Negative distance")
+
     # ==================================================================================
     # Move particle
     # ==================================================================================

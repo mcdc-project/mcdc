@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import h5py
 
 from numpy import float64
 from numpy.typing import NDArray
@@ -101,6 +102,10 @@ class Material(MaterialBase):
     elements: list[Element]
     nuclide_densities: NDArray[float64]
     element_densities: NDArray[float64]
+    #
+    stopping_power_provided: bool = False
+    stopping_power: NDArray[float64]
+    stopping_power_energy_grid: NDArray[float64]
 
     def __init__(
         self,
@@ -128,6 +133,10 @@ class Material(MaterialBase):
         # Numba representation of element_composition
         self.elements = []
         self.element_densities = np.zeros(len(element_composition))
+
+        # Stopping power
+        self.stopping_power = np.array([])
+        self.stopping_power_energy_grid = np.array([])
 
         # Check if library directory is set
         lib_dir = os.getenv("MCDC_LIB")
@@ -220,6 +229,21 @@ class Material(MaterialBase):
                     f"    - {element.name:<5} | {self.element_composition[element]}\n"
                 )
         return text
+    
+    def add_stopping_power(
+            self,
+            stopping_power_filename: str = "",
+            ):
+        
+        self.stopping_power_provided = True
+
+        dir_name = os.getenv("MCDC_LIB")
+        file_name = stopping_power_filename
+        file = h5py.File(f"{dir_name}/{file_name}.h5", "r")
+
+        self.stopping_power = file["stopping_power"]["total_stopping_power"][()]
+        self.stopping_power_energy_grid = file["stopping_power"]["energy"][()]
+        file.close()
 
 
 # Currently supported temperatures
@@ -445,6 +469,7 @@ class MaterialMG(MaterialBase):
         text += f"    - speed {print_1d_array(self.mgxs_speed)}\n"
         text += f"    - lambda {print_1d_array(self.mgxs_decay_rate)}\n"
         return text
+
 
 
 def set_nuclides_from_elements(material):

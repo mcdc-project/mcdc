@@ -359,6 +359,11 @@ native_material = into_dtype([
     ('nuclide_densities_length', int64),
     ('element_densities_offset', int64),
     ('element_densities_length', int64),
+    ('stopping_power_provided', bool),
+    ('stopping_power_offset', int64),
+    ('stopping_power_length', int64),
+    ('stopping_power_energy_grid_offset', int64),
+    ('stopping_power_energy_grid_length', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])
