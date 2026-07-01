@@ -94,20 +94,24 @@ def surface_crossing_tally(
     previous_cell_ID = particle["cell_ID"]
     filter_cell_ID = tally["cell_filter_ID"]
     filter_cell = simulation["cells"][filter_cell_ID]
+    was_in_filter_cell = previous_cell_ID == filter_cell_ID
+    now_in_filter_cell = check_cell(particle_container, filter_cell, simulation, data)
+    entered_filter_cell = not was_in_filter_cell and now_in_filter_cell
+    exited_filter_cell = was_in_filter_cell and not now_in_filter_cell
     for i_score in range(tally_base["scores_length"]):
         score_type = mcdc_get.tally.scores(i_score, tally_base, data)
 
         score = 0.0
         if score_type == SCORE_CURRENT_NET:
-            if filter_cell_ID == previous_cell_ID:
+            if exited_filter_cell:
                 score = particle["w"]
-            elif check_cell(particle_container, filter_cell, simulation, data):
+            elif entered_filter_cell:
                 score = -particle["w"]
         elif score_type == SCORE_CURRENT_IN:
-            if check_cell(particle_container, filter_cell, simulation, data):
+            if entered_filter_cell:
                 score = particle["w"]
         elif score_type == SCORE_CURRENT_OUT:
-            if filter_cell_ID == previous_cell_ID:
+            if exited_filter_cell:
                 score = particle["w"]
 
         util.atomic_add(data, idx_base + i_score, score)
