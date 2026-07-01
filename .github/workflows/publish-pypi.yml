@@ -36,6 +36,8 @@ jobs:
       # Check out the repository at the tagged release.
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # Set up the Python version supported by this project.
       - name: Set up Python
