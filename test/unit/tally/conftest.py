@@ -29,12 +29,13 @@ def material_mg():
 
 @pytest.fixture
 def crossing_particle():
-    def _particle(surface_ID, x, ux, w=2.0):
+    def _particle(surface_ID, x, ux, cell_ID=-1, w=2.0):
         particle_container = np.zeros(1, type_.particle)
         particle = particle_container[0]
         particle["alive"] = True
         particle["particle_type"] = PARTICLE_NEUTRON
         particle["surface_ID"] = surface_ID
+        particle["cell_ID"] = cell_ID
         particle["material_ID"] = 0
         particle["g"] = 0
         particle["x"] = x
@@ -71,14 +72,7 @@ def slab_plane_x(material_mg):
 def surface_crossing_tally_context(slab_plane_x):
     s_mid = slab_plane_x["s_mid"]
 
-    # Same surface, with and without explicit y/z bounds.
     unbounded_tally_obj = mcdc.Tally(surface=s_mid, scores=["current-net"])
-    bounded_tally_obj = mcdc.Tally(
-        surface=s_mid,
-        y=[-0.5, 0.5],
-        z=[-0.25, 0.25],
-        scores=["current-net"],
-    )
 
     # Build compiled structures.
     mcdc_container, data = preparation()
@@ -88,7 +82,6 @@ def surface_crossing_tally_context(slab_plane_x):
     unbounded_tally = mcdc_struct["surface_crossing_tallies"][
         unbounded_tally_obj.child_ID
     ]
-    bounded_tally = mcdc_struct["surface_crossing_tallies"][bounded_tally_obj.child_ID]
 
     # Particle for direct crossing-based tally-kernel testing.
     particle_container = np.zeros(1, type_.particle)
@@ -112,7 +105,6 @@ def surface_crossing_tally_context(slab_plane_x):
         "particle_container": particle_container,
         "s_mid": s_mid,
         "unbounded_tally": unbounded_tally,
-        "bounded_tally": bounded_tally,
     }
 
 

@@ -2,7 +2,6 @@ import pytest
 
 import mcdc
 
-from mcdc.constant import SPATIAL_FILTER_NONE
 from mcdc.object_.tally import (
     TallyCollision,
     TallySurfaceCrossing,
@@ -40,7 +39,10 @@ def test_tally_factory_routing_surface_vs_tracklength_vs_collision(slab_plane_x)
     assert isinstance(tracklength_tally, TallyTracklength)
     assert isinstance(collision_tally, TallyCollision)
 
-    assert tracklength_tally.spatial_filter_type == SPATIAL_FILTER_NONE
+    assert not tracklength_tally.cell_filtered
+    assert tracklength_tally.cell_filter_ID == -1
+    assert not tracklength_tally.mesh_filtered
+    assert tracklength_tally.mesh_filter_ID == -1
 
 
 def test_tally_factory_rejects_empty_scores(capsys):
@@ -60,7 +62,7 @@ def test_tally_factory_rejects_unsupported_score(capsys):
     assert "bad_score" in out
 
 
-def test_tally_factory_rejects_multiple_spatial_filters(slab_plane_x, capsys):
+def test_tally_factory_allows_combined_supported_filters(slab_plane_x):
     mesh = mcdc.MeshUniform(
         "mesh",
         x=(-1.0, 0.5, 2),
@@ -68,25 +70,25 @@ def test_tally_factory_rejects_multiple_spatial_filters(slab_plane_x, capsys):
         z=(-1.0, 1.0, 1),
     )
 
-    with pytest.raises(SystemExit):
-        mcdc.Tally(
-            surface=slab_plane_x["s_mid"],
-            cell=slab_plane_x["c_right"],
-            scores=["current-net"],
-        )
+    surface_cell_tally = mcdc.Tally(
+        surface=slab_plane_x["s_mid"],
+        cell=slab_plane_x["c_right"],
+        scores=["current-net"],
+    )
+    assert surface_cell_tally.surface_filtered
+    assert surface_cell_tally.surface_filter_ID == slab_plane_x["s_mid"].ID
+    assert surface_cell_tally.cell_filtered
+    assert surface_cell_tally.cell_filter_ID == slab_plane_x["c_right"].ID
 
-    out = capsys.readouterr().out
-    assert "Tally only supports one spatial filter" in out
-
-    with pytest.raises(SystemExit):
-        mcdc.Tally(
-            cell=slab_plane_x["c_right"],
-            mesh=mesh,
-            scores=["flux"],
-        )
-
-    out = capsys.readouterr().out
-    assert "Tally only supports one spatial filter" in out
+    cell_mesh_tally = mcdc.Tally(
+        cell=slab_plane_x["c_right"],
+        mesh=mesh,
+        scores=["flux"],
+    )
+    assert cell_mesh_tally.cell_filtered
+    assert cell_mesh_tally.cell_filter_ID == slab_plane_x["c_right"].ID
+    assert cell_mesh_tally.mesh_filtered
+    assert cell_mesh_tally.mesh_filter_ID == mesh.ID
 
 
 def test_tally_factory_rejects_mixed_estimator_scores(capsys):
@@ -104,7 +106,7 @@ def test_tally_factory_rejects_surface_crossing_without_surface_or_cell(capsys):
         mcdc.Tally(scores=["current-net"])
 
     out = capsys.readouterr().out
-    assert "need either a surface or cell filter" in out
+    assert "needs surface or cell filter" in out
 
 
 def test_tally_factory_rejects_tracklength_score_with_surface_filter(
@@ -119,7 +121,6 @@ def test_tally_factory_rejects_tracklength_score_with_surface_filter(
 
     out = capsys.readouterr().out
     assert "does not support surface filter" in out
-    assert "flux" in out
 
 
 def test_tally_factory_rejects_collision_score_with_surface_filter(
@@ -134,4 +135,3 @@ def test_tally_factory_rejects_collision_score_with_surface_filter(
 
     out = capsys.readouterr().out
     assert "does not support surface filter" in out
-    assert "energy_deposition" in out

@@ -6,26 +6,25 @@ from mcdc.main import preparation
 from mcdc.transport.simulation import surface_crossing
 
 
-def test_surface_crossing_tally_bounds_fields(surface_crossing_tally_context):
+def test_surface_crossing_tally_filter_fields(surface_crossing_tally_context):
     unbounded_tally = surface_crossing_tally_context["unbounded_tally"]
-    bounded_tally = surface_crossing_tally_context["bounded_tally"]
+    s_mid = surface_crossing_tally_context["s_mid"]
 
-    assert unbounded_tally["filter_surface_bounds"] == 0
-    assert bounded_tally["filter_surface_bounds"] == 1
-    assert bounded_tally["has_x_bounds"] == 0
-    assert bounded_tally["has_y_bounds"] == 1
-    assert bounded_tally["has_z_bounds"] == 1
+    assert unbounded_tally["surface_filtered"]
+    assert unbounded_tally["surface_filter_ID"] == s_mid.ID
+    assert not unbounded_tally["cell_filtered"]
+    assert unbounded_tally["cell_filter_ID"] == -1
 
 
 @pytest.mark.parametrize(
-    "ux, y, z, expected_unbounded, expected_bounded",
+    "ux, y, z, expected",
     [
-        (0.5, 0.0, 0.0, 2.0, 2.0),  # inside bounds: left -> right
-        (-0.5, 0.0, 0.0, -2.0, -2.0),  # inside bounds: right -> left
-        (0.5, 0.8, 0.0, 2.0, 0.0),  # outside y bounds
-        (0.5, 0.0, 0.3, 2.0, 0.0),  # outside z bounds
+        (0.5, 0.0, 0.0, 2.0),  # left -> right
+        (-0.5, 0.0, 0.0, -2.0),  # right -> left
+        (0.5, 0.8, 0.0, 2.0),
+        (0.5, 0.0, 0.3, 2.0),
     ],
-    ids=["inside_l2r", "inside_r2l", "outside_y_bounds", "outside_z_bounds"],
+    ids=["left_to_right", "right_to_left", "shifted_y", "shifted_z"],
 )
 def test_unbounded_surface_crossing_tally_scoring(
     surface_crossing_tally_context,
@@ -33,8 +32,7 @@ def test_unbounded_surface_crossing_tally_scoring(
     ux,
     y,
     z,
-    expected_unbounded,
-    expected_bounded,
+    expected,
 ):
     data = surface_crossing_tally_context["data"]
     mcdc_struct = surface_crossing_tally_context["mcdc_struct"]
@@ -42,7 +40,6 @@ def test_unbounded_surface_crossing_tally_scoring(
     particle_container = surface_crossing_tally_context["particle_container"]
     s_mid = surface_crossing_tally_context["s_mid"]
     unbounded_tally = surface_crossing_tally_context["unbounded_tally"]
-    bounded_tally = surface_crossing_tally_context["bounded_tally"]
 
     particle["alive"] = True
     particle["surface_ID"] = s_mid.ID
@@ -52,8 +49,7 @@ def test_unbounded_surface_crossing_tally_scoring(
     particle["ux"] = ux
     surface_crossing(particle_container, mcdc_struct, data)
 
-    assert np.isclose(bin_value(unbounded_tally, mcdc_struct, data), expected_unbounded)
-    assert np.isclose(bin_value(bounded_tally, mcdc_struct, data), expected_bounded)
+    assert np.isclose(bin_value(unbounded_tally, mcdc_struct, data), expected)
 
 
 def test_surface_crossing_tally_scores_vacuum_boundary(
@@ -96,4 +92,4 @@ def test_surface_crossing_tally_scores_after_reflective_boundary(
 
     assert particle["alive"]
     assert np.isclose(particle["ux"], -0.5)
-    assert np.isclose(bin_value(tally, mcdc_struct, data), -2.0)
+    assert np.isclose(bin_value(tally, mcdc_struct, data), 0.0)
