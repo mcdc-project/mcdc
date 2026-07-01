@@ -20,7 +20,8 @@ from mcdc.object_.neutron_reaction import (
 )
 from mcdc.object_.proton_reaction import (
     ProtonReactionElasticScattering,
-    ProtonReactionNonelasticReaction,
+    ProtonReactionInelasticScattering,
+    ProtonReactionCapture,
     set_energy_distribution,
 )
 from mcdc.object_.simulation import simulation
@@ -53,7 +54,8 @@ class Nuclide(ObjectNonSingleton):
     proton_xs_energy_grid: NDArray[float64]
     proton_total_xs: NDArray[float64]
     proton_elastic_xs: NDArray[float64]
-    proton_nonelastic_xs: NDArray[float64]
+    proton_capture_xs: NDArray[float64]
+    proton_inelastic_xs: NDArray[float64]
     #
     neutron_elastic_scattering_reactions: list[NeutronReactionElasticScattering]
     neutron_capture_reactions: list[NeutronReactionCapture]
@@ -61,7 +63,8 @@ class Nuclide(ObjectNonSingleton):
     neutron_fission_reactions: list[NeutronReactionFission]
     #
     proton_elastic_scattering_reactions: list[ProtonReactionElasticScattering]
-    proton_nonelastic_reactions: list[ProtonReactionNonelasticReaction]
+    proton_capture_reactions: list[ProtonReactionCapture]
+    proton_inelastic_scattering_reactions: list[ProtonReactionInelasticScattering]
     #
     neutron_fission_prompt_multiplicity: DataBase
     neutron_fission_delayed_multiplicity: DataBase
@@ -102,14 +105,16 @@ class Nuclide(ObjectNonSingleton):
         self.proton_xs_energy_grid = np.zeros(0)
         self.proton_total_xs = np.zeros(0)
         self.proton_elastic_xs = np.zeros(0)
-        self.proton_nonelastic_xs = np.zeros(0)
+        self.proton_inelastic_xs = np.zeros(0)
+        self.proton_capture_xs = np.zeros(0)
         # Reactions
         self.neutron_elastic_scattering_reactions = []
         self.neutron_capture_reactions = []
         self.neutron_inelastic_scattering_reactions = []
         self.neutron_fission_reactions = []
         self.proton_elastic_scattering_reactions = []
-        self.proton_nonelastic_reactions = []
+        self.proton_inelastic_scattering_reactions = []
+        self.proton_capture_reactions = []
         # Fission
         self.neutron_fission_prompt_multiplicity = DataPolynomial(np.array([0.0]))
         self.neutron_fission_delayed_multiplicity = DataPolynomial(np.array([0.0]))
@@ -286,14 +291,15 @@ class Nuclide(ObjectNonSingleton):
 
             self.proton_total_xs = np.zeros_like(self.proton_xs_energy_grid)
             self.proton_elastic_xs = np.zeros_like(self.proton_xs_energy_grid)
-            self.proton_nonelastic_xs = np.zeros_like(self.proton_xs_energy_grid)
+            self.proton_inelastic_xs = np.zeros_like(self.proton_xs_energy_grid)
 
             file.close()
             return
 
         rx_names = [
             "elastic_scattering",
-            "nonelastic_reaction",
+            "inelastic_scattering",
+            "capture",
         ]
 
         # The reaction MTs
@@ -318,11 +324,13 @@ class Nuclide(ObjectNonSingleton):
         # The total XS
         self.proton_total_xs = np.zeros_like(self.proton_xs_energy_grid)
         self.proton_elastic_xs = np.zeros_like(self.proton_xs_energy_grid)
-        self.proton_nonelastic_xs = np.zeros_like(self.proton_xs_energy_grid)
+        self.proton_inelastic_xs = np.zeros_like(self.proton_xs_energy_grid)
+        self.proton_capture_xs = np.zeros_like(self.proton_xs_energy_grid)
 
         xs_containers = [
             self.proton_elastic_xs,
-            self.proton_nonelastic_xs,
+            self.proton_inelastic_xs,
+            self.proton_capture_xs,
         ]
 
         for xs_container, rx_name in list(zip(xs_containers, rx_names)):
@@ -330,22 +338,25 @@ class Nuclide(ObjectNonSingleton):
                 xs = file[f"proton_reactions/{rx_name}/{MT}/xs"]
                 xs_container[xs.attrs["offset"] :] += xs[()]
 
-        self.proton_total_xs = self.proton_elastic_xs + self.proton_nonelastic_xs
+        self.proton_total_xs = self.proton_elastic_xs + self.proton_inelastic_xs + self.proton_capture_xs
 
         # ==========================================================================
         # The reactions
         # ==========================================================================
 
         self.proton_elastic_scattering_reactions = []
-        self.proton_nonelastic_reactions = []
+        self.proton_inelastic_scattering_reactions = []
+        self.proton_capture_reactions = []
 
         rx_containers = [
             self.proton_elastic_scattering_reactions,
-            self.proton_nonelastic_reactions,
+            self.proton_inelastic_scattering_reactions,
+            self.proton_capture_reactions,
         ]
         rx_classes = [
             ProtonReactionElasticScattering,
-            ProtonReactionNonelasticReaction,
+            ProtonReactionInelasticScattering,
+            ProtonReactionCapture,
         ]
         for rx_container, rx_name, rx_class in list(
             zip(rx_containers, rx_names, rx_classes)

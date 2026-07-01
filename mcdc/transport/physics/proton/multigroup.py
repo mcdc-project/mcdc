@@ -16,7 +16,8 @@ from mcdc.constant import (
     PI,
     PROTON_REACTION_TOTAL,
     PROTON_REACTION_ELASTIC_SCATTERING,
-    PROTON_REACTION_NONELASTIC,
+    PROTON_REACTION_INELASTIC_SCATTERING,
+    PROTON_REACTION_CAPTURE,
 )
 from mcdc.transport.physics.util import scatter_direction
 from mcdc.transport.distribution import sample_isotropic_direction
@@ -113,6 +114,8 @@ def scattering(particle_container, program, data):
         weight_production = particle["w"] / weight_target
         weight_product = weight_target
 
+
+    # TODO: make this better for protons, add secondary particle generation to non-MG materials
     # Get number of secondaries
     nu_s = mcdc_get.multigroup_material.mgxs_nu_s(g, material, data)
     N = int(math.floor(weight_production * nu_s + rng.lcg(particle_container)))

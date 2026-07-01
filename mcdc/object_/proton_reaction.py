@@ -14,7 +14,8 @@ from mcdc.constant import (
     INTERPOLATION_LINEAR,
     INTERPOLATION_LOG,
     PROTON_REACTION_ELASTIC_SCATTERING,
-    PROTON_REACTION_NONELASTIC,
+    PROTON_REACTION_CAPTURE,
+    PROTON_REACTION_INELASTIC_SCATTERING,
     REFERENCE_FRAME_COM,
     REFERENCE_FRAME_LAB,
     PARTICLE_NEUTRON,
@@ -33,15 +34,6 @@ from mcdc.object_.distribution import (
 )
 from mcdc.object_.simulation import simulation
 from mcdc.print_ import print_1d_array, print_error
-
-# ======================================================================================
-# ZAP to particle type mapping
-# ======================================================================================
-
-ZAP_TO_PARTICLE = {
-    1: PARTICLE_NEUTRON,
-    31: PARTICLE_PROTON,
-}
 
 # ======================================================================================
 # Proton reaction base class
@@ -80,8 +72,10 @@ class ProtonReactionBase(ObjectPolymorphic):
 def decode_type(type_):
     if type_ == PROTON_REACTION_ELASTIC_SCATTERING:
         return "Proton elastic scattering"
-    elif type_ == PROTON_REACTION_NONELASTIC:
-        return "Proton nonelastic reaction"
+    elif type_ == PROTON_REACTION_INELASTIC_SCATTERING:
+        return "Proton inelastic scattering"
+    elif type_ == PROTON_REACTION_CAPTURE:
+        return "Proton capture"
 
 
 def decode_reference_frame(type_):
@@ -120,13 +114,13 @@ class ProtonReactionElasticScattering(ProtonReactionBase):
 
 
 # ======================================================================================
-# Proton nonelastic reaction
+# Proton inelastic scattering
 # ======================================================================================
 
 
-class ProtonReactionNonelasticReaction(ProtonReactionBase):
+class ProtonReactionInelasticScattering(ProtonReactionBase):
     # Annotations for Numba mode
-    label: str = "proton_nonelastic_reaction"
+    label: str = "proton_inelastic_scattering_reaction"
     #
     multiplicity: int
     angle_type: int
@@ -153,7 +147,7 @@ class ProtonReactionNonelasticReaction(ProtonReactionBase):
         spectrum_probability,
         energy_spectra,
     ):
-        type_ = PROTON_REACTION_NONELASTIC
+        type_ = PROTON_REACTION_INELASTIC_SCATTERING
         super().__init__(type_, MT, xs, xs_offset, reference_frame, q_value)
 
         self.multiplicity = multiplicity
@@ -211,6 +205,22 @@ class ProtonReactionNonelasticReaction(ProtonReactionBase):
         for i in range(len(self.energy_spectra)):
             text += f"      - Spectrum {i+1}: {distribution.decode_type(self.energy_spectra[i])} [{print_1d_array(self.spectrum_probability[:,i])}] [ID: {self.energy_spectra[i].ID}]\n"
         return text
+
+
+
+class ProtonReactionCapture(ProtonReactionBase):
+    # Annotations for Numba mode
+    label: str = "proton_capture_reaction"
+
+    def __init__(self, MT, xs, xs_offset, reference_frame, q_value):
+        type_ = PROTON_REACTION_CAPTURE
+        super().__init__(type_, MT, xs, xs_offset, reference_frame, q_value)
+
+    @classmethod
+    def from_h5_group(cls, h5_group):
+        MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
+        return cls(MT, xs, xs_offset, reference_frame, q_value)
+
 
 
 # ======================================================================================
