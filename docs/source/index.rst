@@ -4,40 +4,55 @@
 MC/DC: Monte Carlo Dynamic Code
 ======================================
 
-MC/DC is a performant, scalable, and portable Python-based Monte Carlo radiation 
-transport software package. It is purpose-built as a rapid methods development 
-platform capable of leveraging modern high-performance computing systems, supporting 
-both CPUs and GPUs.
+MC/DC is an open-source, Python-based Monte Carlo radiation transport software
+package that combines rapid methods development with scalable execution on modern
+high-performance computing systems. It supports execution across CPUs and GPUs
+while providing a flexible environment for developing and testing new transport
+algorithms.
 
-MC/DC supports continuous-energy and multi-group neutron transport calculations. It is 
-capable of running fixed-source and eigenvalue transport simulations on models built 
-from constructive solid geometry. For continuous-energy neutron transport, 
-MC/DC translates `ACE <https://nucleardata.lanl.gov/ace/>`_ nuclear data libraries into 
-its native `HDF5 <https://www.hdfgroup.org/solutions/hdf5/>`_ format. Photon, electron, 
-and charged-particle transport are currently under development, with the goal of making 
-MC/DC a multi-radiation/particle transport software package.
+MC/DC is intended for researchers developing new Monte Carlo transport methods,
+uncertainty quantification techniques, variance reduction algorithms, and
+high-performance computing methods. It also provides an accessible platform
+for students learning Monte Carlo radiation transport methods and modern code
+development.
 
-While MC/DC's Python environment promotes rapid iterative testing of ideas, its 
-Numba-based compilation framework improves runtime performance and enables portability. 
-`Harmonize <https://github.com/CEMeNT-PSAAP/harmonize>`_ serves as the GPU execution 
-framework, optimizing device utilization within stochastic simulations; and 
-`MPI4Py <https://mpi4py.readthedocs.io/en/stable/>`_ is used to achieve parallel 
-scalability across nodes in large computer clusters. In addition to running on commonly 
-used desktops and workstations, MC/DC has been tested on large heterogeneous 
-high-performance systems, including 
+MC/DC supports continuous-energy and multi-group neutron transport calculations,
+including fixed-source and eigenvalue simulations on constructive solid geometry
+(CSG) models. For continuous-energy transport, MC/DC converts
+`ACE <https://nucleardata.lanl.gov/ace/>`_-format nuclear data libraries into its native
+`HDF5 <https://www.hdfgroup.org/solutions/hdf5/>`_ format. Photon, electron, proton,
+and other charged-particle transport capabilities are currently under development as
+part of the ongoing expansion of MC/DC into a comprehensive multi-particle radiation
+transport software package.
+
+MC/DC's Python interface enables rapid prototyping and iterative development,
+while its `Numba <https://numba.pydata.org>`_-based compilation framework delivers high
+performance without sacrificing portability.
+`Harmonize <https://github.com/CEMeNT-PSAAP/harmonize>`_ provides a GPU execution
+framework, and `MPI4Py <https://mpi4py.readthedocs.io/en/stable/>`_ enables
+distributed-memory parallelism across large HPC systems.
+In addition to desktop and workstation systems, MC/DC has been demonstrated on
+large heterogeneous supercomputers, including
 `Lassen <https://asc.llnl.gov/computers/historicdecommissioned-machines/lassen>`_
 (IBM POWER9 and NVIDIA Volta V100) and 
-`Tuolumne <https://warpx.readthedocs.io/en/latest/install/hpc/tuolumne.html>`_ (AMD MI300A APU).
+`Tuolumne <https://warpx.readthedocs.io/en/latest/install/hpc/tuolumne.html>`_ (AMD
+MI300A APU).
 
-MC/DC development was initiated by the Center for Exascale Monte Carlo Neutron 
-Transport (`CEMeNT <https://cement-psaap.github.io>`_), a Focused Investigatory Center 
-of the Predictive Science Academic Alliance Program–III 
-(`PSAAP-III <https://psaap.llnl.gov>`_). MC/DC is currently under active development 
-by the Center for Advancing the Radiation Resilience of Electronics 
-(`CARRE <https://carre-psaapiv.org>`_), a Predictive Simulation Center of 
-`PSAAP-IV <https://psaap.llnl.gov>`_. MC/DC is open source 
-(`BSD 3-Clause <https://github.com/CEMeNT-PSAAP/MCDC/blob/main/LICENSE>`_) and 
-welcomes external contributions via `GitHub <https://github.com/CEMeNT-PSAAP/MCDC>`_.
+MC/DC was initiated by the Center for Exascale Monte Carlo Neutron Transport
+(`CEMeNT <https://cement-psaap.github.io>`_), a Focused Investigatory Center of
+the Predictive Science Academic Alliance Program–III
+(`PSAAP-III <https://psaap.llnl.gov>`_). Development is now led by the Center for
+Advancing the Radiation Resilience of Electronics
+(`CARRE <https://carre-psaapiv.org>`_), a Predictive Simulation Center of
+`PSAAP-IV <https://psaap.llnl.gov>`_, where MC/DC is being expanded toward a
+comprehensive, production-quality, multi-particle radiation transport software package.
+
+MC/DC is released under the
+`BSD 3-Clause <https://github.com/CEMeNT-PSAAP/MCDC/blob/main/LICENSE>`_
+license and welcomes community contributions through
+`GitHub <https://github.com/CEMeNT-PSAAP/MCDC>`_.
+
+
 
 .. admonition:: Recommended citation
    :class: tip
