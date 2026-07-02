@@ -11,10 +11,10 @@ while providing a flexible environment for developing and testing new transport
 algorithms.
 
 MC/DC is intended for researchers developing new Monte Carlo transport methods,
-uncertainty quantification techniques, variance reduction algorithms, and
-high-performance computing methods. It also provides an accessible platform
-for students learning Monte Carlo radiation transport methods and modern code
-development.
+including variance reduction techniques, sensitivity and uncertainty quantification
+methods, as well as high-performance computing algorithms. It also provides
+an accessible platform for students learning Monte Carlo radiation transport methods
+and modern code development.
 
 MC/DC supports continuous-energy and multi-group neutron transport calculations,
 including fixed-source and eigenvalue simulations on constructive solid geometry
@@ -44,8 +44,7 @@ the Predictive Science Academic Alliance Program–III
 (`PSAAP-III <https://psaap.llnl.gov>`_). Development is now led by the Center for
 Advancing the Radiation Resilience of Electronics
 (`CARRE <https://carre-psaapiv.org>`_), a Predictive Simulation Center of
-`PSAAP-IV <https://psaap.llnl.gov>`_, where MC/DC is being expanded toward a
-comprehensive, production-quality, multi-particle radiation transport software package.
+`PSAAP-IV <https://psaap.llnl.gov>`_.
 
 MC/DC is released under the
 `BSD 3-Clause <https://github.com/CEMeNT-PSAAP/MCDC/blob/main/LICENSE>`_
