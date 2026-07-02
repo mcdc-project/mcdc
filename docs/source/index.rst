@@ -25,9 +25,9 @@ framework, optimizing device utilization within stochastic simulations; and
 scalability across nodes in large computer clusters. In addition to running on commonly 
 used desktops and workstations, MC/DC has been tested on large heterogeneous 
 high-performance systems, including 
-`Lassen <https://hpc.llnl.gov/hardware/compute-platforms/lassen—decommissioned>`_ 
+`Lassen <https://asc.llnl.gov/computers/historicdecommissioned-machines/lassen>`_
 (IBM POWER9 and NVIDIA Volta V100) and 
-`Tuolumne <https://hpc.llnl.gov/hardware/compute-platforms/tuolumne>`_ (AMD MI300A APU).
+`Tuolumne <https://warpx.readthedocs.io/en/latest/install/hpc/tuolumne.html>`_ (AMD MI300A APU).
 
 MC/DC development was initiated by the Center for Exascale Monte Carlo Neutron 
 Transport (`CEMeNT <https://cement-psaap.github.io>`_), a Focused Investigatory Center 
