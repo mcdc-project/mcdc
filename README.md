@@ -9,10 +9,11 @@
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.06415/status.svg)](https://doi.org/10.21105/joss.06415)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-MC/DC is a performant, scalable, and machine-portable Python-based Monte Carlo
-radiation transport code. Originally developed by the Center for Exascale Monte
-Carlo Neutron Transport ([CEMeNT](https://cement-psaap.github.io/)), it is now
-actively developed by the Center for Advancing the Radiation Resilience of
+MC/DC is an open-source, Python-based Monte Carlo radiation transport code that
+combines rapid methods development with scalable, high-performance execution on
+modern computing systems. Originally initiated by the Center for Exascale
+Monte Carlo Neutron Transport ([CEMeNT](https://cement-psaap.github.io/)), MC/DC
+development is now led by the Center for Advancing the Radiation Resilience of
 Electronics ([CARRE](https://carre-psaapiv.org/)).
 
 ## Features
@@ -22,8 +23,8 @@ Electronics ([CARRE](https://carre-psaapiv.org/)).
 - Time-dependent, steady-state, and eigenvalue simulations
 - Multiple physics fidelities (continuous-energy/multi-group,
   single-scattering/condensed-history)
-- MPI-parallel execution
-- Machine-portable Python implementation accelerated with Numba JIT
+- Distributed-memory parallel execution with MPI
+- Machine-portable Python implementation accelerated by Numba JIT compilation
 - Extensible architecture for rapid methods development and prototyping
 
 ## Installation
@@ -49,7 +50,7 @@ Complete documentation is available on
 
 ## Citing
 
-If you use MC/DC in published work, please cite one or both of the following
+If you use MC/DC in published work, please cite one or more of the following
 references as appropriate:
 
 - **MC/DC Origins**  
