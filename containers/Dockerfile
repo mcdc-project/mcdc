@@ -25,6 +25,10 @@ WORKDIR /opt/mcdc
 COPY pyproject.toml .
 RUN pip install --no-cache-dir mpi4py
 COPY . .
+
+ARG SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MCDC=0.0.0
+ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MCDC=${SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MCDC}
+
 RUN pip install --no-cache-dir -e ".[dev]"
 
 CMD ["bash"]
