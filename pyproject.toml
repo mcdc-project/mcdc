@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "mcdc"
-version = "0.12.0"
+dynamic = ["version"]
 
 authors = [
   { name = "Ilham Variansyah", email = "variansi@oregonstate.edu" },
@@ -90,6 +90,12 @@ Homepage = "https://cement-psaap.github.io/"
 Repository = "https://github.com/mcdc-project/mcdc"
 Documentation = "https://mcdc.readthedocs.io/"
 Issues = "https://github.com/mcdc-project/mcdc/issues"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "mcdc/_version.py"
 
 [tool.black]
 force-exclude = '''
