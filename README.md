@@ -1,6 +1,6 @@
 # MC/DC: Monte Carlo Dynamic Code
 
-![MC/DC logo](assets/mcdc-logo.svg)
+![MC/DC logo](https://raw.githubusercontent.com/mcdc-project/mcdc/main/assets/mcdc-logo.svg)
 
 [![Build](https://github.com/mcdc-project/mcdc/actions/workflows/regression_test.yml/badge.svg)](https://github.com/mcdc-project/mcdc/actions/workflows/regression_test.yml)
 [![Docker Build, Test, and Publish](https://github.com/mcdc-project/mcdc/actions/workflows/docker.yml/badge.svg)](https://github.com/mcdc-project/mcdc/actions/workflows/docker.yml)
