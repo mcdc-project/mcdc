@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
   - `mcdc.Source` documentation from [@ilhamv]
 - Minor README and pull request template updates
 - GitHub workflow for automatically marking stale issues
+- Update CITATION.cff
+- Automatic version updates on README, Sphinx docs, and pyproject. Version checker on CITATION
 
 ### Deprecated
 
