@@ -7,58 +7,60 @@ name = "mcdc"
 dynamic = ["version"]
 
 authors = [
-  { name = "Ilham Variansyah", email = "variansi@oregonstate.edu" },
-  { name = "Sam Pasmann", email = "spasmann@nd.edu" },
-  { name = "Joanna Morgan", email = "morgan83@llnl.gov" },
-  { name = "Kayla Clements", email = "clemekay@oregonstate.edu" },
-  { name = "Braxton Cuneo", email = "bcuneo@seattleu.edu" },
-  { name = "Melek Derman", email = "dermanm@oregonstate.edu" },
-  { name = "Caleb Shaw" },
-  { name = "Rohan Pankaj" },
-  { name = "Alexander Mote" },
-  { name = "Ethan Lame" },
-  { name = "Benjamin Whewell" },
-  { name = "Ryan G. McClarren" },
-  { name = "Todd S. Palmer" },
-  { name = "Lizhong Chen" },
-  { name = "Dmitriy Y. Anistratov" },
-  { name = "C. T. Kelley" },
-  { name = "Camille J. Palmer" },
-  { name = "Kyle E. Niemeyer" }
+  { name = "MC/DC Development Team" },
 ]
 
 maintainers = [
   { name = "Ilham Variansyah", email = "variansi@oregonstate.edu" },
-  { name = "Braxton Cuneo", email = "bcuneo@seattleu.edu" },
-  { name = "Kayla Clements", email = "clemekay@oregonstate.edu" },
   { name = "Joanna Piper Morgan", email = "morgan83@llnl.gov" },
-  { name = "Kyle E. Niemeyer", email = "kyle.niemeyer@oregonstate.edu" },
   { name = "Melek Derman", email = "dermanm@oregonstate.edu" },
+  { name = "Nathan Glaser", email = "glaserna@oregonstate.edu" },
+  { name = "Massimo Larsen", email = "larsemas@oregonstate.edu" },
+  { name = "Braxton Cuneo", email = "bcuneo@seattleu.edu" },
+  { name = "Kyle E. Niemeyer", email = "kyle.niemeyer@oregonstate.edu" },
+  { name = "Madicken Munk", email = "madicken.munk@oregonstate.edu" },
 ]
 
-description = "MC/DC (Monte Carlo Dynamic Code): a performant, scalable, and machine-portable Python-based Monte Carlo radiation transport package"
+description = "A performant, scalable, and machine-portable Monte Carlo radiation transport code."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 
 keywords = [
-  "Monte Carlo",
-  "nuclear engineering",
+  "monte carlo",
   "radiation transport",
-  "HPC",
-  "GPU",
+  "neutron transport",
+  "high-performance computing",
+  "hpc",
+  "gpu",
   "numba",
-  "mpi4py",
+  "mpi",
 ]
 
 classifiers = [
-  "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: BSD License",
+  "Development Status :: 4 - Beta",
+
   "Intended Audience :: Science/Research",
-  "Typing :: Typed",
-  "Natural Language :: English",
-  "Operating System :: Unix",
+
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Physics",
+
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+
+  "License :: OSI Approved :: BSD License",
+
   "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+
+  "Natural Language :: English",
+
+  "Typing :: Typed",
 ]
 
 dependencies = [
@@ -86,10 +88,14 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://cement-psaap.github.io/"
-Repository = "https://github.com/mcdc-project/mcdc"
+Homepage = "https://mcdc.readthedocs.io/"
 Documentation = "https://mcdc.readthedocs.io/"
+Repository = "https://github.com/mcdc-project/mcdc"
 Issues = "https://github.com/mcdc-project/mcdc/issues"
+"Release Notes" = "https://github.com/mcdc-project/mcdc/releases"
+
+[tool.hatch.version]
+source = "vcs"
 
 [tool.hatch.version]
 source = "vcs"
