@@ -41,5 +41,5 @@ keywords:
   - Numba
   - GPU
 license: BSD-3-Clause
-version: 0.13.0
-date-released: '2026-06-12'
+version: 0.14.0
+date-released: '2026-07-04'
