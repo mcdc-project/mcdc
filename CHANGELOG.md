@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.14.0] - 2026-07-04
 
 ### Added
 
@@ -29,16 +29,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Update CITATION.cff
 - Automatic version updates on README, Sphinx docs, and pyproject. Version checker on CITATION
 
-### Deprecated
-
-### Removed
-
 ### Fixed
 
 - Docker compatibility issue from [@melekderman]
   
-### Security
-
 ## [0.13.0] - 2026-06-12
 
 This release marks the final development phase under CEMeNT and the beginning of development under CARRE. A significant refactor was completed to improve ease of use, maintainability, and extensibility, restructuring the codebase to support future features and capabilities.
@@ -90,6 +84,7 @@ The pre-refactor implementation remains available in the `cement` branch as a re
 - Multi-table distribution table selection sampling from [@melekderman]
 
 [Unreleased]: https://github.com/mcdc-project/mcdc/tree/dev
+[0.14.0]: https://github.com/mcdc-project/mcdc/releases/tag/v0.14.0
 [0.13.0]: https://github.com/mcdc-project/mcdc/releases/tag/v0.13.0
 [@ilhamv]: https://github.com/ilhamv
 [@melekderman]: https://github.com/melekderman
