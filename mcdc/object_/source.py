@@ -9,7 +9,14 @@ from typing import Annotated, Iterable
 
 import mcdc.object_.distribution as distribution
 
-from mcdc.constant import PARTICLE_NEUTRON, PARTICLE_ELECTRON, PARTICLE_PROTON, INF, PI
+from mcdc.constant import (
+    INTERPOLATION_LINEAR,
+    PARTICLE_NEUTRON,
+    PARTICLE_ELECTRON,
+    PARTICLE_PROTON,
+    INF,
+    PI,
+)
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.distribution import DistributionTabulated, DistributionPMF
 from mcdc.object_.simulation import simulation
@@ -35,41 +42,127 @@ class Source(ObjectNonSingleton):
     """
     Define a particle source.
 
+    A source specifies the initial position, direction, energy, time, particle
+    type, and relative sampling probability for emitted particles.
+
     Parameters
     ----------
     name : str, optional
-        User label.
+        User label. If omitted, a default name is generated from the source ID.
     position : array_like of float, optional
-        Point-source position ``[x, y, z]`` in cm.
-    x : array_like of float, optional
-        Source extent along x: ``[x_min, x_max]`` in cm.
-    y : array_like of float, optional
-        Source extent along y: ``[y_min, y_max]`` in cm.
-    z : array_like of float, optional
-        Source extent along z: ``[z_min, z_max]`` in cm.
+        Point-source position ``[x, y, z]`` in cm. If provided, the source is
+        treated as a point source.
+    x, y, z : array_like of float, optional
+        Spatial bounds of a box source in cm, given as ``[min, max]`` for each
+        coordinate. These are used when ``position`` is not provided.
     direction : array_like of float, optional
-        Mono-directional source direction ``[ux, uy, uz]``.
-    white_direction : array_like of float, optional
-        White (cosine-weighted) boundary source normal direction.
-    isotropic : bool, optional
-        If True, source emits isotropically.
-    polar_cosine : array_like of float, optional
-        Polar cosine bounds ``[mu_min, mu_max]``.
-    azimuthal : array_like of float, optional
-        Azimuthal angle bounds ``[azi_min, azi_max]``.
-    energy : float or ndarray, optional
-        Source energy in eV (mono-energetic) or a tabulated PDF.
-    energy_group : int or ndarray, optional
-        Energy group index (mono-group) or a PMF array.
-    time : float or array_like of float, optional
-        Emission time (s) or time range ``[t_min, t_max]``.
-    probability : float, optional
-        Relative source probability weight.
+        Source direction vector ``[ux, uy, uz]``. The vector is normalized
+        internally. If provided without angular bounds, the source is
+        mono-directional.
 
-    Returns
-    -------
-    Source
-        The source object.
+        When ``polar_cosine`` and/or ``azimuthal`` are specified, this vector
+        defines the reference (polar) axis about which directions are sampled.
+    white_direction : array_like of float, optional
+        Outward normal direction for a white boundary source. The vector is
+        normalized internally.
+    isotropic : bool, optional
+        If True, emit particles isotropically.
+    polar_cosine : array_like of float, optional
+        Bounds for the sampled polar cosine,
+        ``[mu_min, mu_max]``, measured with respect to ``direction``.
+        Defaults to ``[-1.0, 1.0]``.
+    azimuthal : array_like of float, optional
+        Bounds for the sampled azimuthal angle,
+        ``[azi_min, azi_max]`` in radians, measured about ``direction``.
+        Defaults to ``[0.0, 2π]``.
+    energy : float or ndarray, optional
+        Source energy in eV. A float defines a mono-energetic source. An array
+        defines a tabulated energy distribution. Defaults to a mono-energetic
+        source at **1 MeV**.
+
+    energy_group : int or ndarray, optional
+        Source energy group. An integer defines a mono-group source. An array
+        defines a discrete group probability mass function. In multigroup
+        simulations, the default is **group 0**.
+    time : float or array_like of float, optional
+        Emission time in seconds. A float defines a discrete emission time.
+        A two-entry array-like value defines a time interval
+        ``[t_min, t_max]``. Defaults to ``0.0``.
+    particle_type : {"neutron", "electron", "proton"}, optional
+        Type of emitted particle. Defaults to ``"neutron"``.
+    probability : float, optional
+        Relative source probability weight. Defaults to ``1.0``.
+
+    Notes
+    -----
+    If ``position`` is provided, ``x``, ``y``, and ``z`` are ignored.
+
+    When ``position`` is not provided, the source is treated as a box source.
+    Any unspecified coordinate range defaults to ``[0.0, 0.0]`` cm. For
+    example, if only ``z=[-1.0, 1.0]`` is specified, then the source occupies
+    ``x=[0.0, 0.0]``, ``y=[0.0, 0.0]``, and ``z=[-1.0, 1.0]``.
+
+    Direction options are interpreted in the following order:
+
+    - if ``isotropic=True``, the source is isotropic;
+    - else if ``direction`` is provided, the source uses that direction;
+    - else if ``white_direction`` is provided, the source is a white boundary
+      source;
+    - otherwise, the default direction behavior is used.
+
+    ``energy_group`` takes precedence over ``energy`` when both are provided.
+
+    Examples
+    --------
+    Point source at the origin emitting mono-energetic neutrons isotropically:
+
+    >>> src = mcdc.Source(position=[0.0, 0.0, 0.0], isotropic=True)
+
+    Uniform box source distributed along z:
+
+    >>> src = mcdc.Source(
+    ...     z=[-1.0, 1.0],
+    ...     isotropic=True,
+    ...     energy=1.0e6,
+    ... )
+
+    The unspecified x and y ranges default to ``[0.0, 0.0]`` cm.
+
+    Rectangular volume source:
+
+    >>> src = mcdc.Source(
+    ...     x=[-1.0, 1.0],
+    ...     y=[-2.0, 2.0],
+    ...     z=[0.0, 5.0],
+    ...     isotropic=True,
+    ... )
+
+    Mono-directional source:
+
+    >>> src = mcdc.Source(
+    ...     position=[0.0, 0.0, 0.0],
+    ...     direction=[0.0, 0.0, 1.0],
+    ... )
+
+    Directional source with angular spread:
+
+    >>> src = mcdc.Source(
+    ...     direction=[0.0, 0.0, 1.0],
+    ...     polar_cosine=[0.8, 1.0],
+    ...     azimuthal=[0.0, np.pi / 2],
+    ... )
+
+    Discrete energy-group source:
+
+    >>> src = mcdc.Source(
+    ...     energy_group=3,
+    ... )
+
+    Time-dependent source:
+
+    >>> src = mcdc.Source(
+    ...     time=[0.0, 1.0e-3],
+    ... )
     """
 
     # Annotations for Numba mode
@@ -169,7 +262,8 @@ class Source(ObjectNonSingleton):
         self.energy = 1.0e6
         self.energy_group_pmf = DistributionPMF(np.array([0.0]), np.array([1.0]))
         self.energy_pdf = DistributionTabulated(
-            np.array([1.0e6 - 1.0, 1.0e6 + 1.0]), np.array([1.0, 1.0])
+            np.array([1.0e6 - 1.0, 1.0e6 + 1.0]),
+            np.array([1.0, 1.0]),
         )
 
         # Time
@@ -234,7 +328,9 @@ class Source(ObjectNonSingleton):
                 self.energy = energy
             else:
                 self.mono_energetic = False
-                self.energy_pdf = DistributionTabulated(energy[0], energy[1])
+                self.energy_pdf = DistributionTabulated(
+                    np.array(energy[0]), np.array(energy[1])
+                )
 
         # Time
         if type(time) == float:
@@ -307,27 +403,57 @@ class Source(ObjectNonSingleton):
         """
         Define piecewise-constant motion for the source.
 
-        Appends a final static segment (zero velocity, infinite duration) so that
-        the motion covers the whole simulation time.
+        The source moves through a sequence of constant-velocity segments. Each
+        segment is defined by a velocity vector and its duration. After the last
+        segment, a final static segment with zero velocity and infinite duration is
+        appended automatically so that the source position remains well-defined for
+        the remainder of the simulation.
 
         Parameters
         ----------
-        velocities : array_like, shape (N, 3) or list
-            Per-segment velocity vectors [cm/s].
-        durations : array_like, shape (N,) or list
-            Per-segment durations [s].
+        velocities : array_like of float, shape (N, 3)
+            Velocity vector ``[vx, vy, vz]`` in cm/s for each motion segment.
+        durations : array_like of float, shape (N,)
+            Duration of each motion segment in seconds. Must contain the same
+            number of entries as ``velocities``.
 
         Notes
         -----
-        - Internally converts lists to arrays and constructs
-          ``move_time_grid`` and cumulative ``move_translations``.
-        - Sets ``moving=True`` and ``N_move = len(durations) + 1``.
+        This method
+
+        - enables source motion by setting ``moving=True``;
+        - constructs the internal time grid (``move_time_grid``);
+        - computes the cumulative translation at the end of each segment
+          (``move_translations``);
+        - appends a final static segment with zero velocity and infinite duration.
+
+        The resulting number of motion segments is ``len(durations) + 1``.
 
         Examples
         --------
-        >>> src = mcdc.Source(z=[-0.1, 0.1], isotropic=True, energy=0, time=[0.0, 1.0])
-        >>> src.move(velocities=[[0,0,1.0]], durations=[0.5]) # 0.5 s upward, then static
-        >>> s.N_move
+        Move a source upward at 1 cm/s for 0.5 s, then keep it stationary:
+
+        >>> src = mcdc.Source(
+        ...     z=[-0.1, 0.1],
+        ...     isotropic=True,
+        ...     energy=1.0e6,
+        ...     time=[0.0, 1.0],
+        ... )
+        >>> src.move(
+        ...     velocities=[[0.0, 0.0, 1.0]],
+        ...     durations=[0.5],
+        ... )
+        >>> src.N_move
         2
+
+        Piecewise motion with two segments:
+
+        >>> src.move(
+        ...     velocities=[
+        ...         [1.0, 0.0, 0.0],
+        ...         [0.0, 1.0, 0.0],
+        ...     ],
+        ...     durations=[0.5, 1.0],
+        ... )
         """
         move_object(self, velocities, durations)

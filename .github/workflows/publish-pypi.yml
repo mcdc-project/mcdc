@@ -1,0 +1,73 @@
+name: Publish Python Package to PyPI
+# ======================================================================================
+# Build and publish the MC/DC Python package to PyPI.
+#
+# Triggered automatically when a GitHub Release is published.
+# Can also be run manually from the Actions tab for troubleshooting.
+#
+# Uses PyPI Trusted Publishing via GitHub OIDC; no PyPI API token is required.
+# ======================================================================================
+# Publish automatically whenever a GitHub Release is published.
+# The workflow can also be started manually from the Actions tab,
+# which is useful for re-publishing if a previous attempt failed.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+# Default permissions for all jobs.
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the repository at the tagged release.
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Set up the Python version supported by this project.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # Install an MPI implementation required by mpi4py.
+      # This is needed because MC/DC depends on mpi4py.
+      - name: Set up MPI
+        uses: mpi4py/setup-mpi@v1
+      # Install only the tools needed to build the package.
+      # The package itself does not need to be installed.
+      - name: Install build backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+      # Build both the source distribution (sdist)
+      # and the wheel into the dist/ directory.
+      - name: Build distributions
+        run: python -m build
+      # Hand the built distributions over to the publish job.
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # Trusted Publishing requires an OIDC token.
+    # No PyPI API token or repository secret is needed.
+    permissions:
+      id-token: write
+    steps:
+      # Retrieve the distributions built in the previous job.
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      # Upload everything in dist/ to PyPI.
+      # This uses PyPI Trusted Publishing via GitHub OIDC.
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

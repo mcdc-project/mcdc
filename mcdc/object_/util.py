@@ -1,38 +1,137 @@
 import numpy as np
 
 from mcdc.constant import INF
+from numpy import float64
+from numpy.typing import NDArray
+
+from mcdc.print_ import print_error
 
 
-def cmf_from_pmf(pmf):
+def cmf_from_pmf(
+    pmf: NDArray[float64],
+) -> tuple[NDArray[float64], NDArray[float64]]:
+    """
+    Normalize a probability mass function and construct its cumulative mass
+    function.
+
+    Parameters
+    ----------
+    pmf : ndarray of float64
+        Probability masses.
+
+    Returns
+    -------
+    pmf : ndarray of float64
+        Normalized PMF.
+    cmf : ndarray of float64
+        Corresponding normalized CMF.
+    """
+
+    pmf = pmf.copy()
+
     cmf = np.zeros(len(pmf) + 1)
 
-    # Build CMF incrementally
+    # Build CMF incrementally.
     total = 0.0
-    for idx in range(len(pmf)):
-        total += pmf[idx]
-        cmf[idx + 1] = total
+    for i in range(len(pmf)):
+        total += pmf[i]
+        cmf[i + 1] = total
 
-    # Normalize this segment so CDF ends at 1
     norm = cmf[-1]
+
+    if norm <= 0.0:
+        print_error("PMF sum must be positive.")
+
     pmf /= norm
     cmf /= norm
 
     return pmf, cmf
 
 
-def cdf_from_pdf(value, pdf):
+def cdf_from_pdf(
+    value: NDArray[float64],
+    pdf: NDArray[float64],
+) -> tuple[NDArray[float64], NDArray[float64]]:
+    """
+    Normalize a piecewise-linear PDF and construct its CDF.
+
+    Parameters
+    ----------
+    value : ndarray of float64
+        Sample values.
+    pdf : ndarray of float64
+        PDF values at the sample values.
+
+    Returns
+    -------
+    pdf : ndarray of float64
+        Normalized PDF.
+    cdf : ndarray of float64
+        Corresponding normalized CDF.
+    """
+
+    pdf = pdf.copy()
     cdf = np.zeros_like(pdf)
 
-    # Build CDF incrementally with trapezoidal integration
-    for idx in range(len(pdf) - 1):
-        cdf[idx + 1] = (
-            cdf[idx] + (pdf[idx] + pdf[idx + 1]) * (value[idx + 1] - value[idx]) * 0.5
-        )
+    # Trapezoidal integration of a piecewise-linear PDF.
+    for i in range(len(pdf) - 1):
+        cdf[i + 1] = cdf[i] + 0.5 * (pdf[i] + pdf[i + 1]) * (value[i + 1] - value[i])
 
-    # Normalize this segment so CDF ends at 1
     norm = cdf[-1]
+
+    if norm <= 0.0:
+        print_error("PDF integral must be positive.")
+
     pdf /= norm
     cdf /= norm
+
+    return pdf, cdf
+
+
+def pdf_from_cdf(
+    value: NDArray[float64],
+    cdf: NDArray[float64],
+) -> tuple[NDArray[float64], NDArray[float64]]:
+    """
+    Normalize a piecewise-linear CDF and construct a histogram PDF.
+
+    Parameters
+    ----------
+    value : ndarray of float64
+        Sample values.
+    cdf : ndarray of float64
+        CDF values at the sample values.
+
+    Returns
+    -------
+    pdf : ndarray of float64
+        Histogram PDF.
+    cdf : ndarray of float64
+        Normalized CDF.
+    """
+
+    cdf = cdf.copy()
+
+    if cdf[-1] <= 0.0:
+        print_error("Final CDF value must be positive.")
+
+    # Normalize CDF.
+    cdf /= cdf[-1]
+
+    pdf = np.zeros_like(cdf)
+
+    # Piecewise-linear CDF => histogram PDF.
+    for i in range(len(cdf) - 1):
+        dv = value[i + 1] - value[i]
+
+        if dv <= 0.0:
+            print_error("Values must be strictly increasing.")
+
+        pdf[i] = (cdf[i + 1] - cdf[i]) / dv
+
+    # Histogram convention:
+    # last PDF value is unused but kept for alignment.
+    pdf[-1] = pdf[-2]
 
     return pdf, cdf
 

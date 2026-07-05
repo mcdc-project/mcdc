@@ -1,21 +1,23 @@
 import math
 import numpy as np
 
+import mcdc.numba_types as type_
 import mcdc.transport.distribution as dist
 
 from .test_data import make_test_kalbach_mann_data
 
 
-def test_kalbach_mann_sample(rng_sequence, rng_state):
+def test_kalbach_mann_sample(mock_rng_sequence, make_distribution_record):
     # MCNP Theory & User Manual §2.4.3.5.4.11 (Law 44: Kalbach-87 Correlated Energy-angle Scattering)
-    kalbach, data = make_test_kalbach_mann_data()
+    kalbach_dict, data = make_test_kalbach_mann_data()
+    kalbach = make_distribution_record(type_.kalbach_mann_distribution, kalbach_dict)
+    data = np.asarray(data, dtype=np.float64)
 
     # For E_in = 2.0 on the grid [1, 3], the interpolation fraction is r = 0.5.
     # xi_1 = 0.3 < r, so the second energy table is selected.
     xi1, xi2, xi3, xi4 = 0.3, 0.1, 0.7, 0.5
-    rng_sequence([xi1, xi2, xi3, xi4])
-
-    sampled_E, sampled_mu = dist.sample_kalbach_mann(2.0, rng_state, kalbach, data)
+    mock_rng = mock_rng_sequence(xi1, xi2, xi3, xi4)
+    sampled_E, sampled_mu = dist.sample_kalbach_mann(2.0, mock_rng, kalbach, data)
 
     # Law 44 uses the Law 4 energy construction, so with xi_2 = 0.1 in the first bin
     # of the selected table:

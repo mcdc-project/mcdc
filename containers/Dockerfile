@@ -25,6 +25,9 @@ WORKDIR /opt/mcdc
 COPY pyproject.toml .
 RUN pip install --no-cache-dir mpi4py
 COPY . .
+
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0
+
 RUN pip install --no-cache-dir -e ".[dev]"
 
 CMD ["bash"]

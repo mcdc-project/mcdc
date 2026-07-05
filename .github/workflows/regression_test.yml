@@ -20,6 +20,7 @@ concurrency:
 env:
   # Temporary flag for node24 migration; remove when GitHub default switches.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  UCX_TLS: self,sm,tcp
 
 jobs:
   regression-test:
