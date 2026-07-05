@@ -97,6 +97,9 @@ Issues = "https://github.com/mcdc-project/mcdc/issues"
 [tool.hatch.version]
 source = "vcs"
 
+[tool.hatch.build.hooks.vcs]
+version-file = "mcdc/_version.py"
+
 [tool.black]
 force-exclude = '''
 (
