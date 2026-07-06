@@ -1,4 +1,4 @@
-.. _documentation:
+.. _documentation_sphinx:
 
 .. highlight:: none
 
@@ -78,7 +78,7 @@ Within MC/DC's source code, we document functions and classes using docstrings.
 For ``autodoc`` and ``autosummary`` to work, the docstrings within MC/DC's source code must be written in correct rst.
 
 The ``autodoc`` extension includes a set of directives to document different chunks of code (e.g., modules, functions, classes). 
-For example, below is the entire rst file that generates the :doc:`../pythonapi/generated/mcdc.MaterialMG` page:
+For example, below is the entire rst file that generates the :doc:`../../pythonapi/generated/mcdc.MaterialMG` page:
 
 .. code-block::
    
@@ -89,12 +89,12 @@ For example, below is the entire rst file that generates the :doc:`../pythonapi/
    
    .. autoclass:: MaterialMG
 
-(That in-line reference was created using :code:`:doc:\`../pythonapi/generated/mcdc.MaterialMG\``, by the way).
+(That in-line reference was created using :code:`:doc:\`../../pythonapi/generated/mcdc.MaterialMG\``, by the way).
 
 A rst file with an ``autodoc`` directive is required for each module or function that we would like to document.
 Rather than create all of these rst files by hand, we use the ``autosummary`` extension to do it for us.
 
-For example, let's look at the first ``autosummary`` directive in ``source/pythonapi/index.rst``, the file that governs the :doc:`../pythonapi/index` page: 
+For example, let's look at the first ``autosummary`` directive in ``source/pythonapi/index.rst``, the file that governs the :doc:`../../pythonapi/index` page: 
 
 .. code-block::
 
@@ -106,7 +106,7 @@ For example, let's look at the first ``autosummary`` directive in ``source/pytho
 This directive:
   #. Generates two files in ``pythonapi/generated/``: ``mcdc.Material.rst`` and ``mcdc.MaterialMG.rst``.
   #. Populates each file with the proper autoclass directive.
-  #. Creates a table on :doc:`../pythonapi/index` with entries mcdc.Material and mcdc.MaterialMG that link to the respective generated pages. 
+  #. Creates a table on :doc:`../../pythonapi/index` with entries mcdc.Material and mcdc.MaterialMG that link to the respective generated pages. 
 
 
 Building Locally
