@@ -2,14 +2,16 @@
 
 .. highlight:: none
 
-Documentation
-=============
+Sphinx and Read the Docs
+========================
 
-Our website is built using a documentation generator called `Sphinx <https://www.sphinx-doc.org/en/master/usage/quickstart.html>`_ that translates a set of plaintext files into a set of html files (it can also build other formats too, like PDFs).
-We use the platform `readthedocs <https://about.readthedocs.com/?ref=readthedocs.org>`_ to build and host our documentation as a website. Yay!
+MC/DC uses `Sphinx <https://www.sphinx-doc.org/>`_ to generate its
+documentation and `Read the Docs <https://about.readthedocs.com/>`_ to build
+and host the documentation website.
 
-Sphinx has a ton of useful features and capabilities.
-On this page, we do our best to keep it to what you need to know to contribute to MC/DC's documentation.
+This page introduces the subset of Sphinx needed to contribute to MC/DC's
+documentation, including reStructuredText, document organization, automatic API
+generation, and local documentation builds.
 
 
 reStructuredText and Sphinx
@@ -17,7 +19,7 @@ reStructuredText and Sphinx
 
 We write files for Sphinx using a plaintext markup language called reStructuredText (rst).
 `Click here for a rst Primer <https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`_.
-Sphinx builds an html file for every rst file in the documentation root directory and its subdirectories our documentation root directory is ``MCDC/docs/source/``. 
+Sphinx builds an html file for every rst file in the documentation root directory and its subdirectories our documentation root directory is ``mcdc/docs/source/``. 
 The root document, ``index.rst``, serves as the welcome page. 
 The root directory also contains several subdirectories, each of which has its own ``index.rst`` file and several other rst files. 
 It's useful to compare our rst files to their associated webpages to get a feel for how they translate.
@@ -107,17 +109,17 @@ This directive:
   #. Creates a table on :doc:`../pythonapi/index` with entries mcdc.Material and mcdc.MaterialMG that link to the respective generated pages. 
 
 
-Building the documentation
---------------------------
+Building Locally
+----------------
 
 We can check our work with a local build. 
-Make sure you're in ``MCDC/docs/``:
+Make sure you're in ``mcdc/docs/``:
 
 #. Both Sphinx and furo (the package we use for website theming) should have been installed with MC/DC.
    To check, type ``sphinx-build --version`` on the commandline.
    If not installed, ``pip install sphinx furo``.
 #. With Sphinx installed, run ``make html``.
-   This builds local html files in ``MCDC/docs/build/``.
+   This builds local html files in ``mcdc/docs/build/``.
 #. To launch your local html from the commandline, ``open build/html/index.html``.
    Check your work: has your content been added or changed as you expected?
 #. Continue making changes to your local rst files, building locally, and launching the built html files until you're satisfied with how the website will look.
@@ -131,7 +133,7 @@ Make sure you're in ``MCDC/docs/``:
    Like you just did, readthedocs will checkout our repo and use Sphinx to build html files from our rst files, attempting to import all of MC/DC's packages along the way.
    There are some python packages, like ``mpi4py``, that readthedocs is unable to import, causing the documentation build to fail.
    
-   **If you've added any new package imports to MC/DC's source code, add them to the** ``MOCK_MODULES`` **list in** ``MCDC/docs/source/conf.py``. 
+   **If you've added any new package imports to MC/DC's source code, add them to the** ``MOCK_MODULES`` **list in** ``mcdc/docs/source/conf.py``. 
 
    This will allow readthedocs to get past the imports without issue.
 
