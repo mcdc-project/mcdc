@@ -10,8 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 - Tally spatial filter and scoring upgrades from [@massimolarsen] and [@ilhamv]
   - Add partial current scores
-  - Add cell-filtered (and surface-cell-combo) current scores
-  - Improved support (checks and messages) in tally-building user interface
+  - Add cell-filtered (and surface-cell-combo) support for current scores
+  - Improved checks and error messages in tally-building user interface
 
 ### Changed
 
@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Security
 
-## [0.14.1]
+## [0.14.1] - 2026-07-04
 
 ### Changed
 
