@@ -1,6 +1,7 @@
 import mcdc
 import math
 import numpy as np
+import pytest
 
 ####
 
@@ -8,7 +9,7 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
     INF,
 )
-from mcdc.main import preparation
+import mcdc.numba_types as type_
 
 # ======================================================================================
 # Setup
@@ -24,30 +25,11 @@ durations = np.array([5.0, 5.0, 5.0])
 velocities = np.zeros((3, 3))
 velocities[:, 0] = np.array([-1.0, 2.0, -3.0])
 
-# Test object: static surface
-static_surface_obj = mcdc.Surface.TorusY(A=A, B=B, C=C, R=R, r=r)
-
-# Test object: moving surface
-moving_surface_obj = mcdc.Surface.TorusY(A=A, B=B, C=C, R=R, r=r)
-moving_surface_obj.move(velocities, durations)
-
-# Save IDs before preparation()
-static_surface_id = static_surface_obj.ID
-moving_surface_id = moving_surface_obj.ID
-
-# Create the dummy simulation structure and data
-structure_container, data = preparation()
-structure = structure_container[0]
-
-# Get the compiled test objects using stable IDs
-static_surface = structure["surfaces"][static_surface_id]
-moving_surface = structure["surfaces"][moving_surface_id]
-
-# Particle object for testing
-import mcdc.numba_types as type_
-
-particle_container = np.zeros(1, type_.particle_data)
-particle = particle_container[0]
+static_surface = None
+moving_surface = None
+data = None
+particle_container = None
+particle = None
 
 # Miscellanies
 TINY = COINCIDENCE_TOLERANCE * 0.1  # Tiny value within coincidence tolerance
@@ -57,6 +39,28 @@ from mcdc.transport.geometry.surface import (
     interface,
     torus_y,
 )
+
+
+@pytest.fixture(autouse=True)
+def setup_geometry_case(compile_surfaces):
+    global static_surface, moving_surface, data, particle_container, particle
+
+    # Test object: static surface
+    static_surface_obj = mcdc.Surface.TorusY(A=A, B=B, C=C, R=R, r=r)
+
+    # Test object: moving surface
+    moving_surface_obj = mcdc.Surface.TorusY(A=A, B=B, C=C, R=R, r=r)
+    moving_surface_obj.move(velocities, durations)
+
+    # Create the dummy simulation structure and get the compiled test objects.
+    static_surface, moving_surface, data = compile_surfaces(
+        static_surface_obj, moving_surface_obj
+    )
+
+    # Particle object for testing
+    particle_container = np.zeros(1, type_.particle_data)
+    particle = particle_container[0]
+
 
 # =====================================================================================
 # Torus-Y core functions

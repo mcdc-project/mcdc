@@ -525,7 +525,7 @@ def elastic_scattering(
 
     # Sample the scattering cosine from the multi-PDF distribution
     multi_table = simulation["multi_table_distributions"][reaction["mu_table_ID"]]
-    mu0 = sample_multi_table(E, particle_container, multi_table, data)
+    mu0 = sample_multi_table(E, particle_container, multi_table, simulation, data)
 
     # Scatter the direction in COM
     azi = 2.0 * PI * rng.lcg(particle_container)
@@ -663,7 +663,9 @@ def inelastic_scattering(
             multi_table = simulation["multi_table_distributions"][
                 distribution_base["child_ID"]
             ]
-            mu = sample_multi_table(E, particle_container_new, multi_table, data)
+            mu = sample_multi_table(
+                E, particle_container_new, multi_table, simulation, data
+            )
 
         # ==============================================================================
         # Sample energy (also angle if correlated)
@@ -855,7 +857,9 @@ def fission(
                 multi_table = simulation["multi_table_distributions"][
                     distribution_base["child_ID"]
                 ]
-                mu = sample_multi_table(E, particle_container_new, multi_table, data)
+                mu = sample_multi_table(
+                    E, particle_container_new, multi_table, simulation, data
+                )
 
             # Sample energy (also angle if correlated)
             spectrum_base = simulation["distributions"][reaction["spectrum_ID"]]
