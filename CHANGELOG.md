@@ -8,7 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Tally spatial filter and scoring upgrades from [@massimolarsen] and [@ilhamv]
+  - Add partial current scores
+  - Add cell-filtered (and surface-cell-combo) current scores
+  - Improved support (checks and messages) in tally-building user interface
+
 ### Changed
+
+- Unit test upgrade from [@massimolarsen]
+  - Combined `object_` and `transport` unit test for more efficient fixture reuse
 
 ### Deprecated
 
@@ -41,7 +49,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
   - Expanded use throughout distributions and reactions
 - Unit test upgrade from [@massimolarsen]
   - Migrated from partial use of pytest to a fully pytest-based test suite
-  - Combined `object_` and `transport` tests for more efficient fixture reuse
 - Documentation updates
   - `mcdc.Source` documentation from [@ilhamv]
 - Minor README and pull request template updates
