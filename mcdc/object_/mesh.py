@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Sequence
 import numpy as np
 
 from numpy import float64
@@ -171,9 +171,9 @@ class MeshStructured(MeshBase):
     def __init__(
         self,
         name: str = "",
-        x: Iterable[float] = [-INF, INF],
-        y: Iterable[float] = [-INF, INF],
-        z: Iterable[float] = [-INF, INF],
+        x: Sequence[float] = [-INF, INF],
+        y: Sequence[float] = [-INF, INF],
+        z: Sequence[float] = [-INF, INF],
     ):
         type_ = MESH_STRUCTURED
         super().__init__(type_, name)
