@@ -32,9 +32,9 @@ def test_cell_filter_ignores_redundant_interior_surface_crossing(
     particle_container = crossing_particle(s3.ID, x=3.0, ux=0.5, cell_ID=c.ID)
     surface_crossing(particle_container, mcdc_struct, data)
 
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 0), 0.0)
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 1), 0.0)
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 2), 0.0)
+    np.testing.assert_allclose(_bin_value_score(tally, mcdc_struct, data, 0), 0.0, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(_bin_value_score(tally, mcdc_struct, data, 1), 0.0, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(_bin_value_score(tally, mcdc_struct, data, 2), 0.0, rtol=1e-5, atol=1e-8)
 
 
 def _build_cube_with_interior_plane(material_mg):
@@ -89,9 +89,9 @@ def test_cell_filter_ignores_interior_plane_crossing(material_mg, crossing_parti
     )
     surface_crossing(particle_container, mcdc_struct, data)
 
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 0), 0.0)
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 1), 0.0)
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 2), 0.0)
+    np.testing.assert_allclose(_bin_value_score(tally, mcdc_struct, data, 0), 0.0, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(_bin_value_score(tally, mcdc_struct, data, 1), 0.0, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(_bin_value_score(tally, mcdc_struct, data, 2), 0.0, rtol=1e-5, atol=1e-8)
 
 
 def test_cell_filter_scores_real_face_entry(material_mg, crossing_particle):
@@ -113,6 +113,6 @@ def test_cell_filter_scores_real_face_entry(material_mg, crossing_particle):
     )
     surface_crossing(particle_container, mcdc_struct, data)
 
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 0), -2.0)
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 1), 2.0)
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 2), 0.0)
+    np.testing.assert_allclose(_bin_value_score(tally, mcdc_struct, data, 0), -2.0, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(_bin_value_score(tally, mcdc_struct, data, 1), 2.0, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(_bin_value_score(tally, mcdc_struct, data, 2), 0.0, rtol=1e-5, atol=1e-8)

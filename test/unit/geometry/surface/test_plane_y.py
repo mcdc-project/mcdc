@@ -66,7 +66,7 @@ def test_evaluate():
     def run(y, answer):
         particle["y"] = y
         result = plane_y.evaluate(particle_container, static_surface)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # Positive side
     run(y=13.0, answer=3.0)
@@ -78,7 +78,7 @@ def test_reflect():
     def run(uy, answer):
         particle["uy"] = uy
         plane_y.reflect(particle_container, static_surface)
-        assert np.isclose(particle["uy"], answer)
+        np.testing.assert_allclose(particle["uy"], answer, rtol=1e-5, atol=1e-8)
 
     # From positive direction
     run(uy=0.2, answer=-0.2)
@@ -90,7 +90,7 @@ def test_get_normal_component():
     def run(uy, answer):
         particle["uy"] = uy
         result = plane_y.get_normal_component(particle_container, static_surface)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # Positive direction
     run(uy=0.4, answer=0.4)
@@ -105,7 +105,7 @@ def test_get_distance():
         particle["y"] = y
         particle["uy"] = uy
         result = plane_y.get_distance(particle_container, static_surface)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # Positive side
     y = 12.0
@@ -153,7 +153,7 @@ def test_interface_reflect():
     def run(uy, answer):
         particle["uy"] = uy
         interface.reflect(particle_container, static_surface)
-        assert np.isclose(particle["uy"], answer)
+        np.testing.assert_allclose(particle["uy"], answer, rtol=1e-5, atol=1e-8)
 
     # From positive direction
     run(uy=0.2, answer=-0.2)
@@ -165,14 +165,14 @@ def test_interface_evaluate():
     def run_static(y, answer):
         particle["y"] = y
         result = interface.evaluate(particle_container, static_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     def run_moving(y, uy, t, answer):
         particle["y"] = y
         particle["uy"] = uy
         particle["t"] = t
         result = interface.evaluate(particle_container, moving_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # =================================================================================
     # Static
@@ -235,7 +235,7 @@ def test_interface_get_normal_component():
         result = interface.get_normal_component(
             particle_container, speed, static_surface, data
         )
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     def run_moving(uy, t, speed, answer):
         particle["uy"] = uy
@@ -243,7 +243,7 @@ def test_interface_get_normal_component():
         result = interface.get_normal_component(
             particle_container, speed, moving_surface, data
         )
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # =================================================================================
     # Static
@@ -301,14 +301,14 @@ def test_interface_check_sense():
         particle["uy"] = uy
         speed = 2.0  # Arbitrary
         result = interface.check_sense(particle_container, speed, static_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     def run_moving(y, uy, t, speed, answer):
         particle["y"] = y
         particle["uy"] = uy
         particle["t"] = t
         result = interface.check_sense(particle_container, speed, moving_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # =================================================================================
     # Static
@@ -427,14 +427,14 @@ def test_interface_get_distance():
         particle["uy"] = uy
         speed = 2.0  # Arbitrary
         result = interface.get_distance(particle_container, speed, static_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     def run_moving(y, uy, t, speed, answer):
         particle["y"] = y
         particle["uy"] = uy
         particle["t"] = t
         result = interface.get_distance(particle_container, speed, moving_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # =================================================================================
     # Static

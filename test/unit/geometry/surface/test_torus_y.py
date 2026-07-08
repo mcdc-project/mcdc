@@ -73,7 +73,7 @@ def test_evaluate():
         particle["z"] = z
         particle["y"] = y
         result = torus_y.evaluate(particle_container, static_surface)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # Inside
     run(x=1.0, z=0.0, y=0.0, answer=-0.9375)
@@ -92,7 +92,7 @@ def test_reflect():
         particle["uy"] = uy
         torus_y.reflect(particle_container, static_surface)
         directions = np.array([particle["ux"], particle["uz"], particle["uy"]])
-        assert np.allclose(directions, answers)
+        np.testing.assert_allclose(directions, answers, rtol=1e-5, atol=1e-8)
 
     # Particle traveling in through the Top of the torus
     run(x=R, z=0.0, y=(r + TINY), ux=0.0, uz=0.0, uy=-1.0, answers=np.array([0, 0, 1]))
@@ -140,7 +140,7 @@ def test_get_normal_component():
         particle["uz"] = uz
         particle["uy"] = uy
         result = torus_y.get_normal_component(particle_container, static_surface)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # Particle traveling in through the Top of the torus
     run(x=R, z=0.0, y=(r + TINY), ux=0.0, uz=0.0, uy=-1.0, answer=-1)
@@ -161,7 +161,7 @@ def test_get_distance():
         particle["uz"] = uz
         particle["uy"] = uy
         result = torus_y.get_distance(particle_container, static_surface)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # Outside Torus
     x = R
@@ -219,7 +219,7 @@ def test_interface_reflect():
         particle["uy"] = uy
         interface.reflect(particle_container, static_surface)
         directions = np.array([particle["ux"], particle["uz"], particle["uy"]])
-        assert np.allclose(directions, answers)
+        np.testing.assert_allclose(directions, answers, rtol=1e-5, atol=1e-8)
 
     run(x=R, z=0.0, y=(r + TINY), ux=0.0, uz=0.0, uy=-1.0, answers=np.array([0, 0, 1]))
     run(x=R, z=0.0, y=(r - TINY), ux=0.0, uz=0.0, uy=1.0, answers=np.array([0, 0, -1]))
@@ -260,7 +260,7 @@ def test_interface_evaluate():
         particle["z"] = z
         particle["y"] = y
         result = interface.evaluate(particle_container, static_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     def run_moving(x, z, y, ux, uz, uy, t, answer):
         particle["x"] = x
@@ -271,7 +271,7 @@ def test_interface_evaluate():
         particle["uy"] = uy
         particle["t"] = t
         result = interface.evaluate(particle_container, moving_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # =================================================================================
     # Static
@@ -349,7 +349,7 @@ def test_interface_get_normal_component():
         result = interface.get_normal_component(
             particle_container, speed, static_surface, data
         )
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     def run_moving(x, z, y, ux, uz, uy, t, speed, answer):
         particle["x"] = x
@@ -362,7 +362,7 @@ def test_interface_get_normal_component():
         result = interface.get_normal_component(
             particle_container, speed, moving_surface, data
         )
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # =================================================================================
     # Static
@@ -512,7 +512,7 @@ def test_interface_check_sense():  # Returns true if the particle is on the outs
         particle["uy"] = uy
         speed = 2.0  # Arbitrary
         result = interface.check_sense(particle_container, speed, static_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     def run_moving(x, z, y, ux, uz, uy, t, speed, answer):
         particle["x"] = x
@@ -523,7 +523,7 @@ def test_interface_check_sense():  # Returns true if the particle is on the outs
         particle["uy"] = uy
         particle["t"] = t
         result = interface.check_sense(particle_container, speed, moving_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # =================================================================================
     # Static
@@ -679,7 +679,7 @@ def test_interface_get_distance():
         particle["uy"] = uy
         speed = 2.0  # Arbitrary
         result = interface.get_distance(particle_container, speed, static_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     def run_moving(x, z, y, ux, uz, uy, t, speed, answer):
         particle["x"] = x
@@ -690,7 +690,7 @@ def test_interface_get_distance():
         particle["uy"] = uy
         particle["t"] = t
         result = interface.get_distance(particle_container, speed, moving_surface, data)
-        assert np.isclose(result, answer)
+        np.testing.assert_allclose(result, answer, rtol=1e-5, atol=1e-8)
 
     # =================================================================================
     # Static
