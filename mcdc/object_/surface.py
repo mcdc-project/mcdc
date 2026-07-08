@@ -1,4 +1,4 @@
-from typing import Annotated, Iterable
+from typing import Annotated, Sequence
 import numpy as np
 
 from numpy import float64
@@ -31,7 +31,7 @@ from mcdc.constant import (
 )
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.cell import Region
-from mcdc.object_.tally import TallySurface
+from mcdc.object_.tally import TallySurfaceCrossing
 from mcdc.object_.util import move_object
 from mcdc.print_ import print_error
 
@@ -132,7 +132,7 @@ class Surface(ObjectNonSingleton):
     move_durations: Annotated[NDArray[float64], ("N_move",)]
     move_time_grid: Annotated[NDArray[float64], ("N_move_grid",)]
     move_translations: Annotated[NDArray[float64], ("N_move_grid", 3)]
-    tallies: list[TallySurface]
+    tallies: list[TallySurfaceCrossing]
 
     def __init__(self, type_, name, boundary_condition):
         super().__init__()
@@ -452,7 +452,7 @@ class Surface(ObjectNonSingleton):
     def CylinderX(
         cls,
         name: str = "",
-        center: Iterable[float] = [0.0, 0.0],
+        center: Sequence[float] = [0.0, 0.0],
         radius: float = 0.0,
         boundary_condition: str = "none",
     ):
@@ -498,7 +498,7 @@ class Surface(ObjectNonSingleton):
     def CylinderY(
         cls,
         name: str = "",
-        center: Iterable[float] = [0.0, 0.0],
+        center: Sequence[float] = [0.0, 0.0],
         radius: float = 0.0,
         boundary_condition: str = "none",
     ):
@@ -544,7 +544,7 @@ class Surface(ObjectNonSingleton):
     def CylinderZ(
         cls,
         name: str = "",
-        center: Iterable[float] = [0.0, 0.0],
+        center: Sequence[float] = [0.0, 0.0],
         radius: float = 0.0,
         boundary_condition: str = "none",
     ):
@@ -592,8 +592,8 @@ class Surface(ObjectNonSingleton):
         cls,
         name: str = "",
         radius: float = 0.0,
-        axis: Iterable[float] = [0.0, 0.0, 1.0],
-        point: Iterable[float] = [0.0, 0.0, 0.0],
+        axis: Sequence[float] = [0.0, 0.0, 1.0],
+        point: Sequence[float] = [0.0, 0.0, 0.0],
         boundary_condition: str = "none",
     ):
         """
@@ -651,7 +651,7 @@ class Surface(ObjectNonSingleton):
     def Sphere(
         cls,
         name: str = "",
-        center: Iterable[float] = [0.0, 0.0, 0.0],
+        center: Sequence[float] = [0.0, 0.0, 0.0],
         radius: float = 0.0,
         boundary_condition: str = "none",
     ):
@@ -699,7 +699,7 @@ class Surface(ObjectNonSingleton):
     def ConeX(
         cls,
         name: str = "",
-        apex: Iterable[float] = [0.0, 0.0, 0.0],
+        apex: Sequence[float] = [0.0, 0.0, 0.0],
         t_sq: float = 1.0,
         boundary_condition: str = "none",
     ):
@@ -746,7 +746,7 @@ class Surface(ObjectNonSingleton):
     def ConeY(
         cls,
         name: str = "",
-        apex: Iterable[float] = [0.0, 0.0, 0.0],
+        apex: Sequence[float] = [0.0, 0.0, 0.0],
         t_sq: float = 1.0,
         boundary_condition: str = "none",
     ):
@@ -792,7 +792,7 @@ class Surface(ObjectNonSingleton):
     def ConeZ(
         cls,
         name: str = "",
-        apex: Iterable[float] = [0.0, 0.0, 0.0],
+        apex: Sequence[float] = [0.0, 0.0, 0.0],
         t_sq: float = 1.0,
         boundary_condition: str = "none",
     ):
@@ -1027,8 +1027,8 @@ class Surface(ObjectNonSingleton):
     def Torus(
         cls,
         name: str = "",
-        center: Iterable[float] = [0.0, 0.0, 0.0],
-        axis: Iterable[float] = [0.0, 0.0, 1.0],
+        center: Sequence[float] = [0.0, 0.0, 0.0],
+        axis: Sequence[float] = [0.0, 0.0, 1.0],
         R: float = 0.0,
         r: float = 0.0,
         boundary_condition: str = "none",

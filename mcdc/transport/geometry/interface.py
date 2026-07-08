@@ -9,11 +9,10 @@ import mcdc.mcdc_get as mcdc_get
 import mcdc.literals as literals
 import mcdc.transport.mesh as mesh
 import mcdc.transport.physics as physics
-import mcdc.transport.tally as tally_module
 import mcdc.transport.util as util
 
 from mcdc.constant import *
-from mcdc.transport.geometry.surface import get_distance, check_sense, reflect
+from mcdc.transport.geometry.surface import get_distance, check_sense
 
 # ======================================================================================
 # Geometry inspection
@@ -436,30 +435,6 @@ def distance_to_nearest_surface(particle_container, cell, simulation, data):
             surface_ID = surface["ID"]
 
     return distance, surface_ID
-
-
-@njit
-def surface_crossing(P_arr, simulation, data):
-    P = P_arr[0]
-
-    # Apply BC
-    surface = simulation["surfaces"][P["surface_ID"]]
-    BC = surface["boundary_condition"]
-    if BC == BC_VACUUM:
-        P["alive"] = False
-    elif BC == BC_REFLECTIVE:
-        reflect(P_arr, surface)
-
-    # Score tally
-    for i in range(surface["N_tally"]):
-        tally_ID = int(mcdc_get.surface.tally_IDs(i, surface, data))
-        tally = simulation["surface_tallies"][tally_ID]
-        tally_module.score.surface_tally(P_arr, surface, tally, simulation, data)
-
-    # Need to check new cell later?
-    if P["alive"] and not BC == BC_REFLECTIVE:
-        P["cell_ID"] = -1
-        P["material_ID"] = -1
 
 
 # ======================================================================================

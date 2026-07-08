@@ -13,7 +13,7 @@ from numpy import float64
 from numpy.typing import NDArray
 from operator import attrgetter
 from types import NoneType
-from typing import Annotated, Iterable
+from typing import Annotated, Sequence
 from sympy.logic.boolalg import Boolean
 
 ####
@@ -31,7 +31,7 @@ from mcdc.constant import (
 from mcdc.object_.base import ObjectNonSingleton
 from mcdc.object_.material import MaterialBase
 from mcdc.object_.simulation import simulation
-from mcdc.object_.tally import Tally
+from mcdc.object_.tally import TallyCollision, TallyTracklength
 from mcdc.object_.universe import Universe, Lattice
 from mcdc.print_ import print_error
 
@@ -140,7 +140,8 @@ class Cell(ObjectNonSingleton):
     region_RPN_tokens: list[int]
     region_RPN: Boolean
     surfaces: list[Surface]
-    tallies: list[Tally]
+    collision_tallies: list[TallyCollision]
+    tracklength_tallies: list[TallyTracklength]
     #
     fill_type: int
     fill_ID: int
@@ -150,8 +151,8 @@ class Cell(ObjectNonSingleton):
         region: Region | NoneType = None,
         fill: MaterialBase | Universe | Lattice | NoneType = None,
         name: str = "",
-        translation: Iterable[float] = [0.0, 0.0, 0.0],
-        rotation: Iterable[float] = [0.0, 0.0, 0.0],
+        translation: Sequence[float] = [0.0, 0.0, 0.0],
+        rotation: Sequence[float] = [0.0, 0.0, 0.0],
     ):
         super().__init__()
 
@@ -194,7 +195,8 @@ class Cell(ObjectNonSingleton):
         self.surfaces = list_surfaces(self.region_RPN_tokens)
 
         # Cell tallies
-        self.tallies = []
+        self.collision_tallies = []
+        self.tracklength_tallies = []
 
         # ==============================================================================
         # Numba attribute manual set up
@@ -234,8 +236,12 @@ class Cell(ObjectNonSingleton):
         if self.fill_rotated:
             text += f"  - Rotation: {self.rotation * 180 / PI}\n"
         text += f"  - Bounding surfaces: {[x.ID for x in self.surfaces]}\n"
-        if len(self.tallies) > 0:
-            text += f"  - Tallies: {[x.ID for x in self.tallies]}\n"
+        if len(self.collision_tallies) > 0:
+            text += f"  - Collision tallies: {[x.ID for x in self.collision_tallies]}\n"
+        if len(self.tracklength_tallies) > 0:
+            text += (
+                f"  - Tracklength tallies: {[x.ID for x in self.tracklength_tallies]}\n"
+            )
         return text
 
 

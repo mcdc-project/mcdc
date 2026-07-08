@@ -3,7 +3,7 @@ import numpy as np
 from numpy import float64, int64
 from numpy.typing import NDArray
 from types import NoneType
-from typing import Annotated, Iterable
+from typing import Annotated, Sequence
 
 ####
 
@@ -206,21 +206,21 @@ class Source(ObjectNonSingleton):
     def __init__(
         self,
         name: str = "",
-        position: Iterable[float] | NoneType = None,
-        x: Iterable[float] | NoneType = None,
-        y: Iterable[float] | NoneType = None,
-        z: Iterable[float] | NoneType = None,
+        position: Sequence[float] | NoneType = None,
+        x: Sequence[float] | NoneType = None,
+        y: Sequence[float] | NoneType = None,
+        z: Sequence[float] | NoneType = None,
         #
-        direction: Iterable[float] | NoneType = None,
-        white_direction: Iterable[float] | NoneType = None,
+        direction: Sequence[float] | NoneType = None,
+        white_direction: Sequence[float] | NoneType = None,
         isotropic: bool | NoneType = None,
-        polar_cosine: Iterable[float] | NoneType = None,
-        azimuthal: Iterable[float] | NoneType = None,
+        polar_cosine: Sequence[float] | NoneType = None,
+        azimuthal: Sequence[float] | NoneType = None,
         #
         energy: float | NDArray[float64] | NoneType = None,
         energy_group: int | NDArray[int64] | NoneType = None,
         #
-        time: float | Iterable[float] = 0.0,
+        time: float | Sequence[float] = 0.0,
         #
         particle_type: str = "neutron",
         #

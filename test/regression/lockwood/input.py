@@ -81,9 +81,9 @@ mcdc.Tally(name="edep", mesh=mesh, scores=["energy_deposition"])
 
 mcdc.Tally(name="flux", scores=["flux"], mesh=mesh)
 
-mcdc.Tally(name="s1_current", surface=s1, scores=["net-current"])
+mcdc.Tally(name="s1_current", surface=s1, scores=["current-net"])
 
-mcdc.Tally(name="s2_current", surface=s2, scores=["net-current"])
+mcdc.Tally(name="s2_current", surface=s2, scores=["current-net"])
 
 # =============================================================================
 # Settings and run

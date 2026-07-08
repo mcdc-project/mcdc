@@ -53,14 +53,14 @@ Complete documentation is available on
 If you use MC/DC in published work, please cite one or more of the following
 references as appropriate:
 
-- **MC/DC Origins**  
+- **MC/DC Origins**
   I. Variansyah, et al. (2023). *Development of MC/DC: a performant,
   scalable, and portable Python-based Monte Carlo neutron transport code.*
   Proceedings of the ANS Mathematics & Computation Conference 2025,
   Niagara Falls, Canada.
   https://doi.org/10.48550/arXiv.2305.07636
 
-- **MC/DC JOSS Article**  
+- **MC/DC JOSS Article**
   J. Morgan, et al. (2024). *Monte Carlo / Dynamic Code (MC/DC): An
   accelerated Python package for fully transient neutron transport and rapid
   methods development.* Journal of Open Source Software, **9**(96), 6415.
