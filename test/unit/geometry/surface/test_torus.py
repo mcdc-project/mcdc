@@ -82,7 +82,9 @@ def test_evaluate_matches_torus_z():
         general_result = torus.evaluate(particle_container, axis_aligned_surface)
         reference_result = torus_z.evaluate(particle_container, reference_surface)
 
-        np.testing.assert_allclose(general_result, reference_result, rtol=1e-5, atol=1e-8)
+        np.testing.assert_allclose(
+            general_result, reference_result, rtol=1e-5, atol=1e-8
+        )
 
     run(x=1.0, y=0.0, z=0.0)
     run(x=1.5, y=0.0, z=0.0)
