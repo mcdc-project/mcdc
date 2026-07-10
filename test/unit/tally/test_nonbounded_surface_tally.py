@@ -49,7 +49,9 @@ def test_unbounded_surface_crossing_tally_scoring(
     particle["ux"] = ux
     surface_crossing(particle_container, mcdc_struct, data)
 
-    assert np.isclose(bin_value(unbounded_tally, mcdc_struct, data), expected)
+    np.testing.assert_allclose(
+        bin_value(unbounded_tally, mcdc_struct, data), expected, rtol=1e-5, atol=1e-8
+    )
 
 
 def test_surface_crossing_tally_scores_vacuum_boundary(
@@ -70,7 +72,9 @@ def test_surface_crossing_tally_scores_vacuum_boundary(
     surface_crossing(particle_container, mcdc_struct, data)
 
     assert not particle["alive"]
-    assert np.isclose(bin_value(tally, mcdc_struct, data), 2.0)
+    np.testing.assert_allclose(
+        bin_value(tally, mcdc_struct, data), 2.0, rtol=1e-5, atol=1e-8
+    )
 
 
 def test_surface_crossing_tally_scores_after_reflective_boundary(
@@ -91,5 +95,7 @@ def test_surface_crossing_tally_scores_after_reflective_boundary(
     surface_crossing(particle_container, mcdc_struct, data)
 
     assert particle["alive"]
-    assert np.isclose(particle["ux"], -0.5)
-    assert np.isclose(bin_value(tally, mcdc_struct, data), 0.0)
+    np.testing.assert_allclose(particle["ux"], -0.5, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(
+        bin_value(tally, mcdc_struct, data), 0.0, rtol=1e-5, atol=1e-8
+    )

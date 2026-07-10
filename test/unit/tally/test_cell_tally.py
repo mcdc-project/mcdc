@@ -32,7 +32,9 @@ def test_surface_cell_filter_current_net_is_incoming_negative_outgoing_positive(
         cell_ID=slab_plane_x["c_left"].ID,
     )
     surface_crossing(particle_container, mcdc_struct, data)
-    assert np.isclose(_bin_value(current_tally, mcdc_struct, data), -2.0)
+    np.testing.assert_allclose(
+        _bin_value(current_tally, mcdc_struct, data), -2.0, rtol=1e-5, atol=1e-8
+    )
 
     # Right -> left across the shared interior surface: outgoing from c_right (+)
     particle_container = crossing_particle(
@@ -42,7 +44,9 @@ def test_surface_cell_filter_current_net_is_incoming_negative_outgoing_positive(
         cell_ID=slab_plane_x["c_right"].ID,
     )
     surface_crossing(particle_container, mcdc_struct, data)
-    assert np.isclose(_bin_value(current_tally, mcdc_struct, data), 0.0)
+    np.testing.assert_allclose(
+        _bin_value(current_tally, mcdc_struct, data), 0.0, rtol=1e-5, atol=1e-8
+    )
 
 
 def test_surface_cell_filter_current_records_in_and_out_separately(
@@ -74,9 +78,15 @@ def test_surface_cell_filter_current_records_in_and_out_separately(
 
     # Scores are in requested order: [current-net, current-in, current-out].
     # Partial currents are positive; current-net is incoming-negative/outgoing-positive.
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 0), 0.0)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 1), 2.0)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 2), 2.0)
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 0), 0.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 1), 2.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 2), 2.0, rtol=1e-5, atol=1e-8
+    )
 
 
 def test_surface_cell_filter_current_counts_outgoing_to_vacuum(
@@ -100,9 +110,15 @@ def test_surface_cell_filter_current_counts_outgoing_to_vacuum(
     particle = particle_container[0]
     surface_crossing(particle_container, mcdc_struct, data)
     assert not particle["alive"]
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 0), 2.0)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 1), 0.0)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 2), 2.0)
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 0), 2.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 1), 0.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 2), 2.0, rtol=1e-5, atol=1e-8
+    )
 
 
 def test_surface_cell_filter_current_ignores_reflective_crossing(
@@ -124,10 +140,16 @@ def test_surface_cell_filter_current_ignores_reflective_crossing(
     particle = particle_container[0]
     surface_crossing(particle_container, mcdc_struct, data)
     assert particle["alive"]
-    assert np.isclose(particle["ux"], -0.5)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 0), 0.0)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 1), 0.0)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 2), 0.0)
+    np.testing.assert_allclose(particle["ux"], -0.5, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 0), 0.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 1), 0.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 2), 0.0, rtol=1e-5, atol=1e-8
+    )
 
 
 def test_surface_cell_filter_current_scores_curved_boundary(
@@ -154,9 +176,15 @@ def test_surface_cell_filter_current_scores_curved_boundary(
     )
     surface_crossing(particle_container, mcdc_struct, data)
 
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 0), 2.0)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 1), 0.0)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 2), 2.0)
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 0), 2.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 1), 0.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 2), 2.0, rtol=1e-5, atol=1e-8
+    )
 
     # Outer -> inner across the same curved surface: incoming to c_inner (-)
     particle_container = crossing_particle(
@@ -167,9 +195,15 @@ def test_surface_cell_filter_current_scores_curved_boundary(
     )
     surface_crossing(particle_container, mcdc_struct, data)
 
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 0), 0.0)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 1), 2.0)
-    assert np.isclose(_bin_value_score(current_tally, mcdc_struct, data, 2), 2.0)
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 0), 0.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 1), 2.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(current_tally, mcdc_struct, data, 2), 2.0, rtol=1e-5, atol=1e-8
+    )
 
 
 def test_surface_cell_filter_scores_only_selected_surface(
@@ -193,9 +227,15 @@ def test_surface_cell_filter_scores_only_selected_surface(
     )
     surface_crossing(particle_container, mcdc_struct, data)
 
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 0), 0.0)
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 1), 0.0)
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 2), 0.0)
+    np.testing.assert_allclose(
+        _bin_value_score(tally, mcdc_struct, data, 0), 0.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(tally, mcdc_struct, data, 1), 0.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(tally, mcdc_struct, data, 2), 0.0, rtol=1e-5, atol=1e-8
+    )
 
     particle_container = crossing_particle(
         slab_plane_x["s_mid"].ID,
@@ -205,6 +245,12 @@ def test_surface_cell_filter_scores_only_selected_surface(
     )
     surface_crossing(particle_container, mcdc_struct, data)
 
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 0), -2.0)
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 1), 2.0)
-    assert np.isclose(_bin_value_score(tally, mcdc_struct, data, 2), 0.0)
+    np.testing.assert_allclose(
+        _bin_value_score(tally, mcdc_struct, data, 0), -2.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(tally, mcdc_struct, data, 1), 2.0, rtol=1e-5, atol=1e-8
+    )
+    np.testing.assert_allclose(
+        _bin_value_score(tally, mcdc_struct, data, 2), 0.0, rtol=1e-5, atol=1e-8
+    )
