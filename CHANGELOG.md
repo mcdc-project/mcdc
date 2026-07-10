@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add layered documentation philosophy
 - Tally spatial filter and scoring upgrades from [@massimolarsen] and [@ilhamv]
   - Add partial current scores
   - Add cell-filtered (and surface-cell-combo) support for current scores

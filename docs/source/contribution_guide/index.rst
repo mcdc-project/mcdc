@@ -1,4 +1,4 @@
-.. _contribution:
+.. _contribution_guide:
 
 ==================
 Contribution Guide
@@ -20,20 +20,22 @@ To get started making alterations in a cloned repo
 
 Push some particles around!!!!
 
-Development Guidelines
-----------------------
+Development Guides
+------------------
 
 .. toctree::
    :maxdepth: 1
-   
-   documentation.rst
-   ci.rst
-   container-dev.rst
 
-Check out the :doc:`documentation` guide for info on how to contribute to these docs.
-We understand that documenting code is often a lower priority than the code itself, but it goes a long way towards usability and maintainability.
+   documentation/index
+   ci
+   container-dev
 
-Please note our `code of conduct <https://github.com/CEMeNT-PSAAP/MCDC/blob/main/CODE_OF_CONDUCT.md>`_, which we take seriously.
+MC/DC documentation is an important part of the project and evolves alongside
+the codebase. The :doc:`documentation/index` guide describes the documentation
+philosophy, writing guidelines, and the tools used to build and maintain the
+documentation.
+
+Please note our `code of conduct <https://github.com/mcdc-project/mcdc/blob/dev/CODE_OF_CONDUCT.md>`_, which we take seriously.
 
 ------------
 Code Styling
@@ -173,24 +175,12 @@ If you are wondering accommodations.
 Adding Documentation
 --------------------
 
+Documentation is a core part of MC/DC. Contributions that introduce new
+features, modify existing behavior, or change developer workflows should update
+the relevant documentation accordingly.
 
-It's not everything it needs to be but we are trying!
-If your contribution changes the behavior of the input deck, instillation process, or testing infrastructure your contribution must include alteration to this documentation.
-That can be done by editing the RST files in ``/MCDC/docs/source/<FILENAME>.rst``.
-
-To add a new page to the documentation,
-
-#. Add a new file for example ``<FILE_NAME>.rst``
-#. Add the necessary file header (for example this file is: ``.. _contributions:``)
-#. Add ``<FILE_NAME>`` (without file extension to the ``.. toctree::`` section of ``index.rst``)
-#. Write your contributions using ``.rst`` format (see this `cheat sheet <https://github.com/ralsina/rst-cheatsheet/blob/master/rst-cheatsheet.rst>`_)
-
-To build the docs changes you have made locally before committing,
-
-#. Install dependencies (we recommend: ``conda install sphinx`` and ``pip install furo sphinx_toolbox``).
-   Note that these dependencies are not installed as part of base MC/DC.
-#. From the ``MCDC/docs/`` directory, run ``make html`` to compile.
-#. Launch ``build/html/index.html`` with your browser of choice.
+See the :doc:`documentation/index` guide for documentation philosophy, writing
+guidelines, and instructions for contributing to the documentation.
 
 
 -------------

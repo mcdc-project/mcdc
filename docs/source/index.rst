@@ -78,7 +78,7 @@ Contents
    :maxdepth: 1
    :caption: Developer Documentation
 
-   contribution/index
+   contribution_guide/index
    theory/index
 
 .. toctree::
