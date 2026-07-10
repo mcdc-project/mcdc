@@ -15,8 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Changed
 
-- Unit test upgrade from [@massimolarsen]
-  - Combined `object_` and `transport` unit test for more efficient fixture reuse
+- Unit test upgrades
+  - Combined `object_` and `transport` unit test for more efficient fixture reuse from [@massimolarsen]
+  - Replace bare assert np.isclose with proper np.testing.assert_allclose from [@steps-re]
 
 ### Deprecated
 
@@ -120,3 +121,4 @@ The pre-refactor implementation remains available in the `cement` branch as a re
 [@nglaser3]: https://github.com/nglaser3
 [@gunnarrl]: https://github.com/gunnarrl
 [@Talen-Ayers]: https://github.com/Talen-Ayers
+[@steps-re]: https://github.com/steps-re
