@@ -1141,7 +1141,7 @@ def _accessor_2d_vector(object_name, attribute_name, stride, setter=False):
     text += f"    start = offset + index_1 * stride\n"
     text += f"    end = start + stride\n"
     if setter:
-        text += f"    data[start:end] - value\n\n\n"
+        text += f"    data[start:end] = value\n\n\n"
     else:
         text += f"    return data[start:end]\n\n\n"
     return text
