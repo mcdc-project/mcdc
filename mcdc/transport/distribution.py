@@ -154,6 +154,10 @@ def sample_direction(polar_cosine, azimuthal, polar_coordinate, rng_state):
     wy = polar_coordinate[1]
     wz = polar_coordinate[2]
     if abs(wz) >= 0.999:
+        # Axis nearly parallel to z: use a fixed transverse basis
+        ux, uy, uz = 1.0, 0.0, 0.0
+        vx, vy, vz = 0.0, 1.0, 0.0
+    else:
         inv = 1.0 / math.sqrt(wx * wx + wy * wy)
 
         ux = -wy * inv
@@ -163,10 +167,6 @@ def sample_direction(polar_cosine, azimuthal, polar_coordinate, rng_state):
         vx = -wz * wx * inv
         vy = -wz * wy * inv
         vz = math.sqrt(wx * wx + wy * wy)
-    else:
-        # Axis nearly parallel to z
-        ux, uy, uz = 1.0, 0.0, 0.0
-        vx, vy, vz = 0.0, 1.0, 0.0
 
     # Rotate into lab frame
     s = math.sqrt(max(0.0, 1.0 - mu * mu))
@@ -271,7 +271,7 @@ def sample_white_direction(nx, ny, nz, rng_state):
     sin_azi = math.sin(azi)
     Ac = (1.0 - mu**2) ** 0.5
 
-    if nz != 1.0:
+    if abs(nz) != 1.0:
         B = (1.0 - nz**2) ** 0.5
         C = Ac / B
 

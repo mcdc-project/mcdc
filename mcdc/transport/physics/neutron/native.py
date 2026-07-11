@@ -828,7 +828,7 @@ def fission(
         prompt = True
         delayed_group = -1
         xi = rng.lcg(particle_container_new)
-        total = nu_p
+        total = nu_p / nu
         if xi > total:
             prompt = False
             # Determine delayed group
@@ -912,7 +912,7 @@ def fission(
             ux_new, uy_new, uz_new = sample_isotropic_direction(particle_container_new)
 
             # Sample emission time
-            decay_rate = mcdc_get.nuclide.neutron_fission_delayed_fractions(
+            decay_rate = mcdc_get.nuclide.neutron_fission_delayed_decay_rates(
                 delayed_group, nuclide, data
             )
             if not prompt:
