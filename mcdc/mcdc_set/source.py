@@ -9,7 +9,7 @@ def move_velocities_vector(index_1, source, data, value):
     stride = 3
     start = offset + index_1 * stride
     end = start + stride
-    data[start:end] - value
+    data[start:end] = value
 
 
 @njit
@@ -90,7 +90,7 @@ def move_translations_vector(index_1, source, data, value):
     stride = 3
     start = offset + index_1 * stride
     end = start + stride
-    data[start:end] - value
+    data[start:end] = value
 
 
 @njit

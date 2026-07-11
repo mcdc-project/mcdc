@@ -38,7 +38,7 @@ def spectrum_probability_vector(index_1, neutron_inelastic_scattering_reaction, 
     stride = neutron_inelastic_scattering_reaction["N_spectrum"]
     start = offset + index_1 * stride
     end = start + stride
-    data[start:end] - value
+    data[start:end] = value
 
 
 @njit

@@ -125,7 +125,7 @@ def aux_vector(index_1, table_data, data, value):
     stride = table_data["N"]
     start = offset + index_1 * stride
     end = start + stride
-    data[start:end] - value
+    data[start:end] = value
 
 
 @njit
