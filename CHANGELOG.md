@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Fixed
 
+- Fix 2D-vector setter writes nothing (- instead of =) from [@steps-re]
+
 ### Security
 
 ## [0.14.1] - 2026-07-04
