@@ -76,8 +76,6 @@ def collision_distance(particle_container, simulation, data):
     elif particle["particle_type"] == PARTICLE_PROTON:
         SigmaT = macro_xs(PROTON_REACTION_TOTAL, particle_container, simulation, data)
 
-    # print(f'SigmaT = {SigmaT}, E = {particle["E"]}')
-
     # Vacuum material?
     if SigmaT == 0.0:
         return INF

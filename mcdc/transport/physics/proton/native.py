@@ -253,7 +253,7 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
     material = simulation["native_materials"][particle["material_ID"]]
     # print(f'material = {material}, type = {type(material)}, {material.dtype.names}')
     E = particle["E"]
-
+    
     # Check for cutoff energy
     if E <= PROTON_CUTOFF_ENERGY:
         collision_data["energy_deposition"] += E * particle["w"]
@@ -302,10 +302,10 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
 
     # Range straggling - modify energy loss to have some slight variations
     # TODO: Insert different thickness regimes to sample from (e.g. Bohr, Landau, Vavilov)
-    gaussian_variance = 0.1569 * total_rho_gcm3 * Z / A * distance
+    energy_straggling_variance = 0.1569 * total_rho_gcm3 * Z / A * distance
     
-    gaussian = np.random.normal(loc=0.0, scale=np.sqrt(gaussian_variance))
-    energy_loss += gaussian
+    energy_straggling_modifier = np.random.normal(loc=0.0, scale=np.sqrt(energy_straggling_variance))
+    energy_loss += energy_straggling_modifier
     particle["E"] -= energy_loss
     collision_data["energy_deposition"] += energy_loss * particle["w"]
 
@@ -315,7 +315,31 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
         print(f'distance = {distance}')
         print(f'NEGATIVE: energy_loss = {energy_loss * particle["w"]}')
         raise ValueError('negative energy loss')
+
+    X0 = 24.01 # Radiation length for Al, in g/cm^2
+    # X0 = 36.33 # Radiation length for H2O, in g/cm^2
+    
+    # Angular scattering according to MCS theory
+    phi, theta = sample_mcs_angle(particle["E"], distance, total_rho_gcm3, X0)
+
+    rotate_direction(particle, phi, theta)
+
     return
+
+@njit
+def sample_mcs_angle(E, distance, density, X0):
+    sigma = highland_lynch_dahl_sigma(E, distance, density, X0)
+
+    if sigma < 0.0:
+        raise ValueError(f'negative sigma = {sigma}')
+    
+    # Sample theta from the Highland distribution; phi uniformly from (0, 2pi)
+    theta = np.abs(np.random.normal(0, sigma))
+    phi = np.random.uniform(0, 2*np.pi)
+
+    return phi, theta
+
+
 
 
 # ======================================================================================
@@ -672,3 +696,55 @@ def inelastic_scattering(
 
 
 # No fission for protons
+
+
+@njit
+def highland_lynch_dahl_sigma(E, distance, density, X0):
+    p = np.sqrt(E * (E + 2.0 * PROTON_MASS))
+    beta = p / (E + PROTON_MASS)
+    z = 1 # Incident particle is a proton, Z=1
+
+    # X0 is measured in g/cm^2
+    # Highland formula, modified by Lynch & Dahl
+    radiation_distance_fraction = density * distance / X0
+    sigma = (13.6e6 / p*beta) * z * np.sqrt(radiation_distance_fraction) * (1 + 0.088 * np.log10(radiation_distance_fraction))
+
+    if sigma < 0.0:
+        print(f'radiation_distance_fraction = {radiation_distance_fraction}')
+        print(f'p = {p}, beta = {beta}, z = {z}')
+        print(f'density = {density}, distance = {distance}')
+        raise ValueError(f"negative sigma = {sigma}")
+
+    return sigma
+
+@njit
+def rotate_direction(particle, phi, theta):
+    """
+    Rotate direction vector (ux, uy, uz) by polar angle theta
+    and azimuthal angle phi in the local frame.
+    Returns new (ux, uy, uz).
+    """
+
+    ux = particle["ux"]
+    uy = particle["uy"]
+    uz = particle["uz"]
+
+    sin_theta = np.sin(theta)
+    cos_theta = np.cos(theta)
+    cos_phi   = np.cos(phi)
+    sin_phi   = np.sin(phi)
+
+    # Build local perpendicular axes
+    d    = np.array([ux, uy, uz])
+    perp = np.array([1.0, 0.0, 0.0]) if abs(ux) < 0.9 else np.array([0.0, 1.0, 0.0])
+    u    = np.cross(d, perp); u /= np.linalg.norm(u)
+    v    = np.cross(d, u)
+
+    d_new = (cos_theta * d
+             + sin_theta * cos_phi * u
+             + sin_theta * sin_phi * v)
+    d_new /= np.linalg.norm(d_new)
+
+    particle["ux"] = d_new[0]
+    particle["uy"] = d_new[1]
+    particle["uz"] = d_new[2]

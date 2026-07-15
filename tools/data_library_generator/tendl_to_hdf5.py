@@ -34,7 +34,7 @@ HDF5 layout
       angular_cosine_distribution/
     capture/MT-{NNN}/
       xs (barns), Q-value (MeV), reference_frame
-    nonelastic_reaction/MT-{NNN}/
+    ielastic_scattering/MT-{NNN}/
       xs (barns), Q-value (MeV), reference_frame, multiplicity
       angular_cosine_distribution/
       energy_spectrum-{k}/  (law attr; kalbach-mann: energy, offset,
@@ -463,12 +463,12 @@ def process_ace_file(ace_path, output_dir, pstar_dir=None, verbose=False):
     proton_reactions = file.create_group("proton_reactions")
     elastic_group    = proton_reactions.create_group("elastic_scattering")
     capture_group    = proton_reactions.create_group("capture")
-    nonelastic_group = proton_reactions.create_group("nonelastic_reaction")
+    inelastic_group  = proton_reactions.create_group("inelastic_reaction")
     fission_group    = proton_reactions.create_group("fission")
 
     elastic_MTs    = [2]
     capture_MTs    = []
-    nonelastic_MTs = []
+    inelastic_MTs = []
     fission_MTs    = ([18] if rx_block.has_MT(18) else
                       [MT for MT in FISSION_CHANCE_MTS if rx_block.has_MT(MT)])
 
@@ -482,25 +482,25 @@ def process_ace_file(ace_path, output_dir, pstar_dir=None, verbose=False):
             print_error(f"Non-integer multiplicity for MT-{MT:03} in {ace_path}")
         nu = nu_raw - 100 if nu_raw >= 100 else nu_raw
         if   nu == 0: capture_MTs.append(MT)
-        elif nu >  0: nonelastic_MTs.append(MT)
+        elif nu >  0: inelastic_MTs.append(MT)
         else: print_error(f"Negative multiplicity for MT-{MT:03} in {ace_path}")
 
-    for grp, mts in [(elastic_group,    elastic_MTs),
-                     (capture_group,    capture_MTs),
-                     (nonelastic_group, nonelastic_MTs),
-                     (fission_group,    fission_MTs)]:
+    for grp, mts in [(elastic_group,   elastic_MTs),
+                     (capture_group,   capture_MTs),
+                     (inelastic_group, inelastic_MTs),
+                     (fission_group,   fission_MTs)]:
         for MT in mts:
             grp.create_group(f"MT-{MT:03}").attrs["MT"] = MT
 
     if verbose:
         print(f"  Elastic: {elastic_MTs}  Capture: {capture_MTs}  "
-              f"Nonelastic: {nonelastic_MTs}"
+              f"Inelastic: {inelastic_MTs}"
               + (f"  Fission: {fission_MTs}" if fissionable else ""))
 
     if not fissionable:
         del file["proton_reactions/fission"]
-    if not nonelastic_MTs:
-        del file["proton_reactions/nonelastic_reaction"]
+    if not inelastic_MTs:
+        del file["proton_reactions/inelastic_reaction"]
 
     # Cross sections
     xs0     = ace_table.principal_cross_section_block
@@ -515,7 +515,7 @@ def process_ace_file(ace_path, output_dir, pstar_dir=None, verbose=False):
     ds.attrs["unit"]   = "barns"
 
     for mts, grp in [(capture_MTs,    capture_group),
-                     (nonelastic_MTs, nonelastic_group),
+                     (inelastic_MTs, inelastic_group),
                      (fission_MTs,    fission_group if fissionable else None)]:
         if grp is None:
             continue
@@ -532,7 +532,7 @@ def process_ace_file(ace_path, output_dir, pstar_dir=None, verbose=False):
     elastic_group.create_dataset("MT-002/Q-value", data=0.0).attrs["unit"] = "MeV"
 
     for mts, grp in [(capture_MTs,    capture_group),
-                     (nonelastic_MTs, nonelastic_group),
+                     (inelastic_MTs, inelastic_group),
                      (fission_MTs,    fission_group if fissionable else None)]:
         if grp is None:
             continue
@@ -546,7 +546,7 @@ def process_ace_file(ace_path, output_dir, pstar_dir=None, verbose=False):
     elastic_group.create_dataset("MT-002/reference_frame", data="COM")
 
     for mts, grp in [(capture_MTs,    capture_group),
-                     (nonelastic_MTs, nonelastic_group),
+                     (inelastic_MTs, inelastic_group),
                      (fission_MTs,    fission_group if fissionable else None)]:
         if grp is None:
             continue
@@ -557,11 +557,11 @@ def process_ace_file(ace_path, output_dir, pstar_dir=None, verbose=False):
                       "COM" if rf == ACEtk.ReferenceFrame.CentreOfMass else str(rf))
             grp.create_dataset(f"MT-{MT:03}/reference_frame", data=rf_str)
 
-    # Nonelastic multiplicities
-    for MT in nonelastic_MTs:
+    # Inelastic multiplicities
+    for MT in inelastic_MTs:
         idx    = rx_block.index(MT)
         nu_raw = nu_block.multiplicity(idx)
-        nonelastic_group.create_dataset(
+        inelastic_group.create_dataset(
             f"MT-{MT:03}/multiplicity",
             data=nu_raw - 100 if nu_raw >= 100 else nu_raw
         )
@@ -575,7 +575,7 @@ def process_ace_file(ace_path, output_dir, pstar_dir=None, verbose=False):
             and verbose:
         print_note("MT-002 angular distribution is given in energy block")
 
-    for mts, grp in [(nonelastic_MTs, nonelastic_group),
+    for mts, grp in [(inelastic_MTs, inelastic_group),
                      (fission_MTs,    fission_group if fissionable else None)]:
         if grp is None:
             continue
@@ -589,7 +589,7 @@ def process_ace_file(ace_path, output_dir, pstar_dir=None, verbose=False):
     # Primary energy distributions
     energy_block = ace_table.energy_distribution_block
 
-    for mts, grp in [(nonelastic_MTs, nonelastic_group),
+    for mts, grp in [(inelastic_MTs, inelastic_group),
                      (fission_MTs,    fission_group if fissionable else None)]:
         if grp is None:
             continue

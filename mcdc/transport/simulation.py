@@ -464,6 +464,8 @@ def move_to_event(particle_container, simulation, data):
             particle["event"] += EVENT_CSDA_EDEP
 
     if distance < 0.0:
+        print(f'distance = {distance}')
+        print(f'd_coll = {d_collision}, d_csda = {d_csda}, d_bnd = {d_boundary}')
         raise ValueError(f"Negative distance")
 
     # ==================================================================================
