@@ -198,7 +198,7 @@ class Tally(ObjectPolymorphic):
             self.filter_direction = True
         if polar_reference is not None:
             polar_reference = np.array(polar_reference)
-            self.polar_reference /= polar_reference / np.linalg.norm(polar_reference)
+            self.polar_reference = polar_reference / np.linalg.norm(polar_reference)
         if energy is not None:
             if type(energy) == str and energy == "all_groups":
                 G = simulation.materials[0].G
