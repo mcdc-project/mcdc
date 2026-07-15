@@ -8,6 +8,7 @@ import mcdc.mcdc_get as mcdc_get
 import mcdc.numba_types as type_
 import mcdc.output as output_module
 import mcdc.transport.geometry as geometry
+import mcdc.transport.geometry.surface as surface_module
 import mcdc.transport.mpi as mpi
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
@@ -298,33 +299,10 @@ def step_particle(particle_container, program, data):
 
         # Score collision tallies
         if simulation["cycle_active"]:
-            # Cell tallies
             cell = simulation["cells"][particle["cell_ID"]]
-            for i in range(cell["N_tally"]):
-                tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-                tally_base = simulation["tallies"][tally_base_ID]
-
-                # Skip non-collision tallies
-                if tally_base["child_type"] != TALLY_COLLISION:
-                    continue
-
-                tally = simulation["collision_tallies"][tally_base["child_ID"]]
-                tally_module.score.collision_tally(
-                    particle_container,
-                    collision_data_container,
-                    tally,
-                    simulation,
-                    data,
-                )
-
-            # Other collision tallies
-            for i in range(simulation["N_collision_tally"]):
-                tally = simulation["collision_tallies"][i]
-
-                # Skip cell tallies
-                if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
-                    continue
-
+            for i in range(cell["N_collision_tally"]):
+                tally_ID = int(mcdc_get.cell.collision_tally_IDs(i, cell, data))
+                tally = simulation["collision_tallies"][tally_ID]
                 tally_module.score.collision_tally(
                     particle_container,
                     collision_data_container,
@@ -335,7 +313,7 @@ def step_particle(particle_container, program, data):
 
     # Surface and domain crossing
     if particle["event"] & EVENT_SURFACE_CROSSING:
-        geometry.surface_crossing(particle_container, simulation, data)
+        surface_crossing(particle_container, simulation, data)
 
     # Census time crossing
     if particle["event"] & EVENT_TIME_CENSUS:
@@ -474,29 +452,10 @@ def move_to_event(particle_container, simulation, data):
 
     # Score tracklength tallies
     if simulation["cycle_active"]:
-        # Cell tallies
         cell = simulation["cells"][particle["cell_ID"]]
-        for i in range(cell["N_tally"]):
-            tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-            tally_base = simulation["tallies"][tally_base_ID]
-
-            # Skip non-tracklength tallies
-            if tally_base["child_type"] != TALLY_TRACKLENGTH:
-                continue
-
-            tally = simulation["tracklength_tallies"][tally_base["child_ID"]]
-            tally_module.score.tracklength_tally(
-                particle_container, distance, tally, simulation, data
-            )
-
-        # Other tracklength tallies
-        for i in range(simulation["N_tracklength_tally"]):
-            tally = simulation["tracklength_tallies"][i]
-
-            # Skip cell tallies
-            if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
-                continue
-
+        for i in range(cell["N_tracklength_tally"]):
+            tally_ID = int(mcdc_get.cell.tracklength_tally_IDs(i, cell, data))
+            tally = simulation["tracklength_tallies"][tally_ID]
             tally_module.score.tracklength_tally(
                 particle_container, distance, tally, simulation, data
             )
@@ -519,17 +478,10 @@ def move_to_event(particle_container, simulation, data):
         # Score collision tallies (edep is a collision tally)
         # TODO: maybe make edep a potential tracklength tally for CSDA?
         if simulation["cycle_active"]:
-            # Cell tallies
             cell = simulation["cells"][particle["cell_ID"]]
-            for i in range(cell["N_tally"]):
-                tally_base_ID = int(mcdc_get.cell.tally_IDs(i, cell, data))
-                tally_base = simulation["tallies"][tally_base_ID]
-
-                # Skip non-collision tallies
-                if tally_base["child_type"] != TALLY_COLLISION:
-                    continue
-
-                tally = simulation["collision_tallies"][tally_base["child_ID"]]
+            for i in range(cell["N_collision_tally"]):
+                tally_ID = int(mcdc_get.cell.collision_tally_IDs(i, cell, data))
+                tally = simulation["collision_tallies"][tally_ID]
                 tally_module.score.collision_tally(
                     particle_container,
                     collision_data_container,
@@ -538,18 +490,30 @@ def move_to_event(particle_container, simulation, data):
                     data,
                 )
 
-            # Other collision tallies
-            for i in range(simulation["N_collision_tally"]):
-                tally = simulation["collision_tallies"][i]
+@njit
+def surface_crossing(P_arr, simulation, data):
+    P = P_arr[0]
+    crossed_surface_ID = P["surface_ID"]
 
-                # Skip cell tallies
-                if tally["spatial_filter_type"] == SPATIAL_FILTER_CELL:
-                    continue
+    surface = simulation["surfaces"][crossed_surface_ID]
+    BC = surface["boundary_condition"]
 
-                tally_module.score.collision_tally(
-                    particle_container,
-                    collision_data_container,
-                    tally,
-                    simulation,
-                    data,
-                )
+    # Apply BC
+    if BC == BC_VACUUM:
+        P["alive"] = False
+    elif BC == BC_REFLECTIVE:
+        surface_module.reflect(P_arr, surface)
+        return  # No score
+
+    # Score tally
+    for i in range(surface["N_tally"]):
+        tally_ID = int(mcdc_get.surface.tally_IDs(i, surface, data))
+        tally = simulation["surface_crossing_tallies"][tally_ID]
+        tally_module.score.surface_crossing_tally(
+            P_arr, surface, tally, simulation, data
+        )
+
+    # Flag to check new cell later
+    if P["alive"]:
+        P["cell_ID"] = -1
+        P["material_ID"] = -1

@@ -1,3 +1,10 @@
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("mcdc")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
 # ======================================================================================
 # Simulation building blocks
 # ======================================================================================

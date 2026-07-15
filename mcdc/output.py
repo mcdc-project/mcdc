@@ -10,7 +10,6 @@ import mcdc.print_ as print_module
 from mcdc.constant import (
     MESH_UNIFORM,
     MESH_STRUCTURED,
-    SPATIAL_FILTER_MESH,
 )
 
 # ======================================================================================
@@ -172,11 +171,8 @@ def create_tally_dataset(file, mcdc, data):
         elif tally["child_type"] == TALLY_COLLISION:
             mesh_filtered_tally = mcdc["collision_tallies"][tally["child_ID"]]
 
-        if (
-            mesh_filtered_tally is not None
-            and mesh_filtered_tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
-        ):
-            mesh_base = mcdc["meshes"][mesh_filtered_tally["spatial_filter_ID"]]
+        if mesh_filtered_tally is not None and mesh_filtered_tally["mesh_filtered"]:
+            mesh_base = mcdc["meshes"][mesh_filtered_tally["mesh_filter_ID"]]
             mesh_type = mesh_base["child_type"]
             mesh_ID = mesh_base["child_ID"]
             if mesh_type == MESH_UNIFORM:
@@ -211,10 +207,7 @@ def create_tally_dataset(file, mcdc, data):
 
         # Roll tally so that score is in the front
         roll_reference = 4
-        if (
-            mesh_filtered_tally is not None
-            and mesh_filtered_tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
-        ):
+        if mesh_filtered_tally is not None and mesh_filtered_tally["mesh_filtered"]:
             roll_reference = 7
         mean = np.rollaxis(mean, roll_reference, 0)
         sdev = np.rollaxis(sdev, roll_reference, 0)

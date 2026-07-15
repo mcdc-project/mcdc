@@ -47,6 +47,7 @@ tmp_*
 .DS_Store # for mac users
 **/.DS_Store
 **/.idea
+*.csv
 
 # test cache
 .pytest_cache
@@ -58,8 +59,8 @@ pytestdebug.log
 # Documentation builds
 docs/build
 docs/source/pythonapi/generated/
-
-*.csv
+dist/
+mcdc/_version.py
 
 # Regression tests
 dummy_nuclide.h5

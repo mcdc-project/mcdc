@@ -23,20 +23,28 @@ from mcdc.constant import (
     SCORE_COLLISION,
     SCORE_CAPTURE,
     SCORE_FISSION,
-    SCORE_NET_CURRENT,
+    SCORE_CURRENT_NET,
+    SCORE_CURRENT_IN,
+    SCORE_CURRENT_OUT,
     SCORE_ENERGY_DEPOSITION,
-    SPATIAL_FILTER_MESH,
 )
+from mcdc.transport.geometry.interface import check_cell
 from mcdc.transport.geometry.surface import get_normal_component
 from mcdc.transport.tally.filter import get_filter_indices
 
 # ======================================================================================
-# Surface tally
+# Surface crossing tally
 # ======================================================================================
 
 
 @njit
-def surface_tally(particle_container, surface, tally, simulation, data):
+def surface_crossing_tally(
+    particle_container,
+    surface,
+    tally,
+    simulation,
+    data,
+):
     particle = particle_container[0]
     tally_base = simulation["tallies"][tally["parent_ID"]]
 
@@ -64,14 +72,48 @@ def surface_tally(particle_container, surface, tally, simulation, data):
     mu = get_normal_component(particle_container, speed, surface, data)
     flux = particle["w"] / abs(mu)
 
-    # Score
+    # Non-cell-filtered score
+    if not tally["cell_filtered"]:
+        for i_score in range(tally_base["scores_length"]):
+            score_type = mcdc_get.tally.scores(i_score, tally_base, data)
+
+            score = 0.0
+            if score_type == SCORE_CURRENT_NET:
+                score = flux * mu
+            elif score_type == SCORE_CURRENT_IN:
+                if mu < 0.0:
+                    score = particle["w"]
+            elif score_type == SCORE_CURRENT_OUT:
+                if mu > 0.0:
+                    score = particle["w"]
+
+            util.atomic_add(data, idx_base + i_score, score)
+        return
+
+    # Cell-filtered score
+    previous_cell_ID = particle["cell_ID"]
+    filter_cell_ID = tally["cell_filter_ID"]
+    filter_cell = simulation["cells"][filter_cell_ID]
+    was_in_filter_cell = previous_cell_ID == filter_cell_ID
+    now_in_filter_cell = check_cell(particle_container, filter_cell, simulation, data)
+    entered_filter_cell = not was_in_filter_cell and now_in_filter_cell
+    exited_filter_cell = was_in_filter_cell and not now_in_filter_cell
     for i_score in range(tally_base["scores_length"]):
         score_type = mcdc_get.tally.scores(i_score, tally_base, data)
+
         score = 0.0
-        if score_type == SCORE_NET_CURRENT:
-            surface = simulation["surfaces"][particle["surface_ID"]]
-            mu = get_normal_component(particle_container, speed, surface, data)
-            score = flux * mu
+        if score_type == SCORE_CURRENT_NET:
+            if exited_filter_cell:
+                score = particle["w"]
+            elif entered_filter_cell:
+                score = -particle["w"]
+        elif score_type == SCORE_CURRENT_IN:
+            if entered_filter_cell:
+                score = particle["w"]
+        elif score_type == SCORE_CURRENT_OUT:
+            if exited_filter_cell:
+                score = particle["w"]
+
         util.atomic_add(data, idx_base + i_score, score)
 
 
@@ -100,9 +142,8 @@ def collision_tally(
 
     # Mesh tally indices if needed
     i_x, i_y, i_z = 0, 0, 0
-    mesh_tally = tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
-    if mesh_tally:
-        mesh = simulation["meshes"][tally["spatial_filter_ID"]]
+    if tally["mesh_filtered"]:
+        mesh = simulation["meshes"][tally["mesh_filter_ID"]]
         i_x, i_y, i_z = mesh_module.get_indices(
             particle_container, mesh, simulation, data
         )
@@ -119,7 +160,7 @@ def collision_tally(
         + i_energy * tally_base["stride_energy"]
         + i_time * tally_base["stride_time"]
     )
-    if mesh_tally:
+    if tally["mesh_filtered"]:
         idx_base += (
             +i_x * tally["mesh_stride_x"]
             + i_y * tally["mesh_stride_y"]
@@ -187,13 +228,10 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
     #   - Get mesh bin indices
     #   - Return if it's outside mesh grid
 
-    # Flag if it's a mesh tally
-    mesh_tally = tally["spatial_filter_type"] == SPATIAL_FILTER_MESH
-
     # Mesh axis indices
     i_x, i_y, i_z = 0, 0, 0
-    if mesh_tally:
-        mesh = simulation["meshes"][tally["spatial_filter_ID"]]
+    if tally["mesh_filtered"]:
+        mesh = simulation["meshes"][tally["mesh_filter_ID"]]
 
         # Mesh axis indices
         i_x, i_y, i_z = mesh_module.get_indices(
@@ -270,7 +308,7 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
         + i_energy * tally_base["stride_energy"]
         + i_time * tally_base["stride_time"]
     )
-    if mesh_tally:
+    if tally["mesh_filtered"]:
         idx_base += (
             i_x * tally["mesh_stride_x"]
             + i_y * tally["mesh_stride_y"]
@@ -295,8 +333,8 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
         #     axis is crossed
 
         axis_crossed = AXIS_T
-        if mesh_tally:
-            mesh = simulation["meshes"][tally["spatial_filter_ID"]]
+        if tally["mesh_filtered"]:
+            mesh = simulation["meshes"][tally["mesh_filter_ID"]]
 
             # x-direction
             if ux == 0.0:
@@ -374,7 +412,7 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
         distance_swept += distance_scored
 
         # Move the 4D position
-        if mesh_tally:
+        if tally["mesh_filtered"]:
             x += distance_scored * ux
             y += distance_scored * uy
             z += distance_scored * uz
@@ -386,8 +424,8 @@ def tracklength_tally(particle_container, distance, tally, simulation, data):
             idx_base += tally_base["stride_time"]
             if i_time == tally_base["time_length"] - 1:
                 return
-        elif mesh_tally:
-            mesh = simulation["meshes"][tally["spatial_filter_ID"]]
+        elif tally["mesh_filtered"]:
+            mesh = simulation["meshes"][tally["mesh_filter_ID"]]
             if axis_crossed == AXIS_X:
                 if ux > 0.0:
                     i_x += 1

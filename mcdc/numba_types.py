@@ -56,8 +56,10 @@ cell = into_dtype([
     ('region_RPN_tokens_length', int64),
     ('N_surface', int64),
     ('surface_IDs_offset', int64),
-    ('N_tally', int64),
-    ('tally_IDs_offset', int64),
+    ('N_collision_tally', int64),
+    ('collision_tally_IDs_offset', int64),
+    ('N_tracklength_tally', int64),
+    ('tracklength_tally_IDs_offset', int64),
     ('fill_type', int64),
     ('fill_ID', int64),
     ('ID', int64),
@@ -87,37 +89,30 @@ material = into_dtype([
     ('child_ID', int64),
 ])
 
-tally = into_dtype([
-    ('name', 'U32'),
-    ('scores_offset', int64),
-    ('scores_length', int64),
-    ('filter_direction', bool),
-    ('filter_energy', bool),
-    ('filter_time', bool),
-    ('mu_offset', int64),
-    ('mu_length', int64),
-    ('azi_offset', int64),
-    ('azi_length', int64),
-    ('polar_reference', float64, (3,)),
-    ('energy_offset', int64),
-    ('energy_length', int64),
-    ('time_offset', int64),
-    ('time_length', int64),
-    ('bin_offset', int64),
-    ('bin_length', int64),
-    ('bin_sum_offset', int64),
-    ('bin_sum_length', int64),
-    ('bin_sum_square_offset', int64),
-    ('bin_sum_square_length', int64),
-    ('bin_shape_offset', int64),
-    ('bin_shape_length', int64),
-    ('stride_mu', int64),
-    ('stride_azi', int64),
-    ('stride_energy', int64),
-    ('stride_time', int64),
+collision_tally = into_dtype([
+    ('cell_filtered', bool),
+    ('cell_filter_ID', int64),
+    ('mesh_filtered', bool),
+    ('mesh_filter_type', int64),
+    ('mesh_filter_ID', int64),
+    ('mesh_stride_z', int64),
+    ('mesh_stride_y', int64),
+    ('mesh_stride_x', int64),
     ('ID', int64),
-    ('child_type', int64),
-    ('child_ID', int64),
+    ('parent_ID', int64),
+])
+
+tracklength_tally = into_dtype([
+    ('cell_filtered', bool),
+    ('cell_filter_ID', int64),
+    ('mesh_filtered', bool),
+    ('mesh_filter_type', int64),
+    ('mesh_filter_ID', int64),
+    ('mesh_stride_z', int64),
+    ('mesh_stride_y', int64),
+    ('mesh_stride_x', int64),
+    ('ID', int64),
+    ('parent_ID', int64),
 ])
 
 universe = into_dtype([
@@ -146,6 +141,7 @@ polynomial_data = into_dtype([
 ])
 
 table_data = into_dtype([
+    ('N', int64),
     ('x_offset', int64),
     ('x_length', int64),
     ('y_offset', int64),
@@ -154,6 +150,9 @@ table_data = into_dtype([
     ('interpolations_length', int64),
     ('interpolation_boundaries_offset', int64),
     ('interpolation_boundaries_length', int64),
+    ('N_aux', int64),
+    ('aux_offset', int64),
+    ('aux_length', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])
@@ -207,25 +206,14 @@ maxwellian_distribution = into_dtype([
 multi_table_distribution = into_dtype([
     ('grid_offset', int64),
     ('grid_length', int64),
-    ('offset_offset', int64),
-    ('offset_length', int64),
-    ('value_offset', int64),
-    ('value_length', int64),
-    ('pdf_offset', int64),
-    ('pdf_length', int64),
-    ('cdf_offset', int64),
-    ('cdf_length', int64),
+    ('N_table', int64),
+    ('table_IDs_offset', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])
 
 nbody_distribution = into_dtype([
-    ('value_offset', int64),
-    ('value_length', int64),
-    ('pdf_offset', int64),
-    ('pdf_length', int64),
-    ('cdf_offset', int64),
-    ('cdf_length', int64),
+    ('pdf_ID', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])
@@ -247,12 +235,7 @@ pmf_distribution = into_dtype([
 ])
 
 tabulated_distribution = into_dtype([
-    ('value_offset', int64),
-    ('value_length', int64),
-    ('pdf_offset', int64),
-    ('pdf_length', int64),
-    ('cdf_offset', int64),
-    ('cdf_length', int64),
+    ('pdf_ID', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])
@@ -742,32 +725,46 @@ surface = into_dtype([
     ('ID', int64),
 ])
 
-surface_tally = into_dtype([
-    ('surface_ID', int64),
+surface_crossing_tally = into_dtype([
+    ('surface_filtered', bool),
+    ('surface_filter_ID', int64),
+    ('cell_filtered', bool),
+    ('cell_filter_ID', int64),
     ('ID', int64),
     ('parent_ID', int64),
 ])
 
-collision_tally = into_dtype([
-    ('spatial_filter_type', int64),
-    ('spatial_filter_ID', int64),
-    ('spatial_filter_subtype', int64),
-    ('mesh_stride_z', int64),
-    ('mesh_stride_y', int64),
-    ('mesh_stride_x', int64),
+tally = into_dtype([
+    ('name', 'U32'),
+    ('scores_offset', int64),
+    ('scores_length', int64),
+    ('filter_direction', bool),
+    ('filter_energy', bool),
+    ('filter_time', bool),
+    ('mu_offset', int64),
+    ('mu_length', int64),
+    ('azi_offset', int64),
+    ('azi_length', int64),
+    ('polar_reference', float64, (3,)),
+    ('energy_offset', int64),
+    ('energy_length', int64),
+    ('time_offset', int64),
+    ('time_length', int64),
+    ('bin_offset', int64),
+    ('bin_length', int64),
+    ('bin_sum_offset', int64),
+    ('bin_sum_length', int64),
+    ('bin_sum_square_offset', int64),
+    ('bin_sum_square_length', int64),
+    ('bin_shape_offset', int64),
+    ('bin_shape_length', int64),
+    ('stride_mu', int64),
+    ('stride_azi', int64),
+    ('stride_energy', int64),
+    ('stride_time', int64),
     ('ID', int64),
-    ('parent_ID', int64),
-])
-
-tracklength_tally = into_dtype([
-    ('spatial_filter_type', int64),
-    ('spatial_filter_ID', int64),
-    ('spatial_filter_subtype', int64),
-    ('mesh_stride_z', int64),
-    ('mesh_stride_y', int64),
-    ('mesh_stride_x', int64),
-    ('ID', int64),
-    ('parent_ID', int64),
+    ('child_type', int64),
+    ('child_ID', int64),
 ])
 
 gpu_meta = into_dtype([
@@ -901,14 +898,14 @@ def set_simulation(N: dict):
         ('N_structured_mesh', int64),
         ('uniform_meshes', uniform_mesh, (N['uniform_mesh'])),
         ('N_uniform_mesh', int64),
-        ('tallies', tally, (N['tally'])),
-        ('N_tally', int64),
-        ('surface_tallies', surface_tally, (N['surface_tally'])),
-        ('N_surface_tally', int64),
         ('collision_tallies', collision_tally, (N['collision_tally'])),
         ('N_collision_tally', int64),
         ('tracklength_tallies', tracklength_tally, (N['tracklength_tally'])),
         ('N_tracklength_tally', int64),
+        ('surface_crossing_tallies', surface_crossing_tally, (N['surface_crossing_tally'])),
+        ('N_surface_crossing_tally', int64),
+        ('tallies', tally, (N['tally'])),
+        ('N_tally', int64),
         ('settings', settings),
         ('implicit_capture', implicit_capture),
         ('weighted_emission', weighted_emission),

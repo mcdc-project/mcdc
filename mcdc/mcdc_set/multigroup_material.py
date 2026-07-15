@@ -241,7 +241,7 @@ def mgxs_nu_d_vector(index_1, multigroup_material, data, value):
     stride = multigroup_material["J"]
     start = offset + index_1 * stride
     end = start + stride
-    data[start:end] - value
+    data[start:end] = value
 
 
 @njit
@@ -322,7 +322,7 @@ def mgxs_chi_s_vector(index_1, multigroup_material, data, value):
     stride = multigroup_material["G"]
     start = offset + index_1 * stride
     end = start + stride
-    data[start:end] - value
+    data[start:end] = value
 
 
 @njit
@@ -345,7 +345,7 @@ def mgxs_chi_p_vector(index_1, multigroup_material, data, value):
     stride = multigroup_material["G"]
     start = offset + index_1 * stride
     end = start + stride
-    data[start:end] - value
+    data[start:end] = value
 
 
 @njit
@@ -368,7 +368,7 @@ def mgxs_chi_d_vector(index_1, multigroup_material, data, value):
     stride = multigroup_material["G"]
     start = offset + index_1 * stride
     end = start + stride
-    data[start:end] - value
+    data[start:end] = value
 
 
 @njit

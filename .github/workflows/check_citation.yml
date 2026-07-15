@@ -1,0 +1,66 @@
+name: Check citation metadata
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-citation:
+    name: Check CITATION.cff
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install PyYAML
+        run: python -m pip install PyYAML
+
+      - name: Check CITATION.cff version and release date
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from datetime import date
+          import os
+          import sys
+          import yaml
+
+          citation_path = Path("CITATION.cff")
+
+          if not citation_path.exists():
+              sys.exit("CITATION.cff not found")
+
+          data = yaml.safe_load(citation_path.read_text())
+
+          tag = os.environ["GITHUB_REF_NAME"]
+          expected_version = tag[1:] if tag.startswith("v") else tag
+          expected_date = date.today().isoformat()
+
+          actual_version = str(data.get("version", "")).strip()
+          actual_date = str(data.get("date-released", "")).strip()
+
+          errors = []
+
+          if actual_version != expected_version:
+              errors.append(
+                  f"CITATION.cff version is {actual_version!r}, "
+                  f"expected {expected_version!r}"
+              )
+
+          if actual_date != expected_date:
+              errors.append(
+                  f"CITATION.cff date-released is {actual_date!r}, "
+                  f"expected {expected_date!r}"
+              )
+
+          if errors:
+              for error in errors:
+                  print(f"ERROR: {error}")
+              sys.exit(1)
+
+          print("CITATION.cff metadata is up to date.")
+          PY

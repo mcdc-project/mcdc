@@ -126,6 +126,8 @@ Implicit capture is enabled to keep particles alive longer.
 - Replace the cell filter with a mesh filter to visualise the 3-D flux.
 - Change the sphere radius or :math:`\nu` to see how fission rate changes.
 - Add a time grid to the cell tally for time-resolved data.
+- Change the cell-filtered current scores to ``["current-net", "current-in", "current-out"]``
+  to score current across the sphere cell boundary.
 
 Full Input
 ==========

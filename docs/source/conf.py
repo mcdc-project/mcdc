@@ -10,6 +10,9 @@
 import os
 import sys
 
+#
+from importlib.metadata import version
+
 # Make sure the project root (containing the `mcdc/` package) is importable
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -21,7 +24,10 @@ project = "MC/DC"
 copyright = "2023-2026, Center for Exascale Monte Carlo Neutron Transport (CEMeNT), Center for Advancing the Radiation Resilience of Electronics (CARRE), and MC/DC contributors"
 
 # The full version, including alpha/beta/rc tags
-release = " "
+release = version("mcdc")
+
+# The short X.Y version
+version = ".".join(release.split(".")[:2])
 
 # -- General configuration ---------------------------------------------------
 # Add any Sphinx extension module names here, as strings. They can be
@@ -29,6 +35,7 @@ release = " "
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "sphinx_toolbox.github",
     "sphinx_toolbox.sidebar_links",
