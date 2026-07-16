@@ -1,0 +1,13 @@
+name: Mark stale issues
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  stale:
+    uses: mcdc-project/.github/.github/workflows/stale-issues.yml@main
