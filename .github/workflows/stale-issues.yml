@@ -17,7 +17,7 @@ jobs:
         with:
           days-before-issue-stale: 90
           days-before-issue-close: -1
-          stale-issue-label: stale
+          stale-issue-label: "status: stale"
           stale-issue-message: >
             This issue has had no activity in the past 90 days and has been marked as stale.
             If this issue is still relevant, please leave a comment with any updates so we know it still needs attention.
