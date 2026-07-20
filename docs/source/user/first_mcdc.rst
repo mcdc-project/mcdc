@@ -207,7 +207,7 @@ and GPUs (AMD and Nvidia) and supports threading with MPI (Python or compiled mo
 Other guides are included to execute in these modes but for the sake of this first
 MC/DC simulation we will simply execute in Python mode (slower, no acceleration) simply with
 
-.. code-block:: python3
+.. code-block:: bash
 
     python input.py
 
