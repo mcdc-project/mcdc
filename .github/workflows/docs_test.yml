@@ -56,7 +56,7 @@ jobs:
             rst = open("docs/source/user/first_mcdc.rst").read()
 
             for node in publish_doctree(rst).findall(nodes.literal_block):
-                if node.get("classes") == ['code', 'python3']:
+                if node.get("classes") == ["code", "python3"]:
                     print(node.astext())
             '  > tmp.py
             cat -n tmp.py
