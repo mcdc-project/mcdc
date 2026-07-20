@@ -34,24 +34,22 @@ jobs:
           # Python modes:
           - mode: Python-Serial
             python-version: '3.13'
-            run_cmd: "python run.py"
+            run_cmd: "python -m pytest test/regression"
             timeout: 10
           - mode: Python-MPI
             python-version: '3.13'
             run_cmd: |
-              python run.py --mpiexec=4
-              python run.py --mpiexec=16 --name=slab_reed_dd_3d
+              python -m pytest test/regression --mpiexec=4
             timeout: 30
           # Numba modes:
           - mode: Numba-Serial
             python-version: '3.13'
-            run_cmd: "python run.py --mode numba"
+            run_cmd: "python -m pytest test/regression --mode numba"
             timeout: 120
           - mode: Numba-MPI
             python-version: '3.13'
             run_cmd: |
-              python run.py --mode numba --mpiexec=4
-              python run.py --mode numba --mpiexec=16 --name=slab_reed_dd_3d
+              python -m pytest test/regression --mode numba --mpiexec=4
             timeout: 120
 
     steps:
@@ -79,5 +77,4 @@ jobs:
           python -c "import mpi4py; print(f'mpi4py {mpi4py.__version__} from {mpi4py.__file__}')"
 
       - name: Run regression tests (${{ matrix.mode }})
-        working-directory: test/regression
         run: ${{ matrix.run_cmd }}

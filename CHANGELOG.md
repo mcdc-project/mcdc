@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Changed
 
+- Move regression tests from the custom `run.py` harness to pytest-based collection and reporting from [@massimolarsen]
+
 ### Deprecated
 
 ### Removed

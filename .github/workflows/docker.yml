@@ -145,18 +145,18 @@ jobs:
       matrix:
         include:
           - mode: Python-Serial
-            run_cmd: "python run.py"
+            run_cmd: "python -m pytest test/regression"
             timeout: 10
           - mode: Python-MPI
             run_cmd: |
-              python run.py --mpiexec=2
+              python -m pytest test/regression --mpiexec=2
             timeout: 20
           - mode: Numba-Serial
-            run_cmd: "python run.py --mode numba"
+            run_cmd: "python -m pytest test/regression --mode numba"
             timeout: 120
           - mode: Numba-MPI
             run_cmd: |
-              python run.py --mode numba --mpiexec=2
+              python -m pytest test/regression --mode numba --mpiexec=2
             timeout: 120
 
     steps:
@@ -183,7 +183,7 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/opt/mcdc \
-            -w /opt/mcdc/test/regression \
+            -w /opt/mcdc \
             mcdc:${{ needs.build.outputs.image_tag }} bash -lc '
               git config --global --add safe.directory /opt/mcdc
               git config --global --add safe.directory /opt/mcdc/test/regression/mcdc-regression_test_data
