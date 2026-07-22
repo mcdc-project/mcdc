@@ -251,7 +251,6 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
     particle = particle_container[0]
     collision_data = collision_data_container[0]
     material = simulation["native_materials"][particle["material_ID"]]
-    # print(f'material = {material}, type = {type(material)}, {material.dtype.names}')
     E = particle["E"]
     
     # Check for cutoff energy
@@ -260,50 +259,14 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
         particle["alive"] = False
         particle["E"] = 0.0
         return
- 
-    total_stopping_power = 0.0
-    total_rho_gcm3 = 0.0
-    total_Z = 0.0
-    total_A = 0.0
-    # Find the total stopping power by summing over every nuclide in the material
-    for i in range(material["N_nuclide"]):
-        nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
-        nuclide = simulation["nuclides"][nuclide_ID]
 
-        # If no stopping power provided, we calculate it ourselves here
-        if not material["stopping_power_provided"]:
-            dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
-            dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
-
-            # TODO: replace np.interp with a non-numpy function??
-            dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
-            total_stopping_power += dedx * 1e6
-
-        # Convert atoms/barn-cm to g/cm3:
-        atomic_mass = nuclide["atomic_weight_ratio"]  # mass in amu
-        nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
-        density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)
-        total_rho_gcm3 += density_gcm3
-
-        total_Z += nuclide["atomic_number"]
-        total_A += nuclide["mass_number"]
-    
-    Z = total_Z / material["N_nuclide"]
-    A = total_A / material["N_nuclide"]
-
-    if material["stopping_power_provided"]:
-        dedx_values = mcdc_get.native_material.stopping_power_all(material, data)
-        dedx_energies = mcdc_get.native_material.stopping_power_energy_grid_all(material, data)
-
-        dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
-        total_stopping_power = dedx * 1e6
-
+    average_A, average_Z, total_stopping_power, total_rho_gcm3 = calculate_total_stopping_power(particle_container, simulation, data)
     energy_loss = total_stopping_power * total_rho_gcm3 * distance
 
     # Range straggling - modify energy loss to have some slight variations
     # TODO: Insert different thickness regimes to sample from (e.g. Bohr, Landau, Vavilov)
-    energy_straggling_variance = 0.1569 * total_rho_gcm3 * Z / A * distance
-    
+    # TODO: Make this part use rng state instead of np.random.normal?
+    energy_straggling_variance = 0.1569 * total_rho_gcm3 * average_Z / average_A * distance
     energy_straggling_modifier = np.random.normal(loc=0.0, scale=np.sqrt(energy_straggling_variance))
     energy_loss += energy_straggling_modifier
     particle["E"] -= energy_loss
@@ -313,8 +276,13 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
         print(f'total density = {total_rho_gcm3}')
         print(f'stopping_power = {total_stopping_power}')
         print(f'distance = {distance}')
-        print(f'NEGATIVE: energy_loss = {energy_loss * particle["w"]}')
+        print(f'energy_loss = {energy_loss * particle["w"]}')
         raise ValueError('negative energy loss')
+
+    radiation_length = get_radiation_length(particle_container, simulation, data)
+
+
+
 
     X0 = 24.01 # Radiation length for Al, in g/cm^2
     # X0 = 36.33 # Radiation length for H2O, in g/cm^2
@@ -325,21 +293,6 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
     rotate_direction(particle, phi, theta)
 
     return
-
-@njit
-def sample_mcs_angle(E, distance, density, X0):
-    sigma = highland_lynch_dahl_sigma(E, distance, density, X0)
-
-    if sigma < 0.0:
-        raise ValueError(f'negative sigma = {sigma}')
-    
-    # Sample theta from the Highland distribution; phi uniformly from (0, 2pi)
-    theta = np.abs(np.random.normal(0, sigma))
-    phi = np.random.uniform(0, 2*np.pi)
-
-    return phi, theta
-
-
 
 
 # ======================================================================================
@@ -388,7 +341,6 @@ def elastic_scattering(
 
     # Energy deposition
     collision_data["energy_deposition"] += E * particle["w"]
-    # print(f'\ndeposited {E * particle["w"]} eV at x={particle["x"]} from elastic scattering')
 
     # Note: Q-value is zero in elastic scattering
 
@@ -439,7 +391,7 @@ def elastic_scattering(
     multi_table = simulation["multi_table_distributions"][mu_table_ID]
 
     # multi_table = simulation["multi_table_distributions"][reaction["mu_table_ID"]]
-    mu0 = sample_multi_table(E, particle_container, multi_table, data)
+    mu0 = sample_multi_table(E, particle_container, multi_table, simulation, data)
 
     # Scatter the direction in COM
     azi = 2.0 * PI * rng.lcg(particle_container)
@@ -525,7 +477,7 @@ def sample_nucleus_velocity(A, particle_container):
 # ======================================================================================
 
 
-# TODO: make inelastic scattering actually produce the right things
+# TODO: make inelastic scattering actually produce secondaries
 @njit
 def inelastic_scattering(
     reaction, particle_container, collision_data_container, nuclide, program, data
@@ -593,7 +545,7 @@ def inelastic_scattering(
             multi_table = simulation["multi_table_distributions"][
                 distribution_base["child_ID"]
             ]
-            mu = sample_multi_table(E, particle_container_new, multi_table, data)
+            mu = sample_multi_table(E, particle_container_new, multi_table, simulation, data)
 
         # ==============================================================================
         # Sample energy (also angle if correlated)
@@ -698,6 +650,24 @@ def inelastic_scattering(
 # No fission for protons
 
 
+# ======================================================================================
+# Misc
+# ======================================================================================
+
+@njit
+def sample_mcs_angle(E, distance, density, X0):
+    sigma = highland_lynch_dahl_sigma(E, distance, density, X0)
+
+    if sigma < 0.0:
+        raise ValueError(f'negative sigma = {sigma}')
+    
+    # Sample theta from the Highland distribution; phi uniformly from (0, 2pi)
+    theta = np.abs(np.random.normal(0, sigma))
+    phi = np.random.uniform(0, 2*np.pi)
+
+    return phi, theta
+
+
 @njit
 def highland_lynch_dahl_sigma(E, distance, density, X0):
     p = np.sqrt(E * (E + 2.0 * PROTON_MASS))
@@ -748,3 +718,86 @@ def rotate_direction(particle, phi, theta):
     particle["ux"] = d_new[0]
     particle["uy"] = d_new[1]
     particle["uz"] = d_new[2]
+
+
+def calculate_total_stopping_power(particle_container, simulation, data):
+    particle = particle_container[0]
+    material = simulation["native_materials"][particle["material_ID"]]
+    E = particle["E"]
+
+    total_stopping_power = 0.0
+    total_rho_gcm3 = 0.0
+    total_Z = 0.0
+    total_A = 0.0
+    # Find the total stopping power by summing over every nuclide in the material
+    for i in range(material["N_nuclide"]):
+        nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
+        nuclide = simulation["nuclides"][nuclide_ID]
+
+        # If no stopping power provided, we calculate it ourselves here
+        if not material["stopping_power_provided"]:
+            dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
+            dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
+
+            # TODO: replace np.interp with a non-numpy function??
+            dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
+            total_stopping_power += dedx * 1e6
+
+        # Convert atoms/barn-cm to g/cm3:
+        atomic_mass = nuclide["atomic_weight_ratio"]  # mass in amu
+        nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
+        density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)
+        total_rho_gcm3 += density_gcm3
+
+        total_Z += nuclide["atomic_number"]
+        total_A += nuclide["mass_number"]
+    
+    average_Z = total_Z / material["N_nuclide"]
+    average_A = total_A / material["N_nuclide"]
+
+    if material["stopping_power_provided"]:
+        dedx_values = mcdc_get.native_material.stopping_power_all(material, data)
+        dedx_energies = mcdc_get.native_material.stopping_power_energy_grid_all(material, data)
+
+        dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
+        total_stopping_power = dedx * 1e6
+
+    return average_A, average_Z, total_stopping_power, total_rho_gcm3
+
+
+
+def get_radiation_length(particle_container, simulation, data):
+    particle = particle_container[0]
+    material = simulation["native_materials"][particle["material_ID"]]
+
+    if material["stopping_power_provided"]:
+        if mcdc_get.native_material.radiation_length is None:
+            print("ValueError: need radiation length for material. May be found at https://pdg.lbl.gov/2026/AtomicNuclearProperties")
+
+        radiation_length = mcdc_get.native_material.radiation_length(material, data)
+
+    elif not material["stopping_power_provided"]:
+        for i in range(material["N_nuclide"]):
+            nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
+            nuclide = simulation["nuclides"][nuclide_ID]
+
+            
+
+            # If no stopping power provided, we calculate it ourselves here
+            # if not material["stopping_power_provided"]:
+            #     dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
+            #     dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
+
+            #     # TODO: replace np.interp with a non-numpy function??
+            #     dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
+            #     total_stopping_power += dedx * 1e6
+
+            # Convert atoms/barn-cm to g/cm3:
+            atomic_mass = nuclide["atomic_weight_ratio"]  # mass in amu
+            nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
+            density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)
+            total_rho_gcm3 += density_gcm3
+
+
+    return radiation_length
+
