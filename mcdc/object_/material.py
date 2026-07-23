@@ -106,6 +106,9 @@ class Material(MaterialBase):
     stopping_power_provided: bool = False
     stopping_power: NDArray[float64]
     stopping_power_energy_grid: NDArray[float64]
+    #
+    radiation_length: float64 = 0.0
+    radiation_length_provided: bool = False
 
     def __init__(
         self,
@@ -244,6 +247,14 @@ class Material(MaterialBase):
         self.stopping_power = file["stopping_power"]["total_stopping_power"][()]
         self.stopping_power_energy_grid = file["stopping_power"]["energy"][()]
         file.close()
+
+    def custom_radiation_length(
+            self,
+            radiation_length: float,
+            ):
+
+        self.radiation_length_provided = True
+        self.radiation_length = radiation_length
 
 
 # Currently supported temperatures

@@ -282,8 +282,6 @@ def csda_edep(particle_container, collision_data_container, distance, simulation
     radiation_length = get_radiation_length(particle_container, simulation, data)
 
 
-
-
     X0 = 24.01 # Radiation length for Al, in g/cm^2
     # X0 = 36.33 # Radiation length for H2O, in g/cm^2
     
@@ -720,6 +718,7 @@ def rotate_direction(particle, phi, theta):
     particle["uz"] = d_new[2]
 
 
+@njit
 def calculate_total_stopping_power(particle_container, simulation, data):
     particle = particle_container[0]
     material = simulation["native_materials"][particle["material_ID"]]
@@ -765,39 +764,34 @@ def calculate_total_stopping_power(particle_container, simulation, data):
     return average_A, average_Z, total_stopping_power, total_rho_gcm3
 
 
-
+@njit
 def get_radiation_length(particle_container, simulation, data):
     particle = particle_container[0]
     material = simulation["native_materials"][particle["material_ID"]]
 
-    if material["stopping_power_provided"]:
-        if mcdc_get.native_material.radiation_length is None:
-            print("ValueError: need radiation length for material. May be found at https://pdg.lbl.gov/2026/AtomicNuclearProperties")
+    if material["radiation_length_provided"]:
+        radiation_length = material["radiation_length"]
+        # radiation_length = mcdc_get.native_material.radiation_length(material, data)
 
-        radiation_length = mcdc_get.native_material.radiation_length(material, data)
+    # Calculate the radiation length based on the material's nuclide composition
+    # Using Eq. 4 from "Calculation of radiation length in materials", R.J da Silva
+    # Using nuclide density here as an analog to # of moles; ratios are preserved, so it should be fine
 
-    elif not material["stopping_power_provided"]:
+    elif not material["radiation_length_provided"]:
+        total_mass = 0.0
+        X0_weighted_mass = 0.0
         for i in range(material["N_nuclide"]):
             nuclide_ID = int(mcdc_get.native_material.nuclide_IDs(i, material, data))
             nuclide = simulation["nuclides"][nuclide_ID]
 
-            
-
-            # If no stopping power provided, we calculate it ourselves here
-            # if not material["stopping_power_provided"]:
-            #     dedx_values = mcdc_get.nuclide.stopping_power_all(nuclide, data)
-            #     dedx_energies = mcdc_get.nuclide.stopping_power_energy_grid_all(nuclide, data)
-
-            #     # TODO: replace np.interp with a non-numpy function??
-            #     dedx = np.interp(E / 1e6, dedx_energies, dedx_values)
-            #     total_stopping_power += dedx * 1e6
-
-            # Convert atoms/barn-cm to g/cm3:
-            atomic_mass = nuclide["atomic_weight_ratio"]  # mass in amu
+            nuclide_mass = nuclide["mass_number"]
             nuclide_density = mcdc_get.native_material.nuclide_densities(i, material, data)
-            density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)
-            total_rho_gcm3 += density_gcm3
+            nuclide_X0 = nuclide["radiation_length"]
 
+            total_mass += nuclide_mass * nuclide_density
+            X0_weighted_mass += nuclide_mass * nuclide_density / nuclide_X0
+
+        radiation_length = total_mass / X0_weighted_mass
 
     return radiation_length
 

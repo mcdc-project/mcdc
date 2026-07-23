@@ -1,56 +1,5 @@
 # The majority of this script was written by Anthropic's Claude
 
-"""
-generate.py  —  Convert TENDL proton ACE files to HDF5 for MC/DC
-
-For isotopes that have no ACE file (e.g. H, He) but do have a PSTAR stopping
-power file, a minimal HDF5 file is created containing only the stopping power
-data. This ensures every element that can appear in a material has at least
-a stopping power entry.
-
-Usage
------
-    python generate.py
-    python generate.py --rewrite   # overwrite existing files
-    python generate.py --verbose   # per-reaction detail
-
-HDF5 layout
------------
-<nuclide>-<T>K.h5
-  attrs: source_title, source_version, source_date
-  nuclide_name, excitation_level, temperature (K),
-  atomic_number, mass_number, atomic_weight_ratio, fissionable
-
-  stopping_power/           (if PSTAR data available)
-    energy (MeV), total_stopping_power (MeV cm2/g)
-
-  proton_reactions/         (absent for stopping-power-only files)
-    xs_energy_grid (MeV)
-    elastic_scattering/MT-002/
-      xs (barns, offset=0), Q-value (MeV), reference_frame,
-      angular_cosine_distribution/
-    capture/MT-{NNN}/
-      xs (barns), Q-value (MeV), reference_frame
-    ielastic_scattering/MT-{NNN}/
-      xs (barns), Q-value (MeV), reference_frame, multiplicity
-      angular_cosine_distribution/
-      energy_spectrum-{k}/  (law attr; kalbach-mann: energy, offset,
-                              energy_out, pdf, cdf, precompound_factor, angular_slope)
-    fission/  (only if fissionable)
-
-  secondary_particles/ZAP_{zap}/MT-{NNN}/
-    attrs: ZAP, particle_name, MT, multiplicity, reference_frame
-    production_xs (barns, offset)
-    kalbach_mann/  (energy, offset, energy_out, pdf, cdf,
-                    precompound_factor, angular_slope)
-
-ZAP identity:  1=n, 1001=p, 1002=d, 1003=t, 2003=He3, 2004=alpha, 0=gamma
-
-TabulatedKalbachMannDistribution properties used (from ACEtk):
-    outgoing_energies, pdf, cdf,
-    precompound_fraction_values, angular_distribution_slope_values
-"""
-
 import argparse
 import os
 import sys
@@ -84,11 +33,13 @@ Z_TO_SYMBOL = {
    73:"Ta", 74:"W",  75:"Re", 76:"Os", 77:"Ir", 78:"Pt", 79:"Au", 80:"Hg",
    81:"Tl", 82:"Pb", 83:"Bi", 84:"Po", 85:"At", 86:"Rn", 87:"Fr", 88:"Ra",
    89:"Ac", 90:"Th", 91:"Pa", 92:"U",  93:"Np", 94:"Pu", 95:"Am", 96:"Cm",
-   97:"Bk", 98:"Cf", 99:"Es",100:"Fm",101:"Md",102:"No",103:"Lr",
+   97:"Bk", 98:"Cf", 99:"Es",100:"Fm",101:"Md",102:"No",103:"Lr",104:"Rf",
+   105:"Db",106:"Sg",107:"Bh",108:"Hs",109:"Mt",110:"Ds",111:"Rg",112:"Cn",
+   113:"Nh",114:"Fl",115:"Mc",116:"Lv",117:"Ts",118:"Og"
 }
 
 RADIATION_LENGTH_FROM_Z = {
-    "H":  63.04, "He": 94.32, "Li": 82.77, "Be": 65.19, "Bo": 52.68, "C":  42.70,
+    "H":  63.04, "He": 94.32, "Li": 82.77, "Be": 65.19, "B":  52.68, "C":  42.70,
     "N":  37.99, "O":  34.24, "F":  32.93, "Ne": 28.93, "Na": 27.74, "Mg": 25.03,
     "Al": 24.01, "Si": 21.82, "P":  21.21, "S":  19.50, "Cl": 19.28, "Ar": 19.55,
     "K":  17.32, "Ca": 16.14, "Sc": 16.55, "Ti": 16.16, "V":  15.84, "Cr": 14.94,
@@ -105,7 +56,9 @@ RADIATION_LENGTH_FROM_Z = {
     "At": 6.07,  "Rn": 6.28,  "Fr": 6.19,  "Ra": 6.15,  "Ac": 6.06,  "Th": 6.07,
     "Pa": 5.93,  "U":  6.00,  "Np": 5.87,  "Pu": 5.93,  "Am": 5.80,  "Cm": 5.79,
     "Bk": 5.69,  "Cf": 5.68,  "Es": 5.61,  "Fm": 5.62,  "Md": 5.55,  "No": 5.48,
-    "Lr": 5.45,
+    "Lr": 5.45,  "Rf": 5.47,  "Db": 5.40,  "Sg": 5.34,  "Bh": 5.27,  "Hs": 5.17,
+    "Mt": 5.26,  "Ds": 5.24,  "Rg": 5.18,  "Cn": 5.16,  "Nh": 5.10,  "Fl": 5.08, 
+    "Mc": 5.01,  "Lv": 5.00,  "Ts": 4.95,  "Og": 4.88,
 }
 
 SYMBOL_TO_Z = {v: k for k, v in Z_TO_SYMBOL.items()}
@@ -133,6 +86,7 @@ T_KELVIN = 0.0
 
 def print_error(msg):
     print(f"\n[ERROR] {msg}", file=sys.stderr)
+    raise ValueError(msg)
     sys.exit(1)
 
 
@@ -474,7 +428,7 @@ def process_ace_file(ace_path, output_dir, pstar_dir=None, verbose=False):
     file.create_dataset("atomic_number",       data=ace_table.atom_number)
     file.create_dataset("mass_number",         data=ace_table.mass_number)
     file.create_dataset("atomic_weight_ratio", data=ace_table.atomic_weight_ratio)
-    file.create_dataset("radiation_length",    data=radiation_length).attr["unit"] = "g/cm2"
+    file.create_dataset("radiation_length",    data=radiation_length).attrs["unit"] = "g/cm2"
     fissionable = ace_table.fission_multiplicity_block is not None
     file.create_dataset("fissionable", data=fissionable)
 
@@ -780,10 +734,10 @@ def main():
 
     os.makedirs(output_dir, exist_ok=True)
     print(f"\nACE directory : {ace_dir}")
-    print(f"PSTAR directory : {pstar_dir}\n")
-    print(f"Output directory: {output_dir}")
+    print(f"PSTAR directory : {pstar_dir}")
+    print(f"Output directory: {output_dir}\n")
 
-    ace_files = sorted(f for f in os.listdir(args.ace_dir) if f.endswith(".ace"))
+    ace_files = sorted(f for f in os.listdir(ace_dir) if f.endswith(".ace"))
 
     # ── Pass 1: ACE files ─────────────────────────────────────────────────────
 
@@ -793,14 +747,14 @@ def main():
         target_files = []
         for fname in ace_files:
             try:
-                with open(os.path.join(args.ace_dir, fname)) as f:
+                with open(os.path.join(ace_dir, fname)) as f:
                     hdr = ACEtk.Header.from_string(f.readline())
                 Z, A, S, _ = decode_ace_zaid(hdr.zaid)
                 symbol       = Z_TO_SYMBOL.get(Z, f"Z{Z}")
                 nuclide_name = f"{symbol}{A}" if S == 0 else f"{symbol}{A}m{S}"
                 if not any(
                     f.startswith(nuclide_name + "-")
-                    for f in os.listdir(args.output_dir)
+                    for f in os.listdir(output_dir)
                 ):
                     target_files.append(fname)
             except Exception:
@@ -814,9 +768,9 @@ def main():
         pbar.set_postfix_str(ace_name)
         try:
             out = process_ace_file(
-                os.path.join(args.ace_dir, ace_name),
-                args.output_dir,
-                pstar_dir=args.pstar_dir,
+                os.path.join(ace_dir, ace_name),
+                output_dir,
+                pstar_dir=pstar_dir,
                 verbose=verbose,
             )
             if verbose:
@@ -831,16 +785,16 @@ def main():
     # For each entry in PSTAR_ONLY_ISOTOPES, create a stopping-power-only HDF5
     # file if one doesn't already exist (or if --rewrite is set).
 
-    if args.pstar_dir is not None:
-        existing = set(os.listdir(args.output_dir))
+    if pstar_dir is not None:
+        existing = set(os.listdir(output_dir))
         for symbol, A, awr in PSTAR_ONLY_ISOTOPES:
             nuclide_name = f"{symbol}{A}"
             mcdc_name    = f"{nuclide_name}-{T_KELVIN}K.h5"
-            if not args.rewrite and mcdc_name in existing:
+            if not rewrite and mcdc_name in existing:
                 continue
             try:
                 out = process_pstar_only_file(
-                    symbol, A, awr, args.output_dir, args.pstar_dir,
+                    symbol, A, awr, output_dir, pstar_dir,
                     verbose=verbose
                 )
                 if out is None:

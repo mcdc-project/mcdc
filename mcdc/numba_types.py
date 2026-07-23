@@ -347,6 +347,8 @@ native_material = into_dtype([
     ('stopping_power_length', int64),
     ('stopping_power_energy_grid_offset', int64),
     ('stopping_power_energy_grid_length', int64),
+    ('radiation_length', float64),
+    ('radiation_length_provided', bool),
     ('ID', int64),
     ('parent_ID', int64),
 ])
@@ -394,6 +396,7 @@ nuclide = into_dtype([
     ('atomic_weight_ratio', float64),
     ('fissionable', bool),
     ('excitation_level', int64),
+    ('radiation_length', float64),
     ('neutron_xs_energy_grid_offset', int64),
     ('neutron_xs_energy_grid_length', int64),
     ('neutron_total_xs_offset', int64),

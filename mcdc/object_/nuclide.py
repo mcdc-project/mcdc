@@ -43,6 +43,7 @@ class Nuclide(ObjectNonSingleton):
     atomic_weight_ratio: float
     fissionable: bool
     excitation_level: int
+    radiation_length: float
     #
     neutron_xs_energy_grid: NDArray[float64]
     neutron_total_xs: NDArray[float64]
@@ -91,6 +92,7 @@ class Nuclide(ObjectNonSingleton):
         self.atomic_weight_ratio = file["atomic_weight_ratio"][()]
         self.fissionable = bool(file["fissionable"][()])
         self.excitation_level = int(file["excitation_level"][()])
+        self.radiation_length = float(file["radiation_length"][()])
         file.close()
 
         # Initialize all attributes to defaults
