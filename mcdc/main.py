@@ -168,6 +168,10 @@ def preparation():
             if isinstance(material, Material):
                 update_fissionable_from_nuclides(material)
 
+    if settings.proton_transport:
+        for nuclide in simulationPy.nuclides:
+            nuclide.set_proton_data()
+
     if settings.electron_transport:
         for element in simulationPy.elements:
             element.set_electron_data()

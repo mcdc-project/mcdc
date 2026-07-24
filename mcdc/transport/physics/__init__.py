@@ -4,6 +4,9 @@ from .interface import (
     neutron_production_xs,
     collision_distance,
     collision,
+    csda_distance,
+    csda_edep,
 )
 import mcdc.transport.physics.electron as electron
 import mcdc.transport.physics.neutron as neutron
+import mcdc.transport.physics.proton as proton

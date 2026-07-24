@@ -117,3 +117,61 @@ def element_densities_chunk(start, length, native_material, data):
     start += native_material["element_densities_offset"]
     end = start + length
     return data[start:end]
+
+
+@njit
+def stopping_power(index, native_material, data):
+    offset = native_material["stopping_power_offset"]
+    return data[offset + index]
+
+
+@njit
+def stopping_power_all(native_material, data):
+    start = native_material["stopping_power_offset"]
+    size = native_material["stopping_power_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def stopping_power_last(native_material, data):
+    start = native_material["stopping_power_offset"]
+    size = native_material["stopping_power_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def stopping_power_chunk(start, length, native_material, data):
+    start += native_material["stopping_power_offset"]
+    end = start + length
+    return data[start:end]
+
+
+@njit
+def stopping_power_energy_grid(index, native_material, data):
+    offset = native_material["stopping_power_energy_grid_offset"]
+    return data[offset + index]
+
+
+@njit
+def stopping_power_energy_grid_all(native_material, data):
+    start = native_material["stopping_power_energy_grid_offset"]
+    size = native_material["stopping_power_energy_grid_length"]
+    end = start + size
+    return data[start:end]
+
+
+@njit
+def stopping_power_energy_grid_last(native_material, data):
+    start = native_material["stopping_power_energy_grid_offset"]
+    size = native_material["stopping_power_energy_grid_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@njit
+def stopping_power_energy_grid_chunk(start, length, native_material, data):
+    start += native_material["stopping_power_energy_grid_offset"]
+    end = start + length
+    return data[start:end]
