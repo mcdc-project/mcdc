@@ -1,0 +1,99 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mcdc"
+version = "0.12.0"
+
+authors = [
+  { name = "Ilham Variansyah", email = "variansi@oregonstate.edu" },
+  { name = "Sam Pasmann", email = "spasmann@nd.edu" },
+  { name = "Joanna Morgan", email = "morgan83@llnl.gov" },
+  { name = "Kayla Clements", email = "clemekay@oregonstate.edu" },
+  { name = "Braxton Cuneo", email = "bcuneo@seattleu.edu" },
+  { name = "Caleb Shaw" },
+  { name = "Rohan Pankaj" },
+  { name = "Alexander Mote" },
+  { name = "Ethan Lame" },
+  { name = "Benjamin Whewell" },
+  { name = "Ryan G. McClarren" },
+  { name = "Todd S. Palmer" },
+  { name = "Lizhong Chen" },
+  { name = "Dmitriy Y. Anistratov" },
+  { name = "C. T. Kelley" },
+  { name = "Camille J. Palmer" },
+  { name = "Kyle E. Niemeyer" },
+]
+
+maintainers = [
+  { name = "Ilham Variansyah", email = "variansi@oregonstate.edu" },
+  { name = "Braxton Cuneo", email = "bcuneo@seattleu.edu" },
+  { name = "Kayla Clements", email = "clemekay@oregonstate.edu" },
+  { name = "Joanna Piper Morgan", email = "morgan83@llnl.gov" },
+  { name = "Kyle E. Niemeyer", email = "kyle.niemeyer@oregonstate.edu" },
+]
+
+description = "MC/DC (Monte Carlo Dynamic Code): a performant, scalable, and machine-portable Python-based Monte Carlo neutron transport package"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+keywords = [
+  "Monte Carlo",
+  "nuclear engineering",
+  "neutron transport",
+  "HPC",
+  "GPU",
+  "numba",
+  "mpi4py",
+]
+
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: BSD License",
+  "Intended Audience :: Science/Research",
+  "Typing :: Typed",
+  "Natural Language :: English",
+  "Operating System :: Unix",
+  "Operating System :: MacOS",
+]
+
+dependencies = [
+  "numba>=0.60.0",
+  "numpy>=2.0.0",
+  "scipy",
+  "matplotlib",
+  "mpi4py>=3.1.4",
+  "h5py",
+  "colorama",
+  "sympy",
+]
+
+[project.optional-dependencies]
+docs = [
+  "sphinx==7.2.6",
+  "furo",
+  "sphinx_toolbox",
+]
+
+dev = [
+  "black",
+  "pre-commit",
+  "pytest",
+]
+
+[project.urls]
+Homepage = "https://cement-psaap.github.io/"
+Repository = "https://github.com/CEMeNT-PSAAP/MCDC"
+Documentation = "https://mcdc.readthedocs.io/en/latest/"
+Issues = "https://github.com/CEMeNT-PSAAP/MCDC/issues"
+
+[tool.black]
+force-exclude = '''
+(
+  mcdc/numba_types\.py
+  | mcdc/mcdc_get/
+  | mcdc/mcdc_set/
+)
+'''

@@ -1,0 +1,110 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: 'MC/DC: Monte Carlo Dynamic Code'
+message: >-
+  a pure python high performance Monte Carlo neutronics
+  package
+type: software
+authors:
+  - name: >-
+      Center for Exascale Monte Carlo Neutron Transport
+      (CEMeNT)
+    website: 'https://cement-psaap.github.io/'
+  - given-names: Ilham
+    family-names: 'Variansyah '
+    email: variansi@oregonstate.edu
+    affiliation: Oregon State University
+    orcid: 'https://orcid.org/0000-0003-3426-7160'
+  - given-names: Joanna Piper
+    family-names: Morgan
+    email: morgajoa@oregonstate.edu
+    affiliation: Oregon State University
+    orcid: 'https://orcid.org/0000-0003-1379-5431'
+  - given-names: Samuel
+    family-names: Pasmann
+    orcid: 'https://orcid.org/0000-0003-1391-1471'
+  - given-names: Kayla
+    family-names: Clements
+    email: clemekay@oregonstate.edu
+    affiliation: Oregon State University
+    orcid: 'https://orcid.org/0000-0003-3358-5618'
+  - given-names: Braxton
+    family-names: Cuneo
+    email: bcuneo@seattleu.edu
+    affiliation: Seattle University
+    orcid: 'https://orcid.org/0000-0002-6493-0990'
+  - given-names: Alexander
+    family-names: Mote
+    email: motea@oregonstate.edu
+    orcid: 'https://orcid.org/0000-0001-5099-0223'
+    affiliation: Oregon State University
+  - given-names: Caleb
+    family-names: Shaw
+    email: cashaw4@ncsu.edu
+    affiliation: North Carolina State University
+  - given-names: Jordan
+    family-names: Northrop
+    email: northj@oregonstate.edu
+    affiliation: Oregon State Universtiy
+    orcid: 'https://orcid.org/0000-0003-0420-9699'
+  - given-names: Rohan
+    family-names: Pankaj
+    orcid: 'https://orcid.org/0009-0005-0445-9323'
+  - given-names: 'Ryan G. '
+    family-names: McClarren
+    email: rmcclarr@nd.edu
+    affiliation: University of Notre Dame
+    orcid: 'https://orcid.org/0000-0002-8342-6132'
+  - given-names: Todd S.
+    family-names: Palmer
+    email: palmerts@oregonstate.edu
+    affiliation: Oregon State Univeristy
+    orcid: 'https://orcid.org/0000-0003-3310-5258'
+  - given-names: Lizhong
+    family-names: Chen
+    email: chenliz@oregonstate.edu
+    affiliation: Oregon State University
+    orcid: 'https://orcid.org/0000-0001-5890-7121'
+  - given-names: Dmitriy Y.
+    family-names: Anistratov
+    email: anistratov@ncsu.edu
+    affiliation: North Carolina State University
+  - given-names: C. T.
+    family-names: Kelley
+    email: ctk@ncsu.edu
+    affiliation: North Carolina State University
+  - given-names: 'Camille  '
+    family-names: Palmer
+    email: palmecam@oregonstate.edu
+    orcid: 'https://orcid.org/0000-0002-7573-4215'
+    affiliation: Oregon State University
+  - given-names: Kyle E.
+    family-names: Niemeyer
+    email: niemeyek@oregonstate.edu
+    orcid: 'https://orcid.org/0000-0003-4425-7097'
+    affiliation: Oregon State University
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.10576604
+    description: Zenodo Archive
+  - type: doi
+    value: 10.21105/joss.06415
+    description: Paper description of MC/DC
+repository-code: 'https://github.com/CEMeNT-PSAAP/MCDC'
+url: 'https://mcdc.readthedocs.io/en/latest/'
+abstract: >-
+  MC/DC is a performant, scalable, and machine-portable
+  Python-based Monte Carlo neutron transport software
+  currently developed in the Center for Exascale Monte Carlo
+  Neutron Transport (CEMeNT).
+keywords:
+  - monte carlo
+  - numba
+  - gpu
+  - neutron transport
+  - radiation transport
+license: BSD-3-Clause
+version: 0.9.1
+date-released: '2024-04-08'

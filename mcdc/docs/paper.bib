@@ -1,0 +1,245 @@
+@inproceedings{lam_numba_2015,
+	address = {Austin Texas},
+	title = {Numba: a {LLVM}-based {Python} {JIT} compiler},
+	isbn = {978-1-4503-4005-2},
+	shorttitle = {Numba},
+	url = {https://dl.acm.org/doi/10.1145/2833157.2833162},
+	doi = {10.1145/2833157.2833162},
+	abstract = {Dynamic, interpreted languages, like Python, are attractive for domain-experts and scientists experimenting with new ideas. However, the performance of the interpreter is often a barrier when scaling to larger data sets. This paper presents a just-in-time compiler for Python that focuses in scientiﬁc and array-oriented computing. Starting with the simple syntax of Python, Numba compiles a subset of the language into eﬃcient machine code that is comparable in performance to a traditional compiled language. In addition, we share our experience in building a JIT compiler using LLVM[1].},
+	language = {en},
+	urldate = {2023-11-03},
+	booktitle = {Proceedings of the {Second} {Workshop} on the {LLVM} {Compiler} {Infrastructure} in {HPC}},
+	publisher = {ACM},
+	author = {Lam, Siu Kwan and Pitrou, Antoine and Seibert, Stanley},
+	month = nov,
+	year = {2015},
+	pages = {1--6},
+	file = {numba.pdf:/Users/jonesy/Documents/PapersLibrary/numba.pdf:application/pdf},
+}
+
+
+@article{mpi4py_2021,
+	title = {mpi4py: {Status} {Update} {After} 12 {Years} of {Development}},
+	volume = {23},
+	issn = {1521-9615, 1558-366X},
+	shorttitle = {mpi4py},
+	url = {https://ieeexplore.ieee.org/document/9439927/},
+	doi = {10.1109/MCSE.2021.3083216},
+	language = {en},
+	number = {4},
+	urldate = {2023-11-02},
+	journal = {Computing in Science \& Engineering},
+	author = {Dalcin, Lisandro and Fang, Yao-Lung L.},
+	month = jul,
+	year = {2021},
+	pages = {47--54},
+	file = {mpi4py_Status_Update_After_12_Years_of_Development.pdf:/Users/jonesy/Documents/PapersLibrary/mpi4py_Status_Update_After_12_Years_of_Development.pdf:application/pdf},
+}
+
+@article{mcdc:qmc,
+    title="A Quasi-{M}onte {C}arlo Method with {K}rylov Linear Solvers for Multigroup Neutron Transport Simulations",
+    author="S. Pasmann and I. Variansyah and C. T. Kelley and R. McClarren",
+    journal="Nuclear Science and Engineering",
+    doi="10.1080/00295639.2022.2143704",
+    note="Published online Jan 12, 2023",
+    year=2023
+}
+
+@inproceedings{mcdc:clements_mc23,
+    Booktitle = {International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering},
+    title = {Global Sensitivity Analysis in {M}onte {C}arlo Radiation Transport},
+    Month = {8},
+    year = {2023},
+    doi = {10.48550/arXiv.2403.06106},
+    author = {Kayla Clements and Gianluca Geraci and Aaron J Olson and Todd Palmer},
+    address = {Niagara Falls, Ontario, Canada},
+}
+
+
+@inproceedings{mcdc:qmcabs,
+    booktitle = {International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering},
+    title="{iQMC}: Iterative Quasi-{Monte Carlo} with {K}rylov Linear Solvers for k-Eigenvalue Neutron Transport Simulations",
+    author="S. Pasmann and I. Variansyah and C. T. Kelley and R. McClarren",
+    doi = {10.48550/arXiv.2306.11600},
+    year=2023,
+    address = {Niagara Falls, Ontario, Canada},
+}
+
+@inproceedings{mcdc:variansyah_physor22_pct,
+    Booktitle = {International Conference on Physics of Reactors},
+    title = {Performance of Population Control Techniques in {M}onte {C}arlo Reactor Criticality Simulation},
+    year = {2022},
+    doi = {10.13182/physor22-37871},
+    author = {Ilham Variansyah and Ryan G. McClarren},
+    address = {Pittsburgh, Pennsylvania, USA},
+}
+
+@inproceedings{variansyah_mc23_ic,
+    Booktitle = {International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering},
+    title = {An effective initial particle sampling technique for {M}onte {C}arlo reactor transient simulations},
+    year = {2023},
+    author = {Ilham Variansyah and Ryan G. McClarren},
+    address = {Niagara Falls, Ontario, Canada},
+    doi = {10.48550/arXiv.2305.07646}
+}
+
+@inproceedings{variansyah_mc23_moving_object,
+    Booktitle = {International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering},
+    title = {High-fidelity treatment for object movement in time-dependent {M}onte {C}arlo transport simulations},
+    year = {2023},
+    author = {Ilham Variansyah and Ryan G. McClarren},
+    address = {Niagara Falls, Ontario, Canada},
+    doi = {10.48550/arXiv.2305.07641}
+}
+
+@article{mcdc:variansyah_nse22_pct,
+    author  = {Ilham Variansyah and Ryan G McClarren}, 
+    title   = {Analysis of Population Control Techniques for Time-Dependent and Eigenvalue {M}onte {C}arlo Neutron Transport Calculations},
+    journal = {Nuclear Science and Engineering},
+    volume  = {196:11},
+    pages   = {1280--1305},
+    year    = {2022},
+    doi     = {10.1080/00295639.2022.2091906}
+}
+
+@article{mcdc:clements_variance_2024,
+	title = {A variance deconvolution estimator for efficient uncertainty quantification in {Monte} {Carlo} radiation transport applications},
+	volume = {319},
+	issn = {0022-4073},
+	url = {https://www.sciencedirect.com/science/article/pii/S0022407324000657},
+	doi = {10.1016/j.jqsrt.2024.108958},
+	abstract = {Monte Carlo simulations are at the heart of many high-fidelity simulations and analyses for radiation transport systems. As is the case with any complex computational model, it is important to propagate sources of input uncertainty and characterize how they affect model output. Unfortunately, uncertainty quantification (UQ) is made difficult by the stochastic variability that Monte Carlo transport solvers introduce. The standard method to avoid corrupting the UQ statistics with the transport solver noise is to increase the number of particle histories, resulting in very high computational costs. In this contribution, we propose and analyze a sampling estimator based on the law of total variance to compute UQ variance even in the presence of residual noise from Monte Carlo transport calculations. We rigorously derive the statistical properties of the new variance estimator, compare its performance to that of the standard method, and demonstrate its use on neutral particle transport model problems involving both attenuation and scattering physics. We illustrate, both analytically and numerically, the estimator’s statistical performance as a function of available computational budget and the distribution of that budget between UQ samples and particle histories. We show analytically and corroborate numerically that the new estimator is unbiased, unlike the standard approach, and is more accurate and precise than the standard estimator for the same computational budget.},
+	journal = {Journal of Quantitative Spectroscopy and Radiative Transfer},
+	author = {Clements, Kayla B. and Geraci, Gianluca and Olson, Aaron J. and Palmer, Todd S.},
+	year = {2024},
+	keywords = {Monte Carlo radiation transport, Stochastic solvers, Uncertainty quantification},
+	pages = {108958},
+}
+
+@inproceedings{variansyah_mc23_mcdc,
+    Booktitle = {International Conference on Mathematics and Computational Methods Applied to Nuclear Science and Engineering},
+    title = {Development of {MC/DC}: a performant, scalable, and portable {P}ython-based {M}onte {C}arlo neutron transport code},
+    year = {2023},
+    author = {Ilham Variansyah and Joanna Piper Morgan and Jordan Northrop and Kyle E. Niemeyer and Ryan G. McClarren},
+    address = {Niagara Falls, Ontario, Canada},
+    doi = {10.48550/arXiv.2305.07636}
+}
+
+@article{brax2023,
+    author = {Cuneo, Braxton and Bailey, Mike},
+    title = {Divergence Reduction in {M}onte {C}arlo Neutron Transport with On-{GPU} Asynchronous Scheduling},
+    year = {2023},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    issn = {1049-3301},
+    url = {10.1145/3626957},
+    doi = {10.1145/3626957},
+    journal = {ACM Trans. Model. Comput. Simul.},
+    month = {oct},
+    keywords = {asynchronous, divergence, scheduling, GPGPU, GPU}
+}
+
+
+@book{lewis_computational_1984,
+	address = {New York, NY, USA},
+	title = {Computational methods of neutron transport},
+	publisher = {John Wiley and Sons, Inc.},
+	author = {Lewis, Elmer Eugene and Miller, Warren F},
+    url = {https://www.osti.gov/biblio/5538794},
+	year = {1984},
+}
+
+
+#shift
+@article{shift,
+	title = {Continuous-energy {Monte} {Carlo} neutron transport on {GPUs} in the {Shift} code},
+	volume = {128},
+	issn = {03064549},
+	url = {https://linkinghub.elsevier.com/retrieve/pii/S0306454919300167},
+	doi = {10.1016/j.anucene.2019.01.012},
+	abstract = {A continuous-energy Monte Carlo neutron transport solver executing on GPUs has been developed within the Shift code. Several algorithmic approaches are considered, including both history-based and event-based implementations. Unlike in previous work involving multigroup Monte Carlo transport, it is demonstrated that event-based algorithms signiﬁcantly outperform a historybased approach for continuous-energy transport as a result of increased device occupancy and reduced thread divergence. Numerical results are presented for detailed full-core models of a small modular reactor (SMR), including a model containing depleted fuel materials. These results demonstrate the substantial gains in performance that are possible with the latest-generation of GPUs. On the depleted SMR core conﬁguration, an NVIDIA P100 GPU with 56 streaming multiprocessors provides performance equivalent to 90 CPU cores, and the latest V100 GPU with 80 multiprocessors oﬀers the performance of more than 150 CPU cores.},
+	language = {en},
+	urldate = {2023-11-03},
+	journal = {Annals of Nuclear Energy},
+	author = {Hamilton, Steven P. and Evans, Thomas M.},
+	month = jun,
+	year = {2019},
+	pages = {236--247},
+	file = {1-s2.0-S0306454919300167-am.pdf:/Users/jonesy/Documents/PapersLibrary/1-s2.0-S0306454919300167-am.pdf:application/pdf},
+}
+
+
+#mcatk
+@article{mcatk,
+	title = {Monte {Carlo} {Application} {ToolKit} ({MCATK})},
+	volume = {82},
+	issn = {0306-4549},
+	url = {https://www.sciencedirect.com/science/article/pii/S0306454914004472},
+	doi = {10.1016/j.anucene.2014.08.047},
+	abstract = {The Monte Carlo Application ToolKit (MCATK) is a component-based software library designed to build specialized applications and to provide new functionality for existing general purpose Monte Carlo radiation transport codes. We will describe MCATK and its capabilities along with presenting some verification and validations results.},
+	journal = {Annals of Nuclear Energy},
+	author = {Adams, Terry and Nolen, Steve and Sweezy, Jeremy and Zukaitis, Anthony and Campbell, Joann and Goorley, Tim and Greene, Simon and Aulwes, Rob},
+	year = {2015},
+	keywords = {Agile development, Component software, Monte Carlo particle transport, Parallel computing, Population control, Time-dependent},
+	pages = {41--47},
+	annote = {Joint International Conference on Supercomputing in Nuclear Applications and Monte Carlo 2013, SNA + MC 2013. Pluri- and Trans-disciplinarity, Towards New Modeling and Numerical Simulation Paradigms},
+}
+
+
+# mcnp
+@techreport{mcnp,
+  address = {Los Alamos, NM, USA},
+  author = {Rising, Michael Evan and Armstrong, Jerawan Chudoung and Bolding, Simon R. and Brown, Forrest Brooks and Bull, Jeffrey S. and Burke, Timothy Patrick and Clark, Alexander Rich and Dixon, David A. and Forster, III, Robert Arthur and Giron, Jesse Frank and Grieve, Tristan Sumner and Hughes, III, Henry Grady and Josey, Colin James and Kulesza, Joel Aaron and Martz, Roger Lee and McCartney, Austin P. and McKinney, Gregg Walter and Mosher, Scott William and Pearson, Eric John and Solomon, Jr., Clell Jeffrey and Swaminarayan, Sriram and Sweezy, Jeremy Ed and Wilson, Stephen Christian and Zukaitis, Anthony J.},
+  doi = {10.2172/1909545},
+  institution = {Los Alamos National Laboratory},
+  month = {January},
+  number = {LA-UR-22-33103, Rev.~1},
+  title = {{MCNP\textsuperscript{\textregistered} Code Version 6.3.0 Release Notes}},
+  url = {https://www.osti.gov/biblio/1909545},
+  year = {2023}
+}
+
+
+
+@article{openmc,
+	title = {{OpenMC}: {A} state-of-the-art {Monte} {Carlo} code for research and development},
+	volume = {82},
+	issn = {0306-4549},
+	url = {https://www.sciencedirect.com/science/article/pii/S030645491400379X},
+	doi = {10.1016/j.anucene.2014.07.048},
+	abstract = {This paper gives an overview of OpenMC, an open source Monte Carlo particle transport code recently developed at the Massachusetts Institute of Technology. OpenMC uses continuous-energy cross sections and a constructive solid geometry representation, enabling high-fidelity modeling of nuclear reactors and other systems. Modern, portable input/output file formats are used in OpenMC: XML for input, and HDF5 for output. High performance parallel algorithms in OpenMC have demonstrated near-linear scaling to over 100,000 processors on modern supercomputers. Other topics discussed in this paper include plotting, CMFD acceleration, variance reduction, eigenvalue calculations, and software development processes.},
+	journal = {Annals of Nuclear Energy},
+	author = {Romano, Paul K. and Horelik, Nicholas E. and Herman, Bryan R. and Nelson, Adam G. and Forget, Benoit and Smith, Kord},
+	year = {2015},
+	keywords = {HDF5, Monte Carlo, Neutron transport, OpenMC, Parallel, XML},
+	pages = {90--97},
+	annote = {Joint International Conference on Supercomputing in Nuclear Applications and Monte Carlo 2013, SNA + MC 2013. Pluri- and Trans-disciplinarity, Towards New Modeling and Numerical Simulation Paradigms},
+}
+
+
+
+
+# geant4
+@article{geant4,
+    title = {Geant4—a simulation toolkit},
+    journal = {Nuclear Instruments and Methods in Physics Research Section A: Accelerators, Spectrometers, Detectors and Associated Equipment},
+    volume = {506},
+    number = {3},
+    pages = {250-303},
+    year = {2003},
+    issn = {0168-9002},
+    doi = {10.1016/S0168-9002(03)01368-8},
+    url = {https://www.sciencedirect.com/science/article/pii/S0168900203013688},
+    author = {S. Agostinelli and J. Allison and K. Amako and J. Apostolakis and H. Araujo and P. Arce and M. Asai and D. Axen and S. Banerjee and G. Barrand and F. Behner and L. Bellagamba and J. Boudreau and L. Broglia and A. Brunengo and H. Burkhardt and S. Chauvie and J. Chuma and R. Chytracek and G. Cooperman and G. Cosmo and P. Degtyarenko and A. Dell'Acqua and G. Depaola and D. Dietrich and R. Enami and A. Feliciello and C. Ferguson and H. Fesefeldt and G. Folger and F. Foppiano and A. Forti and S. Garelli and S. Giani and R. Giannitrapani and D. Gibin and J.J. {Gómez Cadenas} and I. González and G. {Gracia Abril} and G. Greeniaus and W. Greiner and V. Grichine and A. Grossheim and S. Guatelli and P. Gumplinger and R. Hamatsu and K. Hashimoto and H. Hasui and A. Heikkinen and A. Howard and V. Ivanchenko and A. Johnson and F.W. Jones and J. Kallenbach and N. Kanaya and M. Kawabata and Y. Kawabata and M. Kawaguti and S. Kelner and P. Kent and A. Kimura and T. Kodama and R. Kokoulin and M. Kossov and H. Kurashige and E. Lamanna and T. Lampén and V. Lara and V. Lefebure and F. Lei and M. Liendl and W. Lockman and F. Longo and S. Magni and M. Maire and E. Medernach and K. Minamimoto and P. {Mora de Freitas} and Y. Morita and K. Murakami and M. Nagamatu and R. Nartallo and P. Nieminen and T. Nishimura and K. Ohtsubo and M. Okamura and S. O'Neale and Y. Oohata and K. Paech and J. Perl and A. Pfeiffer and M.G. Pia and F. Ranjard and A. Rybin and S. Sadilov and E. {Di Salvo} and G. Santin and T. Sasaki and N. Savvas and Y. Sawada and S. Scherer and S. Sei and V. Sirotenko and D. Smith and N. Starkov and H. Stoecker and J. Sulkimo and M. Takahata and S. Tanaka and E. Tcherniaev and E. {Safai Tehrani} and M. Tropeano and P. Truscott and H. Uno and L. Urban and P. Urban and M. Verderi and A. Walkden and W. Wander and H. Weber and J.P. Wellisch and T. Wenaus and D.C. Williams and D. Wright and T. Yamada and H. Yoshida and D. Zschiesche},
+}
+
+@confrence{mcdc:cuneo2024alternative,
+      title={An Alternative to Stride-Based RNG for {M}onte {C}arlo Transport}, 
+      author={Braxton S. Cuneo and Ilham Variansyah},
+      year={2024},
+      doi = {10.48550/arXiv.2403.06362},
+      journal = {Submitted to Transactions of the American Nuclear, Annual meeting 2024},
+      eprint={2403.06362},
+      archivePrefix={arXiv},
+      primaryClass={physics.comp-ph}
+}
