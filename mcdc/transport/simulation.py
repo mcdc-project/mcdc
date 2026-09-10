@@ -15,6 +15,7 @@ import mcdc.transport.rng as rng
 import mcdc.transport.tally as tally_module
 import mcdc.transport.technique as technique
 import mcdc.transport.util as util
+import mcdc.code_factory.gpu.substitution as sub
 
 from mcdc.constant import *
 from mcdc.print_ import (
@@ -287,55 +288,46 @@ def step_particle(particle_container, program, data):
     # Execute events
     if particle["event"] == EVENT_LOST:
         return
-
-    # Collision
-    if particle["event"] & EVENT_COLLISION:
+    elif particle["event"] & EVENT_COLLISION:
         collision_data_container = util.local_array(1, type_.collision_data)
-
-        # Execute the physics
         physics.collision(particle_container, collision_data_container, program, data)
-
-        # Score collision tallies
-        if simulation["cycle_active"]:
-            cell = simulation["cells"][particle["cell_ID"]]
-            for i in range(cell["N_collision_tally"]):
-                tally_ID = mcdc_get.cell.collision_tally_IDs(i, cell, data)
-                tally = simulation["tallies"][tally_ID]
-                tally_module.score.collision(
-                    particle_container,
-                    collision_data_container,
-                    tally,
-                    simulation,
-                    data,
-                )
-
-    # Surface and domain crossing
-    if particle["event"] & EVENT_SURFACE_CROSSING:
-        surface_crossing(particle_container, simulation, data)
-
-    # Census time crossing
-    if particle["event"] & EVENT_TIME_CENSUS:
+        close_out_collision(particle_container, collision_data_container, program, data)
+    elif particle["event"] & EVENT_SURFACE_CROSSING:
+        surface_crossing(particle_container, program, data)
+        manage_weight(particle_container, program, data)
+    elif particle["event"] & EVENT_TIME_CENSUS:
         particle_bank_module.bank_census_particle(particle_container, program)
         particle["alive"] = False
-
-    # Time boundary crossing
-    if particle["event"] & EVENT_TIME_BOUNDARY:
+    elif particle["event"] & EVENT_TIME_BOUNDARY:
         particle["alive"] = False
 
-    # ==================================================================================
-    # Apply techniques
-    # ==================================================================================
 
-    # Skip if not alive
-    if not particle["alive"]:
-        return
+@njit
+def close_out_collision(particle_container, collision_data_container, program, data):
+    simulation = util.access_simulation(program)
+    particle = particle_container[0]
+    # Score collision tallies
+    if simulation["cycle_active"]:
+        cell = simulation["cells"][particle["cell_ID"]]
+        for i in range(cell["N_collision_tally"]):
+            tally_ID = mcdc_get.cell.collision_tally_IDs(i, cell, data)
+            tally = simulation["tallies"][tally_ID]
+            tally_module.score.collision(
+                particle_container,
+                collision_data_container,
+                tally,
+                simulation,
+                data,
+            )
+    manage_weight(particle_container, program, data)
 
-    # Weight windows
+
+@sub.target(tag="async")
+def manage_weight(particle_container, program, data):
+    simulation = util.access_simulation(program)
     if simulation["technique"]["weight_windows"]["active"]:
         technique.weight_windows(particle_container, program, data)
-
-    # Global weight roulette
-    if simulation["technique"]["global_weight_roulette"]["active"]:
+    elif simulation["technique"]["global_weight_roulette"]["active"]:
         technique.global_weight_roulette(particle_container, simulation)
 
 
@@ -440,8 +432,9 @@ def move_to_event(particle_container, simulation, data):
     particle_module.move(particle_container, distance, simulation, data)
 
 
-@njit
-def surface_crossing(particle_container, simulation, data):
+@sub.target(tag="async")
+def surface_crossing(particle_container, program, data):
+    simulation = util.access_simulation(program)
     particle = particle_container[0]
     crossed_surface_ID = particle["surface_ID"]
 

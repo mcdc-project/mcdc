@@ -98,6 +98,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Number of adjacent MPI ranks sharing each GPU.",
         default=1,
     )
+    parser.add_argument(
+        "--gpu_event_decomp",
+        type=str,
+        help="Event decomposition applied in GPU processing.",
+        default="monolithic",
+    )
 
     return parser
 

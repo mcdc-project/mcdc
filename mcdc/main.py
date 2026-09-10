@@ -185,6 +185,6 @@ def prepare(simulationPy: Simulation):
 def finalize(simulation):
     # GPU teardowns if needed
     if config.target == "gpu":
-        from mcdc.code_factory.gpu.program_builder import teardown_gpu_program
+        from mcdc.code_factory.gpu.program.builder import teardown_gpu_program
 
         teardown_gpu_program(simulation)

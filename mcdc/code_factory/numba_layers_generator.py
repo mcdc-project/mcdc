@@ -12,7 +12,8 @@ from numba.extending import intrinsic
 
 ####
 import mcdc
-import mcdc.code_factory.gpu.program_builder as gpu_builder
+import mcdc.code_factory.gpu.program.builder as gpu_builder
+import mcdc.code_factory.gpu.interface as gpu_interface
 import mcdc.config as config
 import mcdc.object_ as object_module
 import mcdc.object_.base as base
@@ -785,9 +786,9 @@ def create_data_array(size):
 @njit
 def create_data_array_on_gpu(dtype, size, byte_size):
     if config.gpu_state_storage == "managed":
-        data_tally_ptr = gpu_builder.alloc_managed_bytes(byte_size)
+        data_tally_ptr = gpu_interface.alloc_managed_bytes(byte_size)
     else:
-        data_tally_ptr = gpu_builder.alloc_device_bytes(byte_size)
+        data_tally_ptr = gpu_interface.alloc_device_bytes(byte_size)
     data_tally_uint = cast_voidptr_to_uintp(data_tally_ptr)
 
     if config.gpu_state_storage == "separate":
@@ -808,9 +809,9 @@ def create_simulation_container(dtype):
 @njit
 def create_simulation_container_on_gpu(dtype, size):
     if config.gpu_state_storage == "managed":
-        mcdc_ptr = gpu_builder.alloc_managed_bytes(size * 8)
+        mcdc_ptr = gpu_interface.alloc_managed_bytes(size * 8)
     else:
-        mcdc_ptr = gpu_builder.alloc_device_bytes(size * 8)
+        mcdc_ptr = gpu_interface.alloc_device_bytes(size * 8)
     mcdc_uint = cast_voidptr_to_uintp(mcdc_ptr)
 
     if config.gpu_state_storage == "separate":

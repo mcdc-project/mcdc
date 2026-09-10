@@ -2,6 +2,7 @@ import math
 import numpy as np
 
 import numba as nb
+import mcdc.code_factory.gpu.substitution as sub
 from numba import njit
 from typing import Sequence
 
@@ -152,14 +153,14 @@ def log_interpolation(x, x1, x2, y1, y2):
 # ======================================================================================
 
 
-@njit
+@sub.target()
 def atomic_add(array, idx, value):
     result = array[idx]
     array[idx] += value
     return result
 
 
-@njit
+@sub.target()
 def local_array(shape, dtype):
     return np.zeros(shape, dtype=dtype)
 

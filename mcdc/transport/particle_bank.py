@@ -14,6 +14,7 @@ import mcdc.transport.mpi as mpi
 import mcdc.transport.particle as particle_module
 import mcdc.transport.technique as technique
 import mcdc.transport.util as util
+import mcdc.code_factory.gpu.substitution as sub
 
 from mcdc.constant import *
 from mcdc.print_ import print_error
@@ -56,7 +57,7 @@ def _bank_particle(particle_container, bank):
     particle_module.copy(bank["particle_data"][idx : idx + 1], particle_container)
 
 
-@njit
+@sub.target(tag="async")
 def bank_active_particle(particle_container, program):
     simulation = util.access_simulation(program)
     bank = simulation["bank_active"]
@@ -102,13 +103,13 @@ def pop_particle(particle_container, bank):
     particle["event"] = -1
 
 
-@njit
+@sub.target()
 def report_full_bank(bank):
     with objmode():
         print_error("Particle %s bank is full." % bank["tag"])
 
 
-@njit
+@sub.target()
 def report_empty_bank(bank):
     with objmode():
         print_error("Attempting to get a particle from an empty %s bank." % bank["tag"])

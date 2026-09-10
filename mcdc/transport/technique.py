@@ -11,6 +11,7 @@ import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
 import mcdc.transport.util as util
+import mcdc.code_factory.gpu.substitution as sub
 
 from mcdc.transport.mesh import get_indices as get_mesh_indices
 
@@ -70,7 +71,7 @@ def global_weight_roulette(particle_container, simulation):
 # ======================================================================================
 
 
-@njit
+@sub.target(tag="async")
 def weight_windows(particle_container, program, data):
     """
     Apply weight window splitting and rouletting to a particle.

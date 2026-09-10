@@ -863,5 +863,6 @@ def make_simulation_type(N: dict):
         ('runtime_output', float64),
         ('runtime_bank_management', float64),
         ('source_seed', int64),
+        ('debug_counter', int64, (1,)),
     ])
 
