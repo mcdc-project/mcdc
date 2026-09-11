@@ -162,6 +162,8 @@ def override_settings(simulation) -> bool:
     set_setting("output_name", args.output)
     set_setting("use_progress_bar", args.progress_bar)
 
+    from mcdc.constant import CPU, GPU
+
     # GPU names are translated into the integer constants stored at runtime.
     if target == "gpu":
         from mcdc.constant import (
@@ -184,6 +186,9 @@ def override_settings(simulation) -> bool:
 
         set_setting("gpu_strategy", strategy)
         set_setting("gpu_storage", storage)
+        set_setting("target", GPU)
+    else:
+        set_setting("target", CPU)
 
     return changed
 

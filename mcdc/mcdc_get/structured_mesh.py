@@ -3,18 +3,24 @@
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def x(index, structured_mesh, data):
     offset = structured_mesh["x_offset"]
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def x_all(structured_mesh, data):
     start = structured_mesh["x_offset"]
     size = structured_mesh["x_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -25,11 +31,11 @@ def x_last(structured_mesh, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def x_chunk(start, length, structured_mesh, data):
     start += structured_mesh["x_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -38,12 +44,12 @@ def y(index, structured_mesh, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def y_all(structured_mesh, data):
     start = structured_mesh["y_offset"]
     size = structured_mesh["y_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -54,11 +60,11 @@ def y_last(structured_mesh, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def y_chunk(start, length, structured_mesh, data):
     start += structured_mesh["y_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -67,12 +73,12 @@ def z(index, structured_mesh, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def z_all(structured_mesh, data):
     start = structured_mesh["z_offset"]
     size = structured_mesh["z_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -83,8 +89,8 @@ def z_last(structured_mesh, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def z_chunk(start, length, structured_mesh, data):
     start += structured_mesh["z_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

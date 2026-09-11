@@ -4,18 +4,24 @@ from numpy import int64
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def region_RPN_tokens(index, cell, data):
     offset = cell["region_RPN_tokens_offset"]
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def region_RPN_tokens_all(cell, data):
     start = cell["region_RPN_tokens_offset"]
     size = cell["region_RPN_tokens_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -26,11 +32,11 @@ def region_RPN_tokens_last(cell, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def region_RPN_tokens_chunk(start, length, cell, data):
     start += cell["region_RPN_tokens_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -39,12 +45,12 @@ def surface_IDs(index, cell, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def surface_IDs_all(cell, data):
     start = cell["surface_IDs_offset"]
     size = cell["N_surface"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -55,11 +61,11 @@ def surface_IDs_last(cell, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def surface_IDs_chunk(start, length, cell, data):
     start += cell["surface_IDs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -68,12 +74,12 @@ def collision_tally_IDs(index, cell, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def collision_tally_IDs_all(cell, data):
     start = cell["collision_tally_IDs_offset"]
     size = cell["N_collision_tally"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -84,11 +90,11 @@ def collision_tally_IDs_last(cell, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def collision_tally_IDs_chunk(start, length, cell, data):
     start += cell["collision_tally_IDs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -97,12 +103,12 @@ def tracklength_tally_IDs(index, cell, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def tracklength_tally_IDs_all(cell, data):
     start = cell["tracklength_tally_IDs_offset"]
     size = cell["N_tracklength_tally"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -113,8 +119,8 @@ def tracklength_tally_IDs_last(cell, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def tracklength_tally_IDs_chunk(start, length, cell, data):
     start += cell["tracklength_tally_IDs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

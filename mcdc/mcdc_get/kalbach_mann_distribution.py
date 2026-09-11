@@ -4,18 +4,24 @@ from numpy import int64
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def energy(index, kalbach_mann_distribution, data):
     offset = kalbach_mann_distribution["energy_offset"]
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def energy_all(kalbach_mann_distribution, data):
     start = kalbach_mann_distribution["energy_offset"]
     size = kalbach_mann_distribution["energy_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -26,11 +32,11 @@ def energy_last(kalbach_mann_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def energy_chunk(start, length, kalbach_mann_distribution, data):
     start += kalbach_mann_distribution["energy_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -39,12 +45,12 @@ def offset(index, kalbach_mann_distribution, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def offset_all(kalbach_mann_distribution, data):
     start = kalbach_mann_distribution["offset_offset"]
     size = kalbach_mann_distribution["offset_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -55,11 +61,11 @@ def offset_last(kalbach_mann_distribution, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def offset_chunk(start, length, kalbach_mann_distribution, data):
     start += kalbach_mann_distribution["offset_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -68,12 +74,12 @@ def energy_out(index, kalbach_mann_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def energy_out_all(kalbach_mann_distribution, data):
     start = kalbach_mann_distribution["energy_out_offset"]
     size = kalbach_mann_distribution["energy_out_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -84,11 +90,11 @@ def energy_out_last(kalbach_mann_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def energy_out_chunk(start, length, kalbach_mann_distribution, data):
     start += kalbach_mann_distribution["energy_out_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -97,12 +103,12 @@ def pdf(index, kalbach_mann_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def pdf_all(kalbach_mann_distribution, data):
     start = kalbach_mann_distribution["pdf_offset"]
     size = kalbach_mann_distribution["pdf_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -113,11 +119,11 @@ def pdf_last(kalbach_mann_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def pdf_chunk(start, length, kalbach_mann_distribution, data):
     start += kalbach_mann_distribution["pdf_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -126,12 +132,12 @@ def cdf(index, kalbach_mann_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def cdf_all(kalbach_mann_distribution, data):
     start = kalbach_mann_distribution["cdf_offset"]
     size = kalbach_mann_distribution["cdf_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -142,11 +148,11 @@ def cdf_last(kalbach_mann_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def cdf_chunk(start, length, kalbach_mann_distribution, data):
     start += kalbach_mann_distribution["cdf_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -155,12 +161,12 @@ def precompound_factor(index, kalbach_mann_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def precompound_factor_all(kalbach_mann_distribution, data):
     start = kalbach_mann_distribution["precompound_factor_offset"]
     size = kalbach_mann_distribution["precompound_factor_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -171,11 +177,11 @@ def precompound_factor_last(kalbach_mann_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def precompound_factor_chunk(start, length, kalbach_mann_distribution, data):
     start += kalbach_mann_distribution["precompound_factor_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -184,12 +190,12 @@ def angular_slope(index, kalbach_mann_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def angular_slope_all(kalbach_mann_distribution, data):
     start = kalbach_mann_distribution["angular_slope_offset"]
     size = kalbach_mann_distribution["angular_slope_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -200,8 +206,8 @@ def angular_slope_last(kalbach_mann_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def angular_slope_chunk(start, length, kalbach_mann_distribution, data):
     start += kalbach_mann_distribution["angular_slope_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

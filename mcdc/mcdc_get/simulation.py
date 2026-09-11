@@ -3,18 +3,24 @@
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def k_cycle(index, simulation, data):
     offset = simulation["k_cycle_offset"]
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def k_cycle_all(simulation, data):
     start = simulation["k_cycle_offset"]
     size = simulation["k_cycle_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -25,11 +31,11 @@ def k_cycle_last(simulation, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def k_cycle_chunk(start, length, simulation, data):
     start += simulation["k_cycle_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -38,12 +44,12 @@ def gyration_radius(index, simulation, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def gyration_radius_all(simulation, data):
     start = simulation["gyration_radius_offset"]
     size = simulation["gyration_radius_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -54,8 +60,8 @@ def gyration_radius_last(simulation, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def gyration_radius_chunk(start, length, simulation, data):
     start += simulation["gyration_radius_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

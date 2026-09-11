@@ -4,18 +4,24 @@ from numpy import int64
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def energy(index, tabulated_energy_angle_distribution, data):
     offset = tabulated_energy_angle_distribution["energy_offset"]
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def energy_all(tabulated_energy_angle_distribution, data):
     start = tabulated_energy_angle_distribution["energy_offset"]
     size = tabulated_energy_angle_distribution["energy_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -26,11 +32,11 @@ def energy_last(tabulated_energy_angle_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def energy_chunk(start, length, tabulated_energy_angle_distribution, data):
     start += tabulated_energy_angle_distribution["energy_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -39,12 +45,12 @@ def offset(index, tabulated_energy_angle_distribution, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def offset_all(tabulated_energy_angle_distribution, data):
     start = tabulated_energy_angle_distribution["offset_offset"]
     size = tabulated_energy_angle_distribution["offset_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -55,11 +61,11 @@ def offset_last(tabulated_energy_angle_distribution, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def offset_chunk(start, length, tabulated_energy_angle_distribution, data):
     start += tabulated_energy_angle_distribution["offset_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -68,12 +74,12 @@ def energy_out(index, tabulated_energy_angle_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def energy_out_all(tabulated_energy_angle_distribution, data):
     start = tabulated_energy_angle_distribution["energy_out_offset"]
     size = tabulated_energy_angle_distribution["energy_out_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -84,11 +90,11 @@ def energy_out_last(tabulated_energy_angle_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def energy_out_chunk(start, length, tabulated_energy_angle_distribution, data):
     start += tabulated_energy_angle_distribution["energy_out_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -97,12 +103,12 @@ def pdf(index, tabulated_energy_angle_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def pdf_all(tabulated_energy_angle_distribution, data):
     start = tabulated_energy_angle_distribution["pdf_offset"]
     size = tabulated_energy_angle_distribution["pdf_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -113,11 +119,11 @@ def pdf_last(tabulated_energy_angle_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def pdf_chunk(start, length, tabulated_energy_angle_distribution, data):
     start += tabulated_energy_angle_distribution["pdf_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -126,12 +132,12 @@ def cdf(index, tabulated_energy_angle_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def cdf_all(tabulated_energy_angle_distribution, data):
     start = tabulated_energy_angle_distribution["cdf_offset"]
     size = tabulated_energy_angle_distribution["cdf_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -142,11 +148,11 @@ def cdf_last(tabulated_energy_angle_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def cdf_chunk(start, length, tabulated_energy_angle_distribution, data):
     start += tabulated_energy_angle_distribution["cdf_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -155,12 +161,12 @@ def cosine_offset_(index, tabulated_energy_angle_distribution, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def cosine_offset__all(tabulated_energy_angle_distribution, data):
     start = tabulated_energy_angle_distribution["cosine_offset__offset"]
     size = tabulated_energy_angle_distribution["cosine_offset__length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -171,11 +177,11 @@ def cosine_offset__last(tabulated_energy_angle_distribution, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def cosine_offset__chunk(start, length, tabulated_energy_angle_distribution, data):
     start += tabulated_energy_angle_distribution["cosine_offset__offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -184,12 +190,12 @@ def cosine(index, tabulated_energy_angle_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def cosine_all(tabulated_energy_angle_distribution, data):
     start = tabulated_energy_angle_distribution["cosine_offset"]
     size = tabulated_energy_angle_distribution["cosine_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -200,11 +206,11 @@ def cosine_last(tabulated_energy_angle_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def cosine_chunk(start, length, tabulated_energy_angle_distribution, data):
     start += tabulated_energy_angle_distribution["cosine_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -213,12 +219,12 @@ def cosine_pdf(index, tabulated_energy_angle_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def cosine_pdf_all(tabulated_energy_angle_distribution, data):
     start = tabulated_energy_angle_distribution["cosine_pdf_offset"]
     size = tabulated_energy_angle_distribution["cosine_pdf_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -229,11 +235,11 @@ def cosine_pdf_last(tabulated_energy_angle_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def cosine_pdf_chunk(start, length, tabulated_energy_angle_distribution, data):
     start += tabulated_energy_angle_distribution["cosine_pdf_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -242,12 +248,12 @@ def cosine_cdf(index, tabulated_energy_angle_distribution, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def cosine_cdf_all(tabulated_energy_angle_distribution, data):
     start = tabulated_energy_angle_distribution["cosine_cdf_offset"]
     size = tabulated_energy_angle_distribution["cosine_cdf_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -258,8 +264,8 @@ def cosine_cdf_last(tabulated_energy_angle_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def cosine_cdf_chunk(start, length, tabulated_energy_angle_distribution, data):
     start += tabulated_energy_angle_distribution["cosine_cdf_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

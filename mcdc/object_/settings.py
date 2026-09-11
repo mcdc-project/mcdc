@@ -84,6 +84,9 @@ class Settings(MCDCBase):
     # Neutron transport modes
     neutron_eigenvalue_mode: bool = False
 
+    # Target info
+    target: int = CPU
+
     # GPU mode
     gpu_strategy: int = GPU_STRATEGY_ASYNC
     gpu_async_type: int = GPU_ASYNC_SIMPLE

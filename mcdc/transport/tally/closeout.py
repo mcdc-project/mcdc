@@ -17,6 +17,8 @@ from mcdc.constant import (
     GYRATION_RADIUS_ONLY_X,
     GYRATION_RADIUS_ONLY_Y,
     GYRATION_RADIUS_ONLY_Z,
+    GPU,
+    GPU_STORAGE_UNITED,
 )
 from mcdc.print_ import print_structure
 
@@ -26,9 +28,34 @@ from mcdc.print_ import print_structure
 
 
 @njit
+def data_alignment_safe(simulation):
+    return (simulation["settings"]["target"] != GPU) or (
+        simulation["settings"]["gpu_storage"] != GPU_STORAGE_UNITED
+    )
+
+
+@njit
 def reduce(simulation, data):
     for tally in simulation["tallies"]:
         _reduce(tally, simulation, data)
+
+
+@njit
+def _fast_reduce(simulation, buff):
+    master = simulation["mpi_master"]
+    with objmode():
+        if master:
+            MPI.COMM_WORLD.Reduce(MPI.IN_PLACE, buff, MPI.SUM, 0)
+        else:
+            MPI.COMM_WORLD.Reduce(buff, None, MPI.SUM, 0)
+
+
+@njit
+def _misalignment_safe_reduce(buff):
+    temp_buff = np.zeros(len(buff))
+    with objmode():
+        MPI.COMM_WORLD.Reduce(buff, temp_buff, MPI.SUM, 0)
+    buff[:] = temp_buff
 
 
 @njit
@@ -43,12 +70,10 @@ def _reduce(tally, simulation, data):
         data[start + i] /= N_particle
 
     # MPI Reduce
-    master = simulation["mpi_master"]
-    with objmode():
-        if master:
-            MPI.COMM_WORLD.Reduce(MPI.IN_PLACE, data[start:end], MPI.SUM, 0)
-        else:
-            MPI.COMM_WORLD.Reduce(data[start:end], None, MPI.SUM, 0)
+    if data_alignment_safe(simulation):
+        _fast_reduce(simulation, data[start:end])
+    else:
+        _misalignment_safe_reduce(data[start:end])
 
 
 # ======================================================================================
@@ -122,18 +147,15 @@ def _finalize(tally, simulation, data):
     elif simulation["settings"]["neutron_eigenvalue_mode"]:
         N_history = simulation["settings"]["N_active"]
 
+    elif data_alignment_safe(simulation):
+        # In-place MPI Reduce
+        _fast_reduce(simulation, data[sum_start:sum_end])
+        _fast_reduce(simulation, data[sum_sq_start:sum_end])
     else:
-        # MPI Reduce
-        master = simulation["mpi_master"]
-        with objmode():
-            if master:
-                MPI.COMM_WORLD.Reduce(MPI.IN_PLACE, data[sum_start:sum_end], MPI.SUM, 0)
-                MPI.COMM_WORLD.Reduce(
-                    MPI.IN_PLACE, data[sum_sq_start:sum_sq_end], MPI.SUM, 0
-                )
-            else:
-                MPI.COMM_WORLD.Reduce(data[sum_start:sum_end], None, MPI.SUM, 0)
-                MPI.COMM_WORLD.Reduce(data[sum_sq_start:sum_sq_end], None, MPI.SUM, 0)
+        # MPI Reduce with external buffer to account for potentially unaligned
+        # storage in APU memory
+        _misalignment_safe_reduce(data[sum_start:sum_end])
+        _misalignment_safe_reduce(data[sum_sq_start:sum_end])
 
     # All ranks must finish any reductions before workers can return.
     if not simulation["mpi_master"]:

@@ -3,13 +3,19 @@
 from numba import njit
 
 
-@njit
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
+@array_return(nb.types.float64)
 def move_velocities_vector(index_1, source, data):
     offset = source["move_velocities_offset"]
     stride = 3
     start = offset + index_1 * stride
     end = start + stride
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -19,11 +25,11 @@ def move_velocities(index_1, index_2, source, data):
     return data[offset + index_1 * stride + index_2]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_velocities_chunk(start, length, source, data):
     start += source["move_velocities_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -32,12 +38,12 @@ def move_durations(index, source, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_durations_all(source, data):
     start = source["move_durations_offset"]
     size = source["N_move"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -48,11 +54,11 @@ def move_durations_last(source, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_durations_chunk(start, length, source, data):
     start += source["move_durations_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -61,12 +67,12 @@ def move_time_grid(index, source, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_time_grid_all(source, data):
     start = source["move_time_grid_offset"]
     size = source["N_move_grid"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -77,20 +83,20 @@ def move_time_grid_last(source, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_time_grid_chunk(start, length, source, data):
     start += source["move_time_grid_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
-@njit
+@array_return(nb.types.float64)
 def move_translations_vector(index_1, source, data):
     offset = source["move_translations_offset"]
     stride = 3
     start = offset + index_1 * stride
     end = start + stride
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -100,8 +106,8 @@ def move_translations(index_1, index_2, source, data):
     return data[offset + index_1 * stride + index_2]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_translations_chunk(start, length, source, data):
     start += source["move_translations_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
