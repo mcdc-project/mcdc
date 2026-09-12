@@ -118,16 +118,12 @@ def generate_numba_layers(simulation):
     # Per-history statistics are accumulated locally; batch/cycle statistics
     # are accumulated only after reduction to master. Preserve GPU layouts
     # because all ranks load the same compiled GPU program.
-    settings = simulation.settings
-    local_moments = (
-        not settings.neutron_eigenvalue_mode
-        and settings.N_batch == 1
-        and not settings.use_census_based_tally
-    )
     data = {
         "size": 0,
         "store_tally_moments": (
-            config.target == "gpu" or simulation.mpi_master or local_moments
+            simulation.gpu_mode
+            or simulation.mpi_master
+            or simulation.history_based_statistics
         ),
     }
     accessor_targets = {}
@@ -750,11 +746,13 @@ def set_object(
         tally_size = np.prod(object_.bin_shape)
         moment_size = tally_size if data.get("store_tally_moments", True) else 0
         record[f"bin_offset"] = data["size"]
-        record[f"bin_sum_offset"] = data["size"] + tally_size
-        record[f"bin_sum_square_offset"] = data["size"] + tally_size + moment_size
+        record[f"bin_mean_offset"] = data["size"] + tally_size
+        record[f"bin_sum_squared_deviations_offset"] = (
+            data["size"] + tally_size + moment_size
+        )
         record[f"bin_length"] = tally_size
-        record[f"bin_sum_length"] = moment_size
-        record[f"bin_sum_square_length"] = moment_size
+        record[f"bin_mean_length"] = moment_size
+        record[f"bin_sum_squared_deviations_length"] = moment_size
         data["size"] += tally_size + 2 * moment_size
 
     # Check structure-record compatibility

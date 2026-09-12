@@ -24,6 +24,12 @@ For example,
 
 A cache folder will be generated in the same directory as the input deck titled ``__harmonize_cache__`` which contains the intermediate compiler representations and compiled biniaries.
 
+.. note::
+
+   Fixed-source GPU transport requires ``N_batch >= 2``.
+   GPU closeout currently receives the aggregate source-loop score rather than individual-history scores, so single-batch runs are rejected during compilation.
+   Multiple batches use the same stable tally statistics algorithm as CPU runs.
+
 MC/DC Harmonize Runtime Options
 -------------------------------
 

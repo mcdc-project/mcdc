@@ -77,11 +77,15 @@ def fixed_source_simulation(simulation_container, data):
             # Time census-based tally closeout
             if use_census_based_tally:
                 tally_module.closeout.reduce(simulation, data)
-                tally_module.closeout.accumulate(simulation, data)
                 if simulation["mpi_master"]:
+                    tally_module.closeout.accumulate_statistics_and_reset_scores(
+                        simulation, data
+                    )
                     with objmode():
                         output_module.generate_census_based_tally(simulation, data)
-                    tally_module.closeout.reset_sum_bins(simulation, data)
+                    tally_module.closeout.reset_statistics(simulation, data)
+                else:
+                    tally_module.closeout.reset_scores(simulation, data)
 
             # Terminate census loop if all banks are empty
             if (
@@ -103,11 +107,18 @@ def fixed_source_simulation(simulation_container, data):
             if not use_census_based_tally:
                 # Tally history closeout
                 tally_module.closeout.reduce(simulation, data)
-                tally_module.closeout.accumulate(simulation, data)
+                if simulation["mpi_master"]:
+                    tally_module.closeout.accumulate_statistics_and_reset_scores(
+                        simulation, data
+                    )
+                else:
+                    tally_module.closeout.reset_scores(simulation, data)
 
     # Tally closeout
     if not use_census_based_tally:
         tally_module.closeout.finalize(simulation, data)
+    else:
+        tally_module.closeout.finalize_census(simulation, data)
 
 
 def eigenvalue_simulation(simulation_container, data):
@@ -137,7 +148,12 @@ def eigenvalue_simulation(simulation_container, data):
         tally_module.closeout.eigenvalue_cycle(simulation, data)
         if simulation["cycle_active"]:
             tally_module.closeout.reduce(simulation, data)
-            tally_module.closeout.accumulate(simulation, data)
+            if simulation["mpi_master"]:
+                tally_module.closeout.accumulate_statistics_and_reset_scores(
+                    simulation, data
+                )
+            else:
+                tally_module.closeout.reset_scores(simulation, data)
 
         # Manage particle banks: population control and work rebalance
         particle_bank_module.manage_particle_banks(simulation)
@@ -247,13 +263,9 @@ def exhaust_active_bank(simulation, data):
 
 @njit
 def source_closeout(simulation, idx_work, N_prog, data):
-    # Tally history closeout for one-batch fixed-source simulation
-    if (
-        not simulation["settings"]["neutron_eigenvalue_mode"]
-        and simulation["settings"]["N_batch"] == 1
-    ):
-        if not simulation["settings"]["use_census_based_tally"]:
-            tally_module.closeout.accumulate(simulation, data)
+    # Tally closeout for history-based statistics
+    if simulation["history_based_statistics"]:
+        tally_module.closeout.accumulate_statistics_and_reset_scores(simulation, data)
 
     # Progress printout
     percent = (idx_work + 1.0) / simulation["mpi_work_size"]

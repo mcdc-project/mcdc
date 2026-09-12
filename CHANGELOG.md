@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Changed
 
+- Add standard `performance/` output metrics and replace `--runtime_output` with `--no-tally_output` to omit tally results, from [@ilhamv]
 - Filter out empty numba support accessors from creation, from [@ilhamv]
 - Update GPU transport support for the current MC/DC data model and Harmonize runtime, including GPU-compatible state access, particle-bank operations, array accessors, and torus intersections, from [@braxtoncuneo].
 - Show previously published documentation versions in the documentation version switcher, from [@ilhamv]
@@ -28,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Remove empty mcdc_get and mcdc_set members, from [@ilhamv]
 
 ### Fixed
+
+- Improve tally variance accuracy with stable online statistics and parallel moment merging; require multiple batches for fixed-source time-census and GPU transport, from [@ilhamv]
 
 ### Security
 

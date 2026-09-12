@@ -80,11 +80,14 @@ def run_simulation(simulationPy: Simulation):
     # TIMER: output
     time_output_start = MPI.Wtime()
 
+    # Flags
+    no_tally_output = config.args.no_tally_output
+
     # Generate hdf5 output file
-    output_module.generate_output(simulation, data, simulationPy)
+    output_module.generate_output(simulation, data, simulationPy, no_tally_output)
 
     # Combine per-batch, per-census tally files into the main output
-    if settings.use_census_based_tally:
+    if not no_tally_output and settings.use_census_based_tally:
         output_module.recombine_tallies(simulationPy, simulation)
 
     # TIMER: output
@@ -102,6 +105,7 @@ def run_simulation(simulationPy: Simulation):
     simulation["runtime_simulation"] = time_simulation_end - time_simulation_start
     simulation["runtime_output"] = time_output_end - time_output_start
     output_module.create_runtime_datasets(simulation)
+    output_module.generate_performance_output(simulation)
     if master:
         print_module.print_runtime(simulation)
 
