@@ -867,5 +867,6 @@ def make_simulation_type(N: dict):
         ('effective_variance', float64),
         ('gpu_mode', bool_),
         ('source_seed', int64),
+        ('debug_counter', int64, (1,)),
     ])
 

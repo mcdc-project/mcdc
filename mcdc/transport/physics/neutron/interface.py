@@ -5,6 +5,7 @@ from numba import njit
 import mcdc.transport.physics.neutron.multigroup as multigroup
 import mcdc.transport.physics.neutron.native as native
 import mcdc.transport.util as util
+import mcdc.code_factory.gpu.substitution as sub
 
 # ======================================================================================
 # Particle attributes
@@ -49,7 +50,7 @@ def neutron_production_xs(reaction_type, particle_container, simulation, data):
 # ======================================================================================
 
 
-@njit
+@sub.target(tag="async")
 def collision(particle_container, collision_data_container, program, data):
     simulation = util.access_simulation(program)
 

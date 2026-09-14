@@ -10,6 +10,7 @@ import mcdc.literals as literals
 import mcdc.transport.mesh as mesh
 import mcdc.transport.physics as physics
 import mcdc.transport.util as util
+import mcdc.code_factory.gpu.substitution as sub
 
 from mcdc.constant import *
 from mcdc.transport.geometry.surface import get_distance, check_sense
@@ -395,7 +396,7 @@ def _check_cell(particle_container, speed, cell, simulation, data):
     return value[0]
 
 
-@njit
+@sub.target()
 def report_lost_particle(particle_container, simulation):
     """
     Report lost particle and terminate it

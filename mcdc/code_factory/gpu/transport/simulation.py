@@ -4,7 +4,7 @@ from numba import njit
 
 ###
 
-import mcdc.code_factory.gpu.program_builder as gpu_module
+import mcdc.code_factory.gpu.interface as gpu_interface
 import mcdc.config as config
 import mcdc.transport.particle_bank as particle_bank_module
 
@@ -42,40 +42,40 @@ def source_loop(seed, simulation, data):
 
         # Store the global state to the GPU
         if settings["gpu_storage"] == GPU_STORAGE_SEPARATE:
-            gpu_module.store_state_device_simulation(
+            gpu_interface.store_state_device_simulation(
                 simulation["gpu_meta"]["state_pointer"], simulation
             )
-            gpu_module.store_state_device_data(
+            gpu_interface.store_state_device_data(
                 simulation["gpu_meta"]["state_pointer"], data
             )
 
         # Execute the program, and continue to do so until it is done
-        block_count = gpu_module.BLOCK_COUNT
+        block_count = gpu_interface.BLOCK_COUNT
 
         if settings["gpu_strategy"] == GPU_STRATEGY_ASYNC:
-            gpu_module.exec_program(
+            gpu_interface.exec_program(
                 simulation["gpu_meta"]["program_pointer"], block_count, iter_count
             )
-            while not gpu_module.complete(simulation["gpu_meta"]["program_pointer"]):
-                gpu_module.exec_program(
+            while not gpu_interface.complete(simulation["gpu_meta"]["program_pointer"]):
+                gpu_interface.exec_program(
                     simulation["gpu_meta"]["program_pointer"], block_count, iter_count
                 )
         else:
-            gpu_module.exec_program(
+            gpu_interface.exec_program(
                 simulation["gpu_meta"]["program_pointer"], block_count, batch_size
             )
-            while not gpu_module.complete(simulation["gpu_meta"]["program_pointer"]):
-                gpu_module.exec_program(
+            while not gpu_interface.complete(simulation["gpu_meta"]["program_pointer"]):
+                gpu_interface.exec_program(
                     simulation["gpu_meta"]["program_pointer"], block_count, batch_size
                 )
-        gpu_module.clear_flags(simulation["gpu_meta"]["program_pointer"])
+        gpu_interface.clear_flags(simulation["gpu_meta"]["program_pointer"])
 
         # Recover the original program state
         if settings["gpu_storage"] == GPU_STORAGE_SEPARATE:
-            gpu_module.load_state_device_simulation(
+            gpu_interface.load_state_device_simulation(
                 simulation, simulation["gpu_meta"]["state_pointer"]
             )
-            gpu_module.load_state_device_data(
+            gpu_interface.load_state_device_data(
                 data, simulation["gpu_meta"]["state_pointer"]
             )
 
