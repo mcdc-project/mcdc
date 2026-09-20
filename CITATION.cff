@@ -1,110 +1,214 @@
-# This CITATION.cff file was generated with cffinit.
-# Visit https://bit.ly/cffinit to generate yours today!
-
 cff-version: 1.2.0
 title: 'MC/DC: Monte Carlo Dynamic Code'
-message: >-
-  a pure python high performance Monte Carlo neutronics
-  package
+version: 0.15.3
+date-released: '2026-08-15'
+license: BSD-3-Clause
 type: software
+repository-code: 'https://github.com/mcdc-project/mcdc'
+url: 'https://mcdc.readthedocs.io/en/stable/'
+
+abstract: >-
+  MC/DC is a performant, scalable, and machine-portable
+  Python-based Monte Carlo particle transport software
+  currently developed in the Center for Advancing the Radiation
+  Resilience of Electronics (CARRE).
+
+message: >-
+  If you use MC/DC in published work, please cite the JOSS
+  article listed as the preferred citation.
+
+# Uncomment once the Zenodo archive DOI for v0.15.3 is generated:
+# identifiers:
+#   - description: This is the archived snapshot of version 0.15.3 of MC/DC
+#     type: doi
+#     value: 10.5281/zenodo.XXXXXXXX
 authors:
   - name: >-
-      Center for Exascale Monte Carlo Neutron Transport
-      (CEMeNT)
-    website: 'https://cement-psaap.github.io/'
+      Center for Advancing the Radiation Resilience of Electronics
+      (CARRE)
+    website: 'https://carre-psaapiv.org/'
+
   - given-names: Ilham
-    family-names: 'Variansyah '
+    family-names: Variansyah
     email: variansi@oregonstate.edu
     affiliation: Oregon State University
     orcid: 'https://orcid.org/0000-0003-3426-7160'
+
   - given-names: Joanna Piper
     family-names: Morgan
     email: morgajoa@oregonstate.edu
     affiliation: Oregon State University
     orcid: 'https://orcid.org/0000-0003-1379-5431'
+
   - given-names: Samuel
     family-names: Pasmann
+    affiliation: University of Notre Dame
     orcid: 'https://orcid.org/0000-0003-1391-1471'
+
   - given-names: Kayla
     family-names: Clements
     email: clemekay@oregonstate.edu
     affiliation: Oregon State University
     orcid: 'https://orcid.org/0000-0003-3358-5618'
+
   - given-names: Braxton
     family-names: Cuneo
     email: bcuneo@seattleu.edu
     affiliation: Seattle University
     orcid: 'https://orcid.org/0000-0002-6493-0990'
+
   - given-names: Alexander
     family-names: Mote
     email: motea@oregonstate.edu
-    orcid: 'https://orcid.org/0000-0001-5099-0223'
     affiliation: Oregon State University
+    orcid: 'https://orcid.org/0000-0001-5099-0223'
+
+  - given-names: Charles
+    family-names: Goodman
+    affiliation: North Carolina State University
+
   - given-names: Caleb
     family-names: Shaw
     email: cashaw4@ncsu.edu
     affiliation: North Carolina State University
+
   - given-names: Jordan
     family-names: Northrop
     email: northj@oregonstate.edu
-    affiliation: Oregon State Universtiy
+    affiliation: Oregon State University
     orcid: 'https://orcid.org/0000-0003-0420-9699'
+
   - given-names: Rohan
     family-names: Pankaj
+    affiliation: Brown University
     orcid: 'https://orcid.org/0009-0005-0445-9323'
-  - given-names: 'Ryan G. '
+
+  - given-names: Ethan
+    family-names: Lame
+    affiliation: Oregon State University
+    orcid: 'https://orcid.org/0000-0001-7686-9755'
+
+  - given-names: Benjamin
+    family-names: Whewell
+    affiliation: University of Notre Dame
+    orcid: 'https://orcid.org/0000-0001-7826-5525'
+
+  - given-names: Ryan G.
     family-names: McClarren
     email: rmcclarr@nd.edu
     affiliation: University of Notre Dame
     orcid: 'https://orcid.org/0000-0002-8342-6132'
+
   - given-names: Todd S.
     family-names: Palmer
     email: palmerts@oregonstate.edu
-    affiliation: Oregon State Univeristy
+    affiliation: Oregon State University
     orcid: 'https://orcid.org/0000-0003-3310-5258'
+
   - given-names: Lizhong
     family-names: Chen
     email: chenliz@oregonstate.edu
     affiliation: Oregon State University
     orcid: 'https://orcid.org/0000-0001-5890-7121'
+
   - given-names: Dmitriy Y.
     family-names: Anistratov
     email: anistratov@ncsu.edu
     affiliation: North Carolina State University
+
   - given-names: C. T.
     family-names: Kelley
     email: ctk@ncsu.edu
     affiliation: North Carolina State University
-  - given-names: 'Camille  '
+
+  - given-names: Camille J.
     family-names: Palmer
     email: palmecam@oregonstate.edu
-    orcid: 'https://orcid.org/0000-0002-7573-4215'
     affiliation: Oregon State University
+    orcid: 'https://orcid.org/0000-0002-7573-4215'
+
   - given-names: Kyle E.
     family-names: Niemeyer
     email: niemeyek@oregonstate.edu
-    orcid: 'https://orcid.org/0000-0003-4425-7097'
     affiliation: Oregon State University
-identifiers:
-  - type: doi
-    value: 10.5281/zenodo.10576604
-    description: Zenodo Archive
-  - type: doi
-    value: 10.21105/joss.06415
-    description: Paper description of MC/DC
-repository-code: 'https://github.com/CEMeNT-PSAAP/MCDC'
-url: 'https://mcdc.readthedocs.io/en/latest/'
-abstract: >-
-  MC/DC is a performant, scalable, and machine-portable
-  Python-based Monte Carlo neutron transport software
-  currently developed in the Center for Exascale Monte Carlo
-  Neutron Transport (CEMeNT).
+    orcid: 'https://orcid.org/0000-0003-4425-7097'
+
+  - given-names: Melek
+    family-names: Derman
+    email: dermanm@oregonstate.edu
+    affiliation: Oregon State University
+    orcid: 'https://orcid.org/0000-0002-6124-6771'
+
 keywords:
   - monte carlo
   - numba
   - gpu
   - neutron transport
   - radiation transport
-license: BSD-3-Clause
-version: 0.9.1
-date-released: '2024-04-08'
+  - electron transport
+
+preferred-citation:
+  type: article
+  title: >-
+    Monte Carlo / Dynamic Code (MC/DC): An accelerated Python package for
+    fully transient neutron transport and rapid methods development
+  journal: Journal of Open Source Software
+  year: 2024
+  volume: '9'
+  issue: '96'
+  start: '6415'
+  doi: 10.21105/joss.06415
+  authors:
+    - family-names: Morgan
+      given-names: Joanna Piper
+      orcid: 'https://orcid.org/0000-0003-1379-5431'
+    - family-names: Variansyah
+      given-names: Ilham
+      orcid: 'https://orcid.org/0000-0003-3426-7160'
+    - family-names: Pasmann
+      given-names: Samuel L.
+      orcid: 'https://orcid.org/0000-0003-1391-1471'
+    - family-names: Clements
+      given-names: Kayla B.
+      orcid: 'https://orcid.org/0000-0003-3358-5618'
+    - family-names: Cuneo
+      given-names: Braxton
+      orcid: 'https://orcid.org/0000-0002-6493-0990'
+    - family-names: Mote
+      given-names: Alexander
+      orcid: 'https://orcid.org/0000-0001-5099-0223'
+    - family-names: Goodman
+      given-names: Charles
+    - family-names: Shaw
+      given-names: Caleb
+    - family-names: Northrop
+      given-names: Jordan
+      orcid: 'https://orcid.org/0000-0003-0420-9699'
+    - family-names: Pankaj
+      given-names: Rohan
+      orcid: 'https://orcid.org/0009-0005-0445-9323'
+    - family-names: Lame
+      given-names: Ethan
+      orcid: 'https://orcid.org/0000-0001-7686-9755'
+    - family-names: Whewell
+      given-names: Benjamin
+      orcid: 'https://orcid.org/0000-0001-7826-5525'
+    - family-names: McClarren
+      given-names: Ryan G.
+      orcid: 'https://orcid.org/0000-0002-8342-6132'
+    - family-names: Palmer
+      given-names: Todd S.
+      orcid: 'https://orcid.org/0000-0003-3310-5258'
+    - family-names: Chen
+      given-names: Lizhong
+      orcid: 'https://orcid.org/0000-0001-5890-7121'
+    - family-names: Anistratov
+      given-names: Dmitriy Y.
+    - family-names: Kelley
+      given-names: C. T.
+    - family-names: Palmer
+      given-names: Camille J.
+      orcid: 'https://orcid.org/0000-0002-7573-4215'
+    - family-names: Niemeyer
+      given-names: Kyle E.
+      orcid: 'https://orcid.org/0000-0003-4425-7097'
