@@ -4,11 +4,15 @@
 Project
 =======
 
-The Project pages present the research programs shaping MC/DC, the capabilities under active development, and the publications documenting this work.
-MC/DC is currently developed as part of the `Center for Advancing the Radiation Resilience of Electronics (CARRE) <https://carre-psaapiv.org/>`_ and builds on its origins in the `Center for Exascale Monte Carlo Neutron Transport (CEMeNT) <https://cement-psaap.github.io/>`_.
+The Project pages present the research programs shaping MC/DC, the evidence supporting its development, and the publications documenting the work.
+
+The :doc:`CARRE <carre>` page describes MC/DC's role in the Center for Advancing the Radiation Resilience of Electronics and its foundation in the Center for Exascale Monte Carlo Neutron Transport.
+The :doc:`Verification, Validation, and Performance <vvp/index>` pages explain how MC/DC is assessed and present the published VVP results.
+The :doc:`Publications <publications>` page collects research associated with MC/DC and its past and ongoing research programs.
 
 .. toctree::
    :maxdepth: 1
 
    carre
+   vvp/index
    publications

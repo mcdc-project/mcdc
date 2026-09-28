@@ -56,10 +56,8 @@ def get_direction_index(particle_container, tally, data):
 
     tolerance = COINCIDENCE_TOLERANCE_DIRECTION
 
-    grid_mu = data[tally["mu_offset"] : (tally["mu_offset"] + tally["mu_length"])]
-    # Above is equivalent to: grid_mu = mcdc_get.tally.mu_all(tally, data)
-    grid_azi = data[tally["azi_offset"] : (tally["azi_offset"] + tally["azi_length"])]
-    # Above is equivalent to: grid_azi = mcdc_get.tally.azi_all(tally, data)
+    grid_mu = mcdc_get.tally.mu_all(tally, data)
+    grid_azi = mcdc_get.tally.azi_all(tally, data)
 
     i_mu = find_bin_with_tolerance(mu, grid_mu, tolerance)
     i_azi = find_bin_with_tolerance(azi, grid_azi, tolerance)
@@ -73,10 +71,7 @@ def get_energy_index(particle_container, tally, data):
     E = particle["E"]
 
     tolerance = COINCIDENCE_TOLERANCE_ENERGY
-    grid_energy = data[
-        tally["energy_offset"] : (tally["energy_offset"] + tally["energy_length"])
-    ]
-    # Above is equivalent to: grid_energy = mcdc_get.tally.energy_all(tally, data)
+    grid_energy = mcdc_get.tally.energy_all(tally, data)
 
     return find_bin_with_tolerance(E, grid_energy, tolerance)
 
@@ -88,10 +83,7 @@ def get_time_index(particle_container, tally, data):
     # Particle properties
     time = particle["t"]
 
-    grid_time = data[
-        tally["time_offset"] : (tally["time_offset"] + tally["time_length"])
-    ]
-    # Above is equivalent to: grid_time = mcdc_get.tally.time_all(tally, data)
+    grid_time = mcdc_get.tally.time_all(tally, data)
 
     tolerance = COINCIDENCE_TOLERANCE_TIME
     go_lower = False

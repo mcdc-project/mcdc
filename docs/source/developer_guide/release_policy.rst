@@ -89,7 +89,11 @@ Prepare the Release
 #. Review the ``Unreleased`` section of ``CHANGELOG.md``.
    Ensure every user-visible change is included under the correct heading, remove empty headings, and add contributor attribution where appropriate.
    For a patch release, place ``Fixed`` first and confirm that it is non-empty and clearly states the defect that justifies the release.
-#. Finalize the release version and date in ``CHANGELOG.md`` and the ``version`` and ``date-released`` fields of ``CITATION.cff``, and update the stable entry's display name in ``docs/source/_static/switcher.json`` to the full ``X.Y.Z (stable)`` version while retaining ``stable`` as its version identifier and URL.
+#. Finalize the release version and date in ``CHANGELOG.md`` and the ``version`` and ``date-released`` fields of ``CITATION.cff``.
+#. Update ``docs/source/_static/switcher.json``:
+   - Change the stable entry's display name to the full ``X.Y.Z (stable)`` version while retaining ``stable`` as its version identifier and URL.
+   - Add the previous stable release as a historical entry, using its Read the Docs tag identifier and URL, and retain the existing historical entries in newest-to-oldest order.
+   - Confirm that every listed historical version is active, built, and reachable on Read the Docs.
 #. Review and update ``CITATION.cff``; it supplies GitHub citation guidance and Zenodo metadata.
    Validate the CFF file from the repository root with ``cffconvert --validate``.
 #. Review the release diff for user-facing behavior.
@@ -97,6 +101,10 @@ Prepare the Release
    If existing users must change how they use MC/DC, include the necessary deprecation notice or migration guidance.
 #. If ``release_branch`` requires a newer Python version, add that version to the ``Python Compatibility Tests`` matrix in ``.github/workflows/python_compatibility.yml`` so it is tested during integration.
 #. Confirm the required local checks, continuous-integration workflows, and distribution artifact tests pass on the release candidate; resolve any dependency incompatibilities they expose and update ``pyproject.toml`` and ``CHANGELOG.md`` as needed.
+#. Run the applicable `MC/DC-VVP campaign <https://github.com/mcdc-project/mcdc-vvp>`_ with the release candidate and the corresponding MC/DC-VVP version.
+   Process the completed suites and review their convergence, reference, and comparison results for unexpected behavior.
+#. Run ``python prepare_release.py`` in MC/DC-VVP to collect the processed PNG figures and GIF animations into its flat ``release/`` asset directory.
+   Confirm that the prepared assets cover the documented VVP cases and that their names match the links used by the MC/DC documentation.
 
 Integrate the Release
 ^^^^^^^^^^^^^^^^^^^^^
@@ -122,6 +130,9 @@ Publish from Main
    * **Release label:** select **Latest**.
    * **Finish:** click **Publish release** when creating the release, or **Update release** when editing an existing release.
 
+#. Replace the assets attached to the mutable `VVP results release <https://github.com/mcdc-project/mcdc/releases/tag/vvp-results>`_ with the contents of the prepared MC/DC-VVP ``release/`` directory.
+   Update its release notes to identify the MC/DC and MC/DC-VVP versions used for the published campaign.
+#. Confirm that every VVP figure and animation referenced by the documentation is available from the ``vvp-results`` release and renders on its case page.
 #. Confirm that the automatically triggered `Publish Python Package to PyPI <https://github.com/mcdc-project/mcdc/actions/workflows/publish-pypi.yml>`_ and `Check citation metadata <https://github.com/mcdc-project/mcdc/actions/workflows/check_citation.yml>`_ workflows complete successfully, and that the release is available from the `stable Read the Docs site <https://mcdc.readthedocs.io/en/stable/>`_.
 #. Verify the Zenodo archive's version, date, authors, license, and DOI.
    Submit the record to the CARRE community (``carre``) through Zenodo and confirm inclusion; CFF does not configure community submission.

@@ -5,9 +5,28 @@ import numpy as np
 from numba import njit, types
 
 
-@njit
 def atomic_add(array, idx, value):
-    harmonize.array_atomic_add(array, idx, value)
+    result = array[idx]
+    array[idx] += value
+    return result
+
+
+@nb.extending.overload(atomic_add, target="gpu")
+def overload_atomic_add_gpu(array, idx, value):
+    def impl(array, idx, value):
+        return harmonize.array_atomic_add(array, idx, value)
+
+    return impl
+
+
+@nb.extending.overload(atomic_add, target="cpu")
+def overload_atomic_add_cpu(array, idx, value):
+    def impl(array, idx, value):
+        result = array[idx]
+        array[idx] += value
+        return result
+
+    return impl
 
 
 # =============================================================================

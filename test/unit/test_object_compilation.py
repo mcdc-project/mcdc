@@ -298,6 +298,7 @@ def test_simulation_compilation_sets_particle_bank_capacities():
     simulation.set_model([mcdc.Cell()])
     simulation.settings.N_particle = 100
     simulation.settings.N_census = 2
+    simulation.settings.N_batch = 2
     simulation.settings.active_bank_buffer = 11
     simulation.settings.census_bank_buffer_ratio = 2.0
     simulation.settings.source_bank_buffer_ratio = 3.0

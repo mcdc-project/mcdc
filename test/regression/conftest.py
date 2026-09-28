@@ -136,11 +136,20 @@ def build_command(config):
     target = config.getoption("--target")
     mpiexec = config.getoption("--mpiexec")
     srun = config.getoption("--srun")
+
+    state = ""
+    if target == "gpu":
+        state = "--gpu_state_storage=managed"
+        mode = "numba"
+
     command = [
         sys.executable,
         "input.py",
+        f"--clear_cache",
+        f"--caching",
         f"--mode={mode}",
         f"--target={target}",
+        state,
         "--output=output",
         "--no-progress-bar",
     ]
@@ -174,6 +183,7 @@ def compare_outputs(output_path, answer_path, target):
 
 
 def compare_tallies(output, answer, target, errors):
+    gpu_pass_list = ["uq_var", "sdev"]
     name_root = "tallies"
     for tally in answer[name_root].keys():
         name_tally = f"{name_root}/{tally}"
@@ -182,7 +192,8 @@ def compare_tallies(output, answer, target, errors):
                 continue
             name_score = f"{name_tally}/{score}"
             for result in answer[name_score].keys():
-                if "uq_var" in result and target == "gpu":
+                should_pass = any([x in result for x in gpu_pass_list])
+                if should_pass and target == "gpu":
                     continue
                 name = f"{name_score}/{result}"
                 assert_allclose(output[name][()], answer[name][()], name, errors)

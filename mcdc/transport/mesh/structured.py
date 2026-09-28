@@ -2,6 +2,7 @@ from numba import njit
 
 ####
 
+import mcdc.mcdc_get as mcdc_get
 from mcdc.constant import COINCIDENCE_TOLERANCE, INF
 from mcdc.transport.util import find_bin_with_rules
 
@@ -21,24 +22,9 @@ def get_indices(particle_container, structured_mesh, data):
     uy = particle["uy"]
     uz = particle["uz"]
 
-    grid_x = data[
-        structured_mesh["x_offset"] : (
-            structured_mesh["x_offset"] + structured_mesh["x_length"]
-        )
-    ]
-    # Above is equivalent to: grid_x = mcdc_get.structured_mesh.x_all(structured_mesh, data)
-    grid_y = data[
-        structured_mesh["y_offset"] : (
-            structured_mesh["y_offset"] + structured_mesh["y_length"]
-        )
-    ]
-    # Above is equivalent to: grid_y = mcdc_get.structured_structured_mesh.y_all(structured_mesh, data)
-    grid_z = data[
-        structured_mesh["z_offset"] : (
-            structured_mesh["z_offset"] + structured_mesh["z_length"]
-        )
-    ]
-    # Above is equivalent to: grid_z = mcdc_get.structured_structured_mesh.z_all(structured_mesh, data)
+    grid_x = mcdc_get.structured_mesh.x_all(structured_mesh, data)
+    grid_y = mcdc_get.structured_mesh.y_all(structured_mesh, data)
+    grid_z = mcdc_get.structured_mesh.z_all(structured_mesh, data)
 
     tolerance = COINCIDENCE_TOLERANCE
     ux_go_lower = ux < 0.0

@@ -193,8 +193,10 @@ class Tally(MCDCPolymorphic):
 
     # Score bins
     bin: NDArray[float64]
-    bin_sum: NDArray[float64]
-    bin_sum_square: NDArray[float64]
+    # Running mean and sum of squared deviations from the running mean.
+    bin_mean: NDArray[float64]
+    # Finalization replaces the squared-deviation sum with the standard error.
+    bin_sum_squared_deviations: NDArray[float64]
     bin_shape: list[int]
 
     # Filter strides

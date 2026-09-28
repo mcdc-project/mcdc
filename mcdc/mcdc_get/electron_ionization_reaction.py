@@ -4,18 +4,24 @@ from numpy import int64
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def subshell_x_IDs(index, electron_ionization_reaction, data):
     offset = electron_ionization_reaction["subshell_x_IDs_offset"]
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def subshell_x_IDs_all(electron_ionization_reaction, data):
     start = electron_ionization_reaction["subshell_x_IDs_offset"]
     size = electron_ionization_reaction["N_subshell_x"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -26,11 +32,11 @@ def subshell_x_IDs_last(electron_ionization_reaction, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def subshell_x_IDs_chunk(start, length, electron_ionization_reaction, data):
     start += electron_ionization_reaction["subshell_x_IDs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -39,12 +45,12 @@ def subshell_product_IDs(index, electron_ionization_reaction, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def subshell_product_IDs_all(electron_ionization_reaction, data):
     start = electron_ionization_reaction["subshell_product_IDs_offset"]
     size = electron_ionization_reaction["N_subshell_product"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -55,8 +61,8 @@ def subshell_product_IDs_last(electron_ionization_reaction, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def subshell_product_IDs_chunk(start, length, electron_ionization_reaction, data):
     start += electron_ionization_reaction["subshell_product_IDs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

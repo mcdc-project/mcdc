@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
+import numba as nb
 import numpy as np
 import pytest
 from numpy.typing import NDArray
@@ -66,8 +67,8 @@ def test_stringified_annotation_rejects_incorrect_offset_shape(capsys):
 
 
 def test_generated_accessor_resolves_dimension_offset():
-    all_source = _accessor_1d_all("mgxs", "energy", "G+1")
-    last_source = _accessor_1d_last("mgxs", "energy", "N - 2")
+    all_source = _accessor_1d_all("mgxs", "energy", "G+1", nb.types.float64)
+    last_source = _accessor_1d_last("mgxs", "energy", "N - 2", nb.types.float64)
 
     assert 'size = mgxs["G"] + 1' in all_source
     assert 'size = mgxs["N"] - 2' in last_source

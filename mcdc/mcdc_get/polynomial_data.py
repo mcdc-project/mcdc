@@ -3,18 +3,24 @@
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def coefficients(index, polynomial_data, data):
     offset = polynomial_data["coefficients_offset"]
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def coefficients_all(polynomial_data, data):
     start = polynomial_data["coefficients_offset"]
     size = polynomial_data["coefficients_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -25,8 +31,8 @@ def coefficients_last(polynomial_data, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def coefficients_chunk(start, length, polynomial_data, data):
     start += polynomial_data["coefficients_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

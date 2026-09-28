@@ -9,6 +9,7 @@ It is intended for both occasional contributors and project maintainers.
 
 Start with the setup steps below.
 Use :doc:`continuous_integration` to understand automated checks and :doc:`container_development` when developing in the project container.
+Use :doc:`unit_testing` for the role and organization of focused component tests.
 Use :doc:`example_validation` when changing the public API or example problems.
 Read :doc:`pull_requests` before preparing a contribution.
 For software architecture and documentation practices, see the :doc:`../index`.
@@ -32,6 +33,7 @@ Development Workflow
 
    continuous_integration
    container_development
+   unit_testing
    example_validation
    pull_requests
 

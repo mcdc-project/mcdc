@@ -5,8 +5,36 @@ Particle Sources
 ================
 
 A :class:`mcdc.Source` describes the position, direction, energy, time, particle type, and relative probability of particles introduced into a simulation.
-Position and spatial bounds use cm, physical energy uses eV, time uses seconds, and direction vectors are dimensionless.
+Position and spatial coordinates use cm, physical energy uses eV, time uses seconds, and direction vectors are dimensionless.
 Only sources passed to :meth:`mcdc.Simulation.set_sources` participate in transport.
+
+Spatial Distributions
+---------------------
+
+The ``x``, ``y``, and ``z`` source coordinates are sampled independently.
+An unspecified coordinate is fixed at zero, and a scalar fixes a coordinate at the specified value.
+Two values define a uniform interval:
+
+.. code-block:: python
+
+   uniform_line = mcdc.Source(x=[0.0, 10.0])
+
+A coordinate array with shape ``(2, N)`` defines a piecewise-linear probability density.
+The first row contains coordinates in cm, and the second row contains nonnegative relative densities:
+
+.. code-block:: python
+
+   nonuniform_line = mcdc.Source(
+       x=(
+           [0.0, 5.0, 10.0],
+           [0.2, 1.0, 0.4],
+       ),
+   )
+
+The coordinates must be finite and strictly increasing.
+MC/DC normalizes the probability density internally.
+Independent distributions may be specified for multiple coordinates to define a separable multidimensional source.
+Use ``position=[x, y, z]`` instead when all three coordinates are fixed.
 
 Energy Distributions
 --------------------

@@ -149,6 +149,10 @@ class Simulation(MCDCBase):
     idx_census: int
     idx_batch: int
 
+    # Tally statistics
+    N_tally_sample: int
+    history_based_statistics: bool
+
     # k-eigenvalue globals
     k_eff: float
     k_cycle: NDArray[float64]
@@ -189,7 +193,11 @@ class Simulation(MCDCBase):
     runtime_output: float
     runtime_bank_management: float
 
+    # Performance metrics
+    effective_variance: float
+
     # GPU metadata
+    gpu_mode: bool
     gpu_meta: GPUMeta
     source_seed: int
 
@@ -233,6 +241,10 @@ class Simulation(MCDCBase):
         self.idx_census = 0
         self.idx_batch = 0
 
+        # Tally statistics
+        self.N_tally_sample = 0
+        self.history_based_statistics = False
+
         # Eigenvalue simulation
         self.k_eff = 0.0
         self.k_cycle = np.ones(1)
@@ -273,7 +285,11 @@ class Simulation(MCDCBase):
         self.runtime_output = 0.0
         self.runtime_bank_management = 0.0
 
+        # Performance metrics
+        self.effective_variance = 0.0
+
         # GPU metadata
+        self.gpu_mode = False
         self.gpu_meta = GPUMeta()
         self.source_seed = 0
 
@@ -311,8 +327,31 @@ class Simulation(MCDCBase):
             set_nuclides_from_elements,
             update_fissionable_from_nuclides,
         )
+        from mcdc.config import target
 
         settings = self.settings
+
+        # Censuses split histories; GPU closeout aggregates them.
+        # Both require batch samples for fixed-source uncertainty estimates.
+        self.gpu_mode = target == "gpu"
+        if (
+            not settings.neutron_eigenvalue_mode
+            and settings.N_census > 1
+            and settings.N_batch < 2
+        ):
+            print_error(
+                "Time-census transport requires N_batch >= 2; "
+                "history-based single-batch statistics are not supported."
+            )
+        if (
+            not settings.neutron_eigenvalue_mode
+            and self.gpu_mode
+            and settings.N_batch < 2
+        ):
+            print_error(
+                "GPU-mode fixed-source transport requires N_batch >= 2; "
+                "history-based single-batch statistics are not supported."
+            )
 
         # Select standard multigroup or hybrid neutron transport.
         materials_have_native_composition = any(
@@ -437,6 +476,12 @@ class Simulation(MCDCBase):
         self.bank_future.size[0] = int(settings.future_bank_buffer_ratio * N_work)
 
         # Initialize run state derived from the compiled settings
+        self.N_tally_sample = 0
+        self.history_based_statistics = (
+            not settings.neutron_eigenvalue_mode
+            and settings.N_batch == 1
+            and not settings.use_census_based_tally
+        )
         self.k_eff = settings.k_init
         self.cycle_active = (
             not settings.neutron_eigenvalue_mode or settings.N_inactive == 0

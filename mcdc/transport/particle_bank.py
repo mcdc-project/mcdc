@@ -35,7 +35,8 @@ def set_bank_size(bank, value):
 
 @njit
 def add_bank_size(bank, value):
-    util.atomic_add(bank["size"], 0, value)
+    # Perform atomic increment to the bank size; return the initial size
+    return util.atomic_add(bank["size"], 0, value)
 
 
 # =============================================================================
@@ -50,7 +51,8 @@ def _bank_particle(particle_container, bank):
         report_full_bank(bank)
 
     # Set particle data
-    idx = get_bank_size(bank)
+    idx = add_bank_size(bank, 1)
+
     particle_module.copy(bank["particle_data"][idx : idx + 1], particle_container)
 
 
@@ -60,18 +62,12 @@ def bank_active_particle(particle_container, program):
     bank = simulation["bank_active"]
     _bank_particle(particle_container, bank)
 
-    # Increment bank size
-    add_bank_size(bank, 1)
-
 
 @njit
 def bank_census_particle(particle_container, program):
     simulation = util.access_simulation(program)
     bank = simulation["bank_census"]
     _bank_particle(particle_container, bank)
-
-    # Increment bank size
-    add_bank_size(bank, 1)
 
 
 @njit
@@ -80,19 +76,11 @@ def bank_future_particle(particle_container, program):
     bank = simulation["bank_future"]
     _bank_particle(particle_container, bank)
 
-    # Increment bank size
-    add_bank_size(bank, 1)
-
 
 @njit
 def bank_source_particle(particle_container, simulation):
     bank = simulation["bank_source"]
     _bank_particle(particle_container, bank)
-
-    # Increment bank size
-    #   Note that we don't use the atomic operation in add_bank_size function
-    #   as source particle banking is not thread-parallelized
-    bank["size"][0] += 1
 
 
 @njit
@@ -101,12 +89,9 @@ def pop_particle(particle_container, bank):
     if get_bank_size(bank) == 0:
         report_empty_bank(bank)
 
-    # Set particle data
-    idx = get_bank_size(bank) - 1
-    particle_module.copy(particle_container, bank["particle_data"][idx : idx + 1])
-
     # Decrement bank size
-    add_bank_size(bank, -1)
+    idx = add_bank_size(bank, -1) - 1
+    particle_module.copy(particle_container, bank["particle_data"][idx : idx + 1])
 
     # Set default IDs and event for the live particle
     particle = particle_container[0]
@@ -163,10 +148,9 @@ def promote_future_particles(program, data):
         if particle["t"] < next_census_time:
 
             bank_census_particle(particle_container, program)
-            add_bank_size(future_bank, -1)
+            j = add_bank_size(future_bank, -1) - 1
 
             # Consolidate the emptied space in the future bank
-            j = get_bank_size(future_bank)
             particle_module.copy(
                 future_bank["particle_data"][idx : idx + 1],
                 future_bank["particle_data"][j : j + 1],

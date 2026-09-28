@@ -74,6 +74,7 @@ More resources
 --------------
 
 - Learn from complete input decks in :doc:`user_guide/examples/index`.
+- Review the :doc:`MC/DC verification, validation, and performance (VVP)<project/vvp/index>` evidence.
 - Explore the ongoing :doc:`CARRE research program <project/carre>`, its collaboration opportunities, and the :doc:`MC/DC publication record <project/publications>`.
 - Follow the contribution workflow in :doc:`developer_guide/contributing/index`.
 

@@ -4,18 +4,24 @@ from numpy import int64
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def spectrum_probability_grid(index, neutron_inelastic_scattering_reaction, data):
     offset = neutron_inelastic_scattering_reaction["spectrum_probability_grid_offset"]
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def spectrum_probability_grid_all(neutron_inelastic_scattering_reaction, data):
     start = neutron_inelastic_scattering_reaction["spectrum_probability_grid_offset"]
     size = neutron_inelastic_scattering_reaction["spectrum_probability_grid_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -26,20 +32,20 @@ def spectrum_probability_grid_last(neutron_inelastic_scattering_reaction, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def spectrum_probability_grid_chunk(start, length, neutron_inelastic_scattering_reaction, data):
     start += neutron_inelastic_scattering_reaction["spectrum_probability_grid_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
-@njit
+@array_return(nb.types.float64)
 def spectrum_probability_vector(index_1, neutron_inelastic_scattering_reaction, data):
     offset = neutron_inelastic_scattering_reaction["spectrum_probability_offset"]
     stride = neutron_inelastic_scattering_reaction["N_spectrum"]
     start = offset + index_1 * stride
     end = start + stride
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -49,11 +55,11 @@ def spectrum_probability(index_1, index_2, neutron_inelastic_scattering_reaction
     return data[offset + index_1 * stride + index_2]
 
 
-@njit
+@array_return(nb.types.float64)
 def spectrum_probability_chunk(start, length, neutron_inelastic_scattering_reaction, data):
     start += neutron_inelastic_scattering_reaction["spectrum_probability_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -62,12 +68,12 @@ def energy_spectrum_IDs(index, neutron_inelastic_scattering_reaction, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def energy_spectrum_IDs_all(neutron_inelastic_scattering_reaction, data):
     start = neutron_inelastic_scattering_reaction["energy_spectrum_IDs_offset"]
     size = neutron_inelastic_scattering_reaction["N_energy_spectrum"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -78,8 +84,8 @@ def energy_spectrum_IDs_last(neutron_inelastic_scattering_reaction, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def energy_spectrum_IDs_chunk(start, length, neutron_inelastic_scattering_reaction, data):
     start += neutron_inelastic_scattering_reaction["energy_spectrum_IDs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

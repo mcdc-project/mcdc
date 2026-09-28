@@ -178,59 +178,59 @@ def bin_chunk(start, length, tally, data, value):
 
 
 @njit
-def bin_sum(index, tally, data, value):
-    offset = tally["bin_sum_offset"]
+def bin_mean(index, tally, data, value):
+    offset = tally["bin_mean_offset"]
     data[offset + index] = value
 
 
 @njit
-def bin_sum_all(tally, data, value):
-    start = tally["bin_sum_offset"]
-    size = tally["bin_sum_length"]
+def bin_mean_all(tally, data, value):
+    start = tally["bin_mean_offset"]
+    size = tally["bin_mean_length"]
     end = start + size
     data[start:end] = value
 
 
 @njit
-def bin_sum_last(tally, data, value):
-    start = tally["bin_sum_offset"]
-    size = tally["bin_sum_length"]
+def bin_mean_last(tally, data, value):
+    start = tally["bin_mean_offset"]
+    size = tally["bin_mean_length"]
     end = start + size
     data[end - 1] = value
 
 
 @njit
-def bin_sum_chunk(start, length, tally, data, value):
-    start += tally["bin_sum_offset"]
+def bin_mean_chunk(start, length, tally, data, value):
+    start += tally["bin_mean_offset"]
     end = start + length
     data[start:end] = value
 
 
 @njit
-def bin_sum_square(index, tally, data, value):
-    offset = tally["bin_sum_square_offset"]
+def bin_sum_squared_deviations(index, tally, data, value):
+    offset = tally["bin_sum_squared_deviations_offset"]
     data[offset + index] = value
 
 
 @njit
-def bin_sum_square_all(tally, data, value):
-    start = tally["bin_sum_square_offset"]
-    size = tally["bin_sum_square_length"]
+def bin_sum_squared_deviations_all(tally, data, value):
+    start = tally["bin_sum_squared_deviations_offset"]
+    size = tally["bin_sum_squared_deviations_length"]
     end = start + size
     data[start:end] = value
 
 
 @njit
-def bin_sum_square_last(tally, data, value):
-    start = tally["bin_sum_square_offset"]
-    size = tally["bin_sum_square_length"]
+def bin_sum_squared_deviations_last(tally, data, value):
+    start = tally["bin_sum_squared_deviations_offset"]
+    size = tally["bin_sum_squared_deviations_length"]
     end = start + size
     data[end - 1] = value
 
 
 @njit
-def bin_sum_square_chunk(start, length, tally, data, value):
-    start += tally["bin_sum_square_offset"]
+def bin_sum_squared_deviations_chunk(start, length, tally, data, value):
+    start += tally["bin_sum_squared_deviations_offset"]
     end = start + length
     data[start:end] = value
 

@@ -4,18 +4,24 @@ from numpy import int64
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def nuclide_IDs(index, material, data):
     offset = material["nuclide_IDs_offset"]
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def nuclide_IDs_all(material, data):
     start = material["nuclide_IDs_offset"]
     size = material["N_nuclide"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -26,11 +32,11 @@ def nuclide_IDs_last(material, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def nuclide_IDs_chunk(start, length, material, data):
     start += material["nuclide_IDs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -39,12 +45,12 @@ def element_IDs(index, material, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def element_IDs_all(material, data):
     start = material["element_IDs_offset"]
     size = material["N_element"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -55,11 +61,11 @@ def element_IDs_last(material, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def element_IDs_chunk(start, length, material, data):
     start += material["element_IDs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -68,12 +74,12 @@ def nuclide_densities(index, material, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def nuclide_densities_all(material, data):
     start = material["nuclide_densities_offset"]
     size = material["nuclide_densities_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -84,11 +90,11 @@ def nuclide_densities_last(material, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def nuclide_densities_chunk(start, length, material, data):
     start += material["nuclide_densities_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -97,12 +103,12 @@ def element_densities(index, material, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def element_densities_all(material, data):
     start = material["element_densities_offset"]
     size = material["element_densities_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -113,8 +119,8 @@ def element_densities_last(material, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def element_densities_chunk(start, length, material, data):
     start += material["element_densities_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

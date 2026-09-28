@@ -1,0 +1,43 @@
+name: Check Numba Support
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check-numba-support:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Set up MPI
+        uses: mpi4py/setup-mpi@v1
+
+      - name: Install MC/DC
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --no-binary=mpi4py mpi4py
+          python -m pip install -e .
+
+      - name: Rebuild and check generated Numba support
+        shell: bash
+        run: |
+          python mcdc/code_factory/rebuild_numba_support.py
+          changes=$(git status --porcelain --untracked-files=all -- mcdc/numba_types.py mcdc/mcdc_get mcdc/mcdc_set)
+          if [ -n "$changes" ]; then
+            echo "$changes"
+            git diff -- mcdc/numba_types.py mcdc/mcdc_get mcdc/mcdc_set
+            echo "::error::Generated Numba support is out of date. Run python mcdc/code_factory/rebuild_numba_support.py and commit the generated changes."
+            exit 1
+          fi

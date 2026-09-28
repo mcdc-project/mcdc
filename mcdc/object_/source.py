@@ -39,9 +39,13 @@ class Source(MCDCObject):
         Point-source position ``[x, y, z]`` in cm. If provided, the source is
         treated as a point source. Cannot be supplied with ``x``, ``y``, or
         ``z``.
-    x, y, z : array_like of float, optional
-        Spatial bounds of a box source in cm, given as ``[min, max]`` for each
-        coordinate. Cannot be supplied with ``position``.
+    x, y, z : real or array_like of float, optional
+        Independent spatial distributions in cm. A scalar fixes the coordinate
+        at that value. An array with shape ``(2,)`` samples uniformly over
+        ``[min, max]``. An array with shape ``(2, N)`` defines a tabulated
+        piecewise-linear distribution: the first row contains coordinates and
+        the second row contains their probability density. Cannot be supplied
+        with ``position``.
     direction : array_like of float, optional
         Source direction vector ``[ux, uy, uz]``. The vector is normalized
         internally. If provided without angular bounds, the source is
@@ -94,13 +98,13 @@ class Source(MCDCObject):
 
     Notes
     -----
-    ``position`` and the box bounds ``x``, ``y``, and ``z`` are alternative
-    spatial specifications and cannot be combined.
+    ``position`` and the spatial distributions ``x``, ``y``, and ``z`` are
+    alternative spatial specifications and cannot be combined.
 
-    When ``position`` is not provided, the source is treated as a box source.
-    Any unspecified coordinate range defaults to ``[0.0, 0.0]`` cm. For
-    example, if only ``z=[-1.0, 1.0]`` is specified, then the source occupies
-    ``x=[0.0, 0.0]``, ``y=[0.0, 0.0]``, and ``z=[-1.0, 1.0]``.
+    When ``position`` is not provided, each coordinate is sampled independently.
+    An unspecified coordinate is fixed at ``0.0`` cm. For example, if only
+    ``z=[-1.0, 1.0]`` is specified, then the source occupies ``x=0.0``,
+    ``y=0.0``, and a uniformly sampled ``z`` interval from ``-1.0`` to ``1.0``.
 
     ``isotropic=True``, ``direction``, and ``white_direction`` are alternative
     angular specifications and cannot be combined. ``polar_cosine`` and
@@ -132,6 +136,16 @@ class Source(MCDCObject):
     ...     x=[-1.0, 1.0],
     ...     y=[-2.0, 2.0],
     ...     z=[0.0, 5.0],
+    ...     isotropic=True,
+    ... )
+
+    Nonuniform source along x with a piecewise-linear probability density:
+
+    >>> src = mcdc.Source(
+    ...     x=(
+    ...         [0.0, 5.0, 10.0],
+    ...         [0.2, 1.0, 0.4],
+    ...     ),
     ...     isotropic=True,
     ... )
 
@@ -194,10 +208,16 @@ class Source(MCDCObject):
 
     # Position
     point_source: bool
+    uniform_x: bool
+    uniform_y: bool
+    uniform_z: bool
     point: Annotated[NDArray[float64], (3,)]
     x: Annotated[NDArray[float64], (2,)]
     y: Annotated[NDArray[float64], (2,)]
     z: Annotated[NDArray[float64], (2,)]
+    x_pdf: DistributionTabulated
+    y_pdf: DistributionTabulated
+    z_pdf: DistributionTabulated
 
     # Direction
     isotropic_direction: bool
@@ -236,9 +256,9 @@ class Source(MCDCObject):
         self,
         name: str = "",
         position: Sequence[float] | NoneType = None,
-        x: Sequence[float] | NoneType = None,
-        y: Sequence[float] | NoneType = None,
-        z: Sequence[float] | NoneType = None,
+        x: float | ArrayLike | NoneType = None,
+        y: float | ArrayLike | NoneType = None,
+        z: float | ArrayLike | NoneType = None,
         #
         direction: Sequence[float] | NoneType = None,
         white_direction: Sequence[float] | NoneType = None,
@@ -270,10 +290,20 @@ class Source(MCDCObject):
 
         # Position
         self.point_source = True
+        self.uniform_x = True
+        self.uniform_y = True
+        self.uniform_z = True
         self.point = np.zeros(3)
         self.x = np.array([0.0, 0.0])
         self.y = np.array([0.0, 0.0])
         self.z = np.array([0.0, 0.0])
+        spatial_pdf = DistributionTabulated(
+            np.array([0.0, 1.0]),
+            np.array([1.0, 1.0]),
+        )
+        self.x_pdf = spatial_pdf
+        self.y_pdf = spatial_pdf
+        self.z_pdf = spatial_pdf
 
         # Direction
         self.isotropic_direction = True
@@ -318,11 +348,17 @@ class Source(MCDCObject):
         else:
             self.point_source = False
             if x is not None:
-                self.x = np.array(x)
+                self.uniform_x, self.x, pdf = _spatial_distribution(x, "x")
+                if pdf is not None:
+                    self.x_pdf = pdf
             if y is not None:
-                self.y = np.array(y)
+                self.uniform_y, self.y, pdf = _spatial_distribution(y, "y")
+                if pdf is not None:
+                    self.y_pdf = pdf
             if z is not None:
-                self.z = np.array(z)
+                self.uniform_z, self.z, pdf = _spatial_distribution(z, "z")
+                if pdf is not None:
+                    self.z_pdf = pdf
 
         # Require one unambiguous source-direction representation
         isotropic_enabled = isotropic is not None and bool(isotropic)
@@ -420,9 +456,9 @@ class Source(MCDCObject):
             text += f"  - Position [x, y, z]: {self.point} cm\n"
         else:
             text += f"  - Position\n"
-            text += f"    - x: {self.x} cm\n"
-            text += f"    - y: {self.y} cm\n"
-            text += f"    - z: {self.z} cm\n"
+            text += _spatial_distribution_text("x", self.uniform_x, self.x)
+            text += _spatial_distribution_text("y", self.uniform_y, self.y)
+            text += _spatial_distribution_text("z", self.uniform_z, self.z)
         if self.isotropic_direction:
             text += f"  - Direction: Isotropic\n"
         elif self.mono_direction:
@@ -521,6 +557,70 @@ def decode_particle_type(type_):
 # ======================================================================================
 # Helper functions
 # ======================================================================================
+
+
+def _spatial_distribution(
+    value: float | ArrayLike,
+    name: str,
+) -> tuple[bool, NDArray[float64], DistributionTabulated | None]:
+    """Normalize one independent source-coordinate specification."""
+    if isinstance(value, Real) and not isinstance(value, (bool, np.bool_)):
+        coordinate = float(value)
+        if not np.isfinite(coordinate):
+            print_error(f"Source {name} coordinate must be finite.")
+        return True, np.array([coordinate, coordinate]), None
+
+    try:
+        array = np.asarray(value, dtype=float64)
+    except (TypeError, ValueError):
+        print_error(
+            f"Source {name} must be a scalar, uniform bounds with shape (2,), "
+            "or a tabulated distribution with shape (2, N)."
+        )
+
+    if array.shape == (2,):
+        if not np.all(np.isfinite(array)):
+            print_error(f"Source {name} bounds must be finite.")
+        if array[1] < array[0]:
+            print_error(f"Source {name} bounds must satisfy min <= max.")
+        return True, array, None
+
+    if array.ndim == 2 and array.shape[0] == 2:
+        coordinates, pdf = array
+        if len(coordinates) < 2:
+            print_error(
+                f"Source {name} tabulated distribution must contain at least two points."
+            )
+        if not np.all(np.isfinite(coordinates)) or not np.all(np.isfinite(pdf)):
+            print_error(f"Source {name} tabulated coordinates and PDF must be finite.")
+        if np.any(coordinates[1:] <= coordinates[:-1]):
+            print_error(
+                f"Source {name} tabulated coordinates must be strictly increasing."
+            )
+        if np.any(pdf < 0.0):
+            print_error(f"Source {name} tabulated PDF must be nonnegative.")
+
+        distribution = DistributionTabulated(coordinates, pdf)
+        bounds = np.array([coordinates[0], coordinates[-1]])
+        return False, bounds, distribution
+
+    print_error(
+        f"Source {name} must be a scalar, uniform bounds with shape (2,), "
+        "or a tabulated distribution with shape (2, N)."
+    )
+
+
+def _spatial_distribution_text(
+    name: str,
+    uniform: bool,
+    bounds: NDArray[float64],
+) -> str:
+    """Describe one source-coordinate distribution."""
+    if bounds[0] == bounds[1]:
+        return f"    - {name}: {bounds[0]} cm\n"
+    if uniform:
+        return f"    - {name}: Uniform {bounds} cm\n"
+    return f"    - {name}: Piecewise-linear PDF over {bounds} cm\n"
 
 
 def _distribution_pair(

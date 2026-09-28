@@ -161,7 +161,13 @@ MC/DC estimates tally uncertainty from statistically independent batches:
 
 ``N_particle`` is the number of histories per batch.
 Increasing ``N_particle`` reduces the noise within each batch, while ``N_batch`` controls how many independent batch results contribute to the reported standard deviation.
-At least two batches are required for a nonzero estimate.
+At least two batches are required for a batch-based uncertainty estimate.
+
+For CPU fixed-source runs without time censuses, ``N_batch = 1`` instead estimates uncertainty from individual source histories.
+Histories, batches, and active eigenvalue cycles use the same stable running-mean and centered-moment algorithm.
+
+Fixed-source time-census transport requires ``N_batch >= 2`` because a census can split and redistribute a source history.
+GPU fixed-source transport also requires ``N_batch >= 2`` because the GPU source loop does not currently retain individual-history scores.
 
 Reading Tally Output
 --------------------

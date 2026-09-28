@@ -3,18 +3,24 @@
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def xs(index, neutron_reaction, data):
     offset = neutron_reaction["xs_offset"]
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def xs_all(neutron_reaction, data):
     start = neutron_reaction["xs_offset"]
     size = neutron_reaction["xs_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -25,8 +31,8 @@ def xs_last(neutron_reaction, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def xs_chunk(start, length, neutron_reaction, data):
     start += neutron_reaction["xs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

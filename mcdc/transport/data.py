@@ -39,10 +39,7 @@ def evaluate_data(x, data_, simulation, data):
 
 @njit
 def evaluate_table(x, table, data):
-    offset = table["x_offset"]
-    length = table["x_length"]
-    grid = data[offset : offset + length]
-    # Above is equivalent to: grid = mcdc_get.table_data.x_all(table, data)
+    grid = mcdc_get.table_data.x_all(table, data)
 
     idx = find_bin(x, grid)
     x1 = grid[idx]
@@ -69,15 +66,9 @@ def evaluate_table(x, table, data):
 @njit
 def get_table_interpolation_law(idx, table, data) -> int:
     """Return the interpolation law for interval [idx, idx + 1]."""
-    offset = table["interpolation_boundaries_offset"]
-    length = table["interpolation_boundaries_length"]
-    boundaries = data[offset : offset + length]
-    # Above is equivalent to: boundaries = mcdc_get.table_data.interpolation_boundaries_all(table, data)
+    boundaries = mcdc_get.table_data.interpolation_boundaries_all(table, data)
 
-    offset = table["interpolations_offset"]
-    length = table["interpolations_length"]
-    interpolations = data[offset : offset + length]
-    # Above is equivalent to: interpolations = mcdc_get.table_data.interpolations_all(table, data)
+    interpolations = mcdc_get.table_data.interpolations_all(table, data)
 
     # Boundaries are exclusive upper point indices.
     upper_point = idx + 1
@@ -91,10 +82,7 @@ def get_table_interpolation_law(idx, table, data) -> int:
 
 @njit
 def evaluate_polynomial(x, polynomial, data):
-    offset = polynomial["coefficients_offset"]
-    length = polynomial["coefficients_length"]
-    coeffs = data[offset : offset + length]
-    # Above is equivalent to: coeffs = mcdc_get.polynomial_data.coefficients_all(polynomial, data)
+    coeffs = mcdc_get.polynomial_data.coefficients_all(polynomial, data)
 
     total = 0.0
     for i in range(len(coeffs)):

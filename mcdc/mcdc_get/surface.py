@@ -4,13 +4,19 @@ from numpy import int64
 from numba import njit
 
 
-@njit
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
+@array_return(nb.types.float64)
 def move_velocities_vector(index_1, surface, data):
     offset = surface["move_velocities_offset"]
     stride = 3
     start = offset + index_1 * stride
     end = start + stride
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -20,11 +26,11 @@ def move_velocities(index_1, index_2, surface, data):
     return data[offset + index_1 * stride + index_2]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_velocities_chunk(start, length, surface, data):
     start += surface["move_velocities_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -33,12 +39,12 @@ def move_durations(index, surface, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_durations_all(surface, data):
     start = surface["move_durations_offset"]
     size = surface["N_move"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -49,11 +55,11 @@ def move_durations_last(surface, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_durations_chunk(start, length, surface, data):
     start += surface["move_durations_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -62,12 +68,12 @@ def move_time_grid(index, surface, data):
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_time_grid_all(surface, data):
     start = surface["move_time_grid_offset"]
     size = surface["N_move_grid"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -78,20 +84,20 @@ def move_time_grid_last(surface, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_time_grid_chunk(start, length, surface, data):
     start += surface["move_time_grid_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
-@njit
+@array_return(nb.types.float64)
 def move_translations_vector(index_1, surface, data):
     offset = surface["move_translations_offset"]
     stride = 3
     start = offset + index_1 * stride
     end = start + stride
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -101,11 +107,11 @@ def move_translations(index_1, index_2, surface, data):
     return data[offset + index_1 * stride + index_2]
 
 
-@njit
+@array_return(nb.types.float64)
 def move_translations_chunk(start, length, surface, data):
     start += surface["move_translations_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -114,12 +120,12 @@ def surface_crossing_tally_IDs(index, surface, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def surface_crossing_tally_IDs_all(surface, data):
     start = surface["surface_crossing_tally_IDs_offset"]
     size = surface["N_surface_crossing_tally"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -130,8 +136,8 @@ def surface_crossing_tally_IDs_last(surface, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def surface_crossing_tally_IDs_chunk(start, length, surface, data):
     start += surface["surface_crossing_tally_IDs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

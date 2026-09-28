@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as a guide.
 
+## [Unreleased]
+
+### Added
+
+- Add CI check requiring generated Numba support to match the rebuild script, from [@ilhamv]
+- Add piece-wise linear spatial distribution for source definition, from [@ilhamv]
+- Add overriding option N_active, from [@ilhamv]
+- Add MC/DC-VVP project documentation with verification case narratives, published results, and VVP result-generation and publication steps in the release checklist, from [@ilhamv]
+
+### Changed
+
+- Add standard `performance/` output metrics and replace `--runtime_output` with `--no-tally_output` to omit tally results, from [@ilhamv]
+- Filter out empty numba support accessors from creation, from [@ilhamv]
+- Update GPU transport support for the current MC/DC data model and Harmonize runtime, including GPU-compatible state access, particle-bank operations, array accessors, and torus intersections, from [@braxtoncuneo].
+- Show previously published documentation versions in the documentation version switcher, from [@ilhamv]
+- Optimize tally moments memory allocation — only allocate to non-master rank if necessary, from [@ilhamv]
+
+### Deprecated
+
+### Removed
+
+- Caching of the `souce_loop` function is removed for GPU execution, from [@braxtoncuneo].
+- Remove empty mcdc_get and mcdc_set members, from [@ilhamv]
+
+### Fixed
+
+- Improve tally variance accuracy with stable online statistics and parallel moment merging; require multiple batches for fixed-source time-census and GPU transport, from [@ilhamv]
+
+### Security
+
 ## [0.15.3] - 2026-09-27
 
 ### Fixed
@@ -179,6 +209,7 @@ The pre-refactor implementation remains available in the `cement` branch as a re
 
 - Multi-table distribution table selection sampling from [@melekderman]
 
+[Unreleased]: https://github.com/mcdc-project/mcdc/tree/dev
 [0.15.3]: https://github.com/mcdc-project/mcdc/releases/tag/v0.15.3
 [0.15.2]: https://github.com/mcdc-project/mcdc/releases/tag/v0.15.2
 [0.15.1]: https://github.com/mcdc-project/mcdc/releases/tag/v0.15.1
@@ -194,3 +225,4 @@ The pre-refactor implementation remains available in the `cement` branch as a re
 [@gunnarrl]: https://github.com/gunnarrl
 [@Talen-Ayers]: https://github.com/Talen-Ayers
 [@steps-re]: https://github.com/steps-re
+[@braxtoncuneo]: https://github.com/braxtoncuneo

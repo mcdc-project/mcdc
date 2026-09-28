@@ -4,18 +4,24 @@ from numpy import int64
 from numba import njit
 
 
+from mcdc.code_factory.array_return import array_return, array_result
+
+
+import numba as nb
+
+
 @njit
 def grid(index, multi_table_distribution, data):
     offset = multi_table_distribution["grid_offset"]
     return data[offset + index]
 
 
-@njit
+@array_return(nb.types.float64)
 def grid_all(multi_table_distribution, data):
     start = multi_table_distribution["grid_offset"]
     size = multi_table_distribution["grid_length"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -26,11 +32,11 @@ def grid_last(multi_table_distribution, data):
     return data[end - 1]
 
 
-@njit
+@array_return(nb.types.float64)
 def grid_chunk(start, length, multi_table_distribution, data):
     start += multi_table_distribution["grid_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -39,12 +45,12 @@ def table_IDs(index, multi_table_distribution, data):
     return int64(data[offset + index])
 
 
-@njit
+@array_return(nb.types.float64)
 def table_IDs_all(multi_table_distribution, data):
     start = multi_table_distribution["table_IDs_offset"]
     size = multi_table_distribution["N_table"]
     end = start + size
-    return data[start:end]
+    return array_result(data[start:end])
 
 
 @njit
@@ -55,8 +61,8 @@ def table_IDs_last(multi_table_distribution, data):
     return int64(data[end - 1])
 
 
-@njit
+@array_return(nb.types.float64)
 def table_IDs_chunk(start, length, multi_table_distribution, data):
     start += multi_table_distribution["table_IDs_offset"]
     end = start + length
-    return data[start:end]
+    return array_result(data[start:end])

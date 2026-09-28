@@ -1,5 +1,5 @@
 import re
-from typing import Annotated, Union, get_args, get_origin
+from typing import Annotated, Any, Union, get_args, get_origin
 
 import numpy as np
 from numpy import float64
@@ -35,6 +35,15 @@ def parse_dimension_expression(expression: str) -> tuple[str, int]:
             offset *= -1
 
     return attribute, offset
+
+
+def normalize_ndarray_hint(hint):
+    """Expand NumPy's named NDArray alias to the ndarray shape/dtype form."""
+    if get_origin(hint) is NDArray:
+        # Named aliases expose only the scalar argument, not shape and dtype.
+        (scalar_type,) = get_args(hint)
+        return np.ndarray[tuple[Any, ...], np.dtype[scalar_type]]
+    return hint
 
 
 def check_type(value, hint, cls, obj=None) -> bool:
@@ -85,6 +94,7 @@ def check_type(value, hint, cls, obj=None) -> bool:
         return _mro_name_matches(value, hint)
 
     # Check structured typing annotations
+    hint = normalize_ndarray_hint(hint)
     origin = get_origin(hint)
 
     if origin is Annotated:

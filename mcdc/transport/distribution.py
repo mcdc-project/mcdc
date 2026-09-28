@@ -247,11 +247,7 @@ def invert_tabulated_segment(xi, c0, v0, v1, p0, p1, interpolation):
 @njit
 def sample_pmf(pmf, rng_state, data):
     xi = rng.lcg(rng_state)
-
-    offset = pmf["cmf_offset"]
-    length = pmf["cmf_length"]
-    cmf = data[offset : offset + length]
-    # Above is equivalent to: cmf = mcdc_get.pmf_distribution.cmf_all(pmf, data)
+    cmf = mcdc_get.pmf_distribution.cmf_all(pmf, data)
 
     idx = find_bin(xi, cmf)
     return mcdc_get.pmf_distribution.value(idx, pmf, data)
@@ -297,10 +293,7 @@ def _sample_multi_table(E, rng_state, multi_table, simulation, data, scale):
     """Sample from a multi-table distribution."""
 
     # Get the grid
-    offset = multi_table["grid_offset"]
-    length = multi_table["grid_length"]
-    grid = data[offset : offset + length]
-    # Above is equivalent to: grid = mcdc_get.multi_table_distribution.grid_all(multi_table, data)
+    grid = mcdc_get.multi_table_distribution.grid_all(multi_table, data)
 
     # Helper flag for scaling later
     use_next_table = False
@@ -440,10 +433,7 @@ def sample_evaporation(E, rng_state, evaporation, simulation, data):
 
 @njit
 def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
-    offset = kalbach_mann["energy_offset"]
-    length = kalbach_mann["energy_length"]
-    grid = data[offset : offset + length]
-    # Above is equivalent to: grid = mcdc_get.kalbach_mann_distribution.energy_all(kalbach_mann, data)
+    grid = mcdc_get.kalbach_mann_distribution.energy_all(kalbach_mann, data)
 
     # Random numbers
     xi1 = rng.lcg(rng_state)
@@ -493,9 +483,7 @@ def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
     size = end - start
 
     # The CDF
-    offset = kalbach_mann["cdf_offset"]
-    cdf = data[start + offset : start + offset + size]
-    # Above is equivalent to: cdf = mcdc_get.kalbach_mann_distribution.cdf_chunk(start, size, kalbach_mann, data)
+    cdf = mcdc_get.kalbach_mann_distribution.cdf_chunk(start, size, kalbach_mann, data)
 
     # Sample bin index
     idx = find_bin(xi2, cdf)
@@ -544,10 +532,7 @@ def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
 
 @njit
 def sample_tabulated_energy_angle(E, rng_state, table, data):
-    offset = table["energy_offset"]
-    length = table["energy_length"]
-    grid = data[offset : offset + length]
-    # Above is equivalent to: grid = mcdc_get.tabulated_energy_angle_distribution.energy_all(table, data)
+    grid = mcdc_get.tabulated_energy_angle_distribution.energy_all(table, data)
 
     # Random numbers
     xi1 = rng.lcg(rng_state)
@@ -600,12 +585,9 @@ def sample_tabulated_energy_angle(E, rng_state, table, data):
     size = end - start
 
     # The CDF
-    offset = table["cdf_offset"]
-    cdf = data[start + offset : start + offset + size]
-    # Above is equivalent to:
-    # cdf = mcdc_get.tabulated_energy_angle_distribution.cdf_chunk(
-    #     start, size, table, data
-    # )
+    cdf = mcdc_get.tabulated_energy_angle_distribution.cdf_chunk(
+        start, size, table, data
+    )
 
     # Sample bin index
     idx = find_bin(xi2, cdf)
@@ -653,12 +635,9 @@ def sample_tabulated_energy_angle(E, rng_state, table, data):
     size = end - start
 
     # The CDF
-    offset = table["cosine_cdf_offset"]
-    cdf = data[start + offset : start + offset + size]
-    # Above is equivalent to:
-    # cdf = mcdc_get.tabulated_energy_angle_distribution.cosine_cdf_chunk(
-    #     start, size, table, data
-    # )
+    cdf = mcdc_get.tabulated_energy_angle_distribution.cosine_cdf_chunk(
+        start, size, table, data
+    )
 
     # Sample bin index
     idx = find_bin(xi3, cdf)

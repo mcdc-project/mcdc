@@ -654,13 +654,9 @@ def sample_inelastic_scattering(
             )
             spectrum = simulation["distributions"][ID]
         else:
-            offset = inelastic_scattering["spectrum_probability_grid_offset"]
-            length = inelastic_scattering["spectrum_probability_grid_length"]
-            probability_grid = data[offset : offset + length]
-            # Above is equivalent to:
-            # probability_grid = mcdc_get.neutron_inelastic_scattering_reaction.spectrum_probability_grid_all(
-            #     inelastic_scattering, data
-            # )
+            probability_grid = mcdc_get.neutron_inelastic_scattering_reaction.spectrum_probability_grid_all(
+                inelastic_scattering, data
+            )
             probability_idx = find_bin(E, probability_grid)
             xi = rng.lcg(particle_container_new)
             total = 0.0

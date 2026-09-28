@@ -38,9 +38,30 @@ def source_particle(particle_container, seed, simulation, data):
         y = source["point"][1]
         z = source["point"][2]
     else:
-        x = sample_uniform(source["x"][0], source["x"][1], particle_container)
-        y = sample_uniform(source["y"][0], source["y"][1], particle_container)
-        z = sample_uniform(source["z"][0], source["z"][1], particle_container)
+        x = sample_position_axis(
+            source["uniform_x"],
+            source["x"],
+            source["x_pdf_ID"],
+            particle_container,
+            simulation,
+            data,
+        )
+        y = sample_position_axis(
+            source["uniform_y"],
+            source["y"],
+            source["y_pdf_ID"],
+            particle_container,
+            simulation,
+            data,
+        )
+        z = sample_position_axis(
+            source["uniform_z"],
+            source["z"],
+            source["z_pdf_ID"],
+            particle_container,
+            simulation,
+            data,
+        )
 
     # Direction
     if source["isotropic_direction"]:
@@ -87,12 +108,7 @@ def source_particle(particle_container, seed, simulation, data):
     # Motion translation
     if source["moving"]:
         # Get moving interval index wrt the given time
-        time_grid = data[
-            source["move_time_grid_offset"] : (
-                source["move_time_grid_offset"] + source["N_move_grid"]
-            )
-        ]
-        # Above is equivalent to: time_grid = mcdc_get.source.move_time_grid_all(source, data)
+        time_grid = mcdc_get.source.move_time_grid_all(source, data)
 
         tolerance = COINCIDENCE_TOLERANCE_TIME
         go_lower = False
@@ -103,14 +119,10 @@ def source_particle(particle_container, seed, simulation, data):
             idx += 1
 
         # Source move translations
-        start = source["move_translations_offset"] + idx * 3
-        trans_0 = data[start : start + 3]
-        # Above is equivalent to: trans_0 = mcdc_get.source.move_translations_vector(idx, source, data)
+        trans_0 = mcdc_get.source.move_translations_vector(idx, source, data)
 
         # Source move velocities
-        start = source["move_velocities_offset"] + idx * 3
-        V = data[start : start + 3]
-        # Above is equivalent to: V = mcdc_get.source.move_velocities_vector(idx, source, data)
+        V = mcdc_get.source.move_velocities_vector(idx, source, data)
 
         # Source move time grid
         time_0 = mcdc_get.source.move_time_grid(idx, source, data)
@@ -132,3 +144,14 @@ def source_particle(particle_container, seed, simulation, data):
     particle["E"] = E
     particle["w"] = 1.0
     particle["particle_type"] = source["particle_type"]
+
+
+@njit
+def sample_position_axis(uniform, bounds, pdf_ID, rng_state, simulation, data):
+    """Sample one independent source-position coordinate."""
+    if uniform:
+        return sample_uniform(bounds[0], bounds[1], rng_state)
+
+    sub_ID = simulation["distributions"][pdf_ID]["sub_ID"]
+    table = simulation["tabulated_distributions"][sub_ID]
+    return sample_tabulated(table, rng_state, simulation, data)

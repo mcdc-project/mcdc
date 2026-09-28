@@ -251,10 +251,7 @@ def scattering(particle_container, program, data):
         particle_new["uz"] = uz_new
 
         # Get outgoing spectrum
-        stride = mgxs["G"]
-        start = mgxs["chi_s_offset"] + group * stride
-        chi_s = data[start : start + stride]
-        # Above is equivalent to: chi_s = mcdc_get.neutron_multigroup_data.chi_s_vector(group, mgxs, data)
+        chi_s = mcdc_get.neutron_multigroup_data.chi_s_vector(group, mgxs, data)
 
         # Sample outgoing energy
         xi = rng.lcg(particle_container_new)
@@ -311,10 +308,7 @@ def fission(particle_container, program, data):
     nu = mcdc_get.neutron_multigroup_data.nu_f(group, mgxs, data)
     nu_p = mcdc_get.neutron_multigroup_data.nu_p(group, mgxs, data)
     if J > 0:
-        stride = mgxs["J"]
-        start = mgxs["nu_d_offset"] + group * stride
-        nu_d = data[start : start + stride]
-        # Above is equivalent to: nu_d = mcdc_get.neutron_multigroup_data.nu_d_vector(group, mgxs, data)
+        nu_d = mcdc_get.neutron_multigroup_data.nu_d_vector(group, mgxs, data)
 
     # Get number of secondaries
     N = int(
@@ -346,10 +340,7 @@ def fission(particle_container, program, data):
         total = nu_p
         if xi < total:
             prompt = True
-            stride = mgxs["G"]
-            start = mgxs["chi_p_offset"] + group * stride
-            spectrum = data[start : start + stride]
-            # Above is equivalent to: spectrum = mcdc_get.neutron_multigroup_data.chi_p_vector(group, mgxs, data)
+            spectrum = mcdc_get.neutron_multigroup_data.chi_p_vector(group, mgxs, data)
         else:
             prompt = False
 
@@ -357,13 +348,9 @@ def fission(particle_container, program, data):
             for j in range(J):
                 total += nu_d[j]
                 if xi < total:
-                    stride = mgxs["G"]
-                    start = mgxs["chi_d_offset"] + j * stride
-                    spectrum = data[start : start + stride]
-                    # Above is equivalent to:
-                    # spectrum = mcdc_get.neutron_multigroup_data.chi_d_vector(
-                    #     j, mgxs, data
-                    # )
+                    spectrum = mcdc_get.neutron_multigroup_data.chi_d_vector(
+                        j, mgxs, data
+                    )
                     decay = mcdc_get.neutron_multigroup_data.decay_rate(j, mgxs, data)
                     break
 

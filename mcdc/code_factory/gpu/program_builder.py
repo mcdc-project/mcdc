@@ -1,11 +1,9 @@
 import numba as nb
 import numba.extending as nbxt
 import numpy as np
-
 from mpi4py import MPI
 
 ####
-
 import mcdc.config as config
 
 # ======================================================================================
@@ -13,13 +11,11 @@ import mcdc.config as config
 # ======================================================================================
 
 
+# Overwrites global symbols in other modules with gpu-compatible counterparts
 def adapt_transport_functions():
-    global access_simulation
 
     import mcdc.code_factory.gpu.transport as gpu_transport
     import mcdc.transport as transport
-
-    transport.util.access_simulation = access_simulation
 
     # TODO: Make the following automatic
     transport.geometry.interface.report_lost_particle = (
@@ -159,6 +155,20 @@ def forward_declare_gpu_program(simulation_dtype):
     alloc_managed_bytes = harmonize.alloc_managed_bytes
     alloc_device_bytes = harmonize.alloc_device_bytes
 
+    from mcdc.transport import util
+
+    if config.ROCM_AVAILABLE:
+        access_target = "hip"
+    else:
+        access_target = "gpu"
+
+    @nb.extending.overload(util.access_simulation, target=access_target)
+    def access_simulation_gpu_overload(program):
+        def impl(program):
+            return access_simulation(program)
+
+        return impl
+
 
 # ======================================================================================
 # Program builder
@@ -192,10 +202,9 @@ def build_gpu_program(data_size):
     import harmonize
     import mcdc.numba_types as type_
     import mcdc.transport.util as util
-
     from mcdc.transport.simulation import generate_source_particle, step_particle
 
-    global alloc_state, free_state
+    global access_simulation, alloc_state, free_state
 
     global alloc_program, free_program
 
@@ -217,8 +226,7 @@ def build_gpu_program(data_size):
         data_ptr = access_data_ptr(program)
         data = harmonize.array_from_ptr(data_ptr, shape, nb.float64)
 
-        util.atomic_add(simulation["mpi_work_iter"], 0, 1)
-        idx_work = simulation["mpi_work_iter"][0]
+        idx_work = util.atomic_add(simulation["mpi_work_iter"], 0, 1)
 
         if idx_work >= simulation["mpi_work_size"]:
             return False
@@ -252,6 +260,11 @@ def build_gpu_program(data_size):
         particle_container = util.local_array(1, type_.particle)
         particle_container[0] = particle_input
         particle = particle_container[0]
+        particle["alive"] = True
+        particle["material_ID"] = -1
+        particle["cell_ID"] = -1
+        particle["surface_ID"] = -1
+        particle["event"] = -1
         particle["fresh"] = False
         step_particle(particle_container, program, data)
         if particle["alive"]:
@@ -297,6 +310,17 @@ def build_gpu_program(data_size):
     clear_flags = src_fns["clear_flags"]
     set_device = src_fns["set_device"]
 
+    alloc_program = src_fns["alloc_program"]
+    free_program = src_fns["free_program"]
+    init_program = src_fns["init_program"]
+    exec_program = src_fns["exec_program"]
+    complete = src_fns["complete"]
+    clear_flags = src_fns["clear_flags"]
+    set_device = src_fns["set_device"]
+
+    alloc_managed_bytes = harmonize.alloc_managed_bytes
+    alloc_device_bytes = harmonize.alloc_device_bytes
+
 
 # ======================================================================================
 # Setup GPU
@@ -314,7 +338,6 @@ def setup_gpu_program(simulation_container, data):
 
     set_device(device_id)
     simulation["gpu_meta"]["state_pointer"] = cast_voidptr_to_uintp(alloc_state())
-
     if config.gpu_state_storage == "separate":
         store_pointer_state_device_simulation(
             simulation["gpu_meta"]["state_pointer"],
@@ -340,31 +363,6 @@ def setup_gpu_program(simulation_container, data):
 def teardown_gpu_program(simulation):
     free_program(cast_uintp_to_voidptr(simulation["gpu_meta"]["program_pointer"]))
     free_state(cast_uintp_to_voidptr(simulation["gpu_meta"]["state_pointer"]))
-
-
-# ======================================================================================
-# Simulation structure and data creators
-# ======================================================================================
-
-
-def create_data_array(size, dtype):
-    if config.gpu_state_storage == "managed":
-        data_tally_ptr = harmonize.alloc_managed_bytes(size)
-    else:
-        data_tally_ptr = harmonize.alloc_device_bytes(size)
-    data_tally_uint = cast_voidptr_to_uintp(data_tally_ptr)
-    data_tally = nb.carray(data_tally_ptr, (size,), dtype)
-    return data_tally, data_tally_uint
-
-
-def create_mcdc_container(dtype):
-    if config.gpu_state_storage == "managed":
-        mcdc_ptr = harmonize.alloc_managed_bytes(dtype.itemsize)
-    else:
-        mcdc_ptr = harmonize.alloc_device_bytes(dtype.itemsize)
-    mcdc_uint = cast_voidptr_to_uintp(mcdc_ptr)
-    mcdc_container = nb.carray(mcdc_ptr, (1,), dtype)
-    return mcdc_container, mcdc_uint
 
 
 # ======================================================================================
