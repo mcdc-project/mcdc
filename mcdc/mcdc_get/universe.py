@@ -4,24 +4,18 @@ from numpy import int64
 from numba import njit
 
 
-from mcdc.code_factory.array_return import array_return, array_result
-
-
-import numba as nb
-
-
 @njit
 def cell_IDs(index, universe, data):
     offset = universe["cell_IDs_offset"]
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def cell_IDs_all(universe, data):
     start = universe["cell_IDs_offset"]
     size = universe["N_cell"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -32,8 +26,8 @@ def cell_IDs_last(universe, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def cell_IDs_chunk(start, length, universe, data):
     start += universe["cell_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]

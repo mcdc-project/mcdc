@@ -3,24 +3,18 @@
 from numba import njit
 
 
-from mcdc.code_factory.array_return import array_return, array_result
-
-
-import numba as nb
-
-
 @njit
 def census_time(index, settings, data):
     offset = settings["census_time_offset"]
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def census_time_all(settings, data):
     start = settings["census_time_offset"]
     size = settings["census_time_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -31,8 +25,8 @@ def census_time_last(settings, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def census_time_chunk(start, length, settings, data):
     start += settings["census_time_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]

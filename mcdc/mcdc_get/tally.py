@@ -4,24 +4,18 @@ from numpy import int64
 from numba import njit
 
 
-from mcdc.code_factory.array_return import array_return, array_result
-
-
-import numba as nb
-
-
 @njit
 def scores(index, tally, data):
     offset = tally["scores_offset"]
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def scores_all(tally, data):
     start = tally["scores_offset"]
     size = tally["scores_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -32,11 +26,11 @@ def scores_last(tally, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def scores_chunk(start, length, tally, data):
     start += tally["scores_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -45,12 +39,12 @@ def mu(index, tally, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def mu_all(tally, data):
     start = tally["mu_offset"]
     size = tally["mu_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -61,11 +55,11 @@ def mu_last(tally, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def mu_chunk(start, length, tally, data):
     start += tally["mu_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -74,12 +68,12 @@ def azi(index, tally, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def azi_all(tally, data):
     start = tally["azi_offset"]
     size = tally["azi_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -90,11 +84,11 @@ def azi_last(tally, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def azi_chunk(start, length, tally, data):
     start += tally["azi_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -103,12 +97,12 @@ def energy(index, tally, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def energy_all(tally, data):
     start = tally["energy_offset"]
     size = tally["energy_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -119,11 +113,11 @@ def energy_last(tally, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def energy_chunk(start, length, tally, data):
     start += tally["energy_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -132,12 +126,12 @@ def time(index, tally, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def time_all(tally, data):
     start = tally["time_offset"]
     size = tally["time_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -148,11 +142,11 @@ def time_last(tally, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def time_chunk(start, length, tally, data):
     start += tally["time_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -161,12 +155,12 @@ def bin(index, tally, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def bin_all(tally, data):
     start = tally["bin_offset"]
     size = tally["bin_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -177,69 +171,69 @@ def bin_last(tally, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def bin_chunk(start, length, tally, data):
     start += tally["bin_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
-def bin_mean(index, tally, data):
-    offset = tally["bin_mean_offset"]
+def bin_sum(index, tally, data):
+    offset = tally["bin_sum_offset"]
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
-def bin_mean_all(tally, data):
-    start = tally["bin_mean_offset"]
-    size = tally["bin_mean_length"]
+@njit
+def bin_sum_all(tally, data):
+    start = tally["bin_sum_offset"]
+    size = tally["bin_sum_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
-def bin_mean_last(tally, data):
-    start = tally["bin_mean_offset"]
-    size = tally["bin_mean_length"]
+def bin_sum_last(tally, data):
+    start = tally["bin_sum_offset"]
+    size = tally["bin_sum_length"]
     end = start + size
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
-def bin_mean_chunk(start, length, tally, data):
-    start += tally["bin_mean_offset"]
+@njit
+def bin_sum_chunk(start, length, tally, data):
+    start += tally["bin_sum_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
-def bin_sum_squared_deviations(index, tally, data):
-    offset = tally["bin_sum_squared_deviations_offset"]
+def bin_sum_square(index, tally, data):
+    offset = tally["bin_sum_square_offset"]
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
-def bin_sum_squared_deviations_all(tally, data):
-    start = tally["bin_sum_squared_deviations_offset"]
-    size = tally["bin_sum_squared_deviations_length"]
+@njit
+def bin_sum_square_all(tally, data):
+    start = tally["bin_sum_square_offset"]
+    size = tally["bin_sum_square_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
-def bin_sum_squared_deviations_last(tally, data):
-    start = tally["bin_sum_squared_deviations_offset"]
-    size = tally["bin_sum_squared_deviations_length"]
+def bin_sum_square_last(tally, data):
+    start = tally["bin_sum_square_offset"]
+    size = tally["bin_sum_square_length"]
     end = start + size
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
-def bin_sum_squared_deviations_chunk(start, length, tally, data):
-    start += tally["bin_sum_squared_deviations_offset"]
+@njit
+def bin_sum_square_chunk(start, length, tally, data):
+    start += tally["bin_sum_square_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -248,12 +242,12 @@ def bin_shape(index, tally, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def bin_shape_all(tally, data):
     start = tally["bin_shape_offset"]
     size = tally["bin_shape_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -264,8 +258,8 @@ def bin_shape_last(tally, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def bin_shape_chunk(start, length, tally, data):
     start += tally["bin_shape_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]

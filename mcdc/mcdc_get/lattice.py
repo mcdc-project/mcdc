@@ -4,12 +4,6 @@ from numpy import int64
 from numba import njit
 
 
-from mcdc.code_factory.array_return import array_return, array_result
-
-
-import numba as nb
-
-
 @njit
 def universe_IDs(index_1, index_2, index_3, lattice, data):
     offset = lattice["universe_IDs_offset"]
@@ -18,8 +12,8 @@ def universe_IDs(index_1, index_2, index_3, lattice, data):
     return int64(data[offset + index_1 * stride_2 * stride_3 + index_2 * stride_3 + index_3])
 
 
-@array_return(nb.types.float64)
+@njit
 def universe_IDs_chunk(start, length, lattice, data):
     start += lattice["universe_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]

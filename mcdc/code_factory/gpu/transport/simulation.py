@@ -14,7 +14,7 @@ from mcdc.transport.simulation import source_closeout
 caching = config.caching
 
 
-@njit(cache=False)
+@njit(cache=caching)
 def source_loop(seed, simulation, data):
     # For async execution
     iter_count = 655360000
@@ -24,9 +24,6 @@ def source_loop(seed, simulation, data):
     settings = simulation["settings"]
 
     full_work_size = simulation["mpi_work_size"]
-
-    if full_work_size == 0:
-        return
 
     if settings["gpu_strategy"] == GPU_STRATEGY_ASYNC:
         phase_size = 1000000000
@@ -42,10 +39,10 @@ def source_loop(seed, simulation, data):
 
         # Store the global state to the GPU
         if settings["gpu_storage"] == GPU_STORAGE_SEPARATE:
-            gpu_module.store_state_device_simulation(
+            harmonize.memcpy_host_to_device(
                 simulation["gpu_meta"]["state_pointer"], simulation
             )
-            gpu_module.store_state_device_data(
+            harmonize.memcpy_host_to_device(
                 simulation["gpu_meta"]["state_pointer"], data
             )
 
@@ -71,13 +68,15 @@ def source_loop(seed, simulation, data):
         gpu_module.clear_flags(simulation["gpu_meta"]["program_pointer"])
 
         # Recover the original program state
-        if settings["gpu_storage"] == GPU_STORAGE_SEPARATE:
-            gpu_module.load_state_device_simulation(
+        if config.gpu_state_storage == "separate":
+            harmonize.memcpy_device_to_host(
                 simulation, simulation["gpu_meta"]["state_pointer"]
             )
-            gpu_module.load_state_device_data(
+            harmonize.memcpy_device_to_host(
                 data, simulation["gpu_meta"]["state_pointer"]
             )
+
+        gpu_module.clear_flags(simulation["gpu_meta"]["program_pointer"])
 
     simulation["mpi_work_size"] = full_work_size
 

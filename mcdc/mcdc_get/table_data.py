@@ -4,24 +4,18 @@ from numpy import int64
 from numba import njit
 
 
-from mcdc.code_factory.array_return import array_return, array_result
-
-
-import numba as nb
-
-
 @njit
 def x(index, table_data, data):
     offset = table_data["x_offset"]
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def x_all(table_data, data):
     start = table_data["x_offset"]
     size = table_data["x_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -32,11 +26,11 @@ def x_last(table_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def x_chunk(start, length, table_data, data):
     start += table_data["x_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -45,12 +39,12 @@ def y(index, table_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def y_all(table_data, data):
     start = table_data["y_offset"]
     size = table_data["y_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -61,11 +55,11 @@ def y_last(table_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def y_chunk(start, length, table_data, data):
     start += table_data["y_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -74,12 +68,12 @@ def interpolations(index, table_data, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def interpolations_all(table_data, data):
     start = table_data["interpolations_offset"]
     size = table_data["interpolations_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -90,11 +84,11 @@ def interpolations_last(table_data, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def interpolations_chunk(start, length, table_data, data):
     start += table_data["interpolations_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -103,12 +97,12 @@ def interpolation_boundaries(index, table_data, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def interpolation_boundaries_all(table_data, data):
     start = table_data["interpolation_boundaries_offset"]
     size = table_data["interpolation_boundaries_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -119,20 +113,20 @@ def interpolation_boundaries_last(table_data, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def interpolation_boundaries_chunk(start, length, table_data, data):
     start += table_data["interpolation_boundaries_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
-@array_return(nb.types.float64)
+@njit
 def aux_vector(index_1, table_data, data):
     offset = table_data["aux_offset"]
     stride = table_data["N"]
     start = offset + index_1 * stride
     end = start + stride
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -142,8 +136,8 @@ def aux(index_1, index_2, table_data, data):
     return data[offset + index_1 * stride + index_2]
 
 
-@array_return(nb.types.float64)
+@njit
 def aux_chunk(start, length, table_data, data):
     start += table_data["aux_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]

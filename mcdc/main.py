@@ -1,5 +1,4 @@
 from mcdc.object_.simulation import Simulation
-import mcdc.config as config
 
 # ======================================================================================
 # Run Simulation
@@ -80,14 +79,11 @@ def run_simulation(simulationPy: Simulation):
     # TIMER: output
     time_output_start = MPI.Wtime()
 
-    # Flags
-    no_tally_output = config.args.no_tally_output
-
     # Generate hdf5 output file
-    output_module.generate_output(simulation, data, simulationPy, no_tally_output)
+    output_module.generate_output(simulation, data, simulationPy)
 
     # Combine per-batch, per-census tally files into the main output
-    if not no_tally_output and settings.use_census_based_tally:
+    if settings.use_census_based_tally:
         output_module.recombine_tallies(simulationPy, simulation)
 
     # TIMER: output
@@ -105,7 +101,6 @@ def run_simulation(simulationPy: Simulation):
     simulation["runtime_simulation"] = time_simulation_end - time_simulation_start
     simulation["runtime_output"] = time_output_end - time_output_start
     output_module.create_runtime_datasets(simulation)
-    output_module.generate_performance_output(simulation)
     if master:
         print_module.print_runtime(simulation)
 
@@ -141,9 +136,10 @@ def prepare(simulationPy: Simulation):
     simulation = simulation_container[0]
 
     # Pick Python-version RNG if needed
-    if config.mode == "python":
-        import mcdc.transport.rng as rng
+    import mcdc.config as config
+    import mcdc.transport.rng as rng
 
+    if config.mode == "python":
         rng.wrapping_add = rng.wrapping_add_python
         rng.wrapping_mul = rng.wrapping_mul_python
 
@@ -187,6 +183,8 @@ def prepare(simulationPy: Simulation):
 
 
 def finalize(simulation):
+    import mcdc.config as config
+
     # GPU teardowns if needed
     if config.target == "gpu":
         from mcdc.code_factory.gpu.program_builder import teardown_gpu_program

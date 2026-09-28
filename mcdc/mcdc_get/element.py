@@ -4,24 +4,18 @@ from numpy import int64
 from numba import njit
 
 
-from mcdc.code_factory.array_return import array_return, array_result
-
-
-import numba as nb
-
-
 @njit
 def electron_xs_energy_grid(index, element, data):
     offset = element["electron_xs_energy_grid_offset"]
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_xs_energy_grid_all(element, data):
     start = element["electron_xs_energy_grid_offset"]
     size = element["electron_xs_energy_grid_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -32,11 +26,11 @@ def electron_xs_energy_grid_last(element, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_xs_energy_grid_chunk(start, length, element, data):
     start += element["electron_xs_energy_grid_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -45,12 +39,12 @@ def electron_total_xs(index, element, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_total_xs_all(element, data):
     start = element["electron_total_xs_offset"]
     size = element["electron_total_xs_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -61,11 +55,11 @@ def electron_total_xs_last(element, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_total_xs_chunk(start, length, element, data):
     start += element["electron_total_xs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -74,12 +68,12 @@ def electron_ionization_xs(index, element, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_ionization_xs_all(element, data):
     start = element["electron_ionization_xs_offset"]
     size = element["electron_ionization_xs_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -90,11 +84,11 @@ def electron_ionization_xs_last(element, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_ionization_xs_chunk(start, length, element, data):
     start += element["electron_ionization_xs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -103,12 +97,12 @@ def electron_elastic_xs(index, element, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_elastic_xs_all(element, data):
     start = element["electron_elastic_xs_offset"]
     size = element["electron_elastic_xs_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -119,11 +113,11 @@ def electron_elastic_xs_last(element, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_elastic_xs_chunk(start, length, element, data):
     start += element["electron_elastic_xs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -132,12 +126,12 @@ def electron_excitation_xs(index, element, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_excitation_xs_all(element, data):
     start = element["electron_excitation_xs_offset"]
     size = element["electron_excitation_xs_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -148,11 +142,11 @@ def electron_excitation_xs_last(element, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_excitation_xs_chunk(start, length, element, data):
     start += element["electron_excitation_xs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -161,12 +155,12 @@ def electron_bremsstrahlung_xs(index, element, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_bremsstrahlung_xs_all(element, data):
     start = element["electron_bremsstrahlung_xs_offset"]
     size = element["electron_bremsstrahlung_xs_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -177,11 +171,11 @@ def electron_bremsstrahlung_xs_last(element, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_bremsstrahlung_xs_chunk(start, length, element, data):
     start += element["electron_bremsstrahlung_xs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -190,12 +184,12 @@ def electron_ionization_reaction_IDs(index, element, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_ionization_reaction_IDs_all(element, data):
     start = element["electron_ionization_reaction_IDs_offset"]
     size = element["N_electron_ionization_reaction"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -206,11 +200,11 @@ def electron_ionization_reaction_IDs_last(element, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_ionization_reaction_IDs_chunk(start, length, element, data):
     start += element["electron_ionization_reaction_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -219,12 +213,12 @@ def electron_elastic_scattering_reaction_IDs(index, element, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_elastic_scattering_reaction_IDs_all(element, data):
     start = element["electron_elastic_scattering_reaction_IDs_offset"]
     size = element["N_electron_elastic_scattering_reaction"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -235,11 +229,11 @@ def electron_elastic_scattering_reaction_IDs_last(element, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_elastic_scattering_reaction_IDs_chunk(start, length, element, data):
     start += element["electron_elastic_scattering_reaction_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -248,12 +242,12 @@ def electron_excitation_reaction_IDs(index, element, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_excitation_reaction_IDs_all(element, data):
     start = element["electron_excitation_reaction_IDs_offset"]
     size = element["N_electron_excitation_reaction"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -264,11 +258,11 @@ def electron_excitation_reaction_IDs_last(element, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_excitation_reaction_IDs_chunk(start, length, element, data):
     start += element["electron_excitation_reaction_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -277,12 +271,12 @@ def electron_bremsstrahlung_reaction_IDs(index, element, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_bremsstrahlung_reaction_IDs_all(element, data):
     start = element["electron_bremsstrahlung_reaction_IDs_offset"]
     size = element["N_electron_bremsstrahlung_reaction"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -293,11 +287,11 @@ def electron_bremsstrahlung_reaction_IDs_last(element, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_bremsstrahlung_reaction_IDs_chunk(start, length, element, data):
     start += element["electron_bremsstrahlung_reaction_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -306,12 +300,12 @@ def electron_ionization_subshell_binding_energy(index, element, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_ionization_subshell_binding_energy_all(element, data):
     start = element["electron_ionization_subshell_binding_energy_offset"]
     size = element["electron_ionization_subshell_binding_energy_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -322,8 +316,8 @@ def electron_ionization_subshell_binding_energy_last(element, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def electron_ionization_subshell_binding_energy_chunk(start, length, element, data):
     start += element["electron_ionization_subshell_binding_energy_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]

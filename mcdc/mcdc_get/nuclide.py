@@ -4,24 +4,18 @@ from numpy import int64
 from numba import njit
 
 
-from mcdc.code_factory.array_return import array_return, array_result
-
-
-import numba as nb
-
-
 @njit
 def neutron_xs_energy_grid(index, nuclide, data):
     offset = nuclide["neutron_xs_energy_grid_offset"]
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_xs_energy_grid_all(nuclide, data):
     start = nuclide["neutron_xs_energy_grid_offset"]
     size = nuclide["neutron_xs_energy_grid_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -32,11 +26,11 @@ def neutron_xs_energy_grid_last(nuclide, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_xs_energy_grid_chunk(start, length, nuclide, data):
     start += nuclide["neutron_xs_energy_grid_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -45,12 +39,12 @@ def neutron_total_xs(index, nuclide, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_total_xs_all(nuclide, data):
     start = nuclide["neutron_total_xs_offset"]
     size = nuclide["neutron_total_xs_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -61,11 +55,11 @@ def neutron_total_xs_last(nuclide, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_total_xs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_total_xs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -74,12 +68,12 @@ def neutron_elastic_xs(index, nuclide, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_elastic_xs_all(nuclide, data):
     start = nuclide["neutron_elastic_xs_offset"]
     size = nuclide["neutron_elastic_xs_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -90,11 +84,11 @@ def neutron_elastic_xs_last(nuclide, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_elastic_xs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_elastic_xs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -103,12 +97,12 @@ def neutron_capture_xs(index, nuclide, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_capture_xs_all(nuclide, data):
     start = nuclide["neutron_capture_xs_offset"]
     size = nuclide["neutron_capture_xs_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -119,11 +113,11 @@ def neutron_capture_xs_last(nuclide, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_capture_xs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_capture_xs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -132,12 +126,12 @@ def neutron_inelastic_xs(index, nuclide, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_inelastic_xs_all(nuclide, data):
     start = nuclide["neutron_inelastic_xs_offset"]
     size = nuclide["neutron_inelastic_xs_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -148,11 +142,11 @@ def neutron_inelastic_xs_last(nuclide, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_inelastic_xs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_inelastic_xs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -161,12 +155,12 @@ def neutron_fission_xs(index, nuclide, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_fission_xs_all(nuclide, data):
     start = nuclide["neutron_fission_xs_offset"]
     size = nuclide["neutron_fission_xs_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -177,11 +171,11 @@ def neutron_fission_xs_last(nuclide, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_fission_xs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_fission_xs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -190,12 +184,12 @@ def neutron_elastic_scattering_reaction_IDs(index, nuclide, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_elastic_scattering_reaction_IDs_all(nuclide, data):
     start = nuclide["neutron_elastic_scattering_reaction_IDs_offset"]
     size = nuclide["N_neutron_elastic_scattering_reaction"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -206,11 +200,11 @@ def neutron_elastic_scattering_reaction_IDs_last(nuclide, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_elastic_scattering_reaction_IDs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_elastic_scattering_reaction_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -219,12 +213,12 @@ def neutron_capture_reaction_IDs(index, nuclide, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_capture_reaction_IDs_all(nuclide, data):
     start = nuclide["neutron_capture_reaction_IDs_offset"]
     size = nuclide["N_neutron_capture_reaction"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -235,11 +229,11 @@ def neutron_capture_reaction_IDs_last(nuclide, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_capture_reaction_IDs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_capture_reaction_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -248,12 +242,12 @@ def neutron_inelastic_scattering_reaction_IDs(index, nuclide, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_inelastic_scattering_reaction_IDs_all(nuclide, data):
     start = nuclide["neutron_inelastic_scattering_reaction_IDs_offset"]
     size = nuclide["N_neutron_inelastic_scattering_reaction"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -264,11 +258,11 @@ def neutron_inelastic_scattering_reaction_IDs_last(nuclide, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_inelastic_scattering_reaction_IDs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_inelastic_scattering_reaction_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -277,12 +271,12 @@ def neutron_fission_reaction_IDs(index, nuclide, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_fission_reaction_IDs_all(nuclide, data):
     start = nuclide["neutron_fission_reaction_IDs_offset"]
     size = nuclide["N_neutron_fission_reaction"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -293,11 +287,11 @@ def neutron_fission_reaction_IDs_last(nuclide, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_fission_reaction_IDs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_fission_reaction_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -306,12 +300,12 @@ def neutron_fission_delayed_fractions(index, nuclide, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_fission_delayed_fractions_all(nuclide, data):
     start = nuclide["neutron_fission_delayed_fractions_offset"]
     size = nuclide["neutron_fission_delayed_fractions_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -322,11 +316,11 @@ def neutron_fission_delayed_fractions_last(nuclide, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_fission_delayed_fractions_chunk(start, length, nuclide, data):
     start += nuclide["neutron_fission_delayed_fractions_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -335,12 +329,12 @@ def neutron_fission_delayed_decay_rates(index, nuclide, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_fission_delayed_decay_rates_all(nuclide, data):
     start = nuclide["neutron_fission_delayed_decay_rates_offset"]
     size = nuclide["neutron_fission_delayed_decay_rates_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -351,11 +345,11 @@ def neutron_fission_delayed_decay_rates_last(nuclide, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_fission_delayed_decay_rates_chunk(start, length, nuclide, data):
     start += nuclide["neutron_fission_delayed_decay_rates_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -364,12 +358,12 @@ def neutron_fission_delayed_spectrum_IDs(index, nuclide, data):
     return int64(data[offset + index])
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_fission_delayed_spectrum_IDs_all(nuclide, data):
     start = nuclide["neutron_fission_delayed_spectrum_IDs_offset"]
     size = nuclide["N_neutron_fission_delayed_spectrum"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -380,8 +374,8 @@ def neutron_fission_delayed_spectrum_IDs_last(nuclide, data):
     return int64(data[end - 1])
 
 
-@array_return(nb.types.float64)
+@njit
 def neutron_fission_delayed_spectrum_IDs_chunk(start, length, nuclide, data):
     start += nuclide["neutron_fission_delayed_spectrum_IDs_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]

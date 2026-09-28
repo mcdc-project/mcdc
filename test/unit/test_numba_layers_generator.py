@@ -1,6 +1,5 @@
 from typing import Annotated
 
-import numba as nb
 import numpy as np
 import pytest
 from numpy.typing import NDArray
@@ -130,8 +129,8 @@ def test_scalar_integer_getters_cast_values_from_data():
 
 def test_float_and_bulk_getters_remain_zero_copy_views():
     assert "return data[offset + index]" in _accessor_1d_element("example", "values")
-    assert "return array_result(data[start:end])" in _accessor_1d_all(
-        "example", "values", "values_length", nb.types.float64
+    assert "return data[start:end]" in _accessor_1d_all(
+        "example", "values", "values_length"
     )
 
 

@@ -3,24 +3,18 @@
 from numba import njit
 
 
-from mcdc.code_factory.array_return import array_return, array_result
-
-
-import numba as nb
-
-
 @njit
 def energy_grid(index, neutron_multigroup_data, data):
     offset = neutron_multigroup_data["energy_grid_offset"]
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def energy_grid_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["energy_grid_offset"]
     size = neutron_multigroup_data["G"] + 1
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -31,11 +25,11 @@ def energy_grid_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def energy_grid_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["energy_grid_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -44,12 +38,12 @@ def speed(index, neutron_multigroup_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def speed_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["speed_offset"]
     size = neutron_multigroup_data["G"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -60,11 +54,11 @@ def speed_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def speed_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["speed_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -73,12 +67,12 @@ def decay_rate(index, neutron_multigroup_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def decay_rate_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["decay_rate_offset"]
     size = neutron_multigroup_data["J"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -89,11 +83,11 @@ def decay_rate_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def decay_rate_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["decay_rate_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -102,12 +96,12 @@ def capture(index, neutron_multigroup_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def capture_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["capture_offset"]
     size = neutron_multigroup_data["G"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -118,11 +112,11 @@ def capture_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def capture_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["capture_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -131,12 +125,12 @@ def scatter(index, neutron_multigroup_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def scatter_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["scatter_offset"]
     size = neutron_multigroup_data["G"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -147,11 +141,11 @@ def scatter_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def scatter_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["scatter_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -160,12 +154,12 @@ def fission(index, neutron_multigroup_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def fission_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["fission_offset"]
     size = neutron_multigroup_data["G"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -176,11 +170,11 @@ def fission_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def fission_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["fission_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -189,12 +183,12 @@ def total(index, neutron_multigroup_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def total_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["total_offset"]
     size = neutron_multigroup_data["G"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -205,11 +199,11 @@ def total_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def total_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["total_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -218,12 +212,12 @@ def nu_s(index, neutron_multigroup_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def nu_s_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["nu_s_offset"]
     size = neutron_multigroup_data["G"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -234,11 +228,11 @@ def nu_s_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def nu_s_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["nu_s_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -247,12 +241,12 @@ def nu_p(index, neutron_multigroup_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def nu_p_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["nu_p_offset"]
     size = neutron_multigroup_data["G"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -263,20 +257,20 @@ def nu_p_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def nu_p_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["nu_p_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
-@array_return(nb.types.float64)
+@njit
 def nu_d_vector(index_1, neutron_multigroup_data, data):
     offset = neutron_multigroup_data["nu_d_offset"]
     stride = neutron_multigroup_data["J"]
     start = offset + index_1 * stride
     end = start + stride
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -286,11 +280,11 @@ def nu_d(index_1, index_2, neutron_multigroup_data, data):
     return data[offset + index_1 * stride + index_2]
 
 
-@array_return(nb.types.float64)
+@njit
 def nu_d_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["nu_d_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -299,12 +293,12 @@ def nu_d_total(index, neutron_multigroup_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def nu_d_total_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["nu_d_total_offset"]
     size = neutron_multigroup_data["G"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -315,11 +309,11 @@ def nu_d_total_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def nu_d_total_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["nu_d_total_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -328,12 +322,12 @@ def nu_f(index, neutron_multigroup_data, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def nu_f_all(neutron_multigroup_data, data):
     start = neutron_multigroup_data["nu_f_offset"]
     size = neutron_multigroup_data["G"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -344,20 +338,20 @@ def nu_f_last(neutron_multigroup_data, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def nu_f_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["nu_f_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
-@array_return(nb.types.float64)
+@njit
 def chi_s_vector(index_1, neutron_multigroup_data, data):
     offset = neutron_multigroup_data["chi_s_offset"]
     stride = neutron_multigroup_data["G"]
     start = offset + index_1 * stride
     end = start + stride
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -367,20 +361,20 @@ def chi_s(index_1, index_2, neutron_multigroup_data, data):
     return data[offset + index_1 * stride + index_2]
 
 
-@array_return(nb.types.float64)
+@njit
 def chi_s_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["chi_s_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
-@array_return(nb.types.float64)
+@njit
 def chi_p_vector(index_1, neutron_multigroup_data, data):
     offset = neutron_multigroup_data["chi_p_offset"]
     stride = neutron_multigroup_data["G"]
     start = offset + index_1 * stride
     end = start + stride
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -390,20 +384,20 @@ def chi_p(index_1, index_2, neutron_multigroup_data, data):
     return data[offset + index_1 * stride + index_2]
 
 
-@array_return(nb.types.float64)
+@njit
 def chi_p_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["chi_p_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
-@array_return(nb.types.float64)
+@njit
 def chi_d_vector(index_1, neutron_multigroup_data, data):
     offset = neutron_multigroup_data["chi_d_offset"]
     stride = neutron_multigroup_data["G"]
     start = offset + index_1 * stride
     end = start + stride
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -413,8 +407,8 @@ def chi_d(index_1, index_2, neutron_multigroup_data, data):
     return data[offset + index_1 * stride + index_2]
 
 
-@array_return(nb.types.float64)
+@njit
 def chi_d_chunk(start, length, neutron_multigroup_data, data):
     start += neutron_multigroup_data["chi_d_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]

@@ -3,24 +3,18 @@
 from numba import njit
 
 
-from mcdc.code_factory.array_return import array_return, array_result
-
-
-import numba as nb
-
-
 @njit
 def value(index, pmf_distribution, data):
     offset = pmf_distribution["value_offset"]
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def value_all(pmf_distribution, data):
     start = pmf_distribution["value_offset"]
     size = pmf_distribution["value_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -31,11 +25,11 @@ def value_last(pmf_distribution, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def value_chunk(start, length, pmf_distribution, data):
     start += pmf_distribution["value_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -44,12 +38,12 @@ def pmf(index, pmf_distribution, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def pmf_all(pmf_distribution, data):
     start = pmf_distribution["pmf_offset"]
     size = pmf_distribution["pmf_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -60,11 +54,11 @@ def pmf_last(pmf_distribution, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def pmf_chunk(start, length, pmf_distribution, data):
     start += pmf_distribution["pmf_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -73,12 +67,12 @@ def cmf(index, pmf_distribution, data):
     return data[offset + index]
 
 
-@array_return(nb.types.float64)
+@njit
 def cmf_all(pmf_distribution, data):
     start = pmf_distribution["cmf_offset"]
     size = pmf_distribution["cmf_length"]
     end = start + size
-    return array_result(data[start:end])
+    return data[start:end]
 
 
 @njit
@@ -89,8 +83,8 @@ def cmf_last(pmf_distribution, data):
     return data[end - 1]
 
 
-@array_return(nb.types.float64)
+@njit
 def cmf_chunk(start, length, pmf_distribution, data):
     start += pmf_distribution["cmf_offset"]
     end = start + length
-    return array_result(data[start:end])
+    return data[start:end]

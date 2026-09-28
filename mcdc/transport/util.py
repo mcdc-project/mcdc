@@ -1,7 +1,6 @@
 import math
 import numpy as np
 
-import numba as nb
 from numba import njit
 from typing import Sequence
 
@@ -154,9 +153,7 @@ def log_interpolation(x, x1, x2, y1, y2):
 
 @njit
 def atomic_add(array, idx, value):
-    result = array[idx]
     array[idx] += value
-    return result
 
 
 @njit
@@ -164,13 +161,6 @@ def local_array(shape, dtype):
     return np.zeros(shape, dtype=dtype)
 
 
+@njit
 def access_simulation(program):
     return program
-
-
-@nb.extending.overload(access_simulation, target="cpu")
-def access_simulation_cpu_overload(program):
-    def impl(program):
-        return program
-
-    return impl
