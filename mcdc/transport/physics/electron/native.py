@@ -286,17 +286,12 @@ def sample_elastic_scattering(
     # Current energy
     E = particle["E"]
 
-    # If large-angle, xs from data table
-    xs_large = elastic_large_xs(E, elastic_scattering, simulation, data)
-
-    # Important to check because of numerical issues
-    if xs_large < 0.0:
-        xs_large = 0.0
-    if xs_large > xs_total:
-        xs_large = xs_total
-
-    prob_large = xs_large / xs_total
+    Z = int(element["atomic_number"])
     mu_cut = float(elastic_scattering["mu_cut"])
+
+    # Screened Rutherford CDF sets the large- vs small-angle split
+    eta = compute_scattering_eta(E, Z)
+    prob_large = sr_cdf(mu_cut, eta)
 
     xi = rng.lcg(particle_container)
 
@@ -343,6 +338,14 @@ def compute_scattering_eta(E, Z):
     rel = math.sqrt(tau / (tau + 1.0))
 
     return 0.25 * (r * r) * z_sq * bracket * rel
+
+
+@njit
+def sr_cdf(mu, eta):
+    """Screened Rutherford CDF: fraction of events with scattering cosine < mu."""
+    num = (1.0 / eta) - 1.0 / (1.0 - mu + 2.0 * eta)
+    denom = (1.0 / eta) - 1.0 / (2.0 + 2.0 * eta)
+    return num / denom
 
 
 @njit
