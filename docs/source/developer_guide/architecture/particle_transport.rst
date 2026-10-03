@@ -60,6 +60,15 @@ The discrete collision's incoming state includes the preceding condensed changes
 For condensed interactions, the snapshot is taken after movement but before the condensed physics is applied: position and time are at the endpoint, while energy and direction precede the condensed changes.
 Assigning the condensed contribution to this endpoint assumes steps are small relative to the spatial, temporal, and energy scales resolved by the tally.
 
+Cross-Species Production
+------------------------
+
+``physics.produce_cross_species`` checks transport activation, samples product counts and phase space, accounts for outgoing energy, and banks cross-species products.
+Particle-specific reactions supply the available-energy deposition balance and handle same-species products separately.
+The shared function uses ``InteractionData.incident_particle`` for the incident state and the active particle's RNG stream for sampling.
+Products that are not transported leave their energy in the local deposition balance.
+Currently, proton inelastic reactions call this function for prompt, single-spectrum products, retaining the existing nuclear frame transformation and census routing.
+
 Tally Triggers and Scoring
 --------------------------
 

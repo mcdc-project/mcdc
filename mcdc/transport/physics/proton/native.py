@@ -30,8 +30,6 @@ from mcdc.constant import (
     PROTON_REACTION_CAPTURE,
     PROTON_REACTION_INELASTIC_SCATTERING,
     REFERENCE_FRAME_COM,
-    PARTICLE_ELECTRON,
-    PARTICLE_NEUTRON,
     PARTICLE_PROTON,
     # PARTICLE_DEUTERON,
     # PARTICLE_TRITON,
@@ -40,7 +38,7 @@ from mcdc.constant import (
     # PARTICLE_HEAVY,
     PROTON_CUTOFF_ENERGY,
 )
-from mcdc.transport.data import evaluate_data
+from mcdc.transport.physics.cross_species_production import produce_cross_species
 from mcdc.transport.distribution import (
     sample_correlated_distribution_with_scale,
     sample_distribution_with_scale,
@@ -655,95 +653,14 @@ def inelastic_scattering(
     # Sample cross-species SECONDARY PARTICLES
     # ==================================================================================
 
-    for i in range(reaction["N_secondary_product"]):
-        product_ID = int(
-            mcdc_get.proton_reaction.secondary_product_IDs(i, reaction, data)
-        )
-        product = simulation["secondary_products"][product_ID]
-
-        # The primary proton above is sampled from the reaction's primary
-        # energy-angle distribution. Do not create it a second time here.
-        if product["particle_type"] == PARTICLE_PROTON:
-            continue
-
-        # Get the product count
-        #   Multiplicity is represented by yield rather than repeated product entries.
-        yield_data = simulation["data"][product["production_yield_ID"]]
-        production_yield = evaluate_data(E, yield_data, simulation, data)
-        N_product = int(math.floor(production_yield + rng.lcg(particle_container)))
-
-        # Get the spectrum
-        spectrum_ID = mcdc_get.secondary_product.energy_spectrum_IDs(0, product, data)
-        spectrum = simulation["distributions"][spectrum_ID]
-
-        # Create the products
-        for _ in range(N_product):
-            particle_container_new = util.local_array(1, type_.particle_data)
-            particle_module.copy_as_child(particle_container_new, particle_container)
-
-            # Sample energy and angle
-            if product["angle_type"] == ANGLE_ENERGY_CORRELATED:
-                E_new, mu = sample_correlated_distribution_with_scale(
-                    E,
-                    spectrum,
-                    particle_container_new,
-                    simulation,
-                    data,
-                )
-            else:
-                E_new = sample_distribution_with_scale(
-                    E,
-                    spectrum,
-                    particle_container_new,
-                    simulation,
-                    data,
-                )
-                if product["angle_type"] == ANGLE_ISOTROPIC:
-                    mu = sample_isotropic_cosine(particle_container_new)
-                else:
-                    mu_distribution = simulation["distributions"][product["mu_ID"]]
-                    mu = sample_distribution(
-                        E, mu_distribution, particle_container_new, simulation, data
-                    )
-
-            # Frame transformation
-            if product["reference_frame"] == REFERENCE_FRAME_COM:
-                A = nuclide["atomic_weight_ratio"]
-                E_COM = E_new
-                E_new = (
-                    E_COM
-                    + (E + 2.0 * mu * (A + 1.0) * math.sqrt(E * E_COM)) / (A + 1.0) ** 2
-                )
-                mu = mu * math.sqrt(E_COM / E_new) + math.sqrt(E / E_new) / (A + 1.0)
-
-            azi = 2.0 * PI * rng.lcg(particle_container_new)
-            ux_new, uy_new, uz_new = scatter_direction(ux, uy, uz, mu, azi)
-            product_type = product["particle_type"]
-
-            # Bank the new particle
-            if product_type in (PARTICLE_NEUTRON, PARTICLE_ELECTRON):
-                particle_new = particle_container_new[0]
-                particle_new["ux"] = ux_new
-                particle_new["uy"] = uy_new
-                particle_new["uz"] = uz_new
-                particle_new["E"] = E_new
-                particle_new["particle_type"] = product_type
-
-                interaction_data["energy_deposition"] -= E_new * particle_new["w"]
-
-                if particle["event"] & EVENT_TIME_CENSUS:
-                    particle_bank_module.bank_census_particle(
-                        particle_container_new, program
-                    )
-                else:
-                    particle_bank_module.bank_active_particle(
-                        particle_container_new, program
-                    )
-            else:
-                # Deuterons, tritons, He3, alphas, and heavier products are
-                # retained in the data model but locally deposited for now.
-                # Their energy is already included in the reaction balance.
-                continue
+    produce_cross_species(
+        reaction,
+        nuclide["atomic_weight_ratio"],
+        particle_container,
+        interaction_data_container,
+        program,
+        data,
+    )
 
 
 # No fission for protons
