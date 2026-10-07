@@ -73,6 +73,24 @@ def global_weight_roulette(particle_container, simulation):
 
 @njit
 def active_weight_windows(particle_container, program):
+    """
+    Find whether weight windows are active for the specific particle, and if
+    so which weight window object to grab.
+
+    Parameters
+    ----------
+    particle_container : ndarray
+        Container holding the particle.
+    program : object
+        Program object containing simulation state with weight window objects.
+
+    Returns
+    -------
+    active : bool
+        Whether weight windows are active for this particle type.
+    ww_name : str
+        Name of the weight window object to grab from the program.
+    """
     simulation = util.access_simulation(program)
     technique = simulation["technique"]
     pname = util.particle_name(particle_container[0]["particle_type"])
