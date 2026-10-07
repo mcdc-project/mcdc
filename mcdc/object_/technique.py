@@ -3,12 +3,9 @@ import numpy as np
 from mcdc.constant import (
   INF,
   PI, 
-  PARTICLE_NEUTRON,
-  PARTICLE_ELECTRON,
-  PARTICLE_PROTON,
-  PARTICLE_ANY,
+  ALLOWED_PARTICLE_TYPES,
 )
-from mcdc.object_.base import MCDCBase, MCDCObject 
+from mcdc.object_.base import MCDCBase 
 from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.print_ import print_error
 from numpy.typing import NDArray
@@ -447,7 +444,6 @@ class Technique(MCDCBase):
 
     # MC/DC framework metadata
     label = "technique"
-    non_numba = ["weight_windows"]
 
     implicit_capture: ImplicitCapture
     weighted_emission: WeightedEmission
@@ -463,10 +459,9 @@ class Technique(MCDCBase):
         self.implicit_capture = ImplicitCapture()
         self.weighted_emission = WeightedEmission()
         self.global_weight_roulette = GlobalWeightRoulette()
-        self.neutron_weight_windows = WeightWindows(PARTICLE_NEUTRON)
-        self.electron_weight_windows = WeightWindows(PARTICLE_ELECTRON)
-        self.proton_weight_windows = WeightWindows(PARTICLE_PROTON)
-        self.general_weight_windows = WeightWindows(PARTICLE_ANY)
+        for pname, ptype in ALLOWED_PARTICLE_TYPES.items():
+            if pname == "any": pname = "general"
+            setattr(self, f"{pname}_weight_windows", WeightWindows(ptype))
         self.population_control = PopulationControl()
 
     def weight_windows(self, weight_windows:NDArray[np.float64], particle_type: str = "general", **kwargs):
