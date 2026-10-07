@@ -1,11 +1,11 @@
 import numpy as np
 
 from mcdc.constant import (
-  INF,
-  PI, 
-  ALLOWED_PARTICLE_TYPES,
+    INF,
+    PI,
+    ALLOWED_PARTICLE_TYPES,
 )
-from mcdc.object_.base import MCDCBase 
+from mcdc.object_.base import MCDCBase
 from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.print_ import print_error
 from numpy.typing import NDArray
@@ -460,13 +460,21 @@ class Technique(MCDCBase):
         self.weighted_emission = WeightedEmission()
         self.global_weight_roulette = GlobalWeightRoulette()
         for pname, ptype in ALLOWED_PARTICLE_TYPES.items():
-            if pname == "any": pname = "general"
+            if pname == "any":
+                pname = "general"
             setattr(self, f"{pname}_weight_windows", WeightWindows(ptype))
         self.population_control = PopulationControl()
 
-    def weight_windows(self, weight_windows:NDArray[np.float64], particle_type: str = "general", **kwargs):
+    def weight_windows(
+        self,
+        weight_windows: NDArray[np.float64],
+        particle_type: str = "general",
+        **kwargs,
+    ):
         ww_name = f"{particle_type}_weight_windows"
         ww_obj = getattr(self, ww_name)
         if ww_obj.active:
-            print_error(f"Attempting to overwrite weight windows for particle type {particle_type}!")
+            print_error(
+                f"Attempting to overwrite weight windows for particle type {particle_type}!"
+            )
         ww_obj(weight_windows, **kwargs)

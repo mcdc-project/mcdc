@@ -99,7 +99,9 @@ def weight_windows(particle_container, ww_name, program, data):
         Simulation data for array access.
     """
     simulation = util.access_simulation(program)
-    [lower, target, upper] = query_weight_window(particle_container, ww_name, simulation, data)
+    [lower, target, upper] = query_weight_window(
+        particle_container, ww_name, simulation, data
+    )
     # split
     split_from_weight_window(particle_container, upper, target, lower, program)
     # roulette original particle
