@@ -1,7 +1,14 @@
 import numpy as np
 
-from mcdc.constant import INF, PI
-from mcdc.object_.base import MCDCBase
+from mcdc.constant import (
+  INF,
+  PI, 
+  PARTICLE_NEUTRON,
+  PARTICLE_ELECTRON,
+  PARTICLE_PROTON,
+  PARTICLE_ANY,
+)
+from mcdc.object_.base import MCDCBase, MCDCObject 
 from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.print_ import print_error
 from numpy.typing import NDArray
@@ -168,6 +175,8 @@ class WeightWindows(MCDCBase):
 
     active: bool
 
+    ptype: int
+
     # time
     time_bounds: NDArray[np.float64]
     Nt: int
@@ -195,8 +204,9 @@ class WeightWindows(MCDCBase):
         ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz", "N_WW_parameters"),
     ]
 
-    def __init__(self) -> None:
+    def __init__(self, ptype) -> None:
         self.active = False
+        self.ptype = ptype
         self.time_bounds = np.array([0.0, INF])
         self.Nt = 1
         self.azi_bounds = np.array([-PI, PI])
@@ -224,6 +234,7 @@ class WeightWindows(MCDCBase):
     def __call__(
         self,
         weight_windows: NDArray[np.float64],
+        *,
         mesh: MeshBase | None = None,
         energy: NDArray[np.float64] | None = None,
         mu: NDArray[np.float64] | None = None,
@@ -436,11 +447,15 @@ class Technique(MCDCBase):
 
     # MC/DC framework metadata
     label = "technique"
+    non_numba = ["weight_windows"]
 
     implicit_capture: ImplicitCapture
     weighted_emission: WeightedEmission
     global_weight_roulette: GlobalWeightRoulette
-    weight_windows: WeightWindows
+    neutron_weight_windows: WeightWindows
+    electron_weight_windows: WeightWindows
+    proton_weight_windows: WeightWindows
+    general_weight_windows: WeightWindows
     population_control: PopulationControl
 
     def __init__(self) -> None:
@@ -448,5 +463,15 @@ class Technique(MCDCBase):
         self.implicit_capture = ImplicitCapture()
         self.weighted_emission = WeightedEmission()
         self.global_weight_roulette = GlobalWeightRoulette()
-        self.weight_windows = WeightWindows()
+        self.neutron_weight_windows = WeightWindows(PARTICLE_NEUTRON)
+        self.electron_weight_windows = WeightWindows(PARTICLE_ELECTRON)
+        self.proton_weight_windows = WeightWindows(PARTICLE_PROTON)
+        self.general_weight_windows = WeightWindows(PARTICLE_ANY)
         self.population_control = PopulationControl()
+
+    def weight_windows(self, weight_windows:NDArray[np.float64], particle_type: str = "general", **kwargs):
+        ww_name = f"{particle_type}_weight_windows"
+        ww_obj = getattr(self, ww_name)
+        if ww_obj.active:
+            print_error(f"Attempting to overwrite weight windows for particle type {particle_type}!")
+        ww_obj(weight_windows, **kwargs)
