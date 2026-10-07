@@ -72,7 +72,20 @@ def global_weight_roulette(particle_container, simulation):
 
 
 @njit
-def weight_windows(particle_container, program, data):
+def active_weight_windows(particle_container, program):
+    simulation = util.access_simulation(program)
+    technique = simulation["technique"]
+    pname = util.particle_name(particle_container[0]["particle_type"])
+    ww_name = pname + "_weight_windows"
+    active = technique[ww_name]["active"]
+    if not active:
+        ww_name = "general_weight_windows"
+        active = technique[ww_name]["active"]
+    return active, ww_name
+
+
+@njit
+def weight_windows(particle_container, ww_name, program, data):
     """
     Apply weight window splitting and rouletting to a particle.
 
@@ -86,7 +99,7 @@ def weight_windows(particle_container, program, data):
         Simulation data for array access.
     """
     simulation = util.access_simulation(program)
-    [lower, target, upper] = query_weight_window(particle_container, simulation, data)
+    [lower, target, upper] = query_weight_window(particle_container, ww_name, simulation, data)
     # split
     split_from_weight_window(particle_container, upper, target, lower, program)
     # roulette original particle
@@ -94,7 +107,7 @@ def weight_windows(particle_container, program, data):
 
 
 @njit
-def query_weight_window(particle_container, simulation, data):
+def query_weight_window(particle_container, ww_name, simulation, data):
     """
     Query weight window bounds for the particle.
 
@@ -117,7 +130,7 @@ def query_weight_window(particle_container, simulation, data):
         Upper weight bound.
     """
     # grab objects
-    ww_obj = simulation["technique"]["weight_windows"]
+    ww_obj = simulation["technique"][ww_name]
     indices = get_ww_indices(particle_container, ww_obj, simulation, data)
     # grab the actual ww parameters
     lower = ww_get.weights(*indices, 0, ww_obj, data)

@@ -301,7 +301,7 @@ def test_simulation_compiles_objects_owned_by_embedded_configuration():
 
     assert simulation.meshes == [mesh]
     assert simulation.technique.compile_ID == simulation.compile_ID
-    assert simulation.technique.weight_windows.compile_ID == simulation.compile_ID
+    assert simulation.technique.general_weight_windows.compile_ID == simulation.compile_ID
 
 
 def test_embedded_compile_id_prevents_cycles_and_supports_recompilation():
