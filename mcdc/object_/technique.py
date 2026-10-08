@@ -409,7 +409,11 @@ class Technique(MCDCBase):
         self,
         weight_windows: NDArray[np.float64],
         particle_type: str = "general",
-        **kwargs,
+        mesh: MeshBase | None = None,
+        energy: NDArray[np.float64] | None = None,
+        mu: NDArray[np.float64] | None = None,
+        azimuthal: NDArray[np.float64] | None = None,
+        time: NDArray[np.float64] | None = None,
     ):
         """Configure lower, target, and upper particle weights.
 
@@ -487,4 +491,11 @@ class Technique(MCDCBase):
             print_error(
                 f"Attempting to overwrite weight windows for particle type {particle_type}!"
             )
-        ww_obj(weight_windows, **kwargs)
+        ww_obj(
+            weight_windows,
+            mesh=mesh,
+            energy=energy,
+            mu=mu,
+            azimuthal=azimuthal,
+            time=time,
+        )
