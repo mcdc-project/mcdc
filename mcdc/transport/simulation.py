@@ -584,9 +584,8 @@ def apply_techniques(particle_container, program, data):
     particle = particle_container[0]
 
     # Weight windows
-    ww_active, ww_name = technique.active_weight_windows(particle_container, program)
-    if ww_active:
-        technique.weight_windows(particle_container, ww_name, program, data)
+    if technique.get_weight_window_object(particle_container, program)["active"]:
+        technique.weight_windows(particle_container, program, data)
         if not particle["alive"]:
             return
 

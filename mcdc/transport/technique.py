@@ -12,7 +12,13 @@ import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
 import mcdc.transport.util as util
 
-from mcdc.constant import COINCIDENCE_TOLERANCE_TIME, EVENT_TIME_CENSUS
+from mcdc.constant import (
+    COINCIDENCE_TOLERANCE_TIME,
+    EVENT_TIME_CENSUS,
+    PARTICLE_NEUTRON,
+    PARTICLE_ELECTRON,
+    PARTICLE_PROTON,
+)
 from mcdc.transport.mesh import get_indices as get_mesh_indices
 
 # ======================================================================================
@@ -72,10 +78,10 @@ def global_weight_roulette(particle_container, simulation):
 
 
 @njit
-def active_weight_windows(particle_container, program):
+def get_weight_window_object(particle_container, program):
     """
-    Find whether weight windows are active for the specific particle, and if
-    so which weight window object to grab.
+    Get the appropriate weight window object that applies to the provided
+    particle.
 
     Parameters
     ----------
@@ -86,24 +92,29 @@ def active_weight_windows(particle_container, program):
 
     Returns
     -------
-    active : bool
-        Whether weight windows are active for this particle type.
-    ww_name : str
-        Name of the weight window object to grab from the program.
+    ww_obj : object
+        The weight window object that corresponds to the provided particle.
     """
     simulation = util.access_simulation(program)
     technique = simulation["technique"]
-    pname = util.particle_name(particle_container[0]["particle_type"])
-    ww_name = pname + "_weight_windows"
-    active = technique[ww_name]["active"]
-    if not active:
-        ww_name = "general_weight_windows"
-        active = technique[ww_name]["active"]
-    return active, ww_name
+    ptype = particle_container[0]["particle_type"]
+    if ptype == PARTICLE_NEUTRON:
+        ww_obj = technique["neutron_weight_windows"]
+    if ptype == PARTICLE_ELECTRON:
+        ww_obj = technique["electron_weight_windows"]
+    if ptype == PARTICLE_PROTON:
+        ww_obj = technique["proton_weight_windows"]
+    else:
+        ww_obj = technique["general_weight_windows"]
+
+    if ww_obj["active"]:
+        return ww_obj
+    else:
+        return technique["general_weight_windows"]
 
 
 @njit
-def weight_windows(particle_container, ww_name, program, data):
+def weight_windows(particle_container, program, data):
     """
     Apply weight window splitting and rouletting to a particle.
 
@@ -116,10 +127,7 @@ def weight_windows(particle_container, ww_name, program, data):
     data : object
         Simulation data for array access.
     """
-    simulation = util.access_simulation(program)
-    [lower, target, upper] = query_weight_window(
-        particle_container, ww_name, simulation, data
-    )
+    [lower, target, upper] = query_weight_window(particle_container, program, data)
     # split
     split_from_weight_window(particle_container, upper, target, lower, program)
     # roulette original particle
@@ -127,7 +135,7 @@ def weight_windows(particle_container, ww_name, program, data):
 
 
 @njit
-def query_weight_window(particle_container, ww_name, simulation, data):
+def query_weight_window(particle_container, program, data):
     """
     Query weight window bounds for the particle.
 
@@ -135,8 +143,8 @@ def query_weight_window(particle_container, ww_name, simulation, data):
     ----------
     particle_container : ndarray
         Container holding the particle.
-    simulation : object
-        Simulation state containing weight window and mesh data.
+    program : object
+        Program object containing simulation state with weight window and mesh data.
     data : object
         Simulation data for array access.
 
@@ -150,8 +158,8 @@ def query_weight_window(particle_container, ww_name, simulation, data):
         Upper weight bound.
     """
     # grab objects
-    ww_obj = simulation["technique"][ww_name]
-    indices = get_ww_indices(particle_container, ww_obj, simulation, data)
+    ww_obj = get_weight_window_object(particle_container, program)
+    indices = get_ww_indices(particle_container, ww_obj, program, data)
     # grab the actual ww parameters
     lower = ww_get.weights(*indices, 0, ww_obj, data)
     target = ww_get.weights(*indices, 1, ww_obj, data)
@@ -160,7 +168,7 @@ def query_weight_window(particle_container, ww_name, simulation, data):
 
 
 @njit
-def get_ww_indices(particle_container, ww_obj, simulation, data):
+def get_ww_indices(particle_container, ww_obj, program, data):
     """
     Get the particle's bin index in each weight-window dimension.
 
@@ -170,8 +178,8 @@ def get_ww_indices(particle_container, ww_obj, simulation, data):
         Container holding the particle.
     ww_obj : object
         The weight window object containing index information.
-    simulation : object
-        Simulation state containing weight window and mesh data.
+    program : object
+        Program object containing simulation state with weight window and mesh data.
     data : object
         Simulation data for array access.
 
@@ -180,6 +188,7 @@ def get_ww_indices(particle_container, ww_obj, simulation, data):
     indices : tuple of int
         Seven bin indices in (time, energy, mu, azimuthal, x, y, z) order.
     """
+    simulation = util.access_simulation(program)
     particle = particle_container[0]
 
     # get time index

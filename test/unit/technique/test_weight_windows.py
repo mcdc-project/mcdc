@@ -6,7 +6,6 @@ import mcdc.numba_types as type_
 from mcdc.transport.technique import (
     weight_roulette,
     split_from_weight_window,
-    active_weight_windows,
     query_weight_window,
     particle_bank_module,
 )
@@ -256,9 +255,8 @@ def test_query_weight_window(prepare_simulation):
                                 p[0]["uz"] = mu
 
                                 # query and predict
-                                active, ww_name = active_weight_windows(p, program)
                                 lower, target, upper = query_weight_window(
-                                    p, ww_name, simulation, data
+                                    p, simulation, data
                                 )
                                 exp_lower = (
                                     1_000_000 * it
