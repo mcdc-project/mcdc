@@ -24,9 +24,6 @@ from mcdc.constant import (
     MESH_UNIFORM,
     PI,
     PARTICLE_ANY,
-    PARTICLE_NEUTRON,
-    PARTICLE_ELECTRON,
-    PARTICLE_PROTON,
     SCORE_FLUX,
     SCORE_DENSITY,
     SCORE_COLLISION,
@@ -46,6 +43,7 @@ from mcdc.constant import (
 )
 from mcdc.object_.mesh import MeshBase, MeshStructured, MeshUniform
 from mcdc.object_.base import MCDCPolymorphic
+from mcdc.object_.util import parse_particle_type, decode_particle_type
 from mcdc.print_ import print_1d_array, print_error
 
 
@@ -316,14 +314,11 @@ class Tally(MCDCPolymorphic):
         # Particle filter
         if particle_type is None:
             self.particle_type = PARTICLE_ANY
-        elif particle_type == "neutron":
-            self.particle_type = PARTICLE_NEUTRON
-        elif particle_type == "electron":
-            self.particle_type = PARTICLE_ELECTRON
-        elif particle_type == "proton":
-            self.particle_type = PARTICLE_PROTON
         else:
-            print_error(f"Unsupported tally particle type: {particle_type}")
+            try:
+                self.particle_type = parse_particle_type(particle_type)
+            except ValueError:
+                print_error(f"Unsupported tally particle type: {particle_type}")
 
         # Phase-space filters
         self.mu = np.array([-1.0, 1.0])
@@ -407,12 +402,7 @@ class Tally(MCDCPolymorphic):
     def _phasespace_filter_text(self):
         text = ""
         text += f"  - Scores: {', '.join(decode_score_type(x) for x in self.scores)}\n"
-        particle_name = {
-            PARTICLE_ANY: "Any",
-            PARTICLE_NEUTRON: "Neutron",
-            PARTICLE_ELECTRON: "Electron",
-            PARTICLE_PROTON: "Proton",
-        }.get(self.particle_type, "Unspecified")
+        particle_name = decode_particle_type(self.particle_type, "Unspecified")
         text += f"  - Particle: {particle_name}\n"
         if self.filter_time or self.filter_energy or self.filter_direction:
             text += f"  - Phase-space filters\n"

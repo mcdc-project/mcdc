@@ -3,7 +3,8 @@ import numpy as np
 from mcdc.constant import (
     INF,
     PI,
-    ALLOWED_PARTICLE_TYPES,
+    PARTICLE_TYPE_BY_NAME,
+    PARTICLE_ANY,
 )
 from mcdc.object_.base import MCDCBase
 from mcdc.object_.mesh import MeshBase, MeshUniform
@@ -399,10 +400,9 @@ class Technique(MCDCBase):
         self.implicit_capture = ImplicitCapture()
         self.weighted_emission = WeightedEmission()
         self.global_weight_roulette = GlobalWeightRoulette()
-        for pname, ptype in ALLOWED_PARTICLE_TYPES.items():
-            if pname == "any":
-                pname = "general"
+        for pname, ptype in PARTICLE_TYPE_BY_NAME.items():
             setattr(self, f"{pname}_weight_windows", WeightWindows(ptype))
+        self.general_weight_windows = WeightWindows(PARTICLE_ANY)
         self.population_control = PopulationControl()
 
     def weight_windows(
