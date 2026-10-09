@@ -85,6 +85,24 @@ def make_direction_basis(px, py, pz):
 
 
 @njit
+def direction_from_angles(mu, azimuthal, polar_reference):
+    """Construct a direction from polar cosine, azimuth, and reference axis."""
+    px = polar_reference[0]
+    py = polar_reference[1]
+    pz = polar_reference[2]
+    e1x, e1y, e1z, e2x, e2y, e2z = make_direction_basis(px, py, pz)
+
+    transverse = math.sqrt(max(0.0, 1.0 - mu * mu))
+    cos_azimuthal = math.cos(azimuthal)
+    sin_azimuthal = math.sin(azimuthal)
+
+    x = transverse * (cos_azimuthal * e1x + sin_azimuthal * e2x) + mu * px
+    y = transverse * (cos_azimuthal * e1y + sin_azimuthal * e2y) + mu * py
+    z = transverse * (cos_azimuthal * e1z + sin_azimuthal * e2z) + mu * pz
+    return x, y, z
+
+
+@njit
 def rotation_matrix(rotation):
     """Construct a three-dimensional rotation matrix from angles in radians.
 

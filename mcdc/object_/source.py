@@ -16,7 +16,12 @@ from mcdc.constant import (
     PI,
 )
 from mcdc.object_.base import MCDCObject
-from mcdc.object_.distribution import DistributionTabulated, DistributionPMF
+from mcdc.object_.distribution import (
+    DistributionBase,
+    DistributionMultiTable,
+    DistributionPMF,
+    DistributionTabulated,
+)
 from mcdc.object_.util import move_object
 from mcdc.print_ import print_error
 
@@ -61,14 +66,18 @@ class Source(MCDCObject):
     isotropic : bool, optional
         If True, emit particles isotropically. Cannot be supplied with
         ``direction`` or ``white_direction``.
-    polar_cosine : array_like of float, optional
-        Bounds for the sampled polar cosine,
-        ``[mu_min, mu_max]``, measured with respect to ``direction``.
-        Requires ``direction``. Defaults to ``[-1.0, 1.0]``.
-    azimuthal : array_like of float, optional
-        Bounds for the sampled azimuthal angle,
-        ``[azi_min, azi_max]`` in radians, measured about ``direction``.
-        Requires ``direction``. Defaults to ``[0.0, 2π]``.
+    polar_cosine : real or array_like of float, optional
+        Polar cosine measured with respect to ``direction``. A scalar fixes the
+        polar cosine, an array with shape ``(2,)`` samples uniformly over
+        ``[mu_min, mu_max]``, and an array with shape ``(2, N)`` defines a
+        tabulated piecewise-linear probability density. Requires ``direction``.
+        Defaults to uniform sampling over ``[-1.0, 1.0]``.
+    azimuthal : real or array_like of float, optional
+        Azimuthal angle in radians measured about ``direction``. A scalar fixes
+        the angle, an array with shape ``(2,)`` samples uniformly over
+        ``[azi_min, azi_max]``, and an array with shape ``(2, N)`` defines a
+        tabulated piecewise-linear probability density. Requires ``direction``.
+        Defaults to uniform sampling over ``[0.0, 2π]``.
     energy : float, array_like of float, or int, optional
         Source energy in eV. A real scalar, including a NumPy scalar, defines a
         mono-energetic source. An array-like value with shape ``(2, N)`` defines
@@ -86,11 +95,27 @@ class Source(MCDCObject):
         transport and group-coordinate energies for standard multigroup
         transport. Standard-multigroup coordinates must be integer-valued and
         identify available groups. Cannot be supplied with ``energy``.
+    energy_at_polar_cosine : array_like of float, optional
+        Source energy correlated with a tabulated ``polar_cosine``
+        distribution. A one-dimensional array assigns one deterministic energy
+        in eV to each polar-cosine grid point; energy is linearly interpolated
+        at the sampled polar cosine. An array with shape
+        ``(N_mu, 2, N_energy)`` assigns a conditional piecewise-linear energy
+        PDF to every polar-cosine grid point: ``[:, 0, :]`` contains energy
+        grids in eV and ``[:, 1, :]`` contains probability densities in
+        ``eV^-1``. MC/DC applies unit-base interpolation between neighboring
+        conditional distributions. ``N_mu`` must equal the polar-cosine grid
+        length. Requires ``direction`` and a ``polar_cosine`` value with shape
+        ``(2, N_mu)``. Cannot be supplied with ``energy`` or
+        ``discrete_energy`` and is unavailable in standard multigroup
+        transport.
     time : real or array_like of float, optional
         Emission time in seconds. A real scalar, including a NumPy scalar,
         defines a discrete emission time. An array-like value with shape
-        ``(2,)`` defines a uniform interval ``[t_min, t_max]``. Defaults to
-        ``0.0``.
+        ``(2,)`` defines a uniform interval ``[t_min, t_max]``. An array-like
+        value with shape ``(2, N)`` defines a tabulated piecewise-linear
+        distribution: the first row contains times and the second row contains
+        their probability density. Defaults to ``0.0``.
     particle_type : {"neutron", "electron", "proton"}, optional
         Type of emitted particle. Defaults to ``"neutron"``.
     probability : float, optional
@@ -224,20 +249,30 @@ class Source(MCDCObject):
     mono_direction: bool
     white_direction: bool
     direction: Annotated[NDArray[float64], (3,)]
+    uniform_polar_cosine: bool
+    uniform_azimuthal: bool
     polar_cosine: Annotated[NDArray[float64], (2,)]
     azimuthal: Annotated[NDArray[float64], (2,)]
+    polar_cosine_pdf: DistributionTabulated
+    azimuthal_pdf: DistributionTabulated
 
     # Energy
     mono_energetic: bool
     discrete_energy: bool
+    energy_at_polar_cosine_active: bool
+    energy_at_polar_cosine_is_distribution: bool
     energy: float
     energy_pdf: DistributionTabulated
     energy_pmf: DistributionPMF
+    energy_at_polar_cosine: NDArray[float64]
+    energy_at_polar_cosine_distribution: DistributionBase
 
     # Time
     discrete_time: bool
+    uniform_time: bool
     time: float
     time_range: Annotated[NDArray[float64], (2,)]
+    time_pdf: DistributionTabulated
 
     # Misc.
     particle_type: int
@@ -263,13 +298,14 @@ class Source(MCDCObject):
         direction: Sequence[float] | NoneType = None,
         white_direction: Sequence[float] | NoneType = None,
         isotropic: bool | NoneType = None,
-        polar_cosine: Sequence[float] | NoneType = None,
-        azimuthal: Sequence[float] | NoneType = None,
+        polar_cosine: float | ArrayLike | NoneType = None,
+        azimuthal: float | ArrayLike | NoneType = None,
         #
         energy: float | ArrayLike | int | NoneType = None,
         discrete_energy: ArrayLike | NoneType = None,
+        energy_at_polar_cosine: ArrayLike | NoneType = None,
         #
-        time: ArrayLike = 0.0,
+        time: float | ArrayLike = 0.0,
         #
         particle_type: str = "neutron",
         #
@@ -310,23 +346,42 @@ class Source(MCDCObject):
         self.mono_direction = False
         self.white_direction = False
         self.direction = np.array([0.0, 0.0, 1.0])
+        self.uniform_polar_cosine = True
+        self.uniform_azimuthal = True
         self.polar_cosine = np.array([-1.0, 1.0])
         self.azimuthal = np.array([0.0, 2.0 * PI])
+        self.polar_cosine_pdf = DistributionTabulated(
+            np.array([-1.0, 1.0]),
+            np.array([1.0, 1.0]),
+        )
+        self.azimuthal_pdf = DistributionTabulated(
+            np.array([0.0, 2.0 * PI]),
+            np.array([1.0, 1.0]),
+        )
 
         # Energy
         self.mono_energetic = True
         self.discrete_energy = False
+        self.energy_at_polar_cosine_active = False
+        self.energy_at_polar_cosine_is_distribution = False
         self.energy = 1.0e6
         self.energy_pdf = DistributionTabulated(
             np.array([1.0e6 - 1.0, 1.0e6 + 1.0]),
             np.array([1.0, 1.0]),
         )
         self.energy_pmf = DistributionPMF(np.array([1.0e6]), np.array([1.0]))
+        self.energy_at_polar_cosine = np.zeros(0)
+        self.energy_at_polar_cosine_distribution = self.energy_pdf
 
         # Time
         self.discrete_time = True
+        self.uniform_time = True
         self.time = 0.0
         self.time_range = np.array([0.0, 0.0])
+        self.time_pdf = DistributionTabulated(
+            np.array([0.0, 1.0]),
+            np.array([1.0, 1.0]),
+        )
 
         # Particle type
         self.particle_type = PARTICLE_NEUTRON
@@ -348,15 +403,15 @@ class Source(MCDCObject):
         else:
             self.point_source = False
             if x is not None:
-                self.uniform_x, self.x, pdf = _spatial_distribution(x, "x")
+                self.uniform_x, self.x, pdf = _continuous_distribution(x, "x")
                 if pdf is not None:
                     self.x_pdf = pdf
             if y is not None:
-                self.uniform_y, self.y, pdf = _spatial_distribution(y, "y")
+                self.uniform_y, self.y, pdf = _continuous_distribution(y, "y")
                 if pdf is not None:
                     self.y_pdf = pdf
             if z is not None:
-                self.uniform_z, self.z, pdf = _spatial_distribution(z, "z")
+                self.uniform_z, self.z, pdf = _continuous_distribution(z, "z")
                 if pdf is not None:
                     self.z_pdf = pdf
 
@@ -386,9 +441,23 @@ class Source(MCDCObject):
             if polar_cosine is not None or azimuthal is not None:
                 self.mono_direction = False
                 if polar_cosine is not None:
-                    self.polar_cosine = np.array(polar_cosine)
+                    (
+                        self.uniform_polar_cosine,
+                        self.polar_cosine,
+                        pdf,
+                    ) = _continuous_distribution(polar_cosine, "polar cosine")
+                    if self.polar_cosine[0] < -1.0 or self.polar_cosine[1] > 1.0:
+                        print_error("Source polar cosine must be within [-1, 1].")
+                    if pdf is not None:
+                        self.polar_cosine_pdf = pdf
                 if azimuthal is not None:
-                    self.azimuthal = np.array(azimuthal)
+                    (
+                        self.uniform_azimuthal,
+                        self.azimuthal,
+                        pdf,
+                    ) = _continuous_distribution(azimuthal, "azimuthal angle")
+                    if pdf is not None:
+                        self.azimuthal_pdf = pdf
             else:
                 self.mono_direction = True
         elif white_direction is not None:
@@ -399,8 +468,15 @@ class Source(MCDCObject):
         self.direction /= np.linalg.norm(self.direction)
 
         # Require one unambiguous source-energy representation
-        if discrete_energy is not None and energy is not None:
-            print_error("Cannot specify both energy and discrete_energy.")
+        energy_modes = sum(
+            value is not None
+            for value in (energy, discrete_energy, energy_at_polar_cosine)
+        )
+        if energy_modes > 1:
+            print_error(
+                "Cannot specify more than one of energy, discrete_energy, and "
+                "energy_at_polar_cosine."
+            )
 
         # Discrete energy
         if discrete_energy is not None:
@@ -420,12 +496,97 @@ class Source(MCDCObject):
                 self.mono_energetic = False
                 self.energy_pdf = DistributionTabulated(values, pdf)
 
+        # Energy determined by the sampled polar cosine
+        if energy_at_polar_cosine is not None:
+            if direction is None:
+                print_error("energy_at_polar_cosine requires direction.")
+            if polar_cosine is None or self.uniform_polar_cosine:
+                print_error(
+                    "energy_at_polar_cosine requires a tabulated polar_cosine PDF."
+                )
+
+            try:
+                correlated_energy = np.asarray(
+                    energy_at_polar_cosine,
+                    dtype=float64,
+                )
+            except (TypeError, ValueError):
+                print_error(
+                    "energy_at_polar_cosine must have shape (N_mu,) or "
+                    "(N_mu, 2, N_energy)."
+                )
+
+            if not (
+                correlated_energy.ndim == 1
+                or (correlated_energy.ndim == 3 and correlated_energy.shape[1] == 2)
+            ):
+                print_error(
+                    "energy_at_polar_cosine must have shape (N_mu,) or "
+                    "(N_mu, 2, N_energy)."
+                )
+
+            N_mu = len(self.polar_cosine_pdf.pdf.x)
+            if correlated_energy.shape[0] != N_mu:
+                print_error(
+                    "energy_at_polar_cosine N_mu must equal the polar_cosine "
+                    "grid length."
+                )
+
+            self.mono_energetic = False
+            self.energy_at_polar_cosine_active = True
+
+            if correlated_energy.ndim == 1:
+                if not np.all(np.isfinite(correlated_energy)):
+                    print_error("energy_at_polar_cosine values must be finite.")
+                if np.any(correlated_energy < 0.0):
+                    print_error("energy_at_polar_cosine values must be nonnegative.")
+                self.energy_at_polar_cosine = correlated_energy
+
+            else:
+                if correlated_energy.shape[2] < 2:
+                    print_error(
+                        "Each energy_at_polar_cosine distribution must contain "
+                        "at least two energy points."
+                    )
+
+                energy_grid = correlated_energy[:, 0, :]
+                energy_pdf = correlated_energy[:, 1, :]
+
+                if not np.all(np.isfinite(energy_grid)):
+                    print_error("energy_at_polar_cosine energy grids must be finite.")
+                if np.any(energy_grid < 0.0):
+                    print_error(
+                        "energy_at_polar_cosine energy grids must be nonnegative."
+                    )
+                if np.any(energy_grid[:, 1:] <= energy_grid[:, :-1]):
+                    print_error(
+                        "Each energy_at_polar_cosine energy grid must be strictly "
+                        "increasing."
+                    )
+                if not np.all(np.isfinite(energy_pdf)):
+                    print_error("energy_at_polar_cosine PDFs must be finite.")
+                if np.any(energy_pdf < 0.0):
+                    print_error("energy_at_polar_cosine PDFs must be nonnegative.")
+
+                N_energy = correlated_energy.shape[2]
+                self.energy_at_polar_cosine_is_distribution = True
+                self.energy_at_polar_cosine_distribution = DistributionMultiTable(
+                    grid=self.polar_cosine_pdf.pdf.x,
+                    offset=np.arange(N_mu) * N_energy,
+                    value=energy_grid.reshape(-1),
+                    pdf=energy_pdf.reshape(-1),
+                )
+
         # Time
         if isinstance(time, Real) and not isinstance(time, (bool, np.bool_)):
             self.time = float(time)
         else:
             self.discrete_time = False
-            self.time_range = _time_range(time)
+            self.uniform_time, self.time_range, pdf = _continuous_distribution(
+                time, "time"
+            )
+            if pdf is not None:
+                self.time_pdf = pdf
 
         # Particle type
         if particle_type == "neutron":
@@ -465,7 +626,12 @@ class Source(MCDCObject):
             text += f"  - Direction [ux, uy, yz]: {self.direction}\n"
         elif self.white_direction:
             text += f"  - Isotropic halfspace: {self.direction}\n"
-        if self.mono_energetic:
+        if self.energy_at_polar_cosine_active:
+            if self.energy_at_polar_cosine_is_distribution:
+                energy_text = "PDF conditional on polar cosine"
+            else:
+                energy_text = "Function of polar cosine"
+        elif self.mono_energetic:
             energy_text = f"{self.energy} eV"
         elif self.discrete_energy:
             energy_text = "PMF"
@@ -474,8 +640,10 @@ class Source(MCDCObject):
         text += f"  - Energy: {energy_text}\n"
         if self.discrete_time:
             text += f"  - Time: {self.time} s\n"
+        elif self.uniform_time:
+            text += f"  - Time: Uniform {self.time_range} s\n"
         else:
-            text += f"  - Time: {self.time_range} s\n"
+            text += f"  - Time: PDF over {self.time_range} s\n"
 
         return text
 
@@ -559,16 +727,16 @@ def decode_particle_type(type_):
 # ======================================================================================
 
 
-def _spatial_distribution(
+def _continuous_distribution(
     value: float | ArrayLike,
     name: str,
 ) -> tuple[bool, NDArray[float64], DistributionTabulated | None]:
-    """Normalize one independent source-coordinate specification."""
+    """Normalize one scalar, uniform, or tabulated source distribution."""
     if isinstance(value, Real) and not isinstance(value, (bool, np.bool_)):
-        coordinate = float(value)
-        if not np.isfinite(coordinate):
-            print_error(f"Source {name} coordinate must be finite.")
-        return True, np.array([coordinate, coordinate]), None
+        scalar = float(value)
+        if not np.isfinite(scalar):
+            print_error(f"Source {name} value must be finite.")
+        return True, np.array([scalar, scalar]), None
 
     try:
         array = np.asarray(value, dtype=float64)
@@ -586,22 +754,20 @@ def _spatial_distribution(
         return True, array, None
 
     if array.ndim == 2 and array.shape[0] == 2:
-        coordinates, pdf = array
-        if len(coordinates) < 2:
+        grid, pdf = array
+        if len(grid) < 2:
             print_error(
                 f"Source {name} tabulated distribution must contain at least two points."
             )
-        if not np.all(np.isfinite(coordinates)) or not np.all(np.isfinite(pdf)):
-            print_error(f"Source {name} tabulated coordinates and PDF must be finite.")
-        if np.any(coordinates[1:] <= coordinates[:-1]):
-            print_error(
-                f"Source {name} tabulated coordinates must be strictly increasing."
-            )
+        if not np.all(np.isfinite(grid)) or not np.all(np.isfinite(pdf)):
+            print_error(f"Source {name} tabulated values and PDF must be finite.")
+        if np.any(grid[1:] <= grid[:-1]):
+            print_error(f"Source {name} tabulated values must be strictly increasing.")
         if np.any(pdf < 0.0):
             print_error(f"Source {name} tabulated PDF must be nonnegative.")
 
-        distribution = DistributionTabulated(coordinates, pdf)
-        bounds = np.array([coordinates[0], coordinates[-1]])
+        distribution = DistributionTabulated(grid, pdf)
+        bounds = np.array([grid[0], grid[-1]])
         return False, bounds, distribution
 
     print_error(
@@ -636,16 +802,3 @@ def _distribution_pair(
         print_error(f"{name} distribution must have shape (2, N)")
 
     return array[0], array[1]
-
-
-def _time_range(value: ArrayLike) -> NDArray[float64]:
-    """Normalize and validate a source time interval."""
-    try:
-        array = np.asarray(value, dtype=float64)
-    except (TypeError, ValueError):
-        print_error("Source time interval must be an array with shape (2,)")
-
-    if array.shape != (2,):
-        print_error("Source time interval must have shape (2,)")
-
-    return array

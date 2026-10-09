@@ -136,6 +136,14 @@ def test_standard_multigroup_accepts_integer_group_coordinates(source):
             mcdc.Source(energy=([0.0, 1.0], [1.0, 1.0])),
             "requires neutron sources to use a scalar energy or discrete_energy",
         ),
+        (
+            mcdc.Source(
+                direction=[0.0, 0.0, 1.0],
+                polar_cosine=([0.0, 1.0], [1.0, 1.0]),
+                energy_at_polar_cosine=[1.0, 2.0],
+            ),
+            "requires neutron sources to use a scalar energy or discrete_energy",
+        ),
     ],
 )
 def test_standard_multigroup_rejects_invalid_source_energy(

@@ -150,33 +150,18 @@ def sample_isotropic_direction(rng_state):
 
 
 @njit
-def sample_direction(polar_cosine, azimuthal, polar_coordinate, rng_state):
-    # Sample polar cosine and azimuthal angle
-    mu = sample_uniform(polar_cosine[0], polar_cosine[1], rng_state)
-    azi = sample_uniform(azimuthal[0], azimuthal[1], rng_state)
-
-    # Apply polar coordinate
-    wx = polar_coordinate[0]
-    wy = polar_coordinate[1]
-    wz = polar_coordinate[2]
-    ux, uy, uz, vx, vy, vz = make_direction_basis(wx, wy, wz)
-
-    # Rotate into lab frame
-    s = math.sqrt(max(0.0, 1.0 - mu * mu))
-    cphi = math.cos(azi)
-    sphi = math.sin(azi)
-    dx = s * cphi * ux + s * sphi * vx + mu * wx
-    dy = s * cphi * uy + s * sphi * vy + mu * wy
-    dz = s * cphi * uz + s * sphi * vz + mu * wz
-
-    return dx, dy, dz
-
-
-@njit
 def sample_tabulated(table, rng_state, simulation, data):
     """
     Sample a value from a tabulated distribution.
     """
+
+    value, _ = sample_tabulated_with_interval(table, rng_state, simulation, data)
+    return value
+
+
+@njit
+def sample_tabulated_with_interval(table, rng_state, simulation, data):
+    """Sample a tabulated distribution and return its interpolation interval."""
 
     xi = rng.lcg(rng_state)
 
@@ -187,7 +172,7 @@ def sample_tabulated(table, rng_state, simulation, data):
 
     # find_bin returns -1 at the first CDF point; avoid reading before the table.
     if xi <= cdf[0]:
-        return mcdc_get.table_data.x(0, pdf_table, data)
+        return mcdc_get.table_data.x(0, pdf_table, data), 0
     idx = find_bin(xi, cdf)
 
     c0 = mcdc_get.table_data.aux(0, idx, pdf_table, data)
@@ -201,15 +186,8 @@ def sample_tabulated(table, rng_state, simulation, data):
     # Tabulated pdfs are either histogram or linear.
     interpolation = mcdc_get.table_data.interpolations(0, pdf_table, data)
 
-    return invert_tabulated_segment(
-        xi,
-        c0,
-        v0,
-        v1,
-        p0,
-        p1,
-        interpolation,
-    )
+    value = invert_tabulated_segment(xi, c0, v0, v1, p0, p1, interpolation)
+    return value, idx
 
 
 @njit

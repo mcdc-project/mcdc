@@ -4,6 +4,35 @@ from numba import njit
 
 
 @njit
+def energy_at_polar_cosine(index, source, data, value):
+    offset = source["energy_at_polar_cosine_offset"]
+    data[offset + index] = value
+
+
+@njit
+def energy_at_polar_cosine_all(source, data, value):
+    start = source["energy_at_polar_cosine_offset"]
+    size = source["energy_at_polar_cosine_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def energy_at_polar_cosine_last(source, data, value):
+    start = source["energy_at_polar_cosine_offset"]
+    size = source["energy_at_polar_cosine_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def energy_at_polar_cosine_chunk(start, length, source, data, value):
+    start += source["energy_at_polar_cosine_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
 def move_velocities_vector(index_1, source, data, value):
     offset = source["move_velocities_offset"]
     stride = 3

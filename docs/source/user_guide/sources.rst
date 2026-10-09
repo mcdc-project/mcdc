@@ -36,6 +36,21 @@ MC/DC normalizes the probability density internally.
 Independent distributions may be specified for multiple coordinates to define a separable multidimensional source.
 Use ``position=[x, y, z]`` instead when all three coordinates are fixed.
 
+Angular Distributions
+---------------------
+
+With a reference ``direction``, scalar ``polar_cosine`` and ``azimuthal``
+values fix the corresponding angle, two values define a uniform interval, and
+an array with shape ``(2, N)`` defines a piecewise-linear probability density.
+The two angular variables are sampled independently. The optional
+``energy_at_polar_cosine`` input correlates source energy with a tabulated
+polar-cosine distribution. A one-dimensional array assigns one deterministic
+energy in eV to each polar-cosine grid point; MC/DC linearly interpolates the
+energy at the sampled polar cosine. An array with shape
+``(N_mu, 2, N_energy)`` assigns a conditional energy PDF to each polar-cosine
+grid point. The second dimension contains the energy grid and PDF,
+respectively.
+
 Energy Distributions
 --------------------
 
@@ -59,7 +74,17 @@ Use ``discrete_energy`` for a probability mass function over physical emission l
    )
 
 The values in the second row are dimensionless relative probabilities.
-The ``energy`` and ``discrete_energy`` inputs are alternative source-energy specifications and cannot be combined.
+The ``energy``, ``discrete_energy``, and ``energy_at_polar_cosine`` inputs are
+alternative source-energy specifications and cannot be combined.
+
+Time Distributions
+------------------
+
+A scalar ``time`` fixes the emission time in seconds, two values define a
+uniform interval, and an array with shape ``(2, N)`` defines a piecewise-linear
+probability density. For a tabulated distribution, the first row contains
+strictly increasing times and the second contains nonnegative relative
+densities. MC/DC normalizes the density internally.
 
 .. _user_standard_multigroup_sources:
 

@@ -46,3 +46,27 @@ def test_tabulated_distribution_sample(mock_rng_sequence, prepare_simulation):
     expected_E = 1.0 + (xi1 - 0.0) * (3.0 - 1.0) / (0.4 - 0.0)
 
     np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)
+
+
+def test_tabulated_distribution_returns_interval(
+    mock_rng_sequence,
+    prepare_simulation,
+):
+    distribution = DistributionTabulated(
+        value=[1.0, 3.0, 7.0],
+        cdf=[0.0, 0.4, 1.0],
+    )
+    simulation_container, data = prepare_simulation(objects=[distribution])
+    simulation = simulation_container[0]
+    table = simulation["tabulated_distributions"][distribution.sub_ID]
+    mock_rng = mock_rng_sequence(0.7)
+
+    sampled, interval = dist.sample_tabulated_with_interval(
+        table,
+        mock_rng,
+        simulation,
+        data,
+    )
+
+    assert 3.0 <= sampled <= 7.0
+    assert interval == 1

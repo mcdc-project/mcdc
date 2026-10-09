@@ -9,6 +9,35 @@ from mcdc.code_factory.array_return import array_return, array_result
 import numba as nb
 
 
+@njit
+def energy_at_polar_cosine(index, source, data):
+    offset = source["energy_at_polar_cosine_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def energy_at_polar_cosine_all(source, data):
+    start = source["energy_at_polar_cosine_offset"]
+    size = source["energy_at_polar_cosine_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def energy_at_polar_cosine_last(source, data):
+    start = source["energy_at_polar_cosine_offset"]
+    size = source["energy_at_polar_cosine_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def energy_at_polar_cosine_chunk(start, length, source, data):
+    start += source["energy_at_polar_cosine_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
 @array_return(nb.types.float64)
 def move_velocities_vector(index_1, source, data):
     offset = source["move_velocities_offset"]
