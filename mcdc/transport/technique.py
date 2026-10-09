@@ -100,9 +100,9 @@ def get_weight_window_object(particle_container, program):
     ptype = particle_container[0]["particle_type"]
     if ptype == PARTICLE_NEUTRON:
         ww_obj = technique["neutron_weight_windows"]
-    if ptype == PARTICLE_ELECTRON:
+    elif ptype == PARTICLE_ELECTRON:
         ww_obj = technique["electron_weight_windows"]
-    if ptype == PARTICLE_PROTON:
+    elif ptype == PARTICLE_PROTON:
         ww_obj = technique["proton_weight_windows"]
     else:
         ww_obj = technique["general_weight_windows"]
