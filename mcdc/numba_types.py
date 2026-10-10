@@ -701,7 +701,6 @@ technique = into_dtype([
     ('neutron_weight_windows', weight_windows),
     ('electron_weight_windows', weight_windows),
     ('proton_weight_windows', weight_windows),
-    ('general_weight_windows', weight_windows),
     ('population_control', population_control),
 ])
 

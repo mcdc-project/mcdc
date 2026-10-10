@@ -30,7 +30,7 @@ from numpy.typing import NDArray
 
 ####
 
-from mcdc.constant import PARTICLE_NEUTRON, PARTICLE_ELECTRON, PARTICLE_PROTON
+from mcdc.constant import PARTICLE_NEUTRON, PARTICLE_ELECTRON, PARTICLE_PROTON, PARTICLE_TYPE_BY_NAME
 from mcdc.object_.base import MCDCBase
 from mcdc.object_.data import DataBase
 from mcdc.object_.distribution import DistributionBase
@@ -363,6 +363,17 @@ class Simulation(MCDCBase):
                 settings.electron_transport.active = True
             elif source.particle_type == PARTICLE_PROTON:
                 settings.proton_transport.active = True
+
+
+        # Check that specified weight windows will actually trigger
+        active_ww = lambda pname: getattr(self.technique, f"{pname}_weight_windows").active
+        active_particle = lambda pname: getattr(settings, f"{pname}_transport").active
+        for pname in PARTICLE_TYPE_BY_NAME:
+            if active_ww(pname) and not active_particle(pname):
+                print_error(
+                    "Weight windows have been specified for particle type: " 
+                    f"{pname}, however {pname} transport is not active."
+                )
 
         # Censuses split histories; GPU closeout aggregates them.
         # Both require batch samples for fixed-source uncertainty estimates.

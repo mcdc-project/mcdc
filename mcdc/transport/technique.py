@@ -104,14 +104,8 @@ def get_weight_window_object(particle_container, program):
         ww_obj = technique["electron_weight_windows"]
     elif ptype == PARTICLE_PROTON:
         ww_obj = technique["proton_weight_windows"]
-    else:
-        ww_obj = technique["general_weight_windows"]
 
-    if ww_obj["active"]:
-        return ww_obj
-    else:
-        return technique["general_weight_windows"]
-
+    return ww_obj
 
 @njit
 def weight_windows(particle_container, program, data):

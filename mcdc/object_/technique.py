@@ -392,7 +392,6 @@ class Technique(MCDCBase):
     neutron_weight_windows: WeightWindows
     electron_weight_windows: WeightWindows
     proton_weight_windows: WeightWindows
-    general_weight_windows: WeightWindows
     population_control: PopulationControl
 
     def __init__(self) -> None:
@@ -408,7 +407,7 @@ class Technique(MCDCBase):
     def weight_windows(
         self,
         weight_windows: NDArray[np.float64],
-        particle_type: str = "general",
+        particle_type: str = "neutron",
         mesh: MeshBase | None = None,
         energy: NDArray[np.float64] | None = None,
         mu: NDArray[np.float64] | None = None,

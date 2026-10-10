@@ -98,6 +98,7 @@ def make_ww_model_distinct(prepare_simulation):
                                 ww_array[t, e, m, a, i, j, k, 2] = 20_000_000 + val
 
     def configure(simulation):
+        simulation.set_sources([mcdc.Source()])
         simulation.technique.weight_windows(
             ww_array, mesh=mesh, energy=energy, time=time, mu=mu, azimuthal=azimuthal
         )
