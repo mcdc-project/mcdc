@@ -5,6 +5,7 @@ from mcdc.object_.distribution import DistributionBase, DistributionNone
 from mcdc.object_.electron_reaction import ElectronReactionBase
 from mcdc.object_.element import Element
 from mcdc.object_.material import Material
+from mcdc.object_.technique import WeightWindowGenerator
 from mcdc.object_.transport_model_data import NeutronMultigroupData
 from mcdc.object_.mesh import MeshBase
 from mcdc.object_.neutron_reaction import NeutronReactionBase
@@ -31,6 +32,9 @@ def compile_simulation(simulation: Simulation):
     # Require geometry rooted in at least one cell
     if len(simulation.root_universe.cells) == 0:
         print_error("Simulation model has not been set (root universe is empty).")
+
+    # Register techniques into simulation, must come before tallies
+    simulation.technique._register_into_simulation(simulation)
 
     # Preserve explicitly configured roots before resetting their registered
     # object lists. Geometry members may reference these objects and compile
@@ -64,6 +68,9 @@ def compile_simulation(simulation: Simulation):
     # Compile tally
     for tally in tallies:
         tally._compile_into_simulation(simulation)
+
+    # Compile techniques
+    simulation.technique._compile_into_simulation(simulation)
 
     # Compile remaining object members, including those owned by embedded
     # simulation configuration objects such as transport techniques.
@@ -115,6 +122,8 @@ def register_object(object_: MCDCObject, simulation: Simulation) -> bool:
         object_list = simulation.tallies
     elif isinstance(object_, Universe):
         object_list = simulation.universes
+    elif isinstance(object_, WeightWindowGenerator):
+        object_list = []
     else:
         object_list = []
         print_error(f"Unidentified object list for object {object_}")

@@ -355,6 +355,13 @@ class WeightWindowGenerator(MCDCPolymorphic):
         self.active = False
         self.ptype = ptype
 
+    def _compile_into_simulation(self, simulation) -> bool:
+        # Already compiled?
+        if not super()._compile_into_simulation(simulation):
+            return False
+
+    def _register_members(self, simulation):
+        return
 
 # ======================================================================================
 # MAGIC Weight Window Generator
@@ -486,6 +493,17 @@ class MAGICWeightWindowGenerator(WeightWindowGenerator):
         }
         return ww_params
 
+    def _compile_into_simulation(self, simulation) -> bool:
+        # Already compiled?
+        if not super()._compile_into_simulation(simulation):
+            return False
+
+        self.flux_tally_ID = self.flux_tally.ID
+
+        return False 
+
+    def _register_members(self, simulation):
+        simulation.tallies.append(self.flux_tally)
 
 # ======================================================================================
 # Population control
@@ -562,6 +580,21 @@ class Technique(MCDCBase):
             setattr(self, f"{pname}_weight_windows", WeightWindows(ptype))
             setattr(self, f"{pname}_weight_window_generator", WeightWindowGenerator(ptype))
         self.population_control = PopulationControl()
+
+    def _compile_into_simulation(self, simulation) -> bool:
+        # Already compiled?
+        if not super()._compile_into_simulation(simulation):
+            return False
+
+        for pname in PARTICLE_TYPE_BY_NAME.keys():
+            wwg = getattr(self, f"{pname}_weight_window_generator") 
+            wwg._compile_into_simulation(simulation)
+        return False 
+
+    def _register_into_simulation(self, simulation):
+        for pname in PARTICLE_TYPE_BY_NAME.keys():
+            wwg = getattr(self, f"{pname}_weight_window_generator") 
+            wwg._register_members(simulation)
 
     def weight_windows(
         self,
