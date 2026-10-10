@@ -453,17 +453,17 @@ class MAGICWeightWindowGenerator(WeightWindowGenerator):
         if tally.mu is None:
             nmu = 1
         else:
-            nmu = tall.mu.shape[0]
+            nmu = tally.mu.shape[0] - 1
         
         if tally.azi is None:
             na = 1
         else:
-            na = tally.azi.shape[0]
+            na = tally.azi.shape[0] - 1
 
         if tally.time is None:
             nt = 1
         else:
-            nt = tally.time.shape[0]
+            nt = tally.time.shape[0] - 1
 
         # get weight window shape
         ww_shape = (nt, ne, nmu, na, nx, ny, nz, WeightWindows.N_WW_parameters)
@@ -672,13 +672,13 @@ class Technique(MCDCBase):
         time: NDArray[np.float64] | None = None,
     ) -> None:
         wwg_name = f"{particle_type}_weight_window_generator"
-        wwg_obj = getattr(self, wwg_name)
 
-        if wwg_obj.active:
+        if getattr(self, wwg_name).active:
             print_error(
                 f"Attempting to overwrite weight window generator for particle type {particle_type}!"
             )
-
+        setattr(self, wwg_name, MAGICWeightWindowGenerator(PARTICLE_TYPE_BY_NAME[particle_type]))
+        wwg_obj = getattr(self, wwg_name)
         wwg_obj(
             weight_target_scale=weight_target_scale,
             weight_upper_scale=weight_upper_scale,
