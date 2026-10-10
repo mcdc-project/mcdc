@@ -107,6 +107,7 @@ def get_weight_window_object(particle_container, program):
 
     return ww_obj
 
+
 @njit
 def weight_windows(particle_container, program, data):
     """
