@@ -4,7 +4,6 @@ from mcdc.constant import (
     INF,
     PI,
     PARTICLE_TYPE_BY_NAME,
-    PARTICLE_ANY,
 )
 from mcdc.object_.base import MCDCBase
 from mcdc.object_.mesh import MeshBase, MeshUniform
@@ -401,7 +400,6 @@ class Technique(MCDCBase):
         self.global_weight_roulette = GlobalWeightRoulette()
         for pname, ptype in PARTICLE_TYPE_BY_NAME.items():
             setattr(self, f"{pname}_weight_windows", WeightWindows(ptype))
-        self.general_weight_windows = WeightWindows(PARTICLE_ANY)
         self.population_control = PopulationControl()
 
     def weight_windows(
@@ -424,7 +422,7 @@ class Technique(MCDCBase):
             ``lower <= target <= upper``.
         particle_type : str, optional
             Particle type the specified weight windows apply to. The default
-            is all particle types.
+            is neutron.
         mesh : MeshUniform or MeshStructured, optional
             Spatial mesh. The default is one unbounded uniform bin.
         energy : ndarray, optional
