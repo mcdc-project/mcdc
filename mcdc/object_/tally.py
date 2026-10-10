@@ -27,6 +27,7 @@ from mcdc.constant import (
     PARTICLE_NEUTRON,
     PARTICLE_ELECTRON,
     PARTICLE_PROTON,
+    PARTICLE_PHOTON,
     SCORE_FLUX,
     SCORE_DENSITY,
     SCORE_COLLISION,
@@ -79,7 +80,7 @@ class Tally(MCDCPolymorphic):
         Azimuthal-angle bin boundaries in radians.
     polar_reference : sequence of 3 float, optional
         Reference direction for the angular filters.
-    particle_type : {"neutron", "electron", "proton"}, optional
+    particle_type : {"neutron", "electron", "proton", "photon"}, optional
         Particle type selected by the tally. If omitted, the tally accepts any
         transported particle type.
     energy : sequence of float or "all", optional
@@ -322,6 +323,8 @@ class Tally(MCDCPolymorphic):
             self.particle_type = PARTICLE_ELECTRON
         elif particle_type == "proton":
             self.particle_type = PARTICLE_PROTON
+        elif particle_type == "photon":
+            self.particle_type = PARTICLE_PHOTON
         else:
             print_error(f"Unsupported tally particle type: {particle_type}")
 
@@ -412,6 +415,7 @@ class Tally(MCDCPolymorphic):
             PARTICLE_NEUTRON: "Neutron",
             PARTICLE_ELECTRON: "Electron",
             PARTICLE_PROTON: "Proton",
+            PARTICLE_PHOTON: "Photon",
         }.get(self.particle_type, "Unspecified")
         text += f"  - Particle: {particle_name}\n"
         if self.filter_time or self.filter_energy or self.filter_direction:

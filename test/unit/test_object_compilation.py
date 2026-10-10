@@ -237,6 +237,34 @@ def test_native_element_data_loading_is_reported(monkeypatch, capsys):
     assert "Loading electron data [1/1]: H.h5" in capsys.readouterr().out
 
 
+def test_native_photon_element_data_loading_is_reported(monkeypatch, capsys):
+    """The photon arm of element data loading, matching the electron case above.
+
+    The per-particle cases in this file are hand-written rather than
+    parametrised, so a new species gets no coverage here until it is added. This
+    is the test that catches a missing ``label``, a bad ``sub_type``, or an
+    ``Annotated`` shape the Numba layer generator cannot pack -- with a clear
+    message, rather than as confusing numbers in a physics test.
+    """
+
+    def compile_element(element, simulation):
+        element.atomic_number = 1
+        element.atomic_weight_ratio = 1.0
+        return MCDCObject._compile_into_simulation(element, simulation)
+
+    monkeypatch.setattr(Element, "_compile_into_simulation", compile_element)
+    monkeypatch.setattr(Element, "set_photon_data", lambda self, simulation: None)
+
+    material = mcdc.Material(element_composition={"H": 0.1})
+    simulation = mcdc.Simulation()
+    simulation.set_model([mcdc.Cell(fill=material)])
+    simulation.set_sources([mcdc.Source(particle_type="photon", energy=1.0)])
+
+    simulation.compile()
+
+    assert "Loading photon data [1/1]: H.h5" in capsys.readouterr().out
+
+
 def test_local_multigroup_grids_pack_hybrid(prepare_simulation):
     material_a = mcdc.Material.multigroup(capture=[0.1], energy_grid=[1.0, 2.0])
     material_b = mcdc.Material.multigroup(capture=[0.2], energy_grid=[2.0, 3.0])

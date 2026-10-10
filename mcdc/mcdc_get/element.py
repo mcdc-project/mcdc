@@ -327,3 +327,525 @@ def electron_ionization_subshell_binding_energy_chunk(start, length, element, da
     start += element["electron_ionization_subshell_binding_energy_offset"]
     end = start + length
     return array_result(data[start:end])
+
+
+@njit
+def photon_xs_energy_grid(index, element, data):
+    offset = element["photon_xs_energy_grid_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_xs_energy_grid_all(element, data):
+    start = element["photon_xs_energy_grid_offset"]
+    size = element["photon_xs_energy_grid_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_xs_energy_grid_last(element, data):
+    start = element["photon_xs_energy_grid_offset"]
+    size = element["photon_xs_energy_grid_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_xs_energy_grid_chunk(start, length, element, data):
+    start += element["photon_xs_energy_grid_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_total_xs(index, element, data):
+    offset = element["photon_total_xs_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_total_xs_all(element, data):
+    start = element["photon_total_xs_offset"]
+    size = element["photon_total_xs_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_total_xs_last(element, data):
+    start = element["photon_total_xs_offset"]
+    size = element["photon_total_xs_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_total_xs_chunk(start, length, element, data):
+    start += element["photon_total_xs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_coherent_xs(index, element, data):
+    offset = element["photon_coherent_xs_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_coherent_xs_all(element, data):
+    start = element["photon_coherent_xs_offset"]
+    size = element["photon_coherent_xs_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_coherent_xs_last(element, data):
+    start = element["photon_coherent_xs_offset"]
+    size = element["photon_coherent_xs_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_coherent_xs_chunk(start, length, element, data):
+    start += element["photon_coherent_xs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_incoherent_xs(index, element, data):
+    offset = element["photon_incoherent_xs_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_incoherent_xs_all(element, data):
+    start = element["photon_incoherent_xs_offset"]
+    size = element["photon_incoherent_xs_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_incoherent_xs_last(element, data):
+    start = element["photon_incoherent_xs_offset"]
+    size = element["photon_incoherent_xs_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_incoherent_xs_chunk(start, length, element, data):
+    start += element["photon_incoherent_xs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_photoelectric_xs(index, element, data):
+    offset = element["photon_photoelectric_xs_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_photoelectric_xs_all(element, data):
+    start = element["photon_photoelectric_xs_offset"]
+    size = element["photon_photoelectric_xs_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_photoelectric_xs_last(element, data):
+    start = element["photon_photoelectric_xs_offset"]
+    size = element["photon_photoelectric_xs_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_photoelectric_xs_chunk(start, length, element, data):
+    start += element["photon_photoelectric_xs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_pair_production_xs(index, element, data):
+    offset = element["photon_pair_production_xs_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_pair_production_xs_all(element, data):
+    start = element["photon_pair_production_xs_offset"]
+    size = element["photon_pair_production_xs_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_pair_production_xs_last(element, data):
+    start = element["photon_pair_production_xs_offset"]
+    size = element["photon_pair_production_xs_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_pair_production_xs_chunk(start, length, element, data):
+    start += element["photon_pair_production_xs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_coherent_reaction_IDs(index, element, data):
+    offset = element["photon_coherent_reaction_IDs_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def photon_coherent_reaction_IDs_all(element, data):
+    start = element["photon_coherent_reaction_IDs_offset"]
+    size = element["N_photon_coherent_reaction"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_coherent_reaction_IDs_last(element, data):
+    start = element["photon_coherent_reaction_IDs_offset"]
+    size = element["N_photon_coherent_reaction"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def photon_coherent_reaction_IDs_chunk(start, length, element, data):
+    start += element["photon_coherent_reaction_IDs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_incoherent_reaction_IDs(index, element, data):
+    offset = element["photon_incoherent_reaction_IDs_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def photon_incoherent_reaction_IDs_all(element, data):
+    start = element["photon_incoherent_reaction_IDs_offset"]
+    size = element["N_photon_incoherent_reaction"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_incoherent_reaction_IDs_last(element, data):
+    start = element["photon_incoherent_reaction_IDs_offset"]
+    size = element["N_photon_incoherent_reaction"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def photon_incoherent_reaction_IDs_chunk(start, length, element, data):
+    start += element["photon_incoherent_reaction_IDs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_photoelectric_reaction_IDs(index, element, data):
+    offset = element["photon_photoelectric_reaction_IDs_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def photon_photoelectric_reaction_IDs_all(element, data):
+    start = element["photon_photoelectric_reaction_IDs_offset"]
+    size = element["N_photon_photoelectric_reaction"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_photoelectric_reaction_IDs_last(element, data):
+    start = element["photon_photoelectric_reaction_IDs_offset"]
+    size = element["N_photon_photoelectric_reaction"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def photon_photoelectric_reaction_IDs_chunk(start, length, element, data):
+    start += element["photon_photoelectric_reaction_IDs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_pair_production_reaction_IDs(index, element, data):
+    offset = element["photon_pair_production_reaction_IDs_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def photon_pair_production_reaction_IDs_all(element, data):
+    start = element["photon_pair_production_reaction_IDs_offset"]
+    size = element["N_photon_pair_production_reaction"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_pair_production_reaction_IDs_last(element, data):
+    start = element["photon_pair_production_reaction_IDs_offset"]
+    size = element["N_photon_pair_production_reaction"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def photon_pair_production_reaction_IDs_chunk(start, length, element, data):
+    start += element["photon_pair_production_reaction_IDs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_photoelectric_subshell_binding_energy(index, element, data):
+    offset = element["photon_photoelectric_subshell_binding_energy_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_photoelectric_subshell_binding_energy_all(element, data):
+    start = element["photon_photoelectric_subshell_binding_energy_offset"]
+    size = element["photon_photoelectric_subshell_binding_energy_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_photoelectric_subshell_binding_energy_last(element, data):
+    start = element["photon_photoelectric_subshell_binding_energy_offset"]
+    size = element["photon_photoelectric_subshell_binding_energy_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_photoelectric_subshell_binding_energy_chunk(start, length, element, data):
+    start += element["photon_photoelectric_subshell_binding_energy_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_transition_energy(index, element, data):
+    offset = element["photon_relaxation_transition_energy_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_transition_energy_all(element, data):
+    start = element["photon_relaxation_transition_energy_offset"]
+    size = element["photon_relaxation_transition_energy_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_transition_energy_last(element, data):
+    start = element["photon_relaxation_transition_energy_offset"]
+    size = element["photon_relaxation_transition_energy_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_transition_energy_chunk(start, length, element, data):
+    start += element["photon_relaxation_transition_energy_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_transition_probability(index, element, data):
+    offset = element["photon_relaxation_transition_probability_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_transition_probability_all(element, data):
+    start = element["photon_relaxation_transition_probability_offset"]
+    size = element["photon_relaxation_transition_probability_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_transition_probability_last(element, data):
+    start = element["photon_relaxation_transition_probability_offset"]
+    size = element["photon_relaxation_transition_probability_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_transition_probability_chunk(start, length, element, data):
+    start += element["photon_relaxation_transition_probability_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_transition_radiative(index, element, data):
+    offset = element["photon_relaxation_transition_radiative_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_transition_radiative_all(element, data):
+    start = element["photon_relaxation_transition_radiative_offset"]
+    size = element["photon_relaxation_transition_radiative_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_transition_radiative_last(element, data):
+    start = element["photon_relaxation_transition_radiative_offset"]
+    size = element["photon_relaxation_transition_radiative_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_transition_radiative_chunk(start, length, element, data):
+    start += element["photon_relaxation_transition_radiative_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_transition_origin(index, element, data):
+    offset = element["photon_relaxation_transition_origin_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_transition_origin_all(element, data):
+    start = element["photon_relaxation_transition_origin_offset"]
+    size = element["photon_relaxation_transition_origin_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_transition_origin_last(element, data):
+    start = element["photon_relaxation_transition_origin_offset"]
+    size = element["photon_relaxation_transition_origin_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_transition_origin_chunk(start, length, element, data):
+    start += element["photon_relaxation_transition_origin_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_subshell_start(index, element, data):
+    offset = element["photon_relaxation_subshell_start_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_subshell_start_all(element, data):
+    start = element["photon_relaxation_subshell_start_offset"]
+    size = element["photon_relaxation_subshell_start_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_subshell_start_last(element, data):
+    start = element["photon_relaxation_subshell_start_offset"]
+    size = element["photon_relaxation_subshell_start_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_subshell_start_chunk(start, length, element, data):
+    start += element["photon_relaxation_subshell_start_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_subshell_count(index, element, data):
+    offset = element["photon_relaxation_subshell_count_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_subshell_count_all(element, data):
+    start = element["photon_relaxation_subshell_count_offset"]
+    size = element["photon_relaxation_subshell_count_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_subshell_count_last(element, data):
+    start = element["photon_relaxation_subshell_count_offset"]
+    size = element["photon_relaxation_subshell_count_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_subshell_count_chunk(start, length, element, data):
+    start += element["photon_relaxation_subshell_count_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_subshell_designator(index, element, data):
+    offset = element["photon_relaxation_subshell_designator_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_subshell_designator_all(element, data):
+    start = element["photon_relaxation_subshell_designator_offset"]
+    size = element["photon_relaxation_subshell_designator_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_relaxation_subshell_designator_last(element, data):
+    start = element["photon_relaxation_subshell_designator_offset"]
+    size = element["photon_relaxation_subshell_designator_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def photon_relaxation_subshell_designator_chunk(start, length, element, data):
+    start += element["photon_relaxation_subshell_designator_offset"]
+    end = start + length
+    return array_result(data[start:end])

@@ -8,9 +8,13 @@ if TYPE_CHECKING:
     from mcdc.object_.element import Element
     from mcdc.object_.electron_reaction import ElectronReactionBase
     from mcdc.object_.material import Material
-    from mcdc.object_.transport_model_data import NeutronMultigroupData
+    from mcdc.object_.transport_model_data import (
+        NeutronMultigroupData,
+        PhotonConstantXSData,
+    )
     from mcdc.object_.nuclide import Nuclide
     from mcdc.object_.neutron_reaction import NeutronReactionBase
+    from mcdc.object_.photon_reaction import PhotonReactionBase
     from mcdc.object_.proton_reaction import ProtonReactionBase
     from mcdc.object_.secondary_product import SecondaryProduct
     from mcdc.object_.source import Source
@@ -30,7 +34,12 @@ from numpy.typing import NDArray
 
 ####
 
-from mcdc.constant import PARTICLE_NEUTRON, PARTICLE_ELECTRON, PARTICLE_PROTON
+from mcdc.constant import (
+    PARTICLE_NEUTRON,
+    PARTICLE_ELECTRON,
+    PARTICLE_PROTON,
+    PARTICLE_PHOTON,
+)
 from mcdc.object_.base import MCDCBase
 from mcdc.object_.data import DataBase
 from mcdc.object_.distribution import DistributionBase
@@ -118,10 +127,12 @@ class Simulation(MCDCBase):
     neutron_reactions: list[NeutronReactionBase]
     electron_reactions: list[ElectronReactionBase]
     proton_reactions: list[ProtonReactionBase]
+    photon_reactions: list[PhotonReactionBase]
     nuclides: list[Nuclide]
     elements: list[Element]
     materials: list[Material]
     neutron_multigroup_data: list[NeutronMultigroupData]
+    photon_constant_xs_data: list[PhotonConstantXSData]
     sources: list[Source]
     source_cdf: NDArray[float64]
     secondary_products: list[SecondaryProduct]
@@ -313,11 +324,13 @@ class Simulation(MCDCBase):
         self.neutron_reactions = []
         self.electron_reactions = []
         self.proton_reactions = []
+        self.photon_reactions = []
         self.secondary_products = []
         self.nuclides = []
         self.elements = []
         self.materials = []
         self.neutron_multigroup_data = []
+        self.photon_constant_xs_data = []
 
         # Geometry
         self.surfaces = []
@@ -350,6 +363,7 @@ class Simulation(MCDCBase):
         if (
             settings.neutron_transport.prioritize_low_energy
             or settings.proton_transport.prioritize_low_energy
+            or settings.photon_transport.prioritize_low_energy
         ):
             print_error(
                 "prioritize_low_energy is currently supported only for electron transport."
@@ -363,6 +377,8 @@ class Simulation(MCDCBase):
                 settings.electron_transport.active = True
             elif source.particle_type == PARTICLE_PROTON:
                 settings.proton_transport.active = True
+            elif source.particle_type == PARTICLE_PHOTON:
+                settings.photon_transport.active = True
 
         # Censuses split histories; GPU closeout aggregates them.
         # Both require batch samples for fixed-source uncertainty estimates.
@@ -470,7 +486,7 @@ class Simulation(MCDCBase):
             ):
                 set_nuclides_from_elements(material, self)
             if (
-                settings.electron_transport.active
+                (settings.electron_transport.active or settings.photon_transport.active)
                 and material.nuclide_composition
                 and len(material.elements) == 0
             ):
@@ -481,6 +497,7 @@ class Simulation(MCDCBase):
             (settings.neutron_transport.active and self.nuclides)
             or (settings.proton_transport.active and self.nuclides)
             or (settings.electron_transport.active and self.elements)
+            or (settings.photon_transport.active and self.elements)
         ):
             print_msg("")
 
@@ -503,6 +520,13 @@ class Simulation(MCDCBase):
                 nuclide.set_proton_data(self)
             for material in self.materials:
                 update_radiation_length_from_nuclides(material)
+
+        if settings.photon_transport.active:
+            N_element = len(self.elements)
+            for index, element in enumerate(self.elements, start=1):
+                file_name = f"{element.name}.h5"
+                print_msg(f" Loading photon data [{index}/{N_element}]: {file_name}")
+                element.set_photon_data(self)
 
         if settings.electron_transport.active:
             N_element = len(self.elements)

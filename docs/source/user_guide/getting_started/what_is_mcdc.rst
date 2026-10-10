@@ -22,9 +22,10 @@ constructive solid geometry (CSG) models. For continuous-energy transport,
 MC/DC converts `ACE <https://nucleardata.lanl.gov/ace/>`_-format nuclear data
 libraries into its native `HDF5 <https://www.hdfgroup.org/solutions/hdf5/>`_
 format. Photon, electron, proton, and other charged-particle transport
-capabilities are currently under development as part of the ongoing expansion
-of MC/DC into a comprehensive multi-particle radiation transport software
-package.
+capabilities are being added as part of the ongoing expansion of MC/DC into a
+comprehensive multi-particle radiation transport software package. Photon
+transport covers coherent and incoherent scattering, photoelectric absorption
+with atomic relaxation, and pair production.
 
 **Performance and portability** — MC/DC's Python interface enables rapid
 prototyping and iterative development, while its

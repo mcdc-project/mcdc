@@ -103,7 +103,8 @@ class ParticleTransportSettings(MCDCBase):
     #: Whether this particle species is enabled.
     active: bool = False
     #: Request lower-energy outgoing particles to be transported first.
-    #: Defaults to ``True`` for electrons and ``False`` for neutrons and protons.
+    #: Defaults to ``True`` for electrons and ``False`` for neutrons,
+    #: protons and photons.
     prioritize_low_energy: bool = False
 
 
@@ -181,6 +182,9 @@ class Settings(MCDCBase):
     )
 
     proton_transport: ParticleTransportSettings = field(
+        default_factory=ParticleTransportSettings
+    )
+    photon_transport: ParticleTransportSettings = field(
         default_factory=ParticleTransportSettings
     )
 
