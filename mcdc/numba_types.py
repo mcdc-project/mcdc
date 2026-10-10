@@ -831,6 +831,16 @@ tally = into_dtype([
     ('sub_ID', int64),
 ])
 
+MAGIC_weight_window_generator = into_dtype([
+    ('active', bool_),
+    ('ptype', int64),
+    ('flux_tally_ID', int64),
+    ('target_scale', float64),
+    ('upper_scale', float64),
+    ('ID', int64),
+    ('base_ID', int64),
+])
+
 weight_window_generator = into_dtype([
     ('active', bool_),
     ('ptype', int64),
