@@ -1,6 +1,10 @@
 import numpy as np
 
-from mcdc.constant import INF, PI
+from mcdc.constant import (
+    INF,
+    PI,
+    PARTICLE_TYPE_BY_NAME,
+)
 from mcdc.object_.base import MCDCBase
 from mcdc.object_.mesh import MeshBase, MeshUniform
 from mcdc.print_ import print_error
@@ -168,6 +172,8 @@ class WeightWindows(MCDCBase):
 
     active: bool
 
+    ptype: int
+
     # time
     time_bounds: NDArray[np.float64]
     Nt: int
@@ -195,8 +201,9 @@ class WeightWindows(MCDCBase):
         ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz", "N_WW_parameters"),
     ]
 
-    def __init__(self) -> None:
+    def __init__(self, ptype) -> None:
         self.active = False
+        self.ptype = ptype
         self.time_bounds = np.array([0.0, INF])
         self.Nt = 1
         self.azi_bounds = np.array([-PI, PI])
@@ -224,72 +231,13 @@ class WeightWindows(MCDCBase):
     def __call__(
         self,
         weight_windows: NDArray[np.float64],
+        *,
         mesh: MeshBase | None = None,
         energy: NDArray[np.float64] | None = None,
         mu: NDArray[np.float64] | None = None,
         azimuthal: NDArray[np.float64] | None = None,
         time: NDArray[np.float64] | None = None,
     ) -> None:
-        """Configure lower, target, and upper particle weights.
-
-        Parameters
-        ----------
-        weight_windows : ndarray, shape (Ne, Nx, Ny, Nz, 3)
-            Lower, target, and upper weights in the final dimension. Every
-            lower weight must be positive, and each window must satisfy
-            ``lower <= target <= upper``.
-        mesh : MeshUniform or MeshStructured, optional
-            Spatial mesh. The default is one unbounded uniform bin.
-        energy : ndarray, optional
-            Strictly increasing energy boundaries in eV. The default is one
-            all-energy bin.
-        mu : ndarray, optional
-            Strictly increasing polar cosine bounds from -1 to 1. The default
-            is one bin from -1 to 1.
-        azimuthal : ndarray, optional
-            Strictly increasing azimuthal angle bounds from -pi to pi. The
-            default is one bin from -pi to pi.
-
-        Examples
-        --------
-        Apply one weight window over all space and energy:
-
-        >>> import numpy as np
-        >>> import mcdc
-        >>> simulation = mcdc.Simulation()
-        >>> windows = np.array([0.5, 1.0, 2.0])
-        >>> simulation.technique.weight_windows(windows)
-
-        Configure weight windows on a uniform spatial mesh:
-
-        >>> mesh = mcdc.MeshUniform(x=(-5.0, 1.0, 10))
-        >>> windows = np.tile([0.25, 0.5, 1.0], (10,))
-        >>> simulation.technique.weight_windows(windows, mesh=mesh)
-
-        Configure both energy- and space-dependent windows:
-
-        >>> energy = np.array([0.0, 0.625, 20.0e6])
-        >>> windows = np.tile([0.25, 0.5, 1.0], (2, 10))
-        >>> simulation.technique.weight_windows(
-        ...     windows,
-        ...     mesh=mesh,
-        ...     energy=energy,
-        ... )
-
-        Configure full phase-dependent windows
-        >>> time = np.array([0.0, 10, 100, 1000])
-        >>> mu = np.array([-1.0, -0.5, 0.0, 0.5, 1.0])
-        >>> azi = np.array([-np.pi, -np.pi/2, 0, np.pi/2, np.pi])
-        >>> windows = np.tile([0.25, 0.5, 1.0], (3, 2, 4, 4, 10))
-        >>> simulation.technique.weight_windows(
-        ...     windows,
-        ...     mesh=mesh,
-        ...     energy=energy,
-        ...     mu=mu,
-        ...     azimuthal=azi,
-        ...     time=time,
-        ... )
-        """
         # fill in defaults
         if mesh is None:
             mesh = MeshUniform()
@@ -440,7 +388,9 @@ class Technique(MCDCBase):
     implicit_capture: ImplicitCapture
     weighted_emission: WeightedEmission
     global_weight_roulette: GlobalWeightRoulette
-    weight_windows: WeightWindows
+    neutron_weight_windows: WeightWindows
+    electron_weight_windows: WeightWindows
+    proton_weight_windows: WeightWindows
     population_control: PopulationControl
 
     def __init__(self) -> None:
@@ -448,5 +398,101 @@ class Technique(MCDCBase):
         self.implicit_capture = ImplicitCapture()
         self.weighted_emission = WeightedEmission()
         self.global_weight_roulette = GlobalWeightRoulette()
-        self.weight_windows = WeightWindows()
+        for pname, ptype in PARTICLE_TYPE_BY_NAME.items():
+            setattr(self, f"{pname}_weight_windows", WeightWindows(ptype))
         self.population_control = PopulationControl()
+
+    def weight_windows(
+        self,
+        weight_windows: NDArray[np.float64],
+        particle_type: str = "neutron",
+        mesh: MeshBase | None = None,
+        energy: NDArray[np.float64] | None = None,
+        mu: NDArray[np.float64] | None = None,
+        azimuthal: NDArray[np.float64] | None = None,
+        time: NDArray[np.float64] | None = None,
+    ):
+        """Configure lower, target, and upper particle weights.
+
+        Parameters
+        ----------
+        weight_windows : ndarray, shape (Ne, Nx, Ny, Nz, 3)
+            Lower, target, and upper weights in the final dimension. Every
+            lower weight must be positive, and each window must satisfy
+            ``lower <= target <= upper``.
+        particle_type : str, optional
+            Particle type the specified weight windows apply to. The default
+            is neutron.
+        mesh : MeshUniform or MeshStructured, optional
+            Spatial mesh. The default is one unbounded uniform bin.
+        energy : ndarray, optional
+            Strictly increasing energy boundaries in eV. The default is one
+            all-energy bin.
+        mu : ndarray, optional
+            Strictly increasing polar cosine bounds from -1 to 1. The default
+            is one bin from -1 to 1.
+        azimuthal : ndarray, optional
+            Strictly increasing azimuthal angle bounds from -pi to pi. The
+            default is one bin from -pi to pi.
+
+        Examples
+        --------
+        Apply one weight window over all space and energy:
+
+        >>> import numpy as np
+        >>> import mcdc
+        >>> simulation = mcdc.Simulation()
+        >>> windows = np.array([0.5, 1.0, 2.0])
+        >>> simulation.technique.weight_windows(windows)
+
+        Configure weight windows on a uniform spatial mesh:
+
+        >>> mesh = mcdc.MeshUniform(x=(-5.0, 1.0, 10))
+        >>> windows = np.tile([0.25, 0.5, 1.0], (10,))
+        >>> simulation.technique.weight_windows(windows, mesh=mesh)
+
+        Configure both energy- and space-dependent windows:
+
+        >>> energy = np.array([0.0, 0.625, 20.0e6])
+        >>> windows = np.tile([0.25, 0.5, 1.0], (2, 10))
+        >>> simulation.technique.weight_windows(
+        ...     windows,
+        ...     mesh=mesh,
+        ...     energy=energy,
+        ... )
+
+        Configure full phase-dependent windows
+        >>> time = np.array([0.0, 10, 100, 1000])
+        >>> mu = np.array([-1.0, -0.5, 0.0, 0.5, 1.0])
+        >>> azi = np.array([-np.pi, -np.pi/2, 0, np.pi/2, np.pi])
+        >>> windows = np.tile([0.25, 0.5, 1.0], (3, 2, 4, 4, 10))
+        >>> simulation.technique.weight_windows(
+        ...     windows,
+        ...     mesh=mesh,
+        ...     energy=energy,
+        ...     mu=mu,
+        ...     azimuthal=azi,
+        ...     time=time,
+        ... )
+
+        Configure weight windows for specific particle types
+        >>> simulation.technique.weight_windows(
+        ...     windows,
+        ...     particle_type="electron",
+        ...     mesh=mesh,
+        ... )
+        """
+        ww_name = f"{particle_type}_weight_windows"
+        ww_obj = getattr(self, ww_name)
+        if ww_obj.active:
+            print_error(
+                f"Attempting to overwrite weight windows for particle type {particle_type}!"
+            )
+        ww_obj(
+            weight_windows,
+            mesh=mesh,
+            energy=energy,
+            mu=mu,
+            azimuthal=azimuthal,
+            time=time,
+        )
