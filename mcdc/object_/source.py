@@ -10,14 +10,12 @@ from typing import Annotated, Sequence
 
 from mcdc.constant import (
     PARTICLE_NEUTRON,
-    PARTICLE_ELECTRON,
-    PARTICLE_PROTON,
     INF,
     PI,
 )
 from mcdc.object_.base import MCDCObject
 from mcdc.object_.distribution import DistributionTabulated, DistributionPMF
-from mcdc.object_.util import move_object
+from mcdc.object_.util import move_object, parse_particle_type, decode_particle_type
 from mcdc.print_ import print_error
 
 # ======================================================================================
@@ -428,13 +426,9 @@ class Source(MCDCObject):
             self.time_range = _time_range(time)
 
         # Particle type
-        if particle_type == "neutron":
-            self.particle_type = PARTICLE_NEUTRON
-        elif particle_type == "electron":
-            self.particle_type = PARTICLE_ELECTRON
-        elif particle_type == "proton":
-            self.particle_type = PARTICLE_PROTON
-        else:
+        try:
+            self.particle_type = parse_particle_type(particle_type)
+        except ValueError:
             print_error(rf"Unsupported particle types: {particle_type}")
 
         # Moving source parameters
@@ -541,17 +535,6 @@ class Source(MCDCObject):
         ... )
         """
         move_object(self, velocities, durations)
-
-
-def decode_particle_type(type_):
-    """Return the display name for a packed particle-type code."""
-
-    if type_ == PARTICLE_NEUTRON:
-        return "Neutron"
-    elif type_ == PARTICLE_ELECTRON:
-        return "Electron"
-    elif type_ == PARTICLE_PROTON:
-        return "Proton"
 
 
 # ======================================================================================

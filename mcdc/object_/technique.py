@@ -1,8 +1,14 @@
 import numpy as np
 
-from mcdc.constant import INF, PI
-from mcdc.object_.base import MCDCBase
+from mcdc.constant import (
+    INF,
+    PI,
+    PARTICLE_TYPE_BY_NAME,
+    WW_GENERATOR_MAGIC,
+)
+from mcdc.object_.base import MCDCBase, MCDCPolymorphic
 from mcdc.object_.mesh import MeshBase, MeshUniform
+from mcdc.object_.tally import Tally, TallyTracklength 
 from mcdc.print_ import print_error
 from numpy.typing import NDArray
 from typing import Annotated
@@ -168,6 +174,8 @@ class WeightWindows(MCDCBase):
 
     active: bool
 
+    ptype: int
+
     # time
     time_bounds: NDArray[np.float64]
     Nt: int
@@ -195,8 +203,9 @@ class WeightWindows(MCDCBase):
         ("Nt", "Ne", "Nmu", "Na", "Nx", "Ny", "Nz", "N_WW_parameters"),
     ]
 
-    def __init__(self) -> None:
+    def __init__(self, ptype) -> None:
         self.active = False
+        self.ptype = ptype
         self.time_bounds = np.array([0.0, INF])
         self.Nt = 1
         self.azi_bounds = np.array([-PI, PI])
@@ -224,72 +233,13 @@ class WeightWindows(MCDCBase):
     def __call__(
         self,
         weight_windows: NDArray[np.float64],
+        *,
         mesh: MeshBase | None = None,
         energy: NDArray[np.float64] | None = None,
         mu: NDArray[np.float64] | None = None,
         azimuthal: NDArray[np.float64] | None = None,
         time: NDArray[np.float64] | None = None,
     ) -> None:
-        """Configure lower, target, and upper particle weights.
-
-        Parameters
-        ----------
-        weight_windows : ndarray, shape (Ne, Nx, Ny, Nz, 3)
-            Lower, target, and upper weights in the final dimension. Every
-            lower weight must be positive, and each window must satisfy
-            ``lower <= target <= upper``.
-        mesh : MeshUniform or MeshStructured, optional
-            Spatial mesh. The default is one unbounded uniform bin.
-        energy : ndarray, optional
-            Strictly increasing energy boundaries in eV. The default is one
-            all-energy bin.
-        mu : ndarray, optional
-            Strictly increasing polar cosine bounds from -1 to 1. The default
-            is one bin from -1 to 1.
-        azimuthal : ndarray, optional
-            Strictly increasing azimuthal angle bounds from -pi to pi. The
-            default is one bin from -pi to pi.
-
-        Examples
-        --------
-        Apply one weight window over all space and energy:
-
-        >>> import numpy as np
-        >>> import mcdc
-        >>> simulation = mcdc.Simulation()
-        >>> windows = np.array([0.5, 1.0, 2.0])
-        >>> simulation.technique.weight_windows(windows)
-
-        Configure weight windows on a uniform spatial mesh:
-
-        >>> mesh = mcdc.MeshUniform(x=(-5.0, 1.0, 10))
-        >>> windows = np.tile([0.25, 0.5, 1.0], (10,))
-        >>> simulation.technique.weight_windows(windows, mesh=mesh)
-
-        Configure both energy- and space-dependent windows:
-
-        >>> energy = np.array([0.0, 0.625, 20.0e6])
-        >>> windows = np.tile([0.25, 0.5, 1.0], (2, 10))
-        >>> simulation.technique.weight_windows(
-        ...     windows,
-        ...     mesh=mesh,
-        ...     energy=energy,
-        ... )
-
-        Configure full phase-dependent windows
-        >>> time = np.array([0.0, 10, 100, 1000])
-        >>> mu = np.array([-1.0, -0.5, 0.0, 0.5, 1.0])
-        >>> azi = np.array([-np.pi, -np.pi/2, 0, np.pi/2, np.pi])
-        >>> windows = np.tile([0.25, 0.5, 1.0], (3, 2, 4, 4, 10))
-        >>> simulation.technique.weight_windows(
-        ...     windows,
-        ...     mesh=mesh,
-        ...     energy=energy,
-        ...     mu=mu,
-        ...     azimuthal=azi,
-        ...     time=time,
-        ... )
-        """
         # fill in defaults
         if mesh is None:
             mesh = MeshUniform()
@@ -381,6 +331,179 @@ class WeightWindows(MCDCBase):
                 f"Invalid shape for {name} bounds; expected 1D got {len(array.shape)}D"
             )
 
+    def _get_shape(self):
+        return (self.Nt, self.Ne, self.Nmu, self.Na, self.Nx, self.Ny, self.Nz, self.N_WW_parameters)
+
+
+# ======================================================================================
+# Base Weight Window Generator
+# ======================================================================================
+
+
+class WeightWindowGenerator(MCDCPolymorphic):
+    """Polymorphic base class for all weight window generators"""
+    label = "weight_window_generator"
+
+    sub_type = -1
+
+    active: bool
+
+    # type of particle this generator applies to
+    ptype: int
+
+    def __init__(self, ptype: int):
+        self.active = False
+        self.ptype = ptype
+
+    def _compile_into_simulation(self, simulation) -> bool:
+        # Already compiled?
+        if not super()._compile_into_simulation(simulation):
+            return False
+
+    def _register_members(self, simulation):
+        return
+
+# ======================================================================================
+# MAGIC Weight Window Generator
+# ======================================================================================
+
+
+class MAGICWeightWindowGenerator(WeightWindowGenerator):
+    """Simulation-owned iterative weight window generator."""
+
+    # MC/DC framework metadata
+    label = "MAGIC_weight_window_generator"
+    sub_type = WW_GENERATOR_MAGIC
+
+    active: bool
+
+    ptype: int
+
+    # flux tally
+    flux_tally: Tally 
+
+    # scale from lower weight to target weight
+    target_scale: float
+
+    # scale from lower weight to upper weight
+    upper_scale: float
+
+    def __init__(self, ptype: int):
+        super().__init__(ptype) 
+        # skirt around actually creating a tally
+        self.flux_tally_ID = -1
+        self.target_scale = 1.5
+        self.upper_scale = 2.0
+
+    def __call__(
+        self,
+        *,
+        weight_target_scale: float = 1.5,
+        weight_upper_scale: float = 2.0,
+        tally_name: str | None = None,
+        mesh: MeshBase | None = None,
+        energy: NDArray[np.float64] | None = None,
+        mu: NDArray[np.float64] | None = None,
+        azimuthal: NDArray[np.float64] | None = None,
+        time: NDArray[np.float64] | None = None,
+    ) -> None:
+        if weight_target_scale <= 1:
+            print_error(
+                "Target weight scale must be greater than or equal to 1."
+            )
+        self.target_scale = weight_target_scale
+
+        if weight_upper_scale <= self.target_scale:
+            print_error(
+                "Upper weight scale must be greater than or equal to target "
+                f"weight scale: {self.target_scale}."
+            )
+        self.upper_scale = weight_upper_scale
+
+        if tally_name is None:
+            tally_name =f"_{self.ptype}_MAGIC_WWG_"
+        self.flux_tally = TallyTracklength(
+            name=tally_name,
+            mesh=mesh,
+            energy=energy,
+            mu=mu,
+            azi=azimuthal,
+            time=time,
+        )
+
+    def _get_weight_window_shape(self):
+        tally = self.flux_tally
+
+        mesh = tally.mesh
+        if mesh is None:
+            nx, ny, nz = 1, 1, 1
+        else:
+            match mesh.label:
+                case "uniform_mesh":
+                    nx, ny, nz = mesh.Nx, mesh.Ny, mesh.Nz
+                case "structured_mesh":
+                    nx, ny, nz = (
+                        mesh.x.shape[0] - 1,
+                        mesh.y.shape[0] - 1,
+                        mesh.z.shape[0] - 1,
+                    )
+                case _:
+                    print_error(
+                        f"{type(mesh).__name__} is not supported for weight windows"
+                    )
+
+        if tally.energy is None:
+            ne = 1
+        else:
+            ne = tally.energy.shape[0] - 1
+
+        if tally.mu is None:
+            nmu = 1
+        else:
+            nmu = tally.mu.shape[0] - 1
+        
+        if tally.azi is None:
+            na = 1
+        else:
+            na = tally.azi.shape[0] - 1
+
+        if tally.time is None:
+            nt = 1
+        else:
+            nt = tally.time.shape[0] - 1
+
+        # get weight window shape
+        ww_shape = (nt, ne, nmu, na, nx, ny, nz, WeightWindows.N_WW_parameters)
+        return ww_shape
+
+
+    def _get_weight_window_params(self):
+        ww_shape = self._get_weight_window_shape() 
+
+        initial_global_ww = 0.5 * np.array(1, self.target_scale, self.upper_scale)
+        ww_array = np.tile(initial_global_ww, ww_shape)
+
+        ww_params = {
+            "weight_windows":ww_array,
+            "mesh":self.flux_tally.mesh,
+            "energy":self.flux_tally.energy,
+            "mu":self.flux_tally.mu,
+            "azimuthal":self.flux_tally.azi,
+            "time":self.tally.time,
+        }
+        return ww_params
+
+    def _compile_into_simulation(self, simulation) -> bool:
+        # Already compiled?
+        if not super()._compile_into_simulation(simulation):
+            return False
+
+        self.flux_tally_ID = self.flux_tally.ID
+
+        return False 
+
+    def _register_members(self, simulation):
+        simulation.tallies.append(self.flux_tally)
 
 # ======================================================================================
 # Population control
@@ -440,7 +563,12 @@ class Technique(MCDCBase):
     implicit_capture: ImplicitCapture
     weighted_emission: WeightedEmission
     global_weight_roulette: GlobalWeightRoulette
-    weight_windows: WeightWindows
+    neutron_weight_windows: WeightWindows
+    neutron_weight_window_generator: WeightWindowGenerator
+    electron_weight_windows: WeightWindows
+    electron_weight_window_generator: WeightWindowGenerator
+    proton_weight_windows: WeightWindows
+    proton_weight_window_generator: WeightWindowGenerator
     population_control: PopulationControl
 
     def __init__(self) -> None:
@@ -448,5 +576,167 @@ class Technique(MCDCBase):
         self.implicit_capture = ImplicitCapture()
         self.weighted_emission = WeightedEmission()
         self.global_weight_roulette = GlobalWeightRoulette()
-        self.weight_windows = WeightWindows()
+        for pname, ptype in PARTICLE_TYPE_BY_NAME.items():
+            setattr(self, f"{pname}_weight_windows", WeightWindows(ptype))
+            setattr(self, f"{pname}_weight_window_generator", WeightWindowGenerator(ptype))
         self.population_control = PopulationControl()
+
+    def _compile_into_simulation(self, simulation) -> bool:
+        # Already compiled?
+        if not super()._compile_into_simulation(simulation):
+            return False
+
+        for pname in PARTICLE_TYPE_BY_NAME.keys():
+            wwg = getattr(self, f"{pname}_weight_window_generator") 
+            wwg._compile_into_simulation(simulation)
+        return False 
+
+    def _register_into_simulation(self, simulation):
+        for pname in PARTICLE_TYPE_BY_NAME.keys():
+            wwg = getattr(self, f"{pname}_weight_window_generator") 
+            wwg._register_members(simulation)
+
+    def weight_windows(
+        self,
+        weight_windows: NDArray[np.float64],
+        particle_type: str = "neutron",
+        mesh: MeshBase | None = None,
+        energy: NDArray[np.float64] | None = None,
+        mu: NDArray[np.float64] | None = None,
+        azimuthal: NDArray[np.float64] | None = None,
+        time: NDArray[np.float64] | None = None,
+    ):
+        """Configure lower, target, and upper particle weights.
+
+        Parameters
+        ----------
+        weight_windows : ndarray, shape (Ne, Nx, Ny, Nz, 3)
+            Lower, target, and upper weights in the final dimension. Every
+            lower weight must be positive, and each window must satisfy
+            ``lower <= target <= upper``.
+        particle_type : str, optional
+            Particle type the specified weight windows apply to. The default
+            is neutron.
+        mesh : MeshUniform or MeshStructured, optional
+            Spatial mesh. The default is one unbounded uniform bin.
+        energy : ndarray, optional
+            Strictly increasing energy boundaries in eV. The default is one
+            all-energy bin.
+        mu : ndarray, optional
+            Strictly increasing polar cosine bounds from -1 to 1. The default
+            is one bin from -1 to 1.
+        azimuthal : ndarray, optional
+            Strictly increasing azimuthal angle bounds from -pi to pi. The
+            default is one bin from -pi to pi.
+
+        Examples
+        --------
+        Apply one weight window over all space and energy:
+
+        >>> import numpy as np
+        >>> import mcdc
+        >>> simulation = mcdc.Simulation()
+        >>> windows = np.array([0.5, 1.0, 2.0])
+        >>> simulation.technique.weight_windows(windows)
+
+        Configure weight windows on a uniform spatial mesh:
+
+        >>> mesh = mcdc.MeshUniform(x=(-5.0, 1.0, 10))
+        >>> windows = np.tile([0.25, 0.5, 1.0], (10,))
+        >>> simulation.technique.weight_windows(windows, mesh=mesh)
+
+        Configure both energy- and space-dependent windows:
+
+        >>> energy = np.array([0.0, 0.625, 20.0e6])
+        >>> windows = np.tile([0.25, 0.5, 1.0], (2, 10))
+        >>> simulation.technique.weight_windows(
+        ...     windows,
+        ...     mesh=mesh,
+        ...     energy=energy,
+        ... )
+
+        Configure full phase-dependent windows
+        >>> time = np.array([0.0, 10, 100, 1000])
+        >>> mu = np.array([-1.0, -0.5, 0.0, 0.5, 1.0])
+        >>> azi = np.array([-np.pi, -np.pi/2, 0, np.pi/2, np.pi])
+        >>> windows = np.tile([0.25, 0.5, 1.0], (3, 2, 4, 4, 10))
+        >>> simulation.technique.weight_windows(
+        ...     windows,
+        ...     mesh=mesh,
+        ...     energy=energy,
+        ...     mu=mu,
+        ...     azimuthal=azi,
+        ...     time=time,
+        ... )
+
+        Configure weight windows for specific particle types
+        >>> simulation.technique.weight_windows(
+        ...     windows,
+        ...     particle_type="electron",
+        ...     mesh=mesh,
+        ... )
+        """
+        ww_name = f"{particle_type}_weight_windows"
+        ww_obj = getattr(self, ww_name)
+        if ww_obj.active:
+            print_error(
+                f"Attempting to overwrite weight windows for particle type {particle_type}!"
+            )
+        ww_obj(
+            weight_windows,
+            mesh=mesh,
+            energy=energy,
+            mu=mu,
+            azimuthal=azimuthal,
+            time=time,
+        )
+
+    def MAGIC_weight_window_generator(
+        self,
+        particle_type: str = "neutron",
+        *,
+        weight_target_scale: float = 1.5,
+        weight_upper_scale: float = 2.0,
+        tally_name: str | None = None,
+        mesh: MeshBase | None = None,
+        energy: NDArray[np.float64] | None = None,
+        mu: NDArray[np.float64] | None = None,
+        azimuthal: NDArray[np.float64] | None = None,
+        time: NDArray[np.float64] | None = None,
+    ) -> None:
+        wwg_name = f"{particle_type}_weight_window_generator"
+
+        if getattr(self, wwg_name).active:
+            print_error(
+                f"Attempting to overwrite weight window generator for particle type {particle_type}!"
+            )
+        setattr(self, wwg_name, MAGICWeightWindowGenerator(PARTICLE_TYPE_BY_NAME[particle_type]))
+        wwg_obj = getattr(self, wwg_name)
+        wwg_obj(
+            weight_target_scale=weight_target_scale,
+            weight_upper_scale=weight_upper_scale,
+            tally_name=tally_name,
+            mesh=mesh,
+            energy=energy,
+            mu=mu,
+            azimuthal=azimuthal,
+            time=time,
+        )
+
+        ww_name = f"{particle_type}_weight_windows"
+        ww_obj = getattr(self, ww_name)
+        if ww_obj.active:
+            #make sure its the same dimensions
+            expected_shape = wwg_obj._get_weight_window_shape()
+            true_shape = ww_obj._get_shape()
+            if expected_shape != true_shape:
+                print_error(
+                    "Pre-specified weight windows for particle type "
+                    f"{particle_type} has shape {true_shape}, but expected "
+                    f"{expected_shape} from MAGIC specificiations!"
+                )
+        else:
+            ww_obj(
+                **wwg_obj._get_weight_window_params()
+            )
+

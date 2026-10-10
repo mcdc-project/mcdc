@@ -667,6 +667,7 @@ global_weight_roulette = into_dtype([
 
 weight_windows = into_dtype([
     ('active', bool_),
+    ('ptype', int64),
     ('time_bounds_offset', int64),
     ('time_bounds_length', int64),
     ('Nt', int64),
@@ -697,7 +698,12 @@ technique = into_dtype([
     ('implicit_capture', implicit_capture),
     ('weighted_emission', weighted_emission),
     ('global_weight_roulette', global_weight_roulette),
-    ('weight_windows', weight_windows),
+    ('neutron_weight_windows', weight_windows),
+    ('neutron_weight_window_generator_ID', int64),
+    ('electron_weight_windows', weight_windows),
+    ('electron_weight_window_generator_ID', int64),
+    ('proton_weight_windows', weight_windows),
+    ('proton_weight_window_generator_ID', int64),
     ('population_control', population_control),
 ])
 
@@ -820,6 +826,24 @@ tally = into_dtype([
     ('stride_azi', int64),
     ('stride_energy', int64),
     ('stride_time', int64),
+    ('ID', int64),
+    ('sub_type', int64),
+    ('sub_ID', int64),
+])
+
+MAGIC_weight_window_generator = into_dtype([
+    ('active', bool_),
+    ('ptype', int64),
+    ('flux_tally_ID', int64),
+    ('target_scale', float64),
+    ('upper_scale', float64),
+    ('ID', int64),
+    ('base_ID', int64),
+])
+
+weight_window_generator = into_dtype([
+    ('active', bool_),
+    ('ptype', int64),
     ('ID', int64),
     ('sub_type', int64),
     ('sub_ID', int64),

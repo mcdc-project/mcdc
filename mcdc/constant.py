@@ -34,6 +34,15 @@ PARTICLE_NEUTRON = 0
 PARTICLE_ELECTRON = 1
 PARTICLE_PROTON = 2
 PARTICLE_ANY = 100
+# Helpers
+PARTICLE_TYPE_BY_NAME = {
+    "neutron": PARTICLE_NEUTRON,
+    "electron": PARTICLE_ELECTRON,
+    "proton": PARTICLE_PROTON,
+}
+PARTICLE_TYPE_NAME_PAIRS = tuple(
+    (code, name) for name, code in PARTICLE_TYPE_BY_NAME.items()
+)
 
 # Neutron multigroup energy representation
 NEUTRON_MULTIGROUP_ENERGY_MIDPOINT = 0
@@ -231,6 +240,9 @@ PCT_SPLITTING_ROULETTE_WEIGHT = 4
 # Weight-window methods are currently unused.
 WW_USER = 0
 WW_PREVIOUS = 1
+
+# Weight-window generator types
+WW_GENERATOR_MAGIC = 0
 
 # Weight-window modifications are currently unused.
 WW_MIN = 0
