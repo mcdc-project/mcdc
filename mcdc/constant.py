@@ -241,6 +241,9 @@ PCT_SPLITTING_ROULETTE_WEIGHT = 4
 WW_USER = 0
 WW_PREVIOUS = 1
 
+# Weight-window generator types
+WW_GENERATOR_MAGIC = 0
+
 # Weight-window modifications are currently unused.
 WW_MIN = 0
 WW_WOLLABER = 1

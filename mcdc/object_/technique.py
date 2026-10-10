@@ -4,9 +4,11 @@ from mcdc.constant import (
     INF,
     PI,
     PARTICLE_TYPE_BY_NAME,
+    WW_GENERATOR_MAGIC,
 )
-from mcdc.object_.base import MCDCBase
+from mcdc.object_.base import MCDCBase, MCDCPolymorphic
 from mcdc.object_.mesh import MeshBase, MeshUniform
+from mcdc.object_.tally import Tally, TallyTracklength 
 from mcdc.print_ import print_error
 from numpy.typing import NDArray
 from typing import Annotated
@@ -331,6 +333,27 @@ class WeightWindows(MCDCBase):
 
 
 # ======================================================================================
+# Base Weight Window Generator
+# ======================================================================================
+
+
+class WeightWindowGenerator(MCDCPolymorphic):
+    """Polymorphic base class for all weight window generators"""
+    label = "weight_window_generator"
+
+    sub_type = -1
+
+    active: bool
+
+    # type of particle this generator applies to
+    ptype: int
+
+    def __init__(self, ptype: int):
+        self.active = False
+        self.ptype = ptype
+
+
+# ======================================================================================
 # Population control
 # ======================================================================================
 
@@ -389,8 +412,11 @@ class Technique(MCDCBase):
     weighted_emission: WeightedEmission
     global_weight_roulette: GlobalWeightRoulette
     neutron_weight_windows: WeightWindows
+    neutron_weight_window_generator: WeightWindowGenerator
     electron_weight_windows: WeightWindows
+    electron_weight_window_generator: WeightWindowGenerator
     proton_weight_windows: WeightWindows
+    proton_weight_window_generator: WeightWindowGenerator
     population_control: PopulationControl
 
     def __init__(self) -> None:
@@ -400,6 +426,7 @@ class Technique(MCDCBase):
         self.global_weight_roulette = GlobalWeightRoulette()
         for pname, ptype in PARTICLE_TYPE_BY_NAME.items():
             setattr(self, f"{pname}_weight_windows", WeightWindows(ptype))
+            setattr(self, f"{pname}_weight_window_generator", WeightWindowGenerator(ptype))
         self.population_control = PopulationControl()
 
     def weight_windows(
