@@ -7,24 +7,16 @@ from typing import Sequence
 
 from mcdc.transport.linalg import make_direction_basis
 
-from mcdc.constant import (
-    PARTICLE_ANY,
-    PARTICLE_NEUTRON,
-    PARTICLE_ELECTRON,
-    PARTICLE_PROTON,
-)
+from mcdc.constant import PARTICLE_ANY, PARTICLE_TYPE_NAME_PAIRS
 
 
 @njit
 def particle_name(particle_type):
     """Return the name of a particle type."""
-    if particle_type == PARTICLE_NEUTRON:
-        return "neutron"
-    elif particle_type == PARTICLE_ELECTRON:
-        return "electron"
-    elif particle_type == PARTICLE_PROTON:
-        return "proton"
-    elif particle_type == PARTICLE_ANY:
+    for code, name in PARTICLE_TYPE_NAME_PAIRS:
+        if particle_type == code:
+            return name
+    if particle_type == PARTICLE_ANY:
         return "any particle"
     return f"unknown particle type {particle_type}"
 

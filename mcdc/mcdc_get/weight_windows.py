@@ -126,8 +126,7 @@ def azi_bounds_chunk(start, length, weight_windows, data):
 
 
 @njit
-def weights(index_1, index_2, index_3, index_4, index_5, index_6, index_7, index_8, weight_windows, data):
-    offset = weight_windows["weights_offset"]
+def weights_flat_index(index_1, index_2, index_3, index_4, index_5, index_6, index_7, index_8, weight_windows):
     stride_2 = weight_windows["Ne"]
     stride_3 = weight_windows["Nmu"]
     stride_4 = weight_windows["Na"]
@@ -135,7 +134,14 @@ def weights(index_1, index_2, index_3, index_4, index_5, index_6, index_7, index
     stride_6 = weight_windows["Ny"]
     stride_7 = weight_windows["Nz"]
     stride_8 = weight_windows["N_WW_parameters"]
-    index = offset + ((((((index_1 * stride_2 + index_2 ) * stride_3 + index_3) * stride_4 + index_4) * stride_5 + index_5) * stride_6 + index_6) * stride_7 + index_7) * stride_8 + index_8
+    index = ((((((index_1 * stride_2 + index_2 ) * stride_3 + index_3) * stride_4 + index_4) * stride_5 + index_5) * stride_6 + index_6) * stride_7 + index_7) * stride_8 + index_8
+    return index
+
+
+@njit
+def weights(index_1, index_2, index_3, index_4, index_5, index_6, index_7, index_8, weight_windows, data):
+    offset = weight_windows["weights_offset"]
+    index = offset + weights_flat_index(index_1, index_2, index_3, index_4, index_5, index_6, index_7, index_8, weight_windows)
     return data[index]
 
 

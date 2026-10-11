@@ -1150,12 +1150,21 @@ def generate_mcdc_access(targets):
                     object_name, attribute_name, shape[1], shape[2], shape[3], True
                 )
             elif len(shape) == 8:
+                text_getter += _8d_flat_index(
+                    object_name,
+                    attribute_name,
+                    *shape[1:]
+                )
                 text_getter += _accessor_8d_element(
                     object_name,
                     attribute_name,
                     *shape[1:],
                 )
-
+                text_setter += _8d_flat_index(
+                    object_name,
+                    attribute_name,
+                    *shape[1:]
+                )
                 text_setter += _accessor_8d_element(
                     object_name,
                     attribute_name,
@@ -1361,6 +1370,29 @@ def _accessor_4d_element(
         )
     return text
 
+def _8d_flat_index(
+    object_name,
+    attribute_name,
+    stride_2,
+    stride_3,
+    stride_4,
+    stride_5,
+    stride_6,
+    stride_7,
+    stride_8,
+):
+    text =  f"@njit\n"
+    text += f"def {attribute_name}_flat_index(index_1, index_2, index_3, index_4, index_5, index_6, index_7, index_8, {object_name}):\n"
+    text += f'    stride_2 = {object_name}["{stride_2}"]\n'
+    text += f'    stride_3 = {object_name}["{stride_3}"]\n'
+    text += f'    stride_4 = {object_name}["{stride_4}"]\n'
+    text += f'    stride_5 = {object_name}["{stride_5}"]\n'
+    text += f'    stride_6 = {object_name}["{stride_6}"]\n'
+    text += f'    stride_7 = {object_name}["{stride_7}"]\n'
+    text += f'    stride_8 = {object_name}["{stride_8}"]\n'
+    text += f"    index = ((((((index_1 * stride_2 + index_2 ) * stride_3 + index_3) * stride_4 + index_4) * stride_5 + index_5) * stride_6 + index_6) * stride_7 + index_7) * stride_8 + index_8\n"
+    text += f"    return index\n\n\n"
+    return text
 
 def _accessor_8d_element(
     object_name,
@@ -1380,14 +1412,7 @@ def _accessor_8d_element(
     else:
         text += f"def {attribute_name}(index_1, index_2, index_3, index_4, index_5, index_6, index_7, index_8, {object_name}, data):\n"
     text += f'    offset = {object_name}["{attribute_name}_offset"]\n'
-    text += f'    stride_2 = {object_name}["{stride_2}"]\n'
-    text += f'    stride_3 = {object_name}["{stride_3}"]\n'
-    text += f'    stride_4 = {object_name}["{stride_4}"]\n'
-    text += f'    stride_5 = {object_name}["{stride_5}"]\n'
-    text += f'    stride_6 = {object_name}["{stride_6}"]\n'
-    text += f'    stride_7 = {object_name}["{stride_7}"]\n'
-    text += f'    stride_8 = {object_name}["{stride_8}"]\n'
-    text += f"    index = offset + ((((((index_1 * stride_2 + index_2 ) * stride_3 + index_3) * stride_4 + index_4) * stride_5 + index_5) * stride_6 + index_6) * stride_7 + index_7) * stride_8 + index_8\n"
+    text += f"    index = offset + {attribute_name}_flat_index(index_1, index_2, index_3, index_4, index_5, index_6, index_7, index_8, {object_name})\n"
     if setter:
         text += f"    data[index] = value\n\n\n"
     else:

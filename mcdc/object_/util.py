@@ -5,8 +5,35 @@ import numpy as np
 from numpy import float64
 from numpy.typing import NDArray
 
-from mcdc.constant import INF
+from mcdc.constant import (
+    INF,
+    PARTICLE_ANY,
+    PARTICLE_TYPE_BY_NAME,
+    PARTICLE_TYPE_NAME_PAIRS,
+)
 from mcdc.print_ import print_error
+
+# ======================================================================================
+# Particle naming and conversion
+# ======================================================================================
+
+
+def parse_particle_type(name: str) -> int:
+    """Convert a concrete species name to its code, excluding wildcards."""
+    if not isinstance(name, str) or name not in PARTICLE_TYPE_BY_NAME:
+        raise ValueError(f"Unsupported particle type: {name}")
+    return PARTICLE_TYPE_BY_NAME[name]
+
+
+def decode_particle_type(type_, default=None):
+    """Return a display name for a particle code or the supplied default."""
+    if type_ == PARTICLE_ANY:
+        return "Any"
+    for code, name in PARTICLE_TYPE_NAME_PAIRS:
+        if type_ == code:
+            return name.capitalize()
+    return default
+
 
 # ======================================================================================
 # Runtime annotation checking
