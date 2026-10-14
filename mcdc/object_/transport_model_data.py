@@ -351,6 +351,67 @@ class NeutronMultigroupData(MCDCObject):
         return text
 
 
+# ======================================================================================
+# Photon constant cross sections
+# ======================================================================================
+
+
+class PhotonConstantXSData(MCDCObject):
+    """Energy-independent macroscopic cross sections for photon transport.
+
+    A photon analogue of :class:`NeutronMultigroupData` for problems whose cross
+    sections are constant in energy, which is what the analytical transport
+    benchmarks (Case, de Hoffmann-Placzek) are posed with. Scattering is treated
+    as isotropic and elastic and absorption as analog capture, so the whole of
+    the physics is the two numbers below plus their sum.
+
+    Parameters
+    ----------
+    scatter : float, optional
+        Macroscopic scattering cross section in ``cm^-1``.
+    absorb : float, optional
+        Macroscopic absorption cross section in ``cm^-1``.
+
+    Examples
+    --------
+    A purely scattering medium::
+
+        >>> import mcdc
+        >>> material = mcdc.Material(
+        ...     name="scatterer",
+        ...     photon_constant_xs=mcdc.PhotonConstantXSData(scatter=1.0),
+        ... )
+    """
+
+    # MC/DC framework metadata
+    label = "photon_constant_xs_data"
+
+    scatter: float
+    absorb: float
+    total: float
+
+    def __init__(self, scatter: float = 0.0, absorb: float = 0.0) -> None:
+        super().__init__()
+
+        scatter = float(scatter)
+        absorb = float(absorb)
+        if scatter < 0.0:
+            print_error("PhotonConstantXSData scatter must be non-negative.")
+        if absorb < 0.0:
+            print_error("PhotonConstantXSData absorb must be non-negative.")
+
+        self.scatter = scatter
+        self.absorb = absorb
+        self.total = scatter + absorb
+
+    def __repr__(self) -> str:
+        text = super().__repr__()
+        text += f"  - Sigma_s: {self.scatter}\n"
+        text += f"  - Sigma_a: {self.absorb}\n"
+        text += f"  - Sigma_t: {self.total}\n"
+        return text
+
+
 def _as_array(name, value):
     """Convert an optional user value to a float64 array."""
     if value is None:

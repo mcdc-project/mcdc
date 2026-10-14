@@ -21,7 +21,8 @@ Particle and Energy Filters
 
 The ``particle_type`` and ``energy`` filters are independent.
 If ``particle_type`` is omitted, a tally accepts any transported particle type.
-Set it explicitly when one tally should score only neutrons, electrons, or protons:
+Set it explicitly when one tally should score only neutrons, electrons,
+protons, or photons:
 
 .. code-block:: python3
 

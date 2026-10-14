@@ -116,7 +116,7 @@ class SimulationMembersDirective(SphinxDirective):
         )
         _append_line(lines)
 
-        for species in ("neutron", "electron", "proton"):
+        for species in ("neutron", "electron", "proton", "photon"):
             for option, default, description in (
                 ("active", False, "Enable transport for this species."),
                 (

@@ -11,7 +11,10 @@ from mcdc.constant import INTERPOLATION_LINEAR
 from mcdc.object_.data import DataBase, DataNone, DataTable
 from mcdc.object_.base import MCDCObject
 from mcdc.object_.element import Element
-from mcdc.object_.transport_model_data import NeutronMultigroupData
+from mcdc.object_.transport_model_data import (
+    NeutronMultigroupData,
+    PhotonConstantXSData,
+)
 from mcdc.object_.nuclide import Nuclide
 from mcdc.object_.util import ISOTOPIC_ABUNDANCE, element_symbol_from_nuclide_name
 from mcdc.print_ import print_error
@@ -35,6 +38,10 @@ class Material(MCDCObject):
     temperature : float, optional
         Material temperature in kelvin. Each nuclide uses the closest
         temperature available in the data library.
+    photon_constant_xs : PhotonConstantXSData, optional
+        Energy-independent photon cross sections for this material. Supplying
+        it selects the constant-cross-section photon treatment in place of the
+        tabulated per-element data.
     neutron_multigroup : NeutronMultigroupData, optional
         Groupwise macroscopic cross sections and related data for neutron
         multigroup transport, where neutron energy is represented by discrete
@@ -95,10 +102,12 @@ class Material(MCDCObject):
     temperature: float
     fissionable: bool
     has_neutron_multigroup: bool
+    has_photon_constant_xs: bool
 
     nuclide_composition: dict[Nuclide, float]  # Non-Numba
     element_composition: dict[Element, float]  # Non-Numba
     neutron_multigroup: NeutronMultigroupData
+    photon_constant_xs: PhotonConstantXSData
 
     nuclides: list[Nuclide]
     elements: list[Element]
@@ -118,6 +127,7 @@ class Material(MCDCObject):
         element_composition: dict[str, float] | NoneType = None,
         temperature: float = 293.6,
         neutron_multigroup: NeutronMultigroupData | NoneType = None,
+        photon_constant_xs: PhotonConstantXSData | NoneType = None,
     ) -> None:
         super().__init__()
 
@@ -134,10 +144,20 @@ class Material(MCDCObject):
             not nuclide_composition
             and not element_composition
             and neutron_multigroup is None
+            and photon_constant_xs is None
         ):
             print_error(
                 "Material requires nuclide_composition, element_composition, "
-                "or neutron_multigroup."
+                "neutron_multigroup, or photon_constant_xs."
+            )
+        if photon_constant_xs is not None and not isinstance(
+            photon_constant_xs, PhotonConstantXSData
+        ):
+            print_error("photon_constant_xs must be a PhotonConstantXSData object.")
+        if photon_constant_xs is not None and photon_constant_xs.total <= 0.0:
+            print_error(
+                "Material photon_constant_xs must define a positive total cross "
+                "section."
             )
         if neutron_multigroup is not None and not isinstance(
             neutron_multigroup, NeutronMultigroupData
@@ -169,6 +189,14 @@ class Material(MCDCObject):
         )
         self.has_neutron_multigroup = self.neutron_multigroup.G > 0
         self.fissionable = self.neutron_multigroup.fissionable
+
+        # Use a zero-cross-section placeholder until compilation can select ID 0
+        self.photon_constant_xs = (
+            photon_constant_xs
+            if photon_constant_xs is not None
+            else PhotonConstantXSData()
+        )
+        self.has_photon_constant_xs = self.photon_constant_xs.total > 0.0
 
         # Create lightweight native-composition objects without loading data
         nearest_temperature = _get_supported_temperature(self.temperature)
@@ -275,6 +303,10 @@ class Material(MCDCObject):
         if self.neutron_multigroup.G == 0:
             self.neutron_multigroup = simulation.neutron_multigroup_data[0]
         self.has_neutron_multigroup = self.neutron_multigroup.G > 0
+
+        if self.photon_constant_xs.total == 0.0:
+            self.photon_constant_xs = simulation.photon_constant_xs_data[0]
+        self.has_photon_constant_xs = self.photon_constant_xs.total > 0.0
 
         # Register the material, then compile only canonical owned members
         if not super()._compile_into_simulation(simulation):

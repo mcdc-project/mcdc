@@ -84,7 +84,9 @@ material = into_dtype([
     ('temperature', float64),
     ('fissionable', bool_),
     ('has_neutron_multigroup', bool_),
+    ('has_photon_constant_xs', bool_),
     ('neutron_multigroup_ID', int64),
+    ('photon_constant_xs_ID', int64),
     ('N_nuclide', int64),
     ('nuclide_IDs_offset', int64),
     ('N_element', int64),
@@ -365,7 +367,67 @@ element = into_dtype([
     ('electron_bremsstrahlung_reaction_IDs_offset', int64),
     ('electron_ionization_subshell_binding_energy_offset', int64),
     ('electron_ionization_subshell_binding_energy_length', int64),
+    ('photon_xs_energy_grid_offset', int64),
+    ('photon_xs_energy_grid_length', int64),
+    ('photon_total_xs_offset', int64),
+    ('photon_total_xs_length', int64),
+    ('photon_coherent_xs_offset', int64),
+    ('photon_coherent_xs_length', int64),
+    ('photon_incoherent_xs_offset', int64),
+    ('photon_incoherent_xs_length', int64),
+    ('photon_photoelectric_xs_offset', int64),
+    ('photon_photoelectric_xs_length', int64),
+    ('photon_pair_production_xs_offset', int64),
+    ('photon_pair_production_xs_length', int64),
+    ('N_photon_coherent_reaction', int64),
+    ('photon_coherent_reaction_IDs_offset', int64),
+    ('N_photon_incoherent_reaction', int64),
+    ('photon_incoherent_reaction_IDs_offset', int64),
+    ('N_photon_photoelectric_reaction', int64),
+    ('photon_photoelectric_reaction_IDs_offset', int64),
+    ('N_photon_pair_production_reaction', int64),
+    ('photon_pair_production_reaction_IDs_offset', int64),
+    ('photon_photoelectric_subshell_binding_energy_offset', int64),
+    ('photon_photoelectric_subshell_binding_energy_length', int64),
+    ('photon_relaxation_transition_energy_offset', int64),
+    ('photon_relaxation_transition_energy_length', int64),
+    ('photon_relaxation_transition_probability_offset', int64),
+    ('photon_relaxation_transition_probability_length', int64),
+    ('photon_relaxation_transition_radiative_offset', int64),
+    ('photon_relaxation_transition_radiative_length', int64),
+    ('photon_relaxation_transition_origin_offset', int64),
+    ('photon_relaxation_transition_origin_length', int64),
+    ('photon_relaxation_subshell_start_offset', int64),
+    ('photon_relaxation_subshell_start_length', int64),
+    ('photon_relaxation_subshell_count_offset', int64),
+    ('photon_relaxation_subshell_count_length', int64),
+    ('photon_relaxation_subshell_designator_offset', int64),
+    ('photon_relaxation_subshell_designator_length', int64),
     ('ID', int64),
+])
+
+photon_coherent_reaction = into_dtype([
+    ('form_factor_ID', int64),
+    ('ID', int64),
+    ('base_ID', int64),
+])
+
+photon_incoherent_reaction = into_dtype([
+    ('ID', int64),
+    ('base_ID', int64),
+])
+
+photon_pair_production_reaction = into_dtype([
+    ('ID', int64),
+    ('base_ID', int64),
+])
+
+photon_photoelectric_reaction = into_dtype([
+    ('N_subshell', int64),
+    ('N_subshell_x', int64),
+    ('subshell_x_IDs_offset', int64),
+    ('ID', int64),
+    ('base_ID', int64),
 ])
 
 neutron_multigroup_data = into_dtype([
@@ -461,6 +523,13 @@ nuclide = into_dtype([
     ('N_neutron_fission_delayed_spectrum', int64),
     ('neutron_fission_delayed_spectrum_IDs_offset', int64),
     ('stopping_power_ID', int64),
+    ('ID', int64),
+])
+
+photon_constant_xs_data = into_dtype([
+    ('scatter', float64),
+    ('absorb', float64),
+    ('total', float64),
     ('ID', int64),
 ])
 
@@ -586,6 +655,19 @@ particle_bank = into_dtype([
     ('tag', 'U32'),
 ])
 
+photon_reaction = into_dtype([
+    ('MT', int64),
+    ('xs_offset', int64),
+    ('xs_length', int64),
+    ('xs_offset_', int64),
+    ('reference_frame', int64),
+    ('N_secondary_product', int64),
+    ('secondary_product_IDs_offset', int64),
+    ('ID', int64),
+    ('sub_type', int64),
+    ('sub_ID', int64),
+])
+
 proton_reaction = into_dtype([
     ('MT', int64),
     ('xs_offset', int64),
@@ -642,6 +724,7 @@ settings = into_dtype([
     ('neutron_transport', particle_transport_settings),
     ('electron_transport', particle_transport_settings),
     ('proton_transport', particle_transport_settings),
+    ('photon_transport', particle_transport_settings),
     ('neutron_multigroup', neutron_multigroup),
     ('condensed_interactions', condensed_interactions),
     ('neutron_eigenvalue_mode', bool_),
@@ -903,6 +986,16 @@ def make_simulation_type(N: dict):
         ('N_proton_inelastic_scattering_reaction', int64),
         ('proton_reactions', proton_reaction, (N['proton_reaction'])),
         ('N_proton_reaction', int64),
+        ('photon_coherent_reactions', photon_coherent_reaction, (N['photon_coherent_reaction'])),
+        ('N_photon_coherent_reaction', int64),
+        ('photon_incoherent_reactions', photon_incoherent_reaction, (N['photon_incoherent_reaction'])),
+        ('N_photon_incoherent_reaction', int64),
+        ('photon_pair_production_reactions', photon_pair_production_reaction, (N['photon_pair_production_reaction'])),
+        ('N_photon_pair_production_reaction', int64),
+        ('photon_photoelectric_reactions', photon_photoelectric_reaction, (N['photon_photoelectric_reaction'])),
+        ('N_photon_photoelectric_reaction', int64),
+        ('photon_reactions', photon_reaction, (N['photon_reaction'])),
+        ('N_photon_reaction', int64),
         ('nuclides', nuclide, (N['nuclide'])),
         ('N_nuclide', int64),
         ('elements', element, (N['element'])),
@@ -911,6 +1004,8 @@ def make_simulation_type(N: dict):
         ('N_material', int64),
         ('neutron_multigroup_data', neutron_multigroup_data, (N['neutron_multigroup_data'])),
         ('N_neutron_multigroup_data', int64),
+        ('photon_constant_xs_data', photon_constant_xs_data, (N['photon_constant_xs_data'])),
+        ('N_photon_constant_xs_data', int64),
         ('sources', source, (N['source'])),
         ('N_source', int64),
         ('secondary_products', secondary_product, (N['secondary_product'])),

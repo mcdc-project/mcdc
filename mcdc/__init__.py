@@ -10,7 +10,10 @@ from mcdc.object_.simulation import Simulation
 from mcdc.object_.source import Source
 from mcdc.object_.surface import Surface
 from mcdc.object_.tally import Tally
-from mcdc.object_.transport_model_data import NeutronMultigroupData
+from mcdc.object_.transport_model_data import (
+    NeutronMultigroupData,
+    PhotonConstantXSData,
+)
 from mcdc.object_.universe import Lattice, Universe
 
 __all__ = [
@@ -21,6 +24,7 @@ __all__ = [
     "MeshStructured",
     "MeshUniform",
     "NeutronMultigroupData",
+    "PhotonConstantXSData",
     "Simulation",
     "Source",
     "Surface",

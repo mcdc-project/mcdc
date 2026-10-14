@@ -12,6 +12,7 @@ from mcdc.constant import (
     PARTICLE_NEUTRON,
     PARTICLE_ELECTRON,
     PARTICLE_PROTON,
+    PARTICLE_PHOTON,
     INF,
     PI,
 )
@@ -91,7 +92,7 @@ class Source(MCDCObject):
         defines a discrete emission time. An array-like value with shape
         ``(2,)`` defines a uniform interval ``[t_min, t_max]``. Defaults to
         ``0.0``.
-    particle_type : {"neutron", "electron", "proton"}, optional
+    particle_type : {"neutron", "electron", "proton", "photon"}, optional
         Type of emitted particle. Defaults to ``"neutron"``.
     probability : float, optional
         Relative source probability weight. Defaults to ``1.0``.
@@ -434,6 +435,8 @@ class Source(MCDCObject):
             self.particle_type = PARTICLE_ELECTRON
         elif particle_type == "proton":
             self.particle_type = PARTICLE_PROTON
+        elif particle_type == "photon":
+            self.particle_type = PARTICLE_PHOTON
         else:
             print_error(rf"Unsupported particle types: {particle_type}")
 
@@ -552,6 +555,8 @@ def decode_particle_type(type_):
         return "Electron"
     elif type_ == PARTICLE_PROTON:
         return "Proton"
+    elif type_ == PARTICLE_PHOTON:
+        return "Photon"
 
 
 # ======================================================================================

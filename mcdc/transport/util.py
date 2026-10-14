@@ -12,6 +12,7 @@ from mcdc.constant import (
     PARTICLE_NEUTRON,
     PARTICLE_ELECTRON,
     PARTICLE_PROTON,
+    PARTICLE_PHOTON,
 )
 
 
@@ -24,6 +25,8 @@ def particle_name(particle_type):
         return "electron"
     elif particle_type == PARTICLE_PROTON:
         return "proton"
+    elif particle_type == PARTICLE_PHOTON:
+        return "photon"
     elif particle_type == PARTICLE_ANY:
         return "any particle"
     return f"unknown particle type {particle_type}"
