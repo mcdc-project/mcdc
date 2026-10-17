@@ -5,6 +5,7 @@
 [![Unit Tests](https://github.com/mcdc-project/mcdc/actions/workflows/unit_test.yml/badge.svg)](https://github.com/mcdc-project/mcdc/actions/workflows/unit_test.yml)
 [![Regression Tests](https://github.com/mcdc-project/mcdc/actions/workflows/regression_test.yml/badge.svg)](https://github.com/mcdc-project/mcdc/actions/workflows/regression_test.yml)
 [![Docker Build, Test, and Publish](https://github.com/mcdc-project/mcdc/actions/workflows/docker.yml/badge.svg)](https://github.com/mcdc-project/mcdc/actions/workflows/docker.yml)
+[![Coverage Status](https://coveralls.io/repos/github/CARRE-PSAAP/mcdc/badge.svg?branch=dev)](https://coveralls.io/github/CARRE-PSAAP/mcdc?branch=dev)
 [![Documentation Build](https://github.com/mcdc-project/mcdc/actions/workflows/docs_test.yml/badge.svg)](https://mcdc.readthedocs.io/)
 [![PyPI](https://img.shields.io/pypi/v/mcdc.svg)](https://pypi.org/project/mcdc/)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.06415/status.svg)](https://doi.org/10.21105/joss.06415)
