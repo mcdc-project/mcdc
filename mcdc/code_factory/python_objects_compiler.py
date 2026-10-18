@@ -1,3 +1,4 @@
+from mcdc.constant import PARTICLE_TYPE_BY_NAME
 from mcdc.object_.base import MCDCObject, MCDCPolymorphic
 from mcdc.object_.cell import Region, Cell
 from mcdc.object_.data import DataBase, DataNone
@@ -31,6 +32,12 @@ def compile_simulation(simulation: Simulation):
     # Require geometry rooted in at least one cell
     if len(simulation.root_universe.cells) == 0:
         print_error("Simulation model has not been set (root universe is empty).")
+
+    # need to add the generator talllies to the simulation
+    wwg = lambda pname: getattr(simulation.technique, f"{pname}_weight_window_generator")
+    for pname in PARTICLE_TYPE_BY_NAME.keys():
+        if wwg(pname).active:
+            simulation.tallies.append(wwg(pname).flux_tally)
 
     # Preserve explicitly configured roots before resetting their registered
     # object lists. Geometry members may reference these objects and compile

@@ -114,6 +114,9 @@ def fixed_source_simulation(simulation_container, data):
                 else:
                     tally_module.closeout.reset_scores(simulation, data)
 
+        # Iterative updates to weight windows
+        technique.weight_window_generator(simulation, data)
+
     # Tally closeout
     if not use_census_based_tally:
         tally_module.closeout.finalize(simulation, data)
@@ -157,6 +160,9 @@ def eigenvalue_simulation(simulation_container, data):
 
         # Manage particle banks: population control and work rebalance
         particle_bank_module.manage_particle_banks(simulation)
+
+        # Iterative updates to weight windows
+        technique.weight_window_generator(simulation, data)
 
         # Print progress
         with objmode():
@@ -584,7 +590,7 @@ def apply_techniques(particle_container, program, data):
     particle = particle_container[0]
 
     # Weight windows
-    if technique.get_weight_window_object(particle_container, program)["active"]:
+    if technique.get_weight_window_object(particle_container[0]["particle_type"], program)["active"]:
         technique.weight_windows(particle_container, program, data)
         if not particle["alive"]:
             return
