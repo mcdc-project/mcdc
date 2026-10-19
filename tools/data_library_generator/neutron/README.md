@@ -100,6 +100,8 @@ For each ACE file in `$MCDC_ACELIB`, the generator:
 
 Where the attribute `xs:offset` is the index of the first non-zero cross section value for a given reaction. This avoids storing zero cross-sections.
 
+Note that all energy values are recorded in MeV (to be converted to eV at simulation time).
+
 ### `angular_cosine_distribution/`
 
 Group attribute `type` selects the layout:
