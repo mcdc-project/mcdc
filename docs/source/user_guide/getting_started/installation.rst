@@ -143,8 +143,18 @@ This is the primary path for creating continuous-energy neutron libraries.
 
 .. code-block:: sh
 
-   pip install ACEtk h5py numpy tqdm
+   pip install h5py numpy tqdm
+ACEtk is also required, which must be built from `source <https://github.com/njoy/ACEtk>`_, and it must be in the python path environment variable. For example,
 
+.. code-block:: sh
+
+   git clone https://github.com/njoy/ACEtk
+   cd ACEtk
+   mkdir build
+   cd build
+   cmake -DCMAKE_BUILD_TYPE=Release ../
+   make -j8
+   export PYTHONPATH=/path/to/build/python:/path/to/build/_deps/tools-build/python:$PYTHONPATH
 You also need a set of ACE files from a source such as `NJOY <http://www.njoy21.io/>`_ or an ENDF/B distribution.
 
 **Environment variables:**
