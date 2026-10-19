@@ -111,4 +111,4 @@ Use ``discrete_energy`` to sample among groups:
 
 Group coordinates must be finite, integer-valued, and satisfy ``0 <= energy < G``.
 Continuous ``energy`` distributions are not valid in standard neutron multigroup transport.
-Native and hybrid transport use physical source energy in eV, as described in :doc:`materials_and_multigroup`.
+Native and hybrid transport use physical source energy in eV, as described in :doc:`materials_and_data`.
