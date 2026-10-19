@@ -98,6 +98,8 @@ For each ACE file in `$MCDC_ACELIB`, the generator:
             └── energy_spectrum-N/   (N = 1..number of groups; delayed spectrum)
 ```
 
+Where the attribute `xs:offset` is the index of the first non-zero cross section value for a given reaction. This avoids storing zero cross-sections.
+
 ### `angular_cosine_distribution/`
 
 Group attribute `type` selects the layout:
@@ -108,8 +110,9 @@ Group attribute `type` selects the layout:
 | `energy-correlated` | none (the cosine is determined by the sampled energy distribution)            |
 | `tabulated`         | `energy` (MeV), `offset` (int), `value` (cosines), `pdf`                      |
 
-For `tabulated`, `energy` holds the incident-energy grid. `value` and `pdf` are the concatenation of the
-per-incident-energy tables, and `offset[i]` is the index in `value`/`pdf` where table `i` starts.
+For For `tabulated` distributions, `energy` holds the incident-energy grid. `value` and `pdf` contain the table of outgoing angle and probability,
+for each incident energy, joined together into 1-D arrays. For incident energy of index `i`, the value `offset[i]` is the index in `value`/`pdf` where
+the table for that incident energy starts. Note that this is different than the cross-section attribute with the same name.
 Interpolation is linear.
 
 ### `energy_spectrum-N/`
