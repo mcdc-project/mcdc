@@ -38,7 +38,10 @@ python generate.py --verbose    # Print detailed per-nuclide info
 For each ACE file in `$MCDC_ACELIB`, the generator:
 
 1. Reads the ACE header to identify the nuclide (Z, A, isomeric state) and temperature.
-2. Extracts pointwise cross sections (elastic, capture, inelastic, fission) and the energy grid.
+2. Sorts reactions into groups and extracts their pointwise cross sections and the energy grid:
+   elastic is MT-2; fission is MT-18 (or MT-19/20/21/38); capture is any other reaction with
+   zero multiplicity; inelastic is any other reaction with non-zero multiplicity. MT-1, 3, 4, 10
+   and MT > 117 are ignored.
 3. Extracts angular distributions (tabulated cosine PDFs) and energy distributions
    (level scattering, evaporation, Maxwellian, Kalbach-Mann, N-body, tabulated) per reaction channel.
 4. For fissionable nuclides, extracts prompt/delayed ν(E), precursor fractions, decay constants, and energy spectra.
@@ -47,32 +50,89 @@ For each ACE file in `$MCDC_ACELIB`, the generator:
 ## Output HDF5 Schema
 
 ```
-<Nuclide>-<Temperature>K.h5
-├── nuclide_name              (string)
-├── temperature               (float, K)
-├── atomic_weight_ratio       (float)
-├── fissionable               (bool)
+<Nuclide>-<Temperature>K.h5          file attrs: source_title, source_version, source_date,
+│                                                source_comments (if present in the ACE header)
+├── nuclide_name                     (string)
+├── excitation_level                 (int, 0 = ground state)
+├── temperature                      (float, K)
+├── atomic_number                    (int)
+├── mass_number                      (int)
+├── atomic_weight_ratio              (float)
+├── fissionable                      (bool)
 └── neutron_reactions/
-    ├── xs_energy_grid         (1-D array, MeV)
+    ├── xs_energy_grid               (1-D array, MeV; shared by every reaction)
     ├── elastic_scattering/
-    │   └── MT-002/
-    │       ├── xs             (1-D array, barns)
-    │       ├── cosine/
-    │       └── energy/
-    ├── capture/
-    │   └── MT-102/ ...
-    ├── inelastic_scattering/
-    │   └── MT-051/ ...
-    └── fission/
-        └── MT-018/
-            ├── xs
-            ├── cosine/
-            ├── energy/
-            ├── nu_total/
-            ├── nu_prompt/
-            ├── nu_delayed/
-            └── delayed_neutron/ ...
+    │   └── MT-002/                  (attr: MT)
+    │       ├── xs                   (1-D array, barns; attr: offset = 0)
+    │       ├── Q-value              (float, MeV; always 0)
+    │       ├── reference_frame      (string, always "COM")
+    │       └── angular_cosine_distribution/
+    ├── capture/                     (reactions with zero multiplicity)
+    │   └── MT-xxx/                  (attr: MT)
+    │       ├── xs                   (1-D array, barns; attr: offset)
+    │       ├── Q-value              (float, MeV)
+    │       └── reference_frame      (string, "COM" or "LAB")
+    ├── inelastic_scattering/        (omitted if the nuclide has none)
+    │   └── MT-xxx/                  (attr: MT)
+    │       ├── xs                   (1-D array, barns; attr: offset)
+    │       ├── Q-value              (float, MeV)
+    │       ├── reference_frame      (string, "COM" or "LAB")
+    │       ├── multiplicity         (int, number of emitted neutrons)
+    │       ├── angular_cosine_distribution/
+    │       ├── spectrum_probability_grid   (1-D array, MeV)
+    │       ├── spectrum_probability        (2-D array, [N_grid-1, N_spectra])
+    │       └── energy_spectrum-N/          (N = 1, 2, ...; one per spectrum)
+    └── fission/                     (omitted if not fissionable)
+        ├── MT-018/                  (or MT-019/020/021/038 if MT-018 is not given)
+        │   ├── xs                   (1-D array, barns; attr: offset)
+        │   ├── Q-value              (float, MeV)
+        │   ├── reference_frame      (string, "COM" or "LAB")
+        │   ├── angular_cosine_distribution/
+        │   ├── spectrum_probability_grid, spectrum_probability   (as in inelastic)
+        │   └── energy_spectrum-1/   (prompt fission spectrum; only one is supported)
+        ├── prompt_multiplicity/     (attr: type = "polynomial" | "tabulated")
+        ├── delayed_multiplicity/    (same layout; only if the ACE file has delayed data)
+        └── delayed_neutron_precursors/
+            ├── fractions            (1-D array, one per precursor group)
+            ├── decay_rates          (1-D array, 1/s)
+            └── energy_spectrum-N/   (N = 1..number of groups; delayed spectrum)
 ```
+
+### `angular_cosine_distribution/`
+
+Group attribute `type` selects the layout:
+
+| `type`              | Datasets                                                                      |
+|---------------------|-------------------------------------------------------------------------------|
+| `isotropic`         | none                                                                          |
+| `energy-correlated` | none (the cosine is determined by the sampled energy distribution)            |
+| `tabulated`         | `energy` (MeV), `offset` (int), `value` (cosines), `pdf`                      |
+
+For `tabulated`, `energy` holds the incident-energy grid. `value` and `pdf` are the concatenation of the
+per-incident-energy tables, and `offset[i]` is the index in `value`/`pdf` where table `i` starts.
+Interpolation is linear.
+
+### `energy_spectrum-N/`
+
+Group attribute `type` selects the layout. "Table" types concatenate one outgoing-energy table per
+incident energy, with `offset[i]` giving the start index of table `i`.
+
+| `type`                  | Datasets                                                                                                      |
+|-------------------------|---------------------------------------------------------------------------------------------------------------|
+| `level-scattering`      | `C1` (MeV), `C2`                                                                                              |
+| `evaporation`           | `temperature_energy_grid` (MeV), `temperature` (MeV), `restriction_energy` (MeV), `temperature_interpolations`, `interpolation_boundaries` |
+| `maxwellian`            | same as `evaporation`                                                                                         |
+| `tabulated`             | `energy` (MeV), `offset`, `value` (outgoing energy, MeV), `pdf`                                               |
+| `kalbach-mann`          | `energy` (MeV), `offset`, `energy_out` (MeV), `pdf`, `precompound_factor`, `angular_slope`                    |
+| `energy-angle-tabulated`| `energy` (MeV), `offset`, `energy_out` (MeV), `pdf`, `cosine_offset`, `cosine`, `cosine_pdf`                  |
+| `N-body`                | `value` (MeV), `pdf`                                                                                          |
+
+### Fission multiplicity (`prompt_multiplicity/`, `delayed_multiplicity/`)
+
+| `type`       | Datasets                                                                                      |
+|--------------|-----------------------------------------------------------------------------------------------|
+| `polynomial` | `coefficient` (attr `unit-base` = MeV: ν = Σ c_l E^l with E in MeV)                           |
+| `tabulated`  | `energy` (MeV), `value`; linear interpolation                                                 |
 
 ## See Also
 
