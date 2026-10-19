@@ -131,37 +131,61 @@ Note on External Data Sources
 ------------------------------
 
 MC/DC's internal HDF5 format is independent of the original data source.
-The shipped tool converts ACE data, but users can implement converters for other formats by following the same HDF5 schema used by ``generate.py``.
+The shipped tool converts ACE data, but users can implement converters for other formats by following the same HDF5 schema used by the ``generate.py`` for the appropriate particle species.
 
-The key HDF5 structure expected by MC/DC is:
+For example, the key HDF5 structure expected by MC/DC for neutrons is:
 
 .. code-block:: text
 
    <Nuclide>-<Temperature>K.h5
-   ├── nuclide_name              (string)
-   ├── temperature               (float, K)
-   ├── atomic_weight_ratio       (float)
-   ├── fissionable               (bool)
+   ├── nuclide_name                     (string)
+   ├── excitation_level                 (int, 0 = ground state)
+   ├── temperature                      (float, K)
+   ├── atomic_number                    (int)
+   ├── mass_number                      (int)
+   ├── atomic_weight_ratio              (float)
+   ├── fissionable                      (bool)
    └── neutron_reactions/
-       ├── xs_energy_grid         (1-D array, MeV)
-       ├── elastic_scattering/
-       │   └── MT-002/
-       │       ├── xs             (1-D array, barns)
-       │       ├── cosine/        (angular distribution)
-       │       └── energy/        (energy distribution)
-       ├── capture/
-       │   └── MT-102/ ...
-       ├── inelastic_scattering/
-       │   └── MT-051/ ...
-       └── fission/
-           └── MT-018/
-               ├── xs
-               ├── cosine/
-               ├── energy/
-               ├── nu_total/
-               ├── nu_prompt/
-               ├── nu_delayed/
-               └── delayed_neutron/ ...
+      ├── xs_energy_grid
+      ├── elastic_scattering/
+      │   └── MT-002/
+      │       ├── xs
+      │       ├── Q-value
+      │       ├── reference_frame
+      │       └── angular_cosine_distribution/
+      ├── capture/
+      │   └── MT-xxx/
+      │       ├── xs
+      │       ├── Q-value
+      │       └── reference_frame
+      ├── inelastic_scattering/
+      │   └── MT-xxx/ 
+      │       ├── xs
+      │       ├── Q-value
+      │       ├── reference_frame
+      │       ├── multiplicity
+      │       ├── angular_cosine_distribution/
+      │       ├── spectrum_probability_grid
+      │       ├── spectrum_probability
+      │       └── energy_spectrum-N/
+      └── fission/                     (omitted if not fissionable)
+         ├── MT-018/                  (or MT-019/020/021/038 if MT-018 is not given)
+         │   ├── xs
+         │   ├── Q-value
+         │   ├── reference_frame
+         │   ├── angular_cosine_distribution/
+         │   ├── spectrum_probability_grid
+         │   ├── spectrum_probability
+         │   └── energy_spectrum-1/   (prompt fission spectrum)
+         ├── prompt_multiplicity/
+         ├── delayed_multiplicity/
+         └── delayed_neutron_precursors/
+               ├── fractions
+               ├── decay_rates
+               └── energy_spectrum-N/
+
+with energies in eV, cross sections in barns, and decay rates in /s. 
+For more detail see ``tools/data_library_generator/neutron/README.md``.
 
 A converter from OpenMC's ``IncidentNeutron`` HDF5 format to this schema is a planned future addition.
 Contributions are welcome through `Issue #333 <https://github.com/mcdc-project/mcdc/issues/333>`_.
