@@ -5,18 +5,18 @@ Materials and Transport Data
 ============================
 
 A :class:`mcdc.Material` describes a physical medium.
-A nuclide or element composition establishes its :ref:`native transport data <user_native_transport>`.
+Materials can be specified using multigroup data, or using native continuous-energy data.
+Defining a material using elements or nuclides will define cross sections using :ref:`native transport data <user_native_transport>`.
 Materials can also carry particle-specific data that augments native interaction data, for example with semi-empirical information, or supports specialized and reduced transport treatments.
 
 .. _user_native_transport:
 
-Native Composition and Data
----------------------------
+Continuous-Energy Data
+----------------------
 
-In MC/DC, *native* refers to data-library-backed transport physics derived from a material's nuclide or element composition.
-The composition identifies the physical constituents whose library records provide the interaction data.
-
-Define a native material with either nuclide or element atomic densities in atoms/(barn cm).
+In MC/DC, continuous-energy transport physics data are read from a library that uses MC/DC's internal cross-section format.
+Material data is loaded by listing either isotopes (e.g. :code:`U235`) or elements (e.g. :code:`C`), which uses that element's natural isotopic abundance.
+Material composition is determined by the specified atom densities in atoms/(barn cm).
 Material temperature is specified in K:
 
 .. code-block:: python
@@ -26,22 +26,20 @@ Material temperature is specified in K:
        nuclide_composition={
            "U235": 5.0e-4,
            "U238": 2.2e-2,
-           "O16": 4.5e-2,
+           "O": 4.5e-2, # natural oxygen isotopic abundance
        },
        temperature=293.6,
    )
 
-Particle-specific Transport Data
---------------------------------
+Note that :code:`h5`-formatted cross sections must be available for these nuclides at the directory defined by the environment variable :code:`MCDC_LIB` (see :ref:`install-data-library` for instructions on generating data libraries). These files contain a table of energies and cross sections for each reaction.
 
-Particle-specific transport data is attached to the material that uses it.
-The transport physics determines when and how each dataset contributes to a particle interaction.
-
-Neutron Multigroup Transport
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Multigroup Transport and Data
+-----------------------------
 
 Neutron multigroup transport represents neutron energy with discrete groups and describes interactions using groupwise macroscopic data.
 It is widely used in general transport pedagogy and in nuclear engineering applications.
+Note that the neutron energy is parameterized by groups (there are a finite number of energy states), not just cross section data.
+
 :meth:`mcdc.Material.multigroup` creates a material with :class:`mcdc.NeutronMultigroupData`, which holds the cross sections, group speeds, production spectra, and delayed-precursor data.
 Macroscopic cross sections use cm\ :sup:`-1`, group speeds use cm/s, and precursor decay rates use s\ :sup:`-1`:
 
@@ -56,6 +54,29 @@ Macroscopic cross sections use cm\ :sup:`-1`, group speeds use cm/s, and precurs
        ]),
        energy_grid=np.array([1.0e-5, 1.0, 20.0e6]),
    )
+
+Combining Native and Multigroup Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Construct :class:`mcdc.NeutronMultigroupData` directly when attaching it to a material with a :ref:`native composition <user_native_transport>`:
+
+.. code-block:: python
+
+   hybrid_fuel = mcdc.Material(
+       name="Hybrid fuel",
+       nuclide_composition={"U235": 5.0e-4, "U238": 2.2e-2},
+       neutron_multigroup=mcdc.NeutronMultigroupData(
+           capture=np.array([0.10]),
+           fission=np.array([0.20]),
+           nu_p=np.array([2.50]),
+           energy_grid=np.array([1.0e-5, 20.0e6]),
+       ),
+   )
+
+The explicit energy grid is required whenever a native composition and neutron multigroup data are combined.
+Its bounds identify the energy interval where the multigroup transport model is available.
+
+See :ref:`user_standard_multigroup_sources` for the corresponding source-energy convention.
 
 Multigroup Energy Grids and Representation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -87,26 +108,3 @@ Every multigroup dataset participating in hybrid transport requires an explicit 
 In hybrid transport, particle energy remains physical energy in eV, and ``energy_grid`` maps it to a material-local group.
 The material's ``energy_representation`` policy maps an outgoing group back to physical energy.
 If a particle lies outside that grid, MC/DC uses the material's native neutron data when present; without a native composition, the material has zero interaction cross section at that energy.
-
-Combining Native and Multigroup Data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Construct :class:`mcdc.NeutronMultigroupData` directly when attaching it to a material with a :ref:`native composition <user_native_transport>`:
-
-.. code-block:: python
-
-   hybrid_fuel = mcdc.Material(
-       name="Hybrid fuel",
-       nuclide_composition={"U235": 5.0e-4, "U238": 2.2e-2},
-       neutron_multigroup=mcdc.NeutronMultigroupData(
-           capture=np.array([0.10]),
-           fission=np.array([0.20]),
-           nu_p=np.array([2.50]),
-           energy_grid=np.array([1.0e-5, 20.0e6]),
-       ),
-   )
-
-The explicit energy grid is required whenever a native composition and neutron multigroup data are combined.
-Its bounds identify the energy interval where the multigroup transport model is available.
-
-See :ref:`user_standard_multigroup_sources` for the corresponding source-energy convention.
