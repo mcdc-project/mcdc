@@ -185,7 +185,7 @@ def test_native_only_simulation_remains_hybrid(monkeypatch):
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)
     monkeypatch.setattr(Nuclide, "set_neutron_data", lambda self, simulation: None)
-    material = mcdc.Material(nuclide_composition={"H1": 0.1})
+    material = mcdc.Material(number_density={"H1": 0.1})
     simulation = mcdc.Simulation()
     simulation.set_model([mcdc.Cell(fill=material)])
 
@@ -205,7 +205,7 @@ def test_native_nuclide_data_loading_is_reported(monkeypatch, capsys):
     monkeypatch.setattr(Nuclide, "set_neutron_data", lambda self, simulation: None)
     monkeypatch.setattr(Nuclide, "set_proton_data", lambda self, simulation: None)
 
-    material = mcdc.Material(nuclide_composition={"H1": 0.1}, temperature=293.6)
+    material = mcdc.Material(number_density={"H1": 0.1}, temperature=293.6)
     simulation = mcdc.Simulation()
     simulation.set_model([mcdc.Cell(fill=material)])
     simulation.set_sources(
@@ -235,7 +235,7 @@ def test_native_element_data_loading_is_reported(monkeypatch, capsys):
     monkeypatch.setattr(Element, "_compile_into_simulation", compile_element)
     monkeypatch.setattr(Element, "set_electron_data", lambda self, simulation: None)
 
-    material = mcdc.Material(element_composition={"H": 0.1})
+    material = mcdc.Material(number_density={"H": 0.1})
     simulation = mcdc.Simulation()
     simulation.set_model([mcdc.Cell(fill=material)])
     simulation.set_sources([mcdc.Source(particle_type="electron", energy=1.0)])
@@ -263,7 +263,7 @@ def test_native_photon_element_data_loading_is_reported(monkeypatch, capsys):
     monkeypatch.setattr(Element, "_compile_into_simulation", compile_element)
     monkeypatch.setattr(Element, "set_photon_data", lambda self, simulation: None)
 
-    material = mcdc.Material(element_composition={"H": 0.1})
+    material = mcdc.Material(number_density={"H": 0.1})
     simulation = mcdc.Simulation()
     simulation.set_model([mcdc.Cell(fill=material)])
     simulation.set_sources([mcdc.Source(particle_type="photon", energy=1.0)])
@@ -382,8 +382,8 @@ def test_material_canonicalizes_composition_before_member_compilation(monkeypatc
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)
 
-    material_a = mcdc.Material(nuclide_composition={"U235": 1.0})
-    material_b = mcdc.Material(nuclide_composition={"U235": 2.0})
+    material_a = mcdc.Material(number_density={"U235": 1.0})
+    material_b = mcdc.Material(number_density={"U235": 2.0})
     simulation = mcdc.Simulation()
     simulation.set_model([mcdc.Cell()])
     simulation.compile()

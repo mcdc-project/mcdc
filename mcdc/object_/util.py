@@ -65,6 +65,10 @@ def parse_dimension_expression(expression: str) -> tuple[str, int]:
     return attribute, offset
 
 
+def is_nuclide_name(name: str) -> bool:
+    return _NUCLIDE_NAME_RE.fullmatch(name) is not None
+
+
 def element_symbol_from_nuclide_name(nuclide_name: str) -> str:
     """Return the element symbol of a nuclide name.
 

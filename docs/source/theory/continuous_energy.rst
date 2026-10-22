@@ -10,7 +10,7 @@ In CE mode, cross sections are represented as energy-dependent tabulated data ra
 Data Libraries
 --------------
 
-CE data is loaded from HDF5 files for each nuclide at a specified temperature.
+CE data is loaded from HDF5 files for each nuclide or element, with nuclides loaded at the specified temperature.
 The environment variable ``MCDC_LIB`` must point to the library directory.
 Each nuclide file (e.g., ``U235-293.6K.h5``) contains:
 
@@ -21,7 +21,7 @@ Each nuclide file (e.g., ``U235-293.6K.h5``) contains:
 - Delayed neutron precursor data (fractions, decay constants, and energy spectra).
 
 Supported temperature points are 0.1, 233.15, 273.15, 293.6, 600.0, 900.0, 1200.0, and 2500.0 K.
-MC/DC selects the nearest available temperature for each nuclide.
+MC/DC selects the nearest available temperature for each nuclide. Note that electron and photon data are stored per element and have no temperature.
 
 Cross Section Evaluation
 ------------------------
@@ -116,10 +116,13 @@ Once the library is generated, set the ``MCDC_LIB`` environment variable and def
 
    import mcdc
 
-   # Define nuclides with atom densities (atoms/barn-cm)
+   # Define nuclides and/or elements with atom densities (atoms/barn-cm)
    fuel = mcdc.Material(
-       nuclides=["U235", "U238", "O16"],
-       density=[5.58e-4, 2.24e-2, 4.583e-2],
+       number_density={
+         "U235": 5.58e-4,
+         "U238": 2.24e-2,
+         "O": 4.583e-2
+       },
        temperature=293.6,
    )
 

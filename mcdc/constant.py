@@ -23,6 +23,10 @@ ELECTRON_MASS = 510.99895069e3  # eV/c^2
 PROTON_MASS = 938.27208943e6  # eV/c^2
 BOLTZMANN_K = 8.61733326e-5  # eV/K
 
+# Mass-to-atomic density conversion
+AVOGADRO_BARN_CM = 0.602214076  # N_A * 1e-24 [atoms/mol * cm^2/barn]
+AMU_PER_NEUTRON_MASS = 1.00866491595  # atomic_weight_ratio is in neutron masses
+
 # Physics thresholds
 ELECTRON_CUTOFF_ENERGY = 100  # eV
 PHOTON_CUTOFF_ENERGY = 1  # eV
