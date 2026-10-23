@@ -9,6 +9,7 @@ import mcdc.transport.rng as rng
 
 from mcdc.constant import (
     DISTRIBUTION_EVAPORATION,
+    DISTRIBUTION_ACE_LAW4,
     DISTRIBUTION_KALBACH_MANN,
     DISTRIBUTION_LEVEL_SCATTERING,
     DISTRIBUTION_MAXWELLIAN,
@@ -56,6 +57,10 @@ def _sample_distribution(E, distribution, rng_state, simulation, data, scale):
     if distribution_type == DISTRIBUTION_TABULATED:
         table = simulation["tabulated_distributions"][ID]
         return sample_tabulated(table, rng_state, simulation, data)
+
+    elif distribution_type == DISTRIBUTION_ACE_LAW4:
+        law4 = simulation["ace_law4_distributions"][ID]
+        return _sample_ace_law4(E, rng_state, law4, data, scale)
 
     elif distribution_type == DISTRIBUTION_MULTITABLE:
         multi_table = simulation["multi_table_distributions"][ID]
@@ -249,6 +254,136 @@ def sample_white_direction(nx, ny, nz, rng_state):
     y = sin_polar * cos_azi * u1y + sin_polar * sin_azi * u2y + mu * ny
     z = sin_polar * cos_azi * u1z + sin_polar * sin_azi * u2z + mu * nz
     return x, y, z
+
+
+@njit
+def sample_ace_law4(E, rng_state, law4, data):
+    """Sample an ACE LAW 4 table without treating discrete lines as a PDF grid."""
+    return _sample_ace_law4(E, rng_state, law4, data, False)
+
+
+@njit
+def _sample_ace_law4(E, rng_state, law4, data, scale):
+    grid = mcdc_get.ace_law4_distribution.energy_all(law4, data)
+    n_tables = len(grid)
+    interval_index = -1
+    fraction = 0.0
+
+    if E <= grid[0]:
+        table_index = 0
+    elif E >= grid[-1]:
+        table_index = n_tables - 1
+    else:
+        interval_index = find_bin(E, grid)
+        fraction = (E - grid[interval_index]) / (
+            grid[interval_index + 1] - grid[interval_index]
+        )
+        table_index = interval_index
+        if rng.lcg(rng_state) < fraction:
+            table_index += 1
+
+    start = mcdc_get.ace_law4_distribution.offset(table_index, law4, data)
+    if table_index + 1 < n_tables:
+        end = mcdc_get.ace_law4_distribution.offset(table_index + 1, law4, data)
+    else:
+        end = law4["value_length"]
+    n_discrete = mcdc_get.ace_law4_distribution.n_discrete(table_index, law4, data)
+
+    xi = rng.lcg(rng_state)
+    for index in range(start, start + n_discrete):
+        if xi < mcdc_get.ace_law4_distribution.cdf(index, law4, data):
+            return mcdc_get.ace_law4_distribution.value(index, law4, data)
+
+    continuum_start = start + n_discrete
+    if continuum_start == end - 1:
+        return mcdc_get.ace_law4_distribution.value(end - 1, law4, data)
+
+    interpolation = mcdc_get.ace_law4_distribution.interpolation(
+        table_index, law4, data
+    )
+    for index in range(continuum_start, end - 1):
+        cdf_next = mcdc_get.ace_law4_distribution.cdf(index + 1, law4, data)
+        if xi <= cdf_next:
+            sample = invert_tabulated_segment(
+                xi,
+                mcdc_get.ace_law4_distribution.cdf(index, law4, data),
+                mcdc_get.ace_law4_distribution.value(index, law4, data),
+                mcdc_get.ace_law4_distribution.value(index + 1, law4, data),
+                mcdc_get.ace_law4_distribution.pdf(index, law4, data),
+                mcdc_get.ace_law4_distribution.pdf(index + 1, law4, data),
+                interpolation,
+            )
+            if scale and interval_index >= 0:
+                sample = _scale_ace_law4_continuum(
+                    sample,
+                    table_index,
+                    interval_index,
+                    fraction,
+                    law4,
+                    data,
+                )
+            return sample
+
+    return mcdc_get.ace_law4_distribution.value(end - 1, law4, data)
+
+
+@njit
+def _scale_ace_law4_continuum(
+    sample, selected_index, interval_index, fraction, law4, data
+):
+    lower_start = mcdc_get.ace_law4_distribution.offset(interval_index, law4, data)
+    upper_start = mcdc_get.ace_law4_distribution.offset(interval_index + 1, law4, data)
+    lower_discrete = mcdc_get.ace_law4_distribution.n_discrete(
+        interval_index, law4, data
+    )
+    upper_discrete = mcdc_get.ace_law4_distribution.n_discrete(
+        interval_index + 1, law4, data
+    )
+    lower_end = (
+        mcdc_get.ace_law4_distribution.offset(interval_index + 1, law4, data)
+        if interval_index + 1 < law4["energy_length"]
+        else law4["value_length"]
+    )
+    upper_end = (
+        mcdc_get.ace_law4_distribution.offset(interval_index + 2, law4, data)
+        if interval_index + 2 < law4["energy_length"]
+        else law4["value_length"]
+    )
+    if (
+        lower_start + lower_discrete >= lower_end
+        or upper_start + upper_discrete >= upper_end
+    ):
+        return sample
+
+    selected_start = mcdc_get.ace_law4_distribution.offset(selected_index, law4, data)
+    selected_discrete = mcdc_get.ace_law4_distribution.n_discrete(
+        selected_index, law4, data
+    )
+    selected_end = (
+        mcdc_get.ace_law4_distribution.offset(selected_index + 1, law4, data)
+        if selected_index + 1 < law4["energy_length"]
+        else law4["value_length"]
+    )
+    selected_min = mcdc_get.ace_law4_distribution.value(
+        selected_start + selected_discrete, law4, data
+    )
+    selected_max = mcdc_get.ace_law4_distribution.value(selected_end - 1, law4, data)
+    if selected_max <= selected_min:
+        return sample
+
+    lower_min = mcdc_get.ace_law4_distribution.value(
+        lower_start + lower_discrete, law4, data
+    )
+    lower_max = mcdc_get.ace_law4_distribution.value(lower_end - 1, law4, data)
+    upper_min = mcdc_get.ace_law4_distribution.value(
+        upper_start + upper_discrete, law4, data
+    )
+    upper_max = mcdc_get.ace_law4_distribution.value(upper_end - 1, law4, data)
+    target_min = lower_min + fraction * (upper_min - lower_min)
+    target_max = lower_max + fraction * (upper_max - lower_max)
+    return target_min + (sample - selected_min) * (
+        (target_max - target_min) / (selected_max - selected_min)
+    )
 
 
 @njit

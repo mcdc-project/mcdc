@@ -12,6 +12,8 @@ import mcdc.mcdc_get.polynomial_data as polynomial_data
 
 import mcdc.mcdc_get.table_data as table_data
 
+import mcdc.mcdc_get.ace_law4_distribution as ace_law4_distribution
+
 import mcdc.mcdc_get.kalbach_mann_distribution as kalbach_mann_distribution
 
 import mcdc.mcdc_get.multi_table_distribution as multi_table_distribution

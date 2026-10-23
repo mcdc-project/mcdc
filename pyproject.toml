@@ -93,7 +93,8 @@ source = "vcs"
 target-version = ["py311", "py312", "py313", "py314"]
 force-exclude = '''
 (
-  mcdc/numba_types\.py
+  ACEtk/
+  | mcdc/numba_types\.py
   | mcdc/mcdc_get/
   | mcdc/mcdc_set/
 )

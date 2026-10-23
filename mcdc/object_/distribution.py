@@ -15,6 +15,7 @@ from mcdc.constant import (
     DISTRIBUTION_KALBACH_MANN,
     DISTRIBUTION_TABULATED_ENERGY_ANGLE,
     DISTRIBUTION_N_BODY,
+    DISTRIBUTION_ACE_LAW4,
     INTERPOLATION_HISTOGRAM,
     INTERPOLATION_LINEAR,
 )
@@ -296,6 +297,81 @@ class DistributionMultiTable(DistributionBase):
             text += f"    - table[{i}] " f"(grid={self.grid[i]:.6g}, N={table.pdf.N})\n"
 
         return text
+
+
+class DistributionACELaw4(DistributionBase):
+    """ACE LAW 4 outgoing-energy tables with discrete lines and continuum."""
+
+    label = "ace_law4_distribution"
+    sub_type = DISTRIBUTION_ACE_LAW4
+
+    energy: NDArray[float64]
+    offset: NDArray[int64]
+    value: NDArray[float64]
+    pdf: NDArray[float64]
+    cdf: NDArray[float64]
+    n_discrete: NDArray[int64]
+    interpolation: NDArray[int64]
+
+    def __init__(
+        self,
+        energy: ArrayLike,
+        offset: ArrayLike,
+        value: ArrayLike,
+        pdf: ArrayLike,
+        cdf: ArrayLike,
+        n_discrete: ArrayLike,
+        interpolation: ArrayLike,
+    ) -> None:
+        super().__init__()
+
+        self.energy = np.asarray(energy, dtype=float64)
+        self.offset = np.asarray(offset, dtype=int64)
+        self.value = np.asarray(value, dtype=float64)
+        self.pdf = np.asarray(pdf, dtype=float64)
+        self.cdf = np.asarray(cdf, dtype=float64)
+        self.n_discrete = np.asarray(n_discrete, dtype=int64)
+        self.interpolation = np.asarray(interpolation, dtype=int64)
+
+        n_tables = len(self.energy)
+        if self.energy.ndim != 1 or n_tables == 0:
+            print_error("ACE LAW 4 incident-energy grid must be nonempty and 1D.")
+        if self.offset.ndim != 1 or len(self.offset) != n_tables:
+            print_error("ACE LAW 4 offsets must match the incident-energy grid.")
+        if self.n_discrete.ndim != 1 or len(self.n_discrete) != n_tables:
+            print_error("ACE LAW 4 discrete-line counts must match the incident grid.")
+        if self.interpolation.ndim != 1 or len(self.interpolation) != n_tables:
+            print_error("ACE LAW 4 interpolation flags must match the incident grid.")
+        if self.value.ndim != 1 or self.pdf.ndim != 1 or self.cdf.ndim != 1:
+            print_error("ACE LAW 4 values, PDFs, and CDFs must be one-dimensional.")
+        if len(self.value) == 0 or len(self.pdf) != len(self.value):
+            print_error("ACE LAW 4 values and PDFs must have the same nonzero length.")
+        if len(self.cdf) != len(self.value):
+            print_error("ACE LAW 4 values and CDFs must have the same length.")
+        if self.offset[0] != 0 or np.any(self.offset[1:] <= self.offset[:-1]):
+            print_error("ACE LAW 4 offsets must start at zero and increase.")
+        if np.any(self.offset < 0) or self.offset[-1] >= len(self.value):
+            print_error("ACE LAW 4 offsets must refer to an existing table.")
+        if np.any(np.diff(self.energy) <= 0.0):
+            print_error("ACE LAW 4 incident energies must be strictly increasing.")
+        if np.any((self.interpolation != 1) & (self.interpolation != 2)):
+            print_error("ACE LAW 4 outgoing interpolation must be histogram or linear.")
+
+        ends = np.append(self.offset[1:], len(self.value))
+        for start, end, discrete in zip(self.offset, ends, self.n_discrete):
+            if end <= start or discrete < 0 or discrete > end - start:
+                print_error("ACE LAW 4 table has an invalid discrete-line count.")
+            normalization = self.cdf[end - 1]
+            if normalization <= 0.0 or np.any(np.diff(self.cdf[start:end]) < 0.0):
+                print_error("ACE LAW 4 table must have a positive, nondecreasing CDF.")
+            self.cdf[start:end] /= normalization
+            self.pdf[start:end] /= normalization
+
+            continuum_start = start + discrete
+            if end - continuum_start > 1 and np.any(
+                np.diff(self.value[continuum_start:end]) <= 0.0
+            ):
+                print_error("ACE LAW 4 continuum energies must be strictly increasing.")
 
 
 # ======================================================================================

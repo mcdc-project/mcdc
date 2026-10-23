@@ -168,6 +168,25 @@ table_data = into_dtype([
     ('base_ID', int64),
 ])
 
+ace_law4_distribution = into_dtype([
+    ('energy_offset', int64),
+    ('energy_length', int64),
+    ('offset_offset', int64),
+    ('offset_length', int64),
+    ('value_offset', int64),
+    ('value_length', int64),
+    ('pdf_offset', int64),
+    ('pdf_length', int64),
+    ('cdf_offset', int64),
+    ('cdf_length', int64),
+    ('n_discrete_offset', int64),
+    ('n_discrete_length', int64),
+    ('interpolation_offset', int64),
+    ('interpolation_length', int64),
+    ('ID', int64),
+    ('base_ID', int64),
+])
+
 distribution = into_dtype([
     ('ID', int64),
     ('sub_type', int64),
@@ -621,7 +640,8 @@ proton_elastic_scattering_reaction = into_dtype([
 ])
 
 proton_inelastic_scattering_reaction = into_dtype([
-    ('multiplicity', int64),
+    ('multiplicity_data_ID', int64),
+    ('use_all_spectra', bool_),
     ('angle_type', int64),
     ('mu_ID', int64),
     ('N_spectrum_probability_bin', int64),
@@ -942,6 +962,8 @@ def make_simulation_type(N: dict):
         ('N_polynomial_data', int64),
         ('table_data', table_data, (N['table_data'])),
         ('N_table_data', int64),
+        ('ace_law4_distributions', ace_law4_distribution, (N['ace_law4_distribution'])),
+        ('N_ace_law4_distribution', int64),
         ('distributions', distribution, (N['distribution'])),
         ('N_distribution', int64),
         ('evaporation_distributions', evaporation_distribution, (N['evaporation_distribution'])),

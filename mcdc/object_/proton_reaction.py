@@ -25,10 +25,11 @@ from mcdc.constant import (
     PARTICLE_ANY,
 )
 from mcdc.object_.secondary_product import SecondaryProduct
-from mcdc.object_.data import DataPolynomial
+from mcdc.object_.data import DataBase, DataPolynomial, DataTable
 from mcdc.object_.base import MCDCPolymorphic
 from mcdc.object_.distribution import (
     DistributionBase,
+    DistributionACELaw4,
     DistributionMultiTable,
     DistributionLevelScattering,
     DistributionEvaporation,
@@ -134,7 +135,8 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
     label: str = "proton_inelastic_scattering_reaction"
     sub_type = PROTON_REACTION_INELASTIC_SCATTERING
     #
-    multiplicity: int
+    multiplicity_data: DataBase
+    use_all_spectra: bool
     angle_type: int
     mu: DistributionBase
     N_spectrum_probability_bin: int
@@ -152,7 +154,8 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
         xs_offset,
         reference_frame,
         q_value,
-        multiplicity,
+        multiplicity_data,
+        use_all_spectra,
         angle_type,
         mu,
         spectrum_probability_grid,
@@ -161,7 +164,8 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
     ):
         super().__init__(MT, xs, xs_offset, reference_frame, q_value)
 
-        self.multiplicity = multiplicity
+        self.multiplicity_data = multiplicity_data
+        self.use_all_spectra = use_all_spectra
         self.angle_type = angle_type
         self.mu = mu
         self.N_spectrum_probability_bin = len(spectrum_probability_grid) - 1
@@ -173,7 +177,18 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
     @classmethod
     def from_h5_group(cls, h5_group, simulation):
         MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
-        multiplicity = int(h5_group["multiplicity"][()])
+
+        if "proton_yield" in h5_group:
+            yield_group = h5_group["proton_yield"]
+            multiplicity_data = DataTable(
+                yield_group["energy"][()] * 1e6,
+                yield_group["value"][()],
+                INTERPOLATION_LINEAR,
+            )
+            use_all_spectra = False
+        else:
+            multiplicity = int(h5_group["multiplicity"][()])
+            multiplicity_data = DataPolynomial(np.array([float(multiplicity)]))
 
         ang_type_str = h5_group["angular_cosine_distribution"].attrs.get(
             "type", "isotropic"
@@ -193,13 +208,16 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
             set_energy_distribution(h5_group[name])
             for name in sorted(x for x in h5_group if x.startswith("energy_spectrum-"))
         ]
+        if "proton_yield" not in h5_group:
+            use_all_spectra = multiplicity == len(energy_spectra)
         reaction = cls(
             MT,
             xs,
             xs_offset,
             reference_frame,
             q_value,
-            multiplicity,
+            multiplicity_data,
+            use_all_spectra,
             angle_type,
             mu,
             spectrum_probability_grid,
@@ -412,7 +430,18 @@ def set_energy_distribution(h5_group):
         offset = h5_group[f"offset"][()]
         value = h5_group[f"value"][()] * 1e6  # MeV to eV
         pdf = h5_group[f"pdf"][()] / 1e6  # /MeV to /eV
-        energy_spectrum = DistributionMultiTable(grid, offset, value, pdf)
+        if "n_discrete" in h5_group and np.any(h5_group["n_discrete"][()] > 0):
+            energy_spectrum = DistributionACELaw4(
+                grid,
+                offset,
+                value,
+                pdf,
+                h5_group["cdf"][()],
+                h5_group["n_discrete"][()],
+                h5_group["interpolation"][()],
+            )
+        else:
+            energy_spectrum = DistributionMultiTable(grid, offset, value, pdf)
 
     elif spectrum_type == "level-scattering":
         C1 = h5_group["C1"][()] * 1e6  # MeV to eV

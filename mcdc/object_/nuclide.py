@@ -423,6 +423,7 @@ class Nuclide(MCDCObject):
             for MT in MTs[rx_name]:
                 h5_group = file[f"proton_reactions/{rx_name}/{MT}"]
                 reaction = rx_class.from_h5_group(h5_group, simulation)
+                reaction._compile_into_simulation(simulation)
                 rx_container.append(reaction)
 
         file.close()
