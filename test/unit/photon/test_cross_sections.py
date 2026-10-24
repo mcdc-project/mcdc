@@ -80,7 +80,7 @@ def test_interpolation_is_linear():
     assert value == pytest.approx(6.0, rel=1e-12)
 
 
-def test_cross_section_is_continuous_across_a_duplicated_edge(photon_model):
+def test_cross_section_is_finite_across_a_duplicated_edge(photon_model):
     # The grid repeats the K-edge energy. Evaluating either side must stay
     # finite and non-negative, which is what the zero-width guard buys.
     simulation, data = photon_model()

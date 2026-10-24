@@ -40,6 +40,64 @@ def xs_chunk(start, length, neutron_reaction, data):
 
 
 @njit
+def xs_interpolations(index, neutron_reaction, data):
+    offset = neutron_reaction["xs_interpolations_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def xs_interpolations_all(neutron_reaction, data):
+    start = neutron_reaction["xs_interpolations_offset"]
+    size = neutron_reaction["xs_interpolations_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def xs_interpolations_last(neutron_reaction, data):
+    start = neutron_reaction["xs_interpolations_offset"]
+    size = neutron_reaction["xs_interpolations_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def xs_interpolations_chunk(start, length, neutron_reaction, data):
+    start += neutron_reaction["xs_interpolations_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def xs_interpolation_boundaries(index, neutron_reaction, data):
+    offset = neutron_reaction["xs_interpolation_boundaries_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def xs_interpolation_boundaries_all(neutron_reaction, data):
+    start = neutron_reaction["xs_interpolation_boundaries_offset"]
+    size = neutron_reaction["xs_interpolation_boundaries_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def xs_interpolation_boundaries_last(neutron_reaction, data):
+    start = neutron_reaction["xs_interpolation_boundaries_offset"]
+    size = neutron_reaction["xs_interpolation_boundaries_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def xs_interpolation_boundaries_chunk(start, length, neutron_reaction, data):
+    start += neutron_reaction["xs_interpolation_boundaries_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
 def secondary_product_IDs(index, neutron_reaction, data):
     offset = neutron_reaction["secondary_product_IDs_offset"]
     return int64(data[offset + index])

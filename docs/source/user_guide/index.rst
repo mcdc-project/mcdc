@@ -21,6 +21,16 @@ complete your first transport calculation.
 
    getting_started/index
 
+Data Preparation
+----------------
+
+Use the projectile guides to prepare transport data from source libraries.
+
+.. toctree::
+   :maxdepth: 2
+
+   data_preparation/index
+
 Modeling and Results
 --------------------
 

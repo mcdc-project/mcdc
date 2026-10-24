@@ -325,7 +325,7 @@ def test_discrete_energy_distribution(discrete_energy):
 
     assert not source.mono_energetic
     assert source.discrete_energy
-    np.testing.assert_array_equal(source.energy_pmf.value, [9_999.0, 10_001.0])
+    np.testing.assert_array_equal(source.energy_pmf.discrete_value, [9_999.0, 10_001.0])
     assert "Energy: PMF" in repr(source)
 
 
@@ -392,9 +392,14 @@ def test_distributed_energy_at_polar_cosine():
     assert source.energy_at_polar_cosine_is_distribution
     assert not source.mono_energetic
     assert not source.discrete_energy
-    assert len(source.energy_at_polar_cosine_distribution.tables) == 3
-    for index, table in enumerate(source.energy_at_polar_cosine_distribution.tables):
-        np.testing.assert_array_equal(table.pdf.x, conditional_energy[index, 0])
+    distribution = source.energy_at_polar_cosine_distribution
+    assert len(distribution.grid) == 3
+    for index, (start, end) in enumerate(
+        zip(distribution.offsets[:-1], distribution.offsets[1:])
+    ):
+        np.testing.assert_array_equal(
+            distribution.value[start:end], conditional_energy[index, 0]
+        )
     assert "Energy: PDF conditional on polar cosine" in repr(source)
 
 

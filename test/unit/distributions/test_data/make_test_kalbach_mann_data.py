@@ -3,12 +3,12 @@ import numpy as np
 
 def make_test_kalbach_mann_data():
     # Two incident-energy tables, each with 3 points.
-    Ei = [1.0, 3.0, 5.0]
-    L_i = [0.0, 3.0, 6.0]
+    Ei = [1.0, 3.0]
+    L_i = [0.0, 3.0]
 
     E_i_k = [1.0, 2.0, 3.0, 2.0, 4.0, 6.0]
-    p_i_k = [0.5, 0.5, 0.5, 0.2, 0.2, 0.2]
-    c_i_k = [0.0, 0.5, 1.0, 0.0, 0.2, 1.0]
+    p_i_k = [0.5, 0.5, 0.5, 0.25, 0.25, 0.25]
+    c_i_k = [0.0, 0.5, 1.0, 0.0, 0.5, 1.0]
 
     # Keep R = 0 and A = 1 for deterministic angular sampling.
     R = [0.0] * 6

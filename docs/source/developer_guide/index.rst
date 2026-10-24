@@ -25,6 +25,7 @@ Where to Go Next
 - Read :doc:`architecture/index` to understand MC/DC's Python-first design and follow a transport model through simulation compilation, runtime preparation, shared transport algorithm, and the available execution modes.
 - Read :doc:`extending/index` when adding model fields, registered objects, polymorphic subtypes, or Numba-compatible transport behavior.
 - Read :doc:`documentation/index` when writing or reviewing project documentation.
+- Use the :doc:`MC/DC data format reference <../reference/data_format/index>` when preparing transport data or working with library files.
 - Use :doc:`contributing/index` for repository setup, development workflow, testing, and pull-request requirements.
 - Use :doc:`release_policy` when preparing, validating, and publishing a release.
 

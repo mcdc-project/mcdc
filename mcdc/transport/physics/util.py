@@ -7,7 +7,12 @@ from numba import njit
 import mcdc.mcdc_get as mcdc_get
 
 from mcdc.constant import LIGHT_SPEED
-from mcdc.transport.util import find_bin
+from mcdc.transport.util import (
+    find_bin,
+    find_bin_with_rules,
+    interpolate,
+    linear_interpolation,
+)
 from mcdc.transport.linalg import make_direction_basis
 
 
@@ -20,14 +25,57 @@ def relativistic_energy_from_speed(speed, mass):
     return mass * gamma_minus_one
 
 
+# ======================================================================================
+# Shared-grid cross-section evaluation
+# ======================================================================================
+
+
+@njit
+def evaluate_xs_energy_grid(E, grid):
+    """Locate a right-side interval, bounding lookup to the available grid."""
+    E = min(max(E, grid[0]), grid[-1])
+    idx = find_bin_with_rules(E, grid, 0.0, False)
+    if idx < 0:
+        idx = len(grid) - 2
+    return idx, grid[idx], grid[idx + 1]
+
+
+@njit
+def interpolate_xs(E, E0, E1, xs0, xs1):
+    """Interpolate a linear cross-section segment using the upper value at a jump."""
+    if E1 <= E0:
+        return xs1
+    return linear_interpolation(E, E0, E1, xs0, xs1)
+
+
+@njit
+def evaluate_reaction_xs(E, grid, offset, values, laws, boundaries):
+    """Evaluate a shared-grid segment using its own interpolation regions.
+
+    Values are zero below a positive-offset threshold and constant beyond the
+    shared grid. Repeated energies select the right-hand limit of a jump.
+    Interpolation boundaries are exclusive point indices local to the segment.
+    """
+    E = max(E, grid[0])
+    if E < grid[offset]:
+        return 0.0
+    if len(values) == 1 or E >= grid[-1]:
+        return values[-1]
+    idx, E0, E1 = evaluate_xs_energy_grid(E, grid)
+    local = idx - offset
+    law = laws[-1]
+    for i in range(len(boundaries)):
+        if local + 1 < boundaries[i]:
+            law = laws[i]
+            break
+    return interpolate(E, E0, E1, values[local], values[local + 1], law)
+
+
 @njit
 def evaluate_neutron_xs_energy_grid(e, nuclide, data):
     energy_grid = mcdc_get.nuclide.neutron_xs_energy_grid_all(nuclide, data)
 
-    idx = find_bin(e, energy_grid)
-    e0 = energy_grid[idx]
-    e1 = energy_grid[idx + 1]
-    return idx, e0, e1
+    return evaluate_xs_energy_grid(e, energy_grid)
 
 
 @njit
@@ -42,10 +90,7 @@ def evaluate_electron_xs_energy_grid(e, element, data):
 @njit
 def evaluate_photon_xs_energy_grid(e, element, data):
     energy_grid = mcdc_get.element.photon_xs_energy_grid_all(element, data)
-    idx = find_bin(e, energy_grid)
-    e0 = energy_grid[idx]
-    e1 = energy_grid[idx + 1]
-    return idx, e0, e1
+    return evaluate_xs_energy_grid(e, energy_grid)
 
 
 @njit

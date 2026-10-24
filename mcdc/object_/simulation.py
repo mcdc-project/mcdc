@@ -104,6 +104,7 @@ class Simulation(MCDCBase):
     non_numba = [
         "_next_compile_ID",
         "_next_sub_ID",
+        "_shared_objects",
         "compiled",
         "regions",
         "root_universe",
@@ -114,6 +115,8 @@ class Simulation(MCDCBase):
     ]
     _next_compile_ID: int = 1  # Non-Numba
     _next_sub_ID: dict[tuple[int, int], int]  # Non-Numba
+    # Canonical stateless objects prevent duplicate records during compilation.
+    _shared_objects: dict[type, MCDCBase]  # Non-Numba
 
     # Basic parameters
     name: str
@@ -314,6 +317,7 @@ class Simulation(MCDCBase):
     def _reset_model(self) -> None:
         # Registration state
         self._next_sub_ID = {}
+        self._shared_objects = {}
 
         # Physics
         self.data = []
@@ -452,7 +456,7 @@ class Simulation(MCDCBase):
                 if source.mono_energetic:
                     source_energies = np.array([source.energy])
                 elif source.discrete_energy:
-                    source_energies = source.energy_pmf.value
+                    source_energies = source.energy_pmf.discrete_value
                 else:
                     print_error(
                         "Standard neutron multigroup transport requires neutron "
@@ -493,11 +497,7 @@ class Simulation(MCDCBase):
                 and len(material.nuclides) == 0
             ):
                 set_nuclides_from_elements(material, self)
-            if (
-                (settings.electron_transport.active or settings.photon_transport.active)
-                and material.nuclide_composition
-                and len(material.elements) == 0
-            ):
+            if material.nuclide_composition:
                 set_elements_from_nuclides(material, self)
 
         # Load the physics data required by the completed material model

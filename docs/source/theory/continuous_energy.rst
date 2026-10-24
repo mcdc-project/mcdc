@@ -75,7 +75,7 @@ You also need a set of ACE files from a source such as `NJOY <http://www.njoy21.
 
    * - Variable
      - Description
-   * - ``MCDC_ACELIB``
+   * - ``MCDC_ACE_LIB``
      - Path to the directory containing your ACE files.
    * - ``MCDC_LIB``
      - Path to the output directory where MC/DC HDF5 files will be written.
@@ -84,7 +84,7 @@ You also need a set of ACE files from a source such as `NJOY <http://www.njoy21.
 
 .. code-block:: sh
 
-   export MCDC_ACELIB=/path/to/ace/files
+   export MCDC_ACE_LIB=/path/to/ace/files
    export MCDC_LIB=/path/to/mcdc/library
 
    cd tools/data_library_generator/neutron

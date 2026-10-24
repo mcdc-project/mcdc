@@ -330,6 +330,35 @@ def electron_ionization_subshell_binding_energy_chunk(start, length, element, da
 
 
 @njit
+def photon_reaction_IDs(index, element, data):
+    offset = element["photon_reaction_IDs_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def photon_reaction_IDs_all(element, data):
+    start = element["photon_reaction_IDs_offset"]
+    size = element["N_photon_reaction"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def photon_reaction_IDs_last(element, data):
+    start = element["photon_reaction_IDs_offset"]
+    size = element["N_photon_reaction"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def photon_reaction_IDs_chunk(start, length, element, data):
+    start += element["photon_reaction_IDs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
 def photon_xs_energy_grid(index, element, data):
     offset = element["photon_xs_energy_grid_offset"]
     return data[offset + index]

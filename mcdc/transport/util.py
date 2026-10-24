@@ -7,7 +7,14 @@ from typing import Sequence
 
 from mcdc.transport.linalg import make_direction_basis
 
-from mcdc.constant import PARTICLE_ANY, PARTICLE_TYPE_NAME_PAIRS
+from mcdc.constant import (
+    PARTICLE_ANY,
+    PARTICLE_TYPE_NAME_PAIRS,
+    INTERPOLATION_HISTOGRAM,
+    INTERPOLATION_LINEAR,
+    INTERPOLATION_SEMILOGX,
+    INTERPOLATION_SEMILOGY,
+)
 
 
 @njit
@@ -160,6 +167,42 @@ def semilogy_interpolation(x, x1, x2, y1, y2):
 def log_interpolation(x, x1, x2, y1, y2):
     m = math.log(y2 / y1) / math.log(x2 / x1)
     return y1 * (x / x1) ** m
+
+
+@njit
+def interpolate(x, x0, x1, y0, y1, law):
+    """Evaluate one segment using its interpolation law."""
+    if law == INTERPOLATION_HISTOGRAM or x0 == x1:
+        return histogram_interpolation(x, x0, x1, y0, y1)
+    if law == INTERPOLATION_LINEAR:
+        return linear_interpolation(x, x0, x1, y0, y1)
+    if law == INTERPOLATION_SEMILOGX:
+        return semilogx_interpolation(x, x0, x1, y0, y1)
+    if law == INTERPOLATION_SEMILOGY:
+        return semilogy_interpolation(x, x0, x1, y0, y1)
+    return log_interpolation(x, x0, x1, y0, y1)
+
+
+@njit
+def integrate_segment(x, x0, x1, y0, y1, law):
+    """Integrate an interpolated density from x0 to x within one segment."""
+    width = x - x0
+    if law == INTERPOLATION_HISTOGRAM:
+        return y0 * width
+    if law == INTERPOLATION_LINEAR:
+        return width * (y0 + 0.5 * (y1 - y0) * width / (x1 - x0))
+    if law == INTERPOLATION_SEMILOGX:
+        slope = (y1 - y0) / math.log(x1 / x0)
+        return y0 * width + slope * (x * math.log(x / x0) - width)
+    if law == INTERPOLATION_SEMILOGY:
+        slope = math.log(y1 / y0) / (x1 - x0)
+        if abs(slope * width) < 1.0e-12:
+            return y0 * width
+        return y0 * math.expm1(slope * width) / slope
+    power = math.log(y1 / y0) / math.log(x1 / x0) + 1.0
+    if abs(power) < 1.0e-12:
+        return y0 * x0 * math.log(x / x0)
+    return y0 * x0 * math.expm1(power * math.log(x / x0)) / power
 
 
 # ======================================================================================

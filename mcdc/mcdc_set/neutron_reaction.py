@@ -33,6 +33,64 @@ def xs_chunk(start, length, neutron_reaction, data, value):
 
 
 @njit
+def xs_interpolations(index, neutron_reaction, data, value):
+    offset = neutron_reaction["xs_interpolations_offset"]
+    data[offset + index] = value
+
+
+@njit
+def xs_interpolations_all(neutron_reaction, data, value):
+    start = neutron_reaction["xs_interpolations_offset"]
+    size = neutron_reaction["xs_interpolations_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def xs_interpolations_last(neutron_reaction, data, value):
+    start = neutron_reaction["xs_interpolations_offset"]
+    size = neutron_reaction["xs_interpolations_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def xs_interpolations_chunk(start, length, neutron_reaction, data, value):
+    start += neutron_reaction["xs_interpolations_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def xs_interpolation_boundaries(index, neutron_reaction, data, value):
+    offset = neutron_reaction["xs_interpolation_boundaries_offset"]
+    data[offset + index] = value
+
+
+@njit
+def xs_interpolation_boundaries_all(neutron_reaction, data, value):
+    start = neutron_reaction["xs_interpolation_boundaries_offset"]
+    size = neutron_reaction["xs_interpolation_boundaries_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def xs_interpolation_boundaries_last(neutron_reaction, data, value):
+    start = neutron_reaction["xs_interpolation_boundaries_offset"]
+    size = neutron_reaction["xs_interpolation_boundaries_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def xs_interpolation_boundaries_chunk(start, length, neutron_reaction, data, value):
+    start += neutron_reaction["xs_interpolation_boundaries_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
 def secondary_product_IDs(index, neutron_reaction, data, value):
     offset = neutron_reaction["secondary_product_IDs_offset"]
     data[offset + index] = value

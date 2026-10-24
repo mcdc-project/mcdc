@@ -1,0 +1,115 @@
+# MC/DC HDF5 layout illustration: {nuclide}-{temperature}K.h5.
+
+'@format': mcdc-data
+'@format-version': 0.1.0
+
+source-libraries/:
+  '{library}/':
+    title: string
+    version: string
+    release-date: string
+    reference: string
+    comments: string
+    format: string
+    format-version: string
+    processing-date: string
+    conversion-time: string
+    temperature: float, K
+    kT: float, eV
+
+temperature: float, K
+kT: float, eV  # Boltzmann constant times temperature; must agree with temperature
+
+projectiles/:
+  # ====================================================================================
+  # Neutron
+  # ====================================================================================
+
+  neutron/:
+    xs-energy-grid: float [N], eV
+
+    reactions/:
+      elastic/:
+        # Basic fields
+        '@ENDF-MT': 2  # Optional source metadata
+        '@GNDS-label': string  # Optional original source label, e.g. n + Fe56; preserve exactly
+        '@category': elastic-scattering
+        xs: CrossSection
+        reference-frame: LAB or COM
+        Q-value: float, eV
+        cross-products/: {}
+
+        # Category-specific
+        angular-cosine-distribution: Distribution, cosine
+
+
+      radiative-capture/:
+        # Basic fields
+        '@ENDF-MT': 102  # Optional source metadata
+        '@GNDS-label': string  # Optional original source label, preserved exactly
+        '@category': capture
+        xs: CrossSection
+        reference-frame: LAB or COM
+        Q-value: float, eV
+        cross-products/:
+          '{i}': CrossProduct  # Optional additional species
+
+
+      inelastic-level-1/:
+        # Basic fields
+        '@ENDF-MT': 51  # Optional source metadata
+        '@GNDS-label': string  # Optional original source label, preserved exactly
+        '@category': inelastic-scattering
+        xs: CrossSection
+        reference-frame: LAB or COM
+        Q-value: float, eV
+        cross-products/:
+          '{i}': CrossProduct  # Optional additional species
+
+        # Category-specific
+        multiplicity: integer
+        angular-cosine-distribution: Distribution, cosine  # Omit for a joint energy-angle spectrum
+        spectrum-probability-grid: float [B + 1], eV  # Incident-energy bin edges
+        spectrum-probability: float [B, S]  # Probabilities for S spectra in B bins
+        energy-spectrum-{i}: Distribution, eV  # May jointly sample energy and angle
+
+
+      neutron-emission-2/:
+        # Basic fields
+        '@ENDF-MT': 16  # Optional source metadata
+        '@GNDS-label': string  # Optional original source label, preserved exactly
+        '@category': inelastic-scattering
+        xs: CrossSection
+        reference-frame: LAB or COM
+        Q-value: float, eV
+        cross-products/:
+          '{i}': CrossProduct  # Optional additional species
+
+        # Category-specific
+        multiplicity: 2
+        angular-cosine-distribution: Distribution, cosine  # Omit for a joint energy-angle spectrum
+        spectrum-probability-grid: float [B + 1], eV  # Incident-energy bin edges
+        spectrum-probability: float [B, S]  # Probabilities for S spectra in B bins
+        energy-spectrum-{i}: Distribution, eV  # May jointly sample energy and angle
+
+
+      fission-total/:
+        # Basic fields
+        '@ENDF-MT': 18  # Optional source metadata
+        '@GNDS-label': string  # Optional original source label, preserved exactly
+        '@category': fission
+        xs: CrossSection
+        reference-frame: LAB or COM
+        Q-value: float, eV
+        cross-products/:
+          '{i}': CrossProduct  # Optional additional species
+
+        # Category-specific
+        prompt-angular-cosine-distribution: Distribution, cosine  # Omit for a joint prompt energy-angle distribution
+        prompt-energy-distribution: Distribution, eV
+        prompt-multiplicity: Data, neutrons per fission
+        delayed-multiplicity: Data, neutrons per fission
+        delayed-neutrons/:
+          fractions: float [D]  # Relative delayed-group fractions
+          decay-rates: float [D], 1/s
+          energy-distribution-{i}: Distribution, eV  # One per delayed group

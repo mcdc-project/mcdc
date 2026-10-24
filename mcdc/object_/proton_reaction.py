@@ -5,13 +5,8 @@ from numpy.typing import NDArray
 
 ####
 
-import mcdc.object_.distribution as distribution
-
 from mcdc.constant import (
     INF,
-    ANGLE_ISOTROPIC,
-    ANGLE_ENERGY_CORRELATED,
-    ANGLE_DISTRIBUTED,
     INTERPOLATION_LINEAR,
     INTERPOLATION_LOG,
     PROTON_REACTION_ELASTIC_SCATTERING,
@@ -25,18 +20,22 @@ from mcdc.constant import (
     PARTICLE_ANY,
 )
 from mcdc.object_.secondary_product import SecondaryProduct
-from mcdc.object_.data import DataPolynomial
+from mcdc.object_.data import DataPolynomial, DataTable
 from mcdc.object_.base import MCDCPolymorphic
 from mcdc.object_.distribution import (
     DistributionBase,
+    DistributionNone,
+    DistributionIsotropic,
     DistributionMultiTable,
     DistributionLevelScattering,
     DistributionEvaporation,
     DistributionMaxwellian,
     DistributionKalbachMann,
-    DistributionTabulatedEnergyAngle,
+    DistributionTableEnergyAngle,
     DistributionNBody,
+    validate_angle_energy,
 )
+from mcdc.object_.util import decode_reference_frame
 from mcdc.print_ import print_1d_array, print_error
 
 # ======================================================================================
@@ -84,13 +83,6 @@ def decode_type(type_):
         return "Proton capture"
 
 
-def decode_reference_frame(type_):
-    if type_ == REFERENCE_FRAME_LAB:
-        return "Laboratory"
-    elif type_ == REFERENCE_FRAME_COM:
-        return "Center of mass"
-
-
 # ======================================================================================
 # Proton elastic scattering
 # ======================================================================================
@@ -101,18 +93,20 @@ class ProtonReactionElasticScattering(ProtonReactionBase):
     label: str = "proton_elastic_scattering_reaction"
     sub_type = PROTON_REACTION_ELASTIC_SCATTERING
     #
-    mu_table: DistributionMultiTable
+    mu_table: DistributionBase
 
     def __init__(self, MT, xs, xs_offset, reference_frame, mu):
         super().__init__(MT, xs, xs_offset, reference_frame, 0.0)
+        if isinstance(mu, DistributionNone):
+            raise ValueError(
+                "Elastic scattering requires an explicit angular distribution"
+            )
         self.mu_table = mu
 
     @classmethod
     def from_h5_group(cls, h5_group, simulation):
         MT, xs, xs_offset, reference_frame, _ = set_basic_properties(h5_group)
-        _, mu = set_angular_distribution(
-            h5_group["angular_cosine_distribution"], simulation
-        )
+        mu = set_angular_distribution(h5_group["angular_cosine_distribution"])
         return cls(MT, xs, xs_offset, reference_frame, mu)
 
     def __repr__(self):
@@ -135,7 +129,6 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
     sub_type = PROTON_REACTION_INELASTIC_SCATTERING
     #
     multiplicity: int
-    angle_type: int
     mu: DistributionBase
     N_spectrum_probability_bin: int
     N_spectrum: int
@@ -153,7 +146,6 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
         reference_frame,
         q_value,
         multiplicity,
-        angle_type,
         mu,
         spectrum_probability_grid,
         spectrum_probability,
@@ -162,8 +154,8 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
         super().__init__(MT, xs, xs_offset, reference_frame, q_value)
 
         self.multiplicity = multiplicity
-        self.angle_type = angle_type
         self.mu = mu
+        validate_angle_energy(mu, energy_spectra, self.label, reference_frame)
         self.N_spectrum_probability_bin = len(spectrum_probability_grid) - 1
         self.N_spectrum = len(energy_spectra)
         self.spectrum_probability_grid = spectrum_probability_grid
@@ -175,17 +167,7 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
         MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
         multiplicity = int(h5_group["multiplicity"][()])
 
-        ang_type_str = h5_group["angular_cosine_distribution"].attrs.get(
-            "type", "isotropic"
-        )
-        if ang_type_str == "given_in_energy_distribution":
-            angle_type, mu = set_angular_distribution_from_kalbach_mann(
-                h5_group["energy_spectrum-1"], simulation
-            )
-        else:
-            angle_type, mu = set_angular_distribution(
-                h5_group["angular_cosine_distribution"], simulation
-            )
+        mu = set_angular_distribution(h5_group["angular_cosine_distribution"])
 
         spectrum_probability_grid = h5_group["spectrum_probability_grid"][()] * 1e6
         spectrum_probability = h5_group["spectrum_probability"][()]
@@ -200,7 +182,6 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
             reference_frame,
             q_value,
             multiplicity,
-            angle_type,
             mu,
             spectrum_probability_grid,
             spectrum_probability,
@@ -221,16 +202,14 @@ class ProtonReactionInelasticScattering(ProtonReactionBase):
 
     def __repr__(self):
         text = super().__repr__()
-        if self.angle_type == ANGLE_ISOTROPIC:
-            text += f"  - Scattering cosine: Isotropic\n"
-        elif self.angle_type == ANGLE_ENERGY_CORRELATED:
+        if isinstance(self.mu, DistributionNone):
             text += f"  - Scattering cosine: Energy-correlated\n"
         else:
-            text += f"  - Scattering cosine: {distribution.decode_type(self.mu.type)} [ID: {self.mu.ID}]\n"
+            text += f"  - Scattering cosine: {self.mu.label} [ID: {self.mu.ID}]\n"
         text += f"  - Energy spectra\n"
         text += f"      - Probability energy grid {print_1d_array(self.spectrum_probability_grid)}\n"
         for i in range(len(self.energy_spectra)):
-            text += f"      - Spectrum {i+1}: {distribution.decode_type(self.energy_spectra[i])} [{print_1d_array(self.spectrum_probability[:,i])}] [ID: {self.energy_spectra[i].ID}]\n"
+            text += f"      - Spectrum {i+1}: {self.energy_spectra[i].label} [{print_1d_array(self.spectrum_probability[:,i])}] [ID: {self.energy_spectra[i].ID}]\n"
         return text
 
 
@@ -288,21 +267,14 @@ def set_secondary_product(h5_group, simulation):
     # Load separate angles or recover energy-angle correlation.
     if "angular_cosine_distribution" in h5_group:
         angular_group = h5_group["angular_cosine_distribution"]
-        if (
-            angular_group.attrs.get("type", "isotropic")
-            == "given_in_energy_distribution"
-        ):
-            angle_type, mu = set_angular_distribution_from_kalbach_mann(
-                energy_group, simulation
-            )
-        else:
-            angle_type, mu = set_angular_distribution(angular_group, simulation)
-    elif energy_group.attrs.get("type") == "kalbach-mann":
-        angle_type, mu = set_angular_distribution_from_kalbach_mann(
-            energy_group, simulation
-        )
+        mu = set_angular_distribution(angular_group)
+    elif isinstance(
+        energy,
+        (DistributionKalbachMann, DistributionTableEnergyAngle, DistributionNBody),
+    ):
+        mu = DistributionNone()
     else:
-        angle_type, mu = ANGLE_ISOTROPIC, simulation.distributions[0]
+        mu = DistributionIsotropic()
 
     # Decode the library's ZAP identifier into explicit species fields.
     particle_type = {1: PARTICLE_NEUTRON, 1001: PARTICLE_PROTON}.get(zap, PARTICLE_ANY)
@@ -314,7 +286,6 @@ def set_secondary_product(h5_group, simulation):
         particle_type,
         DataPolynomial(np.array([float(multiplicity)])),
         reference_frame,
-        angle_type,
         mu,
         np.array([0.0, INF]),
         np.ones((1, 1)),
@@ -324,87 +295,75 @@ def set_secondary_product(h5_group, simulation):
     )
 
 
-def set_angular_distribution(h5_group, simulation):
+def set_angular_distribution(h5_group):
+    """Translate a proton-library angular law into its reusable representation.
+
+    Explicit isotropy produces DistributionIsotropic; cosine PDFs produce a
+    DistributionMultiTable indexed by incident energy in eV. The markers
+    ``energy-correlated`` and ``given_in_energy_distribution`` produce
+    DistributionNone because the energy-spectrum object supplies both energy
+    and angle. In particular, the Kalbach-Mann angular parameters belong to
+    the joint distribution loaded by :func:`set_energy_distribution`.
+    """
     # Handle missing type attribute
     if "type" not in h5_group.attrs:
         mu_type = "isotropic"
     else:
         mu_type = h5_group.attrs["type"]
 
+    if isinstance(mu_type, bytes):
+        mu_type = mu_type.decode("utf-8")
     if mu_type == "isotropic":
-        angle_type = ANGLE_ISOTROPIC
-        mu = simulation.distributions[0]
-    elif mu_type == "energy-correlated":
-        angle_type = ANGLE_ENERGY_CORRELATED
-        mu = simulation.distributions[0]
-    elif mu_type == "given_in_energy_distribution":
-        raise ValueError(
-            "set_angular_distribution called with given_in_energy_distribution; "
-            "use set_angular_distribution_from_kalbach_mann instead."
-        )
+        return DistributionIsotropic()
+    elif mu_type in ("energy-correlated", "given_in_energy_distribution"):
+        return DistributionNone()
     elif mu_type == "tabulated":
-        angle_type = ANGLE_DISTRIBUTED
+        tables = []
 
-        # Check if data is in flattened format or subgroup format
+        # Collect numerical PDF arrays for each incident energy.
         if "energy" in h5_group:
-            # Flattened format
             grid = h5_group[f"energy"][()] * 1e6  # MeV to eV
             offset = h5_group[f"offset"][()]
             value = h5_group[f"value"][()]
             pdf = h5_group[f"pdf"][()]
+            for i, start in enumerate(offset):
+                stop = offset[i + 1] if i + 1 < len(offset) else len(value)
+                tables.append((value[start:stop], pdf[start:stop]))
         else:
-            # Subgroup format: E_in_1, E_in_2, etc.
-            incident_energies = h5_group["incident_energies"][()] * 1e6  # MeV to eV
-
-            # Collect all cosines and pdfs into flattened arrays
-            cosines_list = []
-            pdf_list = []
-            offset = np.zeros(len(incident_energies), dtype=np.int32)
-
-            for i, energy in enumerate(incident_energies):
-                subgroup_name = f"E_in_{i + 1}"
-                if subgroup_name in h5_group:
-                    subgroup = h5_group[subgroup_name]
-                    if subgroup.attrs.get("type", "tabulated") == "tabulated":
-                        cosines_list.extend(subgroup["cosines"][()])
-                        pdf_list.extend(subgroup["pdf"][()])
-                    else:
-                        # Isotropic - use dummy values
-                        cosines_list.extend([0.0])  # isotropic cosine
-                        pdf_list.extend([1.0])  # uniform pdf
+            grid = h5_group["incident_energies"][()] * 1e6  # MeV to eV
+            for i in range(len(grid)):
+                subgroup = h5_group.get(f"E_in_{i + 1}")
+                if (
+                    subgroup is not None
+                    and subgroup.attrs.get("type", "tabulated") == "tabulated"
+                ):
+                    table = (subgroup["cosines"][()], subgroup["pdf"][()])
                 else:
-                    # Missing subgroup - assume isotropic
-                    cosines_list.extend([0.0])
-                    pdf_list.extend([1.0])
+                    # Isotropic or absent child tables use a uniform cosine density.
+                    table = ([-1.0, 1.0], [0.5, 0.5])
+                tables.append(table)
 
-                if i < len(incident_energies) - 1:
-                    offset[i + 1] = len(cosines_list)
+        mu = DistributionMultiTable(
+            grid, value=[t[0] for t in tables], pdf=[t[1] for t in tables]
+        )
 
-            grid = incident_energies
-            value = np.array(cosines_list)
-            pdf = np.array(pdf_list)
-
-        mu = DistributionMultiTable(grid, offset, value, pdf)
-
-    return angle_type, mu
-
-
-def set_angular_distribution_from_kalbach_mann(spectrum_group, simulation):
-    """
-    Build a DistributionMultiTable for Kalbach-Mann angular sampling.
-    The 'value' array holds the angular slope 'a'. The transport kernel
-    uses these to sample cosines analytically via the Kalbach-Mann formula.
-    """
-    grid = spectrum_group["energy"][()] * 1e6  # MeV to eV
-    offset = spectrum_group["offset"][()]
-    a = spectrum_group["angular_slope"][()]
-    pdf = spectrum_group["pdf"][()]
-
-    mu = DistributionMultiTable(grid, offset, a, pdf)
-    return ANGLE_ENERGY_CORRELATED, mu
+        return mu
+    raise ValueError(f"Unsupported angular distribution: {mu_type}")
 
 
 def set_energy_distribution(h5_group):
+    """Load an energy-only spectrum or a joint energy-angle distribution.
+
+    Energy coordinates and parameters are converted from MeV to eV, and
+    densities from inverse MeV to inverse eV. Dimensionless angular quantities
+    retain their source values.
+
+    Kalbach-Mann stores outgoing-energy PDFs with the precompound factor r
+    and angular slope a in one DistributionKalbachMann object. Transport first
+    samples outgoing energy, evaluates r and a for that energy, and then
+    samples the conditional cosine analytically. The slope values are model
+    parameters, not cosine coordinates or a separate angular PDF.
+    """
     spectrum_type = h5_group.attrs["type"]
 
     if spectrum_type == "tabulated":
@@ -412,7 +371,13 @@ def set_energy_distribution(h5_group):
         offset = h5_group[f"offset"][()]
         value = h5_group[f"value"][()] * 1e6  # MeV to eV
         pdf = h5_group[f"pdf"][()] / 1e6  # /MeV to /eV
-        energy_spectrum = DistributionMultiTable(grid, offset, value, pdf)
+        tables = []
+        for i, start in enumerate(offset):
+            stop = offset[i + 1] if i + 1 < len(offset) else len(value)
+            tables.append((value[start:stop], pdf[start:stop]))
+        energy_spectrum = DistributionMultiTable(
+            grid, value=[t[0] for t in tables], pdf=[t[1] for t in tables]
+        )
 
     elif spectrum_type == "level-scattering":
         C1 = h5_group["C1"][()] * 1e6  # MeV to eV
@@ -425,8 +390,9 @@ def set_energy_distribution(h5_group):
         temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
         restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
 
+        nuclear_temperature = DataTable(energy, temperature, INTERPOLATION_LINEAR)
         energy_spectrum = DistributionEvaporation(
-            energy, temperature, restriction_energy
+            nuclear_temperature, restriction_energy
         )
 
     elif spectrum_type == "maxwellian":
@@ -439,8 +405,9 @@ def set_energy_distribution(h5_group):
         elif interpolation == "log":
             interpolation = INTERPOLATION_LOG
 
+        nuclear_temperature = DataTable(energy, temperature, interpolation)
         energy_spectrum = DistributionMaxwellian(
-            energy, temperature, restriction_energy, interpolation
+            nuclear_temperature, restriction_energy
         )
 
     elif spectrum_type == "kalbach-mann":
@@ -468,15 +435,20 @@ def set_energy_distribution(h5_group):
         cosine = h5_group[f"cosine"][()]
         cosine_pdf = h5_group[f"cosine_pdf"][()]
 
-        energy_spectrum = DistributionTabulatedEnergyAngle(
+        energy_spectrum = DistributionTableEnergyAngle(
             energy, offset, energy_out, pdf, cosine_offset, cosine, cosine_pdf
         )
 
     elif spectrum_type == "N-body":
-        value = h5_group["value"][()] * 1e6  # MeV to eV
-        pdf = h5_group["pdf"][()] / 1e6  # /MeV to /eV
+        value = h5_group["value"][()]
+        pdf = h5_group["pdf"][()]
 
-        energy_spectrum = DistributionNBody(value, pdf)
+        energy_spectrum = DistributionNBody(
+            h5_group["number_particles"][()],
+            float(h5_group["total_mass_ratio"][()]),
+            value,
+            pdf,
+        )
 
     else:
         print_error(f"Unsupported energy spectrum of type {spectrum_type}")

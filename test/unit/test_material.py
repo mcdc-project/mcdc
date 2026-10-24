@@ -102,6 +102,8 @@ def test_absent_mg_points_to_the_reserved_simulation_object(monkeypatch):
     # Isolate object registration from native data-library loading
     def compile_nuclide(nuclide, simulation):
         nuclide.fissionable = False
+        nuclide.element.atomic_number = 1
+        MCDCObject._compile_into_simulation(nuclide.element, simulation)
         return MCDCObject._compile_into_simulation(nuclide, simulation)
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)

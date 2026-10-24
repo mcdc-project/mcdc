@@ -10,10 +10,10 @@ import os
 from mcdc.constant import INTERPOLATION_LINEAR
 from mcdc.object_.data import DataBase, DataNone, DataTable
 from mcdc.object_.base import MCDCObject
-from mcdc.object_.element import Element
+from mcdc.object_.element import Element, get_or_create_element
 from mcdc.object_.transport_model_data import NeutronMultigroupData
 from mcdc.object_.nuclide import Nuclide
-from mcdc.object_.util import ISOTOPIC_ABUNDANCE, element_symbol_from_nuclide_name
+from mcdc.object_.util import ISOTOPIC_ABUNDANCE
 from mcdc.print_ import print_error
 
 # ======================================================================================
@@ -171,11 +171,11 @@ class Material(MCDCObject):
         self.fissionable = self.neutron_multigroup.fissionable
 
         # Create lightweight native-composition objects without loading data
-        nearest_temperature = _get_supported_temperature(self.temperature)
-        self.nuclide_composition = {
-            Nuclide(name, nearest_temperature): float(density)
-            for name, density in nuclide_composition.items()
-        }
+        self.nuclide_composition = {}
+        for name, density in nuclide_composition.items():
+            nearest_temperature = _get_supported_temperature(self.temperature, name)
+            nuclide = Nuclide(name, nearest_temperature)
+            self.nuclide_composition[nuclide] = float(density)
         self.element_composition = {
             Element(name): float(density)
             for name, density in element_composition.items()
@@ -250,7 +250,7 @@ class Material(MCDCObject):
         element_composition = {}
 
         for element, density in self.element_composition.items():
-            element = _get_or_create_element(element.name, simulation, element)
+            element = get_or_create_element(element.name, simulation, element)
             element_composition[element] = density
 
         for nuclide, density in self.nuclide_composition.items():
@@ -331,9 +331,6 @@ class Material(MCDCObject):
         return text
 
 
-# Currently supported temperatures
-TEMPERATURES = [0.0, 0.1, 233.15, 273.15, 293.6, 600.0, 900.0, 1200.0, 2500.0]
-
 # ======================================================================================
 # Native-composition helpers
 # ======================================================================================
@@ -345,14 +342,14 @@ def set_nuclides_from_elements(material, simulation):
     material.nuclide_composition = {}
     nuclide_densities = []
 
-    # Select the nearest supported native-data temperature
-    nearest_temperature = _get_supported_temperature(material.temperature)
-
     # Expand each natural element into its normalized isotopic composition
     for element, element_density in material.element_composition.items():
         norm = sum(ISOTOPIC_ABUNDANCE[element.name].values())
 
         for nuclide_name, abundance in ISOTOPIC_ABUNDANCE[element.name].items():
+            nearest_temperature = _get_supported_temperature(
+                material.temperature, nuclide_name
+            )
             nuclide = _get_or_create_nuclide(
                 nuclide_name, nearest_temperature, simulation
             )
@@ -367,38 +364,55 @@ def set_nuclides_from_elements(material, simulation):
 
 
 def set_elements_from_nuclides(material, simulation):
-    """Collapse a nuclide composition and register its elements."""
-    # Accumulate nuclide densities by exact element symbol (e.g., C12 -> C, Cr52 -> Cr)
+    """Sum nuclide densities onto their shared element references.
+
+    Element objects are canonical across the simulation; elemental densities
+    belong to this material's isotope composition. No reverse isotope list is
+    stored on an element or in the material.
+    """
     element_densities = {}
     for nuclide, nuclide_density in material.nuclide_composition.items():
-        element_name = element_symbol_from_nuclide_name(nuclide.name)
-        element_densities[element_name] = (
-            element_densities.get(element_name, 0.0) + nuclide_density
+        element = get_or_create_element(
+            nuclide.element.name, simulation, nuclide.element
+        )
+        nuclide.element = element
+        element._compile_into_simulation(simulation)
+        element_densities[element] = (
+            element_densities.get(element, 0.0) + nuclide_density
         )
 
-    # Register each element's canonical object
-    material.elements = []
-    material.element_composition = {}
-    for element_name, density in element_densities.items():
-        element = _get_or_create_element(element_name, simulation)
-        element._compile_into_simulation(simulation)
-        material.elements.append(element)
-        material.element_composition[element] = density
-
+    material.elements = list(element_densities)
+    material.element_composition = element_densities
     material.element_densities = np.asarray(
         list(element_densities.values()), dtype=float64
     )
 
 
-def _get_supported_temperature(temperature):
-    return min(TEMPERATURES, key=lambda value: abs(value - temperature))
+def _get_supported_temperature(temperature, nuclide_name):
+    """Choose the closest temperature available for this nuclide in MCDC_LIB.
 
-
-def _get_or_create_element(element_name, simulation, candidate=None):
-    for element in simulation.elements:
-        if element.name == element_name:
-            return element
-    return candidate or Element(element_name)
+    Read only filenames here; nuclide compilation validates the selected file.
+    Without a matching library entry, preserve the requested temperature so
+    compilation can report the missing data with its nuclide identity.
+    """
+    directory = os.getenv("MCDC_LIB")
+    if not directory or not os.path.isdir(directory):
+        return float(temperature)
+    prefix, suffix = f"{nuclide_name}-", "K.h5"
+    available = []
+    for filename in os.listdir(directory):
+        if filename.startswith(prefix) and filename.endswith(suffix):
+            try:
+                value = float(filename[len(prefix) : -len(suffix)])
+            except ValueError:
+                continue
+            if np.isfinite(value) and value >= 0.0:
+                available.append(value)
+    return (
+        min(available, key=lambda value: (abs(value - temperature), value))
+        if available
+        else float(temperature)
+    )
 
 
 def _get_or_create_nuclide(nuclide_name, temperature, simulation, candidate=None):

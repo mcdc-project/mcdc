@@ -33,29 +33,406 @@ def grid_chunk(start, length, multi_table_distribution, data, value):
 
 
 @njit
-def table_IDs(index, multi_table_distribution, data, value):
-    offset = multi_table_distribution["table_IDs_offset"]
+def offsets(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["offsets_offset"]
     data[offset + index] = value
 
 
 @njit
-def table_IDs_all(multi_table_distribution, data, value):
-    start = multi_table_distribution["table_IDs_offset"]
-    size = multi_table_distribution["N_table"]
+def offsets_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["offsets_offset"]
+    size = multi_table_distribution["offsets_length"]
     end = start + size
     data[start:end] = value
 
 
 @njit
-def table_IDs_last(multi_table_distribution, data, value):
-    start = multi_table_distribution["table_IDs_offset"]
-    size = multi_table_distribution["N_table"]
+def offsets_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["offsets_offset"]
+    size = multi_table_distribution["offsets_length"]
     end = start + size
     data[end - 1] = value
 
 
 @njit
-def table_IDs_chunk(start, length, multi_table_distribution, data, value):
-    start += multi_table_distribution["table_IDs_offset"]
+def offsets_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["offsets_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def value(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["value_offset"]
+    data[offset + index] = value
+
+
+@njit
+def value_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["value_offset"]
+    size = multi_table_distribution["value_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def value_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["value_offset"]
+    size = multi_table_distribution["value_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def value_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["value_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def pdf(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["pdf_offset"]
+    data[offset + index] = value
+
+
+@njit
+def pdf_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["pdf_offset"]
+    size = multi_table_distribution["pdf_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def pdf_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["pdf_offset"]
+    size = multi_table_distribution["pdf_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def pdf_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["pdf_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def cdf(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["cdf_offset"]
+    data[offset + index] = value
+
+
+@njit
+def cdf_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["cdf_offset"]
+    size = multi_table_distribution["cdf_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def cdf_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["cdf_offset"]
+    size = multi_table_distribution["cdf_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def cdf_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["cdf_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def discrete_offsets(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["discrete_offsets_offset"]
+    data[offset + index] = value
+
+
+@njit
+def discrete_offsets_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["discrete_offsets_offset"]
+    size = multi_table_distribution["discrete_offsets_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def discrete_offsets_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["discrete_offsets_offset"]
+    size = multi_table_distribution["discrete_offsets_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def discrete_offsets_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["discrete_offsets_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def discrete_value(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["discrete_value_offset"]
+    data[offset + index] = value
+
+
+@njit
+def discrete_value_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["discrete_value_offset"]
+    size = multi_table_distribution["discrete_value_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def discrete_value_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["discrete_value_offset"]
+    size = multi_table_distribution["discrete_value_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def discrete_value_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["discrete_value_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def pmf(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["pmf_offset"]
+    data[offset + index] = value
+
+
+@njit
+def pmf_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["pmf_offset"]
+    size = multi_table_distribution["pmf_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def pmf_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["pmf_offset"]
+    size = multi_table_distribution["pmf_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def pmf_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["pmf_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def cmf(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["cmf_offset"]
+    data[offset + index] = value
+
+
+@njit
+def cmf_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["cmf_offset"]
+    size = multi_table_distribution["cmf_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def cmf_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["cmf_offset"]
+    size = multi_table_distribution["cmf_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def cmf_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["cmf_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def continuous_probability(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["continuous_probability_offset"]
+    data[offset + index] = value
+
+
+@njit
+def continuous_probability_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["continuous_probability_offset"]
+    size = multi_table_distribution["continuous_probability_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def continuous_probability_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["continuous_probability_offset"]
+    size = multi_table_distribution["continuous_probability_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def continuous_probability_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["continuous_probability_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def interpolations(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["interpolations_offset"]
+    data[offset + index] = value
+
+
+@njit
+def interpolations_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["interpolations_offset"]
+    size = multi_table_distribution["interpolations_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def interpolations_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["interpolations_offset"]
+    size = multi_table_distribution["interpolations_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def interpolations_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["interpolations_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def interpolation_boundaries(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["interpolation_boundaries_offset"]
+    data[offset + index] = value
+
+
+@njit
+def interpolation_boundaries_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["interpolation_boundaries_offset"]
+    size = multi_table_distribution["interpolation_boundaries_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def interpolation_boundaries_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["interpolation_boundaries_offset"]
+    size = multi_table_distribution["interpolation_boundaries_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def interpolation_boundaries_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["interpolation_boundaries_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def pdf_interpolations(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["pdf_interpolations_offset"]
+    data[offset + index] = value
+
+
+@njit
+def pdf_interpolations_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["pdf_interpolations_offset"]
+    size = multi_table_distribution["pdf_interpolations_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def pdf_interpolations_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["pdf_interpolations_offset"]
+    size = multi_table_distribution["pdf_interpolations_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def pdf_interpolations_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["pdf_interpolations_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def pdf_interpolation_boundaries(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["pdf_interpolation_boundaries_offset"]
+    data[offset + index] = value
+
+
+@njit
+def pdf_interpolation_boundaries_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["pdf_interpolation_boundaries_offset"]
+    size = multi_table_distribution["pdf_interpolation_boundaries_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def pdf_interpolation_boundaries_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["pdf_interpolation_boundaries_offset"]
+    size = multi_table_distribution["pdf_interpolation_boundaries_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def pdf_interpolation_boundaries_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["pdf_interpolation_boundaries_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def pdf_interpolation_offsets(index, multi_table_distribution, data, value):
+    offset = multi_table_distribution["pdf_interpolation_offsets_offset"]
+    data[offset + index] = value
+
+
+@njit
+def pdf_interpolation_offsets_all(multi_table_distribution, data, value):
+    start = multi_table_distribution["pdf_interpolation_offsets_offset"]
+    size = multi_table_distribution["pdf_interpolation_offsets_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def pdf_interpolation_offsets_last(multi_table_distribution, data, value):
+    start = multi_table_distribution["pdf_interpolation_offsets_offset"]
+    size = multi_table_distribution["pdf_interpolation_offsets_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def pdf_interpolation_offsets_chunk(start, length, multi_table_distribution, data, value):
+    start += multi_table_distribution["pdf_interpolation_offsets_offset"]
     end = start + length
     data[start:end] = value

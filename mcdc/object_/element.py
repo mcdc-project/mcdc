@@ -8,6 +8,12 @@ from numpy.typing import NDArray
 ####
 
 from mcdc.object_.base import MCDCObject
+from mcdc.object_.hdf5_reader import (
+    check_format,
+    read_xs_energy_grid,
+    text,
+    xs_is_linear,
+)
 from mcdc.object_.electron_reaction import (
     ElectronReactionBremsstrahlung,
     ElectronReactionElasticScattering,
@@ -16,12 +22,18 @@ from mcdc.object_.electron_reaction import (
     read_energy,
 )
 from mcdc.object_.photon_reaction import (
+    PhotonReactionBase,
     PhotonReactionCoherentScattering,
+    ordered_subshells,
     PhotonReactionIncoherentScattering,
     PhotonReactionPairProduction,
     PhotonReactionPhotoelectric,
 )
 from mcdc.print_ import print_error
+
+# ======================================================================================
+# Element
+# ======================================================================================
 
 
 class Element(MCDCObject):
@@ -39,13 +51,14 @@ class Element(MCDCObject):
     simulation. Electron reaction cross sections and secondary distributions
     are loaded later by :meth:`set_electron_data`, and the photon ones by
     :meth:`set_photon_data`.
+    Isotopes and temperature-specific nuclides share one element object per
+    chemical symbol within a simulation.
     """
 
     # MC/DC framework metadata
     label = "element"
 
     name: str
-    atomic_weight_ratio: float
     atomic_number: int
     #
     electron_xs_energy_grid: NDArray[float64]
@@ -62,6 +75,8 @@ class Element(MCDCObject):
     #
     electron_ionization_subshell_binding_energy: NDArray[float64]
     #
+    photon_xs_is_linear: bool
+    photon_reactions: list[PhotonReactionBase]
     photon_xs_energy_grid: NDArray[float64]
     photon_total_xs: NDArray[float64]
     photon_coherent_xs: NDArray[float64]
@@ -115,6 +130,8 @@ class Element(MCDCObject):
 
     def _set_empty_photon_data(self):
         """Initialize the photon half to empty, pending set_photon_data."""
+        self.photon_xs_is_linear = True
+        self.photon_reactions = []
         self.photon_xs_energy_grid = np.zeros(0)
         self.photon_total_xs = np.zeros(0)
         self.photon_coherent_xs = np.zeros(0)
@@ -152,8 +169,12 @@ class Element(MCDCObject):
             print_error(f"Element {self.name} is not available in the library")
 
         with h5py.File(file_path, "r") as file:
-            self.atomic_weight_ratio = float(file["atomic_weight_ratio"][()])
-            self.atomic_number = int(file["atomic_number"][()])
+            if "format" in file.attrs:
+                check_format(file)
+                self.atomic_number = int(file["atomic-number"][()])
+            else:
+                # TODO: Remove this fallback once element libraries use mcdc-data.
+                self.atomic_number = int(file["atomic_number"][()])
 
         return super()._compile_into_simulation(simulation)
 
@@ -273,41 +294,41 @@ class Element(MCDCObject):
         file_name = f"{element_name}.h5"
         file = h5py.File(f"{dir_name}/{file_name}", "r")
 
-        if "photon_reactions" not in file:
+        check_format(file)
+        if "projectiles/photon" not in file:
             file.close()
             print_error(
-                f"Element {element_name} carries no photon_reactions group; the "
+                f"Element {element_name} carries no projectiles/photon group; the "
                 "library was not built for photon transport"
             )
 
-        # The reactions, named as the library groups them
+        photon = file["projectiles/photon"]
+
+        # The reaction categories
         rx_names = [
-            "coherent_scattering",
-            "incoherent_scattering",
+            "coherent-scattering",
+            "incoherent-scattering",
             "photoelectric",
-            "pair_production",
+            "pair-production",
         ]
 
-        # The reaction MTs. Reaction groups are spelled "MTnnn" without a
-        # hyphen, unlike the photoelectric subshells inside them, which are
-        # "MT-nnn". Both spellings start with "MT".
-        MTs = {}
-        for name in rx_names:
-            if name not in file["photon_reactions"]:
-                MTs[name] = []
-                continue
-
-            MTs[name] = [
-                x for x in file[f"photon_reactions/{name}"] if x.startswith("MT")
-            ]
+        # Group reaction names by their declared transport category.
+        reaction_names = {name: [] for name in rx_names}
+        for name, group in photon["reactions"].items():
+            category = text(group.attrs["category"])
+            rx_name = category
+            if rx_name not in reaction_names:
+                raise ValueError(
+                    f"{group.name}: unknown photon reaction category {category!r}"
+                )
+            reaction_names[rx_name].append(name)
 
         # ==========================================================================
         # Reaction XS
         # ==========================================================================
 
-        self.photon_xs_energy_grid = read_energy(
-            file["photon_reactions/xs_energy_grid"]
-        )
+        self.photon_xs_energy_grid = read_xs_energy_grid(photon)
+        grid = self.photon_xs_energy_grid
         self.photon_coherent_xs = np.zeros_like(self.photon_xs_energy_grid)
         self.photon_incoherent_xs = np.zeros_like(self.photon_xs_energy_grid)
         self.photon_photoelectric_xs = np.zeros_like(self.photon_xs_energy_grid)
@@ -320,9 +341,14 @@ class Element(MCDCObject):
             self.photon_pair_production_xs,
         ]
         for xs_container, rx_name in list(zip(xs_containers, rx_names)):
-            for MT in MTs[rx_name]:
-                xs = file[f"photon_reactions/{rx_name}/{MT}/xs"]
-                xs_container[xs.attrs["offset"] :] += xs[()]
+            for name in reaction_names[rx_name]:
+                xs = photon[f"reactions/{name}/xs"]
+                offset = int(xs["offset"][()])
+                if offset < 0 or offset + len(xs["value"]) != len(grid):
+                    raise ValueError(
+                        f"{xs.name}: cross-section segment does not end at the shared grid boundary"
+                    )
+                xs_container[offset:] += xs["value"][()]
 
         self.photon_total_xs = (
             self.photon_coherent_xs
@@ -335,6 +361,8 @@ class Element(MCDCObject):
         # The reactions
         # ==========================================================================
 
+        self.photon_reactions = []
+        self.photon_xs_is_linear = True
         self.photon_coherent_scattering_reactions = []
         self.photon_incoherent_scattering_reactions = []
         self.photon_photoelectric_reactions = []
@@ -355,46 +383,32 @@ class Element(MCDCObject):
         for rx_container, rx_name, rx_class in list(
             zip(rx_containers, rx_names, rx_classes)
         ):
-            for MT in MTs[rx_name]:
-                h5_group = file[f"photon_reactions/{rx_name}/{MT}"]
-                rx_container.append(rx_class.from_h5_group(h5_group))
+            for name in reaction_names[rx_name]:
+                h5_group = photon[f"reactions/{name}"]
+                reaction = rx_class.from_h5_group(h5_group)
+                rx_container.append(reaction)
+                self.photon_reactions.append(reaction)
+                self.photon_xs_is_linear &= xs_is_linear(reaction)
 
         # ==========================================================================
         # Photoelectric element attributes
         # ==========================================================================
 
         binding_energy = []
-        subshell_names = []
-        if len(MTs["photoelectric"]) > 0:
-            h5_group = file[f"photon_reactions/photoelectric/{MTs['photoelectric'][0]}"]
+        if len(reaction_names["photoelectric"]) > 0:
+            h5_group = photon[f"reactions/{reaction_names['photoelectric'][0]}"]
             if "subshells" in h5_group:
-                for name in h5_group["subshells"]:
-                    subshell = h5_group[f"subshells/{name}"]
-                    subshell_names.append(name)
-                    binding_energy.append(
-                        float(read_energy(subshell["binding_energy"]))
-                    )
+                for subshell in ordered_subshells(h5_group["subshells"]):
+                    binding_energy.append(float(subshell["binding-energy"][()]))
 
         self.photon_photoelectric_subshell_binding_energy = np.asarray(binding_energy)
 
         # ==========================================================================
         # Atomic relaxation
         # ==========================================================================
-        # One transition table per subshell, flattened into shared arrays and
-        # indexed by the photoelectric subshell order above, so that the shell a
-        # photoelectric event ionizes selects its own de-excitation table. Keyed
-        # by subshell MT name rather than by position, because the relaxation and
-        # photoelectric subshell sets need not agree.
-        #
-        # secondary_designator distinguishes the two de-excitation channels: zero
-        # is radiative, so a characteristic X-ray is emitted and transported;
-        # non-zero is non-radiative (Auger), whose electron is not transported and
-        # therefore deposits locally.
-        #
-        # origin_designator names the subshell the filling electron came from, so
-        # it is where the vacancy moves next. Paired with each subshell's own
-        # designator it lets the de-excitation cascade be followed one further
-        # step, which is what emits the second (L) fluorescence photon.
+        # Keep all relaxation shells, including ones reached only by a cascade.
+        # Explicit designators connect photoelectric vacancies and shell transitions.
+        # A zero secondary designator identifies a radiative transition.
 
         transition_energy = []
         transition_probability = []
@@ -404,39 +418,42 @@ class Element(MCDCObject):
         subshell_count = []
         subshell_designator = []
 
-        relaxation = (
-            file["atomic_relaxation/subshells"]
-            if (
-                "atomic_relaxation" in file and "subshells" in file["atomic_relaxation"]
-            )
-            else None
-        )
+        relaxation = file.get("atomic-relaxation/subshells", {})
+        subshells = ordered_subshells(relaxation)
+        designators = {int(subshell["designator"][()]) for subshell in subshells}
 
-        for name in subshell_names:
+        for subshell in subshells:
             subshell_start.append(len(transition_energy))
-
-            if relaxation is None or name not in relaxation:
-                subshell_count.append(0)
-                subshell_designator.append(0)
-                continue
-
-            subshell = relaxation[name]
-            subshell_designator.append(
-                int(subshell["designator"][()]) if "designator" in subshell else 0
-            )
-            if "transitions" not in subshell:
-                subshell_count.append(0)
-                continue
-
+            subshell_designator.append(int(subshell["designator"][()]))
             transitions = subshell["transitions"]
-            energies = read_energy(transitions["energy"])
+            energies = transitions["energy"][()]
             probabilities = transitions["probability"][()]
-            secondary = transitions["secondary_designator"][()]
-            origin = (
-                transitions["origin_designator"][()]
-                if "origin_designator" in transitions
-                else np.zeros(len(energies), dtype=np.int64)
-            )
+            secondary = transitions["secondary-designator"][()]
+            origin = transitions["origin-designator"][()]
+            if (
+                any(
+                    array.ndim != 1
+                    for array in (energies, probabilities, secondary, origin)
+                )
+                or not (
+                    len(energies) == len(probabilities) == len(secondary) == len(origin)
+                )
+                or not np.all(np.isfinite(energies))
+                or np.any(energies < 0)
+                or not np.all(np.isfinite(probabilities))
+                or np.any(probabilities < 0)
+                or (
+                    len(probabilities)
+                    and not np.isclose(sum(probabilities), 1.0, rtol=1e-5, atol=1e-8)
+                )
+                or not set(origin) <= designators
+                or not (set(secondary) - {0}) <= designators
+            ):
+                raise ValueError(
+                    f"{transitions.name}: invalid atomic-relaxation transitions"
+                )
+            if len(probabilities):
+                probabilities = probabilities / sum(probabilities)
 
             subshell_count.append(len(energies))
             for index in range(len(energies)):
@@ -480,5 +497,22 @@ class Element(MCDCObject):
         text += f"  - ID: {self.ID}\n"
         text += f"  - Name: {self.name}\n"
         text += f"  - Atomic number: {self.atomic_number}\n"
-        text += f"  - Atomic weight ratio: {self.atomic_weight_ratio}\n"
         return text
+
+
+# ======================================================================================
+# Element lookup
+# ======================================================================================
+
+
+def get_or_create_element(element_name, simulation, candidate=None):
+    """Reuse the simulation's element object for a chemical symbol.
+
+    A candidate preserves an existing object's identity when the symbol has
+    not been registered yet. Compilation registers the returned object and
+    loads its basic properties independently of projectile reaction data.
+    """
+    for element in simulation.elements:
+        if element.name == element_name:
+            return element
+    return candidate if candidate is not None else Element(element_name)

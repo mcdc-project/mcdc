@@ -15,13 +15,13 @@ import mcdc.transport.util as util
 
 from mcdc.constant import (
     EVENT_TIME_CENSUS,
-    ANGLE_DISTRIBUTED,
-    ANGLE_ENERGY_CORRELATED,
-    ANGLE_ISOTROPIC,
+    DISTRIBUTION_NONE,
+    DISTRIBUTION_ISOTROPIC,
     BOLTZMANN_K,
     THERMAL_THRESHOLD_FACTOR,
     LIGHT_SPEED,
     PROTON_MASS,
+    NEUTRON_MASS,
     PI,
     PI_HALF,
     PI_SQRT,
@@ -43,7 +43,6 @@ from mcdc.transport.distribution import (
     sample_correlated_distribution_with_scale,
     sample_distribution_with_scale,
     sample_distribution,
-    sample_isotropic_cosine,
     sample_isotropic_direction,
     sample_multi_table,
     sample_kalbach_mann,
@@ -543,19 +542,16 @@ def inelastic_scattering(
         # Sample angle (if not energy-correlated)
         # ==============================================================================
 
-        angle_type = inelastic_scattering["angle_type"]
-        if angle_type == ANGLE_ENERGY_CORRELATED:
-            pass
-        elif angle_type == ANGLE_ISOTROPIC:
-            mu = sample_isotropic_cosine(particle_container_new)
-        elif angle_type == ANGLE_DISTRIBUTED:
-            mu_distribution = simulation["distributions"][inelastic_scattering["mu_ID"]]
-            mu = sample_distribution(
-                E, mu_distribution, particle_container, simulation, data
-            )
-            # mu = sample_multi_table(
-            #     E, particle_container, mu_distribution, simulation, data
-            # )
+        mu_distribution = simulation["distributions"][inelastic_scattering["mu_ID"]]
+        if mu_distribution["sub_type"] != DISTRIBUTION_NONE:
+            if mu_distribution["sub_type"] == DISTRIBUTION_ISOTROPIC:
+                mu = sample_distribution(
+                    E, mu_distribution, particle_container_new, simulation, data
+                )
+            else:
+                mu = sample_distribution(
+                    E, mu_distribution, particle_container, simulation, data
+                )
 
         # ==============================================================================
         # Sample energy (also angle if correlated)
@@ -593,13 +589,19 @@ def inelastic_scattering(
                     break
 
         # Sample energy
-        if not angle_type == ANGLE_ENERGY_CORRELATED:
+        if mu_distribution["sub_type"] != DISTRIBUTION_NONE:
             E_new = sample_distribution_with_scale(
                 E, spectrum_base, particle_container_new, simulation, data
             )
         else:
             E_new, mu = sample_correlated_distribution_with_scale(
-                E, spectrum_base, particle_container_new, simulation, data
+                E,
+                spectrum_base,
+                particle_container_new,
+                simulation,
+                data,
+                nuclide["atomic_weight_ratio"] * NEUTRON_MASS / PROTON_MASS,
+                reaction["q_value"],
             )
 
         # ==============================================================================

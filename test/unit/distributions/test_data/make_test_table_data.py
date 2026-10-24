@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def make_test_tabulated_data(E_i_k, c_i_k):
+def make_test_table_data(E_i_k, c_i_k):
     E_i_k = list(E_i_k)
     c_i_k = list(c_i_k)
     data = np.array(E_i_k + c_i_k, dtype=np.float64)

@@ -181,6 +181,8 @@ def test_native_only_simulation_remains_hybrid(monkeypatch):
     # Isolate mode finalization from native data-library loading.
     def compile_nuclide(nuclide, simulation):
         nuclide.fissionable = False
+        nuclide.element.atomic_number = 1
+        MCDCObject._compile_into_simulation(nuclide.element, simulation)
         return MCDCObject._compile_into_simulation(nuclide, simulation)
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)
@@ -199,6 +201,8 @@ def test_native_nuclide_data_loading_is_reported(monkeypatch, capsys):
         nuclide.fissionable = False
         nuclide.mass_number = 1
         nuclide.radiation_length = 1.0
+        nuclide.element.atomic_number = 1
+        MCDCObject._compile_into_simulation(nuclide.element, simulation)
         return MCDCObject._compile_into_simulation(nuclide, simulation)
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)
@@ -229,7 +233,6 @@ def test_native_nuclide_data_loading_is_reported(monkeypatch, capsys):
 def test_native_element_data_loading_is_reported(monkeypatch, capsys):
     def compile_element(element, simulation):
         element.atomic_number = 1
-        element.atomic_weight_ratio = 1.0
         return MCDCObject._compile_into_simulation(element, simulation)
 
     monkeypatch.setattr(Element, "_compile_into_simulation", compile_element)
@@ -257,7 +260,6 @@ def test_native_photon_element_data_loading_is_reported(monkeypatch, capsys):
 
     def compile_element(element, simulation):
         element.atomic_number = 1
-        element.atomic_weight_ratio = 1.0
         return MCDCObject._compile_into_simulation(element, simulation)
 
     monkeypatch.setattr(Element, "_compile_into_simulation", compile_element)
@@ -378,6 +380,8 @@ def test_material_canonicalizes_composition_before_member_compilation(monkeypatc
     # Replace library loading with the minimal state needed for this unit test
     def compile_nuclide(nuclide, simulation):
         nuclide.fissionable = nuclide.name == "U235"
+        nuclide.element.atomic_number = 92
+        MCDCObject._compile_into_simulation(nuclide.element, simulation)
         return MCDCObject._compile_into_simulation(nuclide, simulation)
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)

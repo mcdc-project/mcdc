@@ -13,9 +13,8 @@ def test_multi_table_distribution_first_grid_point(
     # At E = grid[0], the first table [10, 20] is sampled directly with xi = 0.25.
     distribution = DistributionMultiTable(
         grid=grid,
-        offset=[0, 2][: len(grid)],
-        value=[10.0, 20.0, 100.0, 200.0][: 2 * len(grid)],
-        cdf=[0.0, 1.0, 0.0, 1.0][: 2 * len(grid)],
+        value=[[10.0, 20.0], [100.0, 200.0]][: len(grid)],
+        cdf=[[0.0, 1.0], [0.0, 1.0]][: len(grid)],
     )
     simulation_container, data = prepare_simulation(objects=[distribution])
     simulation = simulation_container[0]
@@ -33,9 +32,8 @@ def test_multi_table_distribution_sample(mock_rng_sequence, prepare_simulation):
     # MCNP Theory & User Manual §2.4.3.5.4.4 (Law 4: Tabular Distribution)
     distribution = DistributionMultiTable(
         grid=[1.0, 3.0],
-        offset=[0, 3],
-        value=[10.0, 20.0, 30.0, 100.0, 200.0, 300.0],
-        cdf=[0.0, 0.5, 1.0, 0.0, 0.6, 1.0],
+        value=[[10.0, 20.0, 30.0], [100.0, 200.0, 300.0]],
+        cdf=[[0.0, 0.5, 1.0], [0.0, 0.6, 1.0]],
     )
     simulation_container, data = prepare_simulation(objects=[distribution])
     simulation = simulation_container[0]
@@ -67,3 +65,26 @@ def test_multi_table_distribution_sample(mock_rng_sequence, prepare_simulation):
     expected_E = 55.0 + (E_prime - 100.0) * (165.0 - 55.0) / (300.0 - 100.0)
 
     np.testing.assert_allclose(sampled_E, expected_E, rtol=0.0, atol=1e-12)
+
+
+def test_incident_regions_preserve_child_pdf_interpolation(
+    mock_rng_sequence, prepare_simulation
+):
+    # Incident interpolation changes from histogram to linear at the middle point.
+    # Every child has a linear, rising density with a known quantile at xi = 0.25.
+    distribution = DistributionMultiTable(
+        grid=[1.0, 3.0, 5.0],
+        value=[[10.0, 20.0], [100.0, 200.0], [1000.0, 2000.0]],
+        pdf=[[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]],
+        interpolations=[1, 2],
+        interpolation_boundaries=[2, 3],
+    )
+    simulation_container, data = prepare_simulation(objects=[distribution])
+    simulation = simulation_container[0]
+    multi_table = simulation["multi_table_distributions"][distribution.sub_ID]
+
+    for energy, expected in [(2.0, 15.0), (4.0, 825.0)]:
+        sampled = dist._sample_multi_table(
+            energy, mock_rng_sequence(0.1, 0.25), multi_table, simulation, data, True
+        )
+        assert sampled == pytest.approx(expected)
