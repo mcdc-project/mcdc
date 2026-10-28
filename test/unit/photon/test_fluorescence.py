@@ -32,7 +32,7 @@ def _sample(simulation, data, E, seed):
     subshell = native.sample_photoelectric_subshell(
         container, element, simulation, data
     )
-    E_line, _ = native.relax_subshell(container, subshell, E, element, data)
+    E_line, _, _ = native.relax_subshell(container, subshell, E, element, data)
     return E_line
 
 

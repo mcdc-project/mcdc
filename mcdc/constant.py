@@ -26,6 +26,10 @@ BOLTZMANN_K = 8.61733326e-5  # eV/K
 # Physics thresholds
 ELECTRON_CUTOFF_ENERGY = 100  # eV
 PHOTON_CUTOFF_ENERGY = 1  # eV
+# Softer bremsstrahlung photons deposit locally: below the outer-shell binding
+# energies the photoatomic data have almost no absorption, so a few-eV photon
+# would stream through any solid instead of being absorbed within nanometres.
+BREMSSTRAHLUNG_PHOTON_CUTOFF_ENERGY = 1.0e3  # eV
 PROTON_CUTOFF_ENERGY = 250000  # eV
 MU_CUTOFF = 0.999999
 THERMAL_THRESHOLD_FACTOR = 400
@@ -35,6 +39,10 @@ PARTICLE_NEUTRON = 0
 PARTICLE_ELECTRON = 1
 PARTICLE_PROTON = 2
 PARTICLE_PHOTON = 3
+# Positrons are created only by pair production, follow the electron physics
+# and settings, and annihilate at the end of their track. They have no
+# user-facing name: tallies, weight windows and settings for electrons cover them.
+PARTICLE_POSITRON = 4
 PARTICLE_ANY = 100
 # Helpers
 PARTICLE_TYPE_BY_NAME = {

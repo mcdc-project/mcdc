@@ -19,6 +19,7 @@ from mcdc.constant import (
     PARTICLE_ELECTRON,
     PARTICLE_PROTON,
     PARTICLE_PHOTON,
+    PARTICLE_POSITRON,
 )
 from mcdc.transport.mesh import get_indices as get_mesh_indices
 
@@ -101,7 +102,7 @@ def get_weight_window_object(particle_container, program):
     ptype = particle_container[0]["particle_type"]
     if ptype == PARTICLE_NEUTRON:
         ww_obj = technique["neutron_weight_windows"]
-    elif ptype == PARTICLE_ELECTRON:
+    elif ptype == PARTICLE_ELECTRON or ptype == PARTICLE_POSITRON:
         ww_obj = technique["electron_weight_windows"]
     elif ptype == PARTICLE_PROTON:
         ww_obj = technique["proton_weight_windows"]

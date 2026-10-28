@@ -12,6 +12,8 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE_ENERGY,
     COINCIDENCE_TOLERANCE_TIME,
     PARTICLE_ANY,
+    PARTICLE_ELECTRON,
+    PARTICLE_POSITRON,
 )
 from mcdc.transport.util import (
     find_bin_with_tolerance,
@@ -26,9 +28,14 @@ def get_filter_indices(particle_container, tally, data):
 
     particle = particle_container[0]
 
+    # Electron tallies cover positrons too
+    particle_type = particle["particle_type"]
+    if particle_type == PARTICLE_POSITRON:
+        particle_type = PARTICLE_ELECTRON
+
     if (
         tally["particle_type"] != PARTICLE_ANY
-        and tally["particle_type"] != particle["particle_type"]
+        and tally["particle_type"] != particle_type
     ):
         return -1, -1, -1, -1
 

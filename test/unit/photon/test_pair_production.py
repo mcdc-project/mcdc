@@ -46,7 +46,9 @@ def _pair_event(simulation, data, E, seed=7, weight=1.0):
     container = make_photon(E, seed=seed, weight=weight)
     interaction = make_interaction_data()
 
-    native.pair_production(container, interaction, simulation, data)
+    native.pair_production(
+        container, interaction, simulation["elements"][0], simulation, data
+    )
 
     bank = _bank(simulation)
     size = int(bank["size"][0])

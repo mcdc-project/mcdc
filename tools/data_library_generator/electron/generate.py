@@ -212,6 +212,12 @@ for zaid, Z, symbol, mcdc_name in pbar:
     dataset = brems_group.create_dataset("value", data=np.array(breml_loss) * 1e6)
     dataset.attrs["unit"] = "eV"
 
+    # Bremsstrahlung photon energy spectrum (BREME)
+    photon_group = bremsstrahlung_MT.create_group("photon_energy")
+    util.load_outgoing_energy_distribution(
+        ace_table.bremsstrahlung_energy_distribution_block, photon_group
+    )
+
     # ==================================================================================
     # Ionization: per-subshell cross section, binding energy, and knock-on
     # electron energy distributions
@@ -237,7 +243,7 @@ for zaid, Z, symbol, mcdc_name in pbar:
         dataset.attrs["unit"] = "eV"
 
         product_group = subshell_group.create_group("product")
-        util.load_electroionization_subshell(
+        util.load_outgoing_energy_distribution(
             ace_table.electroionisation_energy_distribution_block(idx),
             product_group,
         )
