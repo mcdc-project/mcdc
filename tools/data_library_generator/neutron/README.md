@@ -1,80 +1,19 @@
-# MC/DC Data Library Generator
+# MC/DC neutron data preparation
 
-Converts ACE-format nuclear data files into MC/DC's per-nuclide HDF5 format
-for continuous-energy neutron transport.
+Convert neutron ACE files to the [MC/DC data format](../../../docs/source/reference/data_format/index.rst), `mcdc-data`.
+Use a Python environment with [ACEtk](https://github.com/njoy/ACEtk), `h5py`, `numpy`, and `tqdm`.
 
-## Prerequisites
-
-```bash
-pip install h5py numpy tqdm
-```
-
-## Install ACEtk from source
-
-[ACEtk](https://github.com/njoy/ACEtk)
-
-You need a collection of ACE files (e.g., from NJOY or an ENDF/B distribution).
-
-## Environment Variables
-
-| Variable      | Description                                           |
-|---------------|-------------------------------------------------------|
-| `MCDC_ACELIB` | Path to the directory containing your ACE files.      |
-| `MCDC_LIB`    | Path to the output directory for MC/DC HDF5 files.    |
-
-## Usage
+From the repository root:
 
 ```bash
-export MCDC_ACELIB=/path/to/ace/files
-export MCDC_LIB=/path/to/mcdc/library
+export MCDC_LIB="/path/to/output/mcdc-library"
+export MCDC_ACE_LIB="/path/to/input/ace-library"
 
-python generate.py              # Convert only missing nuclides
-python generate.py --rewrite    # Regenerate all files
-python generate.py --verbose    # Print detailed per-nuclide info
+python tools/data_library_generator/neutron/generate.py --ace-files 1002.10c 88223.10c 92240.10c
 ```
 
-## What it Does
+Omit `--ace-files` to process all input files; use `--rewrite` to regenerate existing data or `--verbose` for reaction details.
+See the [neutron preparation guide](../../../docs/source/user_guide/data_preparation/neutron.rst) for input-library conventions, temperature mapping, reaction selection, conversion behavior, validation, and the shared `--keep-going` option.
 
-For each ACE file in `$MCDC_ACELIB`, the generator:
-
-1. Reads the ACE header to identify the nuclide (Z, A, isomeric state) and temperature.
-2. Extracts pointwise cross sections (elastic, capture, inelastic, fission) and the energy grid.
-3. Extracts angular distributions (tabulated cosine PDFs) and energy distributions
-   (level scattering, evaporation, Maxwellian, Kalbach-Mann, N-body, tabulated) per reaction channel.
-4. For fissionable nuclides, extracts prompt/delayed ν(E), precursor fractions, decay constants, and energy spectra.
-5. Writes a single HDF5 file per nuclide-temperature combination (e.g., `U235-293.6K.h5`).
-
-## Output HDF5 Schema
-
-```
-<Nuclide>-<Temperature>K.h5
-├── nuclide_name              (string)
-├── temperature               (float, K)
-├── atomic_weight_ratio       (float)
-├── fissionable               (bool)
-└── neutron_reactions/
-    ├── xs_energy_grid         (1-D array, MeV)
-    ├── elastic_scattering/
-    │   └── MT-002/
-    │       ├── xs             (1-D array, barns)
-    │       ├── cosine/
-    │       └── energy/
-    ├── capture/
-    │   └── MT-102/ ...
-    ├── inelastic_scattering/
-    │   └── MT-051/ ...
-    └── fission/
-        └── MT-018/
-            ├── xs
-            ├── cosine/
-            ├── energy/
-            ├── nu_total/
-            ├── nu_prompt/
-            ├── nu_delayed/
-            └── delayed_neutron/ ...
-```
-
-## See Also
-
-- [Continuous Energy Theory Guide](../../../docs/source/theory/continuous_energy.rst)
-- [Installation — CE Library Configuration](../../../docs/source/user_guide/getting_started/installation.rst)
+`generate.py` coordinates command-line options and output files using the [shared modules](../common/README.md).
+The [format reference](../../../docs/source/reference/data_format/index.rst) and [YAML illustrations](../../../docs/source/reference/data_format/illustrations.rst) describe the output structure.

@@ -168,25 +168,6 @@ table_data = into_dtype([
     ('base_ID', int64),
 ])
 
-ace_law4_distribution = into_dtype([
-    ('energy_offset', int64),
-    ('energy_length', int64),
-    ('offset_offset', int64),
-    ('offset_length', int64),
-    ('value_offset', int64),
-    ('value_length', int64),
-    ('pdf_offset', int64),
-    ('pdf_length', int64),
-    ('cdf_offset', int64),
-    ('cdf_length', int64),
-    ('n_discrete_offset', int64),
-    ('n_discrete_length', int64),
-    ('interpolation_offset', int64),
-    ('interpolation_length', int64),
-    ('ID', int64),
-    ('base_ID', int64),
-])
-
 distribution = into_dtype([
     ('ID', int64),
     ('sub_type', int64),
@@ -200,9 +181,18 @@ evaporation_distribution = into_dtype([
     ('base_ID', int64),
 ])
 
+isotropic_distribution = into_dtype([
+    ('ID', int64),
+    ('base_ID', int64),
+])
+
 kalbach_mann_distribution = into_dtype([
     ('energy_offset', int64),
     ('energy_length', int64),
+    ('incident_interpolations_offset', int64),
+    ('incident_interpolations_length', int64),
+    ('incident_interpolation_boundaries_offset', int64),
+    ('incident_interpolation_boundaries_length', int64),
     ('offset_offset', int64),
     ('offset_length', int64),
     ('energy_out_offset', int64),
@@ -215,6 +205,12 @@ kalbach_mann_distribution = into_dtype([
     ('precompound_factor_length', int64),
     ('angular_slope_offset', int64),
     ('angular_slope_length', int64),
+    ('interpolations_offset', int64),
+    ('interpolations_length', int64),
+    ('N_precompound_table', int64),
+    ('precompound_table_IDs_offset', int64),
+    ('N_angular_slope_table', int64),
+    ('angular_slope_table_IDs_offset', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])
@@ -233,17 +229,54 @@ maxwellian_distribution = into_dtype([
     ('base_ID', int64),
 ])
 
+mixture_distribution = into_dtype([
+    ('N_probability', int64),
+    ('probability_IDs_offset', int64),
+    ('N_component', int64),
+    ('component_IDs_offset', int64),
+    ('ID', int64),
+    ('base_ID', int64),
+])
+
 multi_table_distribution = into_dtype([
     ('grid_offset', int64),
     ('grid_length', int64),
-    ('N_table', int64),
-    ('table_IDs_offset', int64),
+    ('offsets_offset', int64),
+    ('offsets_length', int64),
+    ('value_offset', int64),
+    ('value_length', int64),
+    ('pdf_offset', int64),
+    ('pdf_length', int64),
+    ('cdf_offset', int64),
+    ('cdf_length', int64),
+    ('discrete_offsets_offset', int64),
+    ('discrete_offsets_length', int64),
+    ('discrete_value_offset', int64),
+    ('discrete_value_length', int64),
+    ('pmf_offset', int64),
+    ('pmf_length', int64),
+    ('cmf_offset', int64),
+    ('cmf_length', int64),
+    ('continuous_probability_offset', int64),
+    ('continuous_probability_length', int64),
+    ('interpolations_offset', int64),
+    ('interpolations_length', int64),
+    ('interpolation_boundaries_offset', int64),
+    ('interpolation_boundaries_length', int64),
+    ('pdf_interpolations_offset', int64),
+    ('pdf_interpolations_length', int64),
+    ('pdf_interpolation_boundaries_offset', int64),
+    ('pdf_interpolation_boundaries_length', int64),
+    ('pdf_interpolation_offsets_offset', int64),
+    ('pdf_interpolation_offsets_length', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])
 
 nbody_distribution = into_dtype([
     ('pdf_ID', int64),
+    ('number_particles', int64),
+    ('total_mass_ratio', float64),
     ('ID', int64),
     ('base_ID', int64),
 ])
@@ -253,26 +286,26 @@ none_distribution = into_dtype([
     ('base_ID', int64),
 ])
 
-pmf_distribution = into_dtype([
-    ('value_offset', int64),
-    ('value_length', int64),
+table_distribution = into_dtype([
+    ('pdf_ID', int64),
+    ('discrete_value_offset', int64),
+    ('discrete_value_length', int64),
     ('pmf_offset', int64),
     ('pmf_length', int64),
     ('cmf_offset', int64),
     ('cmf_length', int64),
+    ('continuous_probability', float64),
     ('ID', int64),
     ('base_ID', int64),
 ])
 
-tabulated_distribution = into_dtype([
-    ('pdf_ID', int64),
-    ('ID', int64),
-    ('base_ID', int64),
-])
-
-tabulated_energy_angle_distribution = into_dtype([
+table_energy_angle_distribution = into_dtype([
     ('energy_offset', int64),
     ('energy_length', int64),
+    ('incident_interpolations_offset', int64),
+    ('incident_interpolations_length', int64),
+    ('incident_interpolation_boundaries_offset', int64),
+    ('incident_interpolation_boundaries_length', int64),
     ('offset_offset', int64),
     ('offset_length', int64),
     ('energy_out_offset', int64),
@@ -289,6 +322,10 @@ tabulated_energy_angle_distribution = into_dtype([
     ('cosine_pdf_length', int64),
     ('cosine_cdf_offset', int64),
     ('cosine_cdf_length', int64),
+    ('interpolations_offset', int64),
+    ('interpolations_length', int64),
+    ('cosine_interpolations_offset', int64),
+    ('cosine_interpolations_length', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])
@@ -345,7 +382,6 @@ secondary_product = into_dtype([
     ('delayed', bool_),
     ('decay_constant', float64),
     ('reference_frame', int64),
-    ('angle_type', int64),
     ('mu_ID', int64),
     ('N_spectrum_probability_bin', int64),
     ('N_spectrum', int64),
@@ -360,7 +396,6 @@ secondary_product = into_dtype([
 
 element = into_dtype([
     ('name', 'U32'),
-    ('atomic_weight_ratio', float64),
     ('atomic_number', int64),
     ('electron_xs_energy_grid_offset', int64),
     ('electron_xs_energy_grid_length', int64),
@@ -384,6 +419,9 @@ element = into_dtype([
     ('electron_bremsstrahlung_reaction_IDs_offset', int64),
     ('electron_ionization_subshell_binding_energy_offset', int64),
     ('electron_ionization_subshell_binding_energy_length', int64),
+    ('photon_xs_is_linear', bool_),
+    ('N_photon_reaction', int64),
+    ('photon_reaction_IDs_offset', int64),
     ('photon_xs_energy_grid_offset', int64),
     ('photon_xs_energy_grid_length', int64),
     ('photon_total_xs_offset', int64),
@@ -423,6 +461,23 @@ element = into_dtype([
     ('ID', int64),
 ])
 
+photon_reaction = into_dtype([
+    ('MT', int64),
+    ('xs_offset', int64),
+    ('xs_length', int64),
+    ('xs_offset_', int64),
+    ('xs_interpolations_offset', int64),
+    ('xs_interpolations_length', int64),
+    ('xs_interpolation_boundaries_offset', int64),
+    ('xs_interpolation_boundaries_length', int64),
+    ('reference_frame', int64),
+    ('N_secondary_product', int64),
+    ('secondary_product_IDs_offset', int64),
+    ('ID', int64),
+    ('sub_type', int64),
+    ('sub_ID', int64),
+])
+
 photon_coherent_scattering_reaction = into_dtype([
     ('form_factor_ID', int64),
     ('ID', int64),
@@ -435,6 +490,7 @@ photon_incoherent_scattering_reaction = into_dtype([
 ])
 
 photon_pair_production_reaction = into_dtype([
+    ('electron_field', bool_),
     ('ID', int64),
     ('base_ID', int64),
 ])
@@ -443,6 +499,8 @@ photon_photoelectric_reaction = into_dtype([
     ('N_subshell', int64),
     ('N_subshell_x', int64),
     ('subshell_x_IDs_offset', int64),
+    ('subshell_designators_offset', int64),
+    ('subshell_designators_length', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])
@@ -488,12 +546,15 @@ neutron_multigroup_data = into_dtype([
 nuclide = into_dtype([
     ('name', 'U32'),
     ('temperature', float64),
-    ('atomic_number', int64),
+    ('element_ID', int64),
     ('mass_number', int64),
     ('atomic_weight_ratio', float64),
     ('fissionable', bool_),
     ('excitation_level', int64),
     ('radiation_length', float64),
+    ('neutron_xs_is_linear', bool_),
+    ('N_neutron_reaction', int64),
+    ('neutron_reaction_IDs_offset', int64),
     ('neutron_xs_energy_grid_offset', int64),
     ('neutron_xs_energy_grid_length', int64),
     ('neutron_total_xs_offset', int64),
@@ -530,15 +591,6 @@ nuclide = into_dtype([
     ('proton_capture_reaction_IDs_offset', int64),
     ('N_proton_inelastic_scattering_reaction', int64),
     ('proton_inelastic_scattering_reaction_IDs_offset', int64),
-    ('neutron_fission_prompt_multiplicity_ID', int64),
-    ('neutron_fission_delayed_multiplicity_ID', int64),
-    ('N_neutron_fission_delayed_precursor', int64),
-    ('neutron_fission_delayed_fractions_offset', int64),
-    ('neutron_fission_delayed_fractions_length', int64),
-    ('neutron_fission_delayed_decay_rates_offset', int64),
-    ('neutron_fission_delayed_decay_rates_length', int64),
-    ('N_neutron_fission_delayed_spectrum', int64),
-    ('neutron_fission_delayed_spectrum_IDs_offset', int64),
     ('stopping_power_ID', int64),
     ('ID', int64),
 ])
@@ -584,6 +636,10 @@ neutron_reaction = into_dtype([
     ('xs_offset', int64),
     ('xs_length', int64),
     ('xs_offset_', int64),
+    ('xs_interpolations_offset', int64),
+    ('xs_interpolations_length', int64),
+    ('xs_interpolation_boundaries_offset', int64),
+    ('xs_interpolation_boundaries_length', int64),
     ('reference_frame', int64),
     ('q_value', float64),
     ('N_secondary_product', int64),
@@ -605,25 +661,25 @@ neutron_elastic_scattering_reaction = into_dtype([
 ])
 
 neutron_fission_reaction = into_dtype([
-    ('angle_type', int64),
     ('mu_ID', int64),
     ('spectrum_ID', int64),
+    ('prompt_multiplicity_ID', int64),
+    ('delayed_multiplicity_ID', int64),
+    ('N_delayed_precursor', int64),
+    ('delayed_fractions_offset', int64),
+    ('delayed_fractions_length', int64),
+    ('delayed_decay_rates_offset', int64),
+    ('delayed_decay_rates_length', int64),
+    ('N_delayed_spectrum', int64),
+    ('delayed_spectrum_IDs_offset', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])
 
 neutron_inelastic_scattering_reaction = into_dtype([
     ('multiplicity', int64),
-    ('angle_type', int64),
     ('mu_ID', int64),
-    ('N_spectrum_probability_bin', int64),
-    ('N_spectrum', int64),
-    ('spectrum_probability_grid_offset', int64),
-    ('spectrum_probability_grid_length', int64),
-    ('spectrum_probability_offset', int64),
-    ('spectrum_probability_length', int64),
-    ('N_energy_spectrum', int64),
-    ('energy_spectrum_IDs_offset', int64),
+    ('spectrum_ID', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])
@@ -641,17 +697,8 @@ proton_elastic_scattering_reaction = into_dtype([
 
 proton_inelastic_scattering_reaction = into_dtype([
     ('multiplicity_data_ID', int64),
-    ('use_all_spectra', bool_),
-    ('angle_type', int64),
     ('mu_ID', int64),
-    ('N_spectrum_probability_bin', int64),
-    ('N_spectrum', int64),
-    ('spectrum_probability_grid_offset', int64),
-    ('spectrum_probability_grid_length', int64),
-    ('spectrum_probability_offset', int64),
-    ('spectrum_probability_length', int64),
-    ('N_energy_spectrum', int64),
-    ('energy_spectrum_IDs_offset', int64),
+    ('spectrum_ID', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])
@@ -664,19 +711,6 @@ interaction_data = into_dtype([
 particle_bank = into_dtype([
     ('size', int64, (1,)),
     ('tag', 'U32'),
-])
-
-photon_reaction = into_dtype([
-    ('MT', int64),
-    ('xs_offset', int64),
-    ('xs_length', int64),
-    ('xs_offset_', int64),
-    ('reference_frame', int64),
-    ('N_secondary_product', int64),
-    ('secondary_product_IDs_offset', int64),
-    ('ID', int64),
-    ('sub_type', int64),
-    ('sub_ID', int64),
 ])
 
 proton_reaction = into_dtype([
@@ -962,30 +996,30 @@ def make_simulation_type(N: dict):
         ('N_polynomial_data', int64),
         ('table_data', table_data, (N['table_data'])),
         ('N_table_data', int64),
-        ('ace_law4_distributions', ace_law4_distribution, (N['ace_law4_distribution'])),
-        ('N_ace_law4_distribution', int64),
         ('distributions', distribution, (N['distribution'])),
         ('N_distribution', int64),
         ('evaporation_distributions', evaporation_distribution, (N['evaporation_distribution'])),
         ('N_evaporation_distribution', int64),
+        ('isotropic_distributions', isotropic_distribution, (N['isotropic_distribution'])),
+        ('N_isotropic_distribution', int64),
         ('kalbach_mann_distributions', kalbach_mann_distribution, (N['kalbach_mann_distribution'])),
         ('N_kalbach_mann_distribution', int64),
         ('level_scattering_distributions', level_scattering_distribution, (N['level_scattering_distribution'])),
         ('N_level_scattering_distribution', int64),
         ('maxwellian_distributions', maxwellian_distribution, (N['maxwellian_distribution'])),
         ('N_maxwellian_distribution', int64),
+        ('mixture_distributions', mixture_distribution, (N['mixture_distribution'])),
+        ('N_mixture_distribution', int64),
         ('multi_table_distributions', multi_table_distribution, (N['multi_table_distribution'])),
         ('N_multi_table_distribution', int64),
         ('nbody_distributions', nbody_distribution, (N['nbody_distribution'])),
         ('N_nbody_distribution', int64),
         ('none_distributions', none_distribution, (N['none_distribution'])),
         ('N_none_distribution', int64),
-        ('pmf_distributions', pmf_distribution, (N['pmf_distribution'])),
-        ('N_pmf_distribution', int64),
-        ('tabulated_distributions', tabulated_distribution, (N['tabulated_distribution'])),
-        ('N_tabulated_distribution', int64),
-        ('tabulated_energy_angle_distributions', tabulated_energy_angle_distribution, (N['tabulated_energy_angle_distribution'])),
-        ('N_tabulated_energy_angle_distribution', int64),
+        ('table_distributions', table_distribution, (N['table_distribution'])),
+        ('N_table_distribution', int64),
+        ('table_energy_angle_distributions', table_energy_angle_distribution, (N['table_energy_angle_distribution'])),
+        ('N_table_energy_angle_distribution', int64),
         ('neutron_reactions', neutron_reaction, (N['neutron_reaction'])),
         ('N_neutron_reaction', int64),
         ('neutron_capture_reactions', neutron_capture_reaction, (N['neutron_capture_reaction'])),
@@ -1014,6 +1048,8 @@ def make_simulation_type(N: dict):
         ('N_proton_inelastic_scattering_reaction', int64),
         ('proton_reactions', proton_reaction, (N['proton_reaction'])),
         ('N_proton_reaction', int64),
+        ('photon_reactions', photon_reaction, (N['photon_reaction'])),
+        ('N_photon_reaction', int64),
         ('photon_coherent_scattering_reactions', photon_coherent_scattering_reaction, (N['photon_coherent_scattering_reaction'])),
         ('N_photon_coherent_scattering_reaction', int64),
         ('photon_incoherent_scattering_reactions', photon_incoherent_scattering_reaction, (N['photon_incoherent_scattering_reaction'])),
@@ -1022,8 +1058,6 @@ def make_simulation_type(N: dict):
         ('N_photon_pair_production_reaction', int64),
         ('photon_photoelectric_reactions', photon_photoelectric_reaction, (N['photon_photoelectric_reaction'])),
         ('N_photon_photoelectric_reaction', int64),
-        ('photon_reactions', photon_reaction, (N['photon_reaction'])),
-        ('N_photon_reaction', int64),
         ('nuclides', nuclide, (N['nuclide'])),
         ('N_nuclide', int64),
         ('elements', element, (N['element'])),

@@ -1,4 +1,6 @@
 import re
+from collections.abc import Sequence
+from numbers import Integral
 from typing import Annotated, Any, Union, get_args, get_origin
 
 import numpy as np
@@ -7,6 +9,13 @@ from numpy.typing import NDArray
 
 from mcdc.constant import (
     INF,
+    REFERENCE_FRAME_COM,
+    REFERENCE_FRAME_LAB,
+    INTERPOLATION_HISTOGRAM,
+    INTERPOLATION_LINEAR,
+    INTERPOLATION_SEMILOGX,
+    INTERPOLATION_SEMILOGY,
+    INTERPOLATION_LOG,
     PARTICLE_ANY,
     PARTICLE_TYPE_BY_NAME,
     PARTICLE_TYPE_NAME_PAIRS,
@@ -33,6 +42,19 @@ def decode_particle_type(type_, default=None):
         if type_ == code:
             return name.capitalize()
     return default
+
+
+# ======================================================================================
+# Reaction reference frames
+# ======================================================================================
+
+
+def decode_reference_frame(type_):
+    """Return the display name for a packed reaction reference-frame code."""
+    if type_ == REFERENCE_FRAME_LAB:
+        return "Laboratory"
+    if type_ == REFERENCE_FRAME_COM:
+        return "Center of mass"
 
 
 # ======================================================================================
@@ -65,7 +87,30 @@ def parse_dimension_expression(expression: str) -> tuple[str, int]:
     return attribute, offset
 
 
+_ELEMENT_SYMBOLS = (
+    "H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni "
+    "Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe "
+    "Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg "
+    "Tl Pb Bi Po At Rn Fr Ra Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg "
+    "Bh Hs Mt Ds Rg Cn Nh Fl Mc Lv Ts Og"
+).split()
+
+
+def atomic_number_from_element_name(name):
+    """Return Z for a chemical symbol, or zero for a model-defined element."""
+    return _ELEMENT_SYMBOLS.index(name) + 1 if name in _ELEMENT_SYMBOLS else 0
+
+
+def nuclide_identity_from_name(name):
+    """Return mass number and excitation index from a canonical nuclide name."""
+    match = _NUCLIDE_NAME_RE.fullmatch(name)
+    if match is None:
+        raise ValueError(f"Invalid nuclide name: {name!r}")
+    return int(match.group(2)), int(match.group(3) or 0)
+
+
 def is_nuclide_name(name: str) -> bool:
+    """Return whether a name has a nuclide mass number and optional isomer index."""
     return _NUCLIDE_NAME_RE.fullmatch(name) is not None
 
 
@@ -447,41 +492,141 @@ def cmf_from_pmf(
 def cdf_from_pdf(
     value: NDArray[float64],
     pdf: NDArray[float64],
+    interpolations: int | Sequence[int] = INTERPOLATION_LINEAR,
+    interpolation_boundaries: Sequence[int] | None = None,
+    *,
+    normalize: bool = True,
 ) -> tuple[NDArray[float64], NDArray[float64]]:
-    """
-    Normalize a piecewise-linear PDF and construct its CDF.
+    """Normalize a continuous PDF and construct its interpolation-aware CDF.
 
     Parameters
     ----------
-    value : ndarray of float64
-        Sample values.
-    pdf : ndarray of float64
-        PDF values at the sample values.
+    value, pdf : array_like
+        Matching one-dimensional coordinates and nonnegative relative densities.
+        Coordinates are nondecreasing, with a positive total support width.
+        Repeated coordinates describe density jumps and carry no probability.
+    interpolations : int or sequence of int, optional
+        Interpolation code per region, defaulting to linear over the full table.
+        Histogram, linear, semilog-x, semilog-y, and log laws are supported.
+    interpolation_boundaries : sequence of int, optional
+        Exclusive upper point indices, matching DataTable's convention.
+        Required for a sequence of laws; the final boundary equals len(value).
+
+    normalize : bool, optional
+        Normalize the integral to one by default. False preserves the supplied
+        density and cumulative mass for mixed continuous/discrete distributions.
 
     Returns
     -------
-    pdf : ndarray of float64
-        Normalized PDF.
-    cdf : ndarray of float64
-        Corresponding normalized CDF.
+    pdf, cdf : ndarray of float64
+        Normalized densities and cumulative probabilities obtained from exact
+        segment integrals. Input arrays are not modified.
     """
-
-    pdf = pdf.copy()
-    cdf = np.zeros_like(pdf)
-
-    # Trapezoidal integration of a piecewise-linear PDF.
-    for i in range(len(pdf) - 1):
-        cdf[i + 1] = cdf[i] + 0.5 * (pdf[i] + pdf[i + 1]) * (value[i + 1] - value[i])
-
-    norm = cdf[-1]
-
-    if norm <= 0.0:
-        print_error("PDF integral must be positive.")
-
-    pdf /= norm
-    cdf /= norm
-
-    return pdf, cdf
+    x = np.asarray(value, dtype=float64)
+    y = np.asarray(pdf, dtype=float64)
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y):
+        raise ValueError(
+            "Coordinates and densities must be matching one-dimensional arrays"
+        )
+    if (
+        not np.all(np.isfinite(x))
+        or len(x) < 2
+        or np.any(np.diff(x) < 0)
+        or not np.any(np.diff(x) > 0)
+    ):
+        raise ValueError(
+            "A continuous distribution needs finite nondecreasing values and positive support width"
+        )
+    if not np.all(np.isfinite(y)) or np.any(y < 0):
+        raise ValueError("Probability densities must be finite and nonnegative")
+    if isinstance(interpolations, Integral):
+        laws = np.array([interpolations], dtype=np.int64)
+        boundaries = np.array([len(x)], dtype=np.int64)
+    else:
+        laws = np.asarray(interpolations, dtype=np.int64)
+        if interpolation_boundaries is None:
+            raise ValueError(
+                "Interpolation boundaries are required for a sequence of laws"
+            )
+        boundaries = np.asarray(interpolation_boundaries, dtype=np.int64)
+    if (
+        laws.ndim != 1
+        or boundaries.ndim != 1
+        or len(laws) != len(boundaries)
+        or not len(laws)
+    ):
+        raise ValueError(
+            "Interpolation laws and boundaries must be nonempty vectors of equal length"
+        )
+    if (
+        boundaries[0] < 2
+        or boundaries[-1] != len(x)
+        or np.any(np.diff(boundaries) <= 0)
+    ):
+        raise ValueError("Invalid interpolation region boundaries")
+    if np.any(
+        ~np.isin(
+            laws,
+            [
+                INTERPOLATION_HISTOGRAM,
+                INTERPOLATION_LINEAR,
+                INTERPOLATION_SEMILOGX,
+                INTERPOLATION_SEMILOGY,
+                INTERPOLATION_LOG,
+            ],
+        )
+    ):
+        raise ValueError("Unsupported probability-density interpolation law")
+    areas = np.empty(len(x) - 1)
+    start = 0
+    for law, boundary in zip(laws, boundaries):
+        stop = boundary - 1
+        x0, x1 = x[start:stop], x[start + 1 : stop + 1]
+        y0, y1 = y[start:stop], y[start + 1 : stop + 1]
+        positive_width = x1 > x0
+        x0, x1 = x0[positive_width], x1[positive_width]
+        y0, y1 = y0[positive_width], y1[positive_width]
+        width = x1 - x0
+        if law in (INTERPOLATION_SEMILOGX, INTERPOLATION_LOG) and np.any(x0 <= 0):
+            raise ValueError("Logarithmic abscissae must be positive")
+        if law in (INTERPOLATION_SEMILOGY, INTERPOLATION_LOG) and (
+            np.any(y0 <= 0) or np.any(y1 <= 0)
+        ):
+            raise ValueError("Logarithmic densities must be positive")
+        if law == INTERPOLATION_HISTOGRAM:
+            area = width * y0
+        elif law == INTERPOLATION_LINEAR:
+            area = width * (y0 + y1) * 0.5
+        elif law == INTERPOLATION_SEMILOGX:
+            area = y0 * width + (y1 - y0) / np.log(x1 / x0) * (
+                x1 * np.log(x1 / x0) - width
+            )
+        elif law == INTERPOLATION_SEMILOGY:
+            slope = np.log(y1 / y0) / width
+            area = y0 * width
+            varying = slope != 0
+            area[varying] = (
+                y0[varying] * np.expm1(slope[varying] * width[varying]) / slope[varying]
+            )
+        else:
+            power = np.log(y1 / y0) / np.log(x1 / x0) + 1.0
+            area = y0 * x0 * np.log(x1 / x0)
+            varying = np.abs(power) > 1.0e-12
+            area[varying] = (
+                y0[varying]
+                * x0[varying]
+                * np.expm1(power[varying] * np.log(x1[varying] / x0[varying]))
+                / power[varying]
+            )
+        areas[start:stop] = 0.0
+        areas[start:stop][positive_width] = area
+        start = stop
+    cdf = np.concatenate(([0.0], np.cumsum(areas)))
+    if not np.isfinite(cdf[-1]) or (normalize and cdf[-1] <= 0):
+        raise ValueError("A probability density must have a positive finite integral")
+    if not normalize:
+        return y.copy(), cdf
+    return y / cdf[-1], cdf / cdf[-1]
 
 
 def pdf_from_cdf(
@@ -506,10 +651,23 @@ def pdf_from_cdf(
         Normalized CDF.
     """
 
-    cdf = cdf.copy()
-
-    if cdf[-1] <= 0.0:
-        print_error("Final CDF value must be positive.")
+    value = np.asarray(value, dtype=float64)
+    cdf = np.array(cdf, dtype=float64, copy=True)
+    if (
+        value.ndim != 1
+        or cdf.ndim != 1
+        or value.shape != cdf.shape
+        or len(value) < 2
+        or not np.all(np.isfinite(value))
+        or not np.all(np.isfinite(cdf))
+        or np.any(np.diff(value) <= 0)
+        or cdf[0] != 0.0
+        or np.any(np.diff(cdf) < 0)
+        or cdf[-1] <= 0.0
+    ):
+        raise ValueError(
+            "A continuous CDF needs matching increasing coordinates and nondecreasing probabilities starting at zero"
+        )
 
     # Normalize CDF.
     cdf /= cdf[-1]
@@ -533,7 +691,7 @@ def pdf_from_cdf(
 
 
 def multi_cdf_from_pdf(offset, value, pdf):
-    """Normalize multiple flattened PDFs and construct their CDFs.
+    """Normalize multiple flattened linear PDFs through :func:`cdf_from_pdf`.
 
     Parameters
     ----------
@@ -548,23 +706,14 @@ def multi_cdf_from_pdf(offset, value, pdf):
         Per-table normalized densities and cumulative distributions.
     """
 
+    pdf = np.array(pdf, dtype=float64, copy=True)
+    value = np.asarray(value, dtype=float64)
     cdf = np.zeros_like(pdf)
 
     for i in range(len(offset)):
         start = offset[i]
         end = offset[i + 1] if i < len(offset) - 1 else len(pdf)
-
-        # Build CDF incrementally with trapezoidal integration
-        for idx in range(start, end - 1):
-            cdf[idx + 1] = (
-                cdf[idx]
-                + (pdf[idx] + pdf[idx + 1]) * (value[idx + 1] - value[idx]) * 0.5
-            )
-
-        # Normalize this segment so CDF ends at 1
-        norm = cdf[end - 1]
-        pdf[start:end] /= norm
-        cdf[start:end] /= norm
+        pdf[start:end], cdf[start:end] = cdf_from_pdf(value[start:end], pdf[start:end])
 
     return pdf, cdf
 

@@ -1,7 +1,6 @@
 import fnmatch
 import subprocess
 import sys
-import warnings
 from pathlib import Path
 
 import h5py
@@ -10,6 +9,8 @@ import pytest
 
 REGRESSION_DIR = Path(__file__).parent
 REGRESSION_DATA_NAME = "mcdc-regression_test_data"
+REGRESSION_DATA_REPOSITORY = "https://github.com/ilhamv/mcdc-regression_test_data.git"
+REGRESSION_DATA_REVISION = "81627ef7339b95ec856b2fb9ca9c7ae0ba14ed2d"
 RELATIVE_TOLERANCE = 1e-6
 ABSOLUTE_TOLERANCE = 1e-14
 NON_TEST_DIRS = {"__pycache__", REGRESSION_DATA_NAME}
@@ -58,34 +59,50 @@ def pytest_generate_tests(metafunc):
 
 @pytest.fixture(scope="session")
 def regression_data():
+    """Check out the exact regression-data revision required by this source tree."""
     data_path = REGRESSION_DIR / REGRESSION_DATA_NAME
     if data_path.is_dir():
         result = subprocess.run(
-            ["git", "pull"],
-            cwd=data_path,
+            ["git", "rev-parse", "HEAD"], cwd=data_path, capture_output=True, text=True
+        )
+        if result.returncode == 0 and result.stdout.strip() == REGRESSION_DATA_REVISION:
+            return data_path
+    else:
+        result = subprocess.run(
+            [
+                "git",
+                "clone",
+                "--no-checkout",
+                "--depth=1",
+                REGRESSION_DATA_REPOSITORY,
+                REGRESSION_DATA_NAME,
+            ],
+            cwd=REGRESSION_DIR,
             capture_output=True,
             text=True,
         )
-        # An out-of-date clone is still usable (e.g. when running offline), so warn
-        # rather than skip.
         if result.returncode != 0:
-            warnings.warn(
-                "Could not update regression data repository.\n"
+            pytest.skip(
+                "Could not clone regression data repository.\n"
                 + format_subprocess_output(result.stdout, result.stderr)
             )
-        return data_path
 
-    result = subprocess.run(
-        ["git", "clone", f"https://github.com/mcdc-project/{REGRESSION_DATA_NAME}.git"],
-        cwd=REGRESSION_DIR,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        pytest.skip(
-            "Could not clone regression data repository.\n"
-            + format_subprocess_output(result.stdout, result.stderr)
-        )
+    for command in (
+        [
+            "git",
+            "fetch",
+            "--depth=1",
+            REGRESSION_DATA_REPOSITORY,
+            REGRESSION_DATA_REVISION,
+        ],
+        ["git", "checkout", "--detach", REGRESSION_DATA_REVISION],
+    ):
+        result = subprocess.run(command, cwd=data_path, capture_output=True, text=True)
+        if result.returncode != 0:
+            pytest.fail(
+                "Could not check out the required regression data revision.\n"
+                + format_subprocess_output(result.stdout, result.stderr)
+            )
     return data_path
 
 

@@ -63,14 +63,21 @@ def evaluate_table_with_clamp_option(x, table, data, clamp):
     """Evaluate a table with optional constant extrapolation outside its grid."""
     grid = mcdc_get.table_data.x_all(table, data)
 
-    # Clamp before bin lookup, including equality at the first grid point.
+    if len(grid) == 1:
+        return mcdc_get.table_data.y(0, table, data)
+
+    # Clamp beyond the grid; equality is evaluated to the right of any jump.
     if clamp:
-        if x <= grid[0]:
+        if x < grid[0]:
             return mcdc_get.table_data.y(0, table, data)
         if x >= grid[-1]:
             return mcdc_get.table_data.y(len(grid) - 1, table, data)
 
-    idx = find_bin(x, grid)
+    idx = min(max(find_bin(x, grid), 0), len(grid) - 2)
+    if x == grid[-1]:
+        return mcdc_get.table_data.y(len(grid) - 1, table, data)
+    while idx < len(grid) - 2 and grid[idx] == grid[idx + 1] and x >= grid[idx + 1]:
+        idx += 1
     x1 = grid[idx]
     x2 = grid[idx + 1]
     y1 = mcdc_get.table_data.y(idx, table, data)

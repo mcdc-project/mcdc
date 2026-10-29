@@ -5,28 +5,14 @@ Continuous Energy
 =================
 
 MC/DC supports continuous energy (CE) neutron transport using pointwise nuclear data libraries.
-In CE mode, cross sections are represented as energy-dependent tabulated data rather than multigroup averages, enabling higher-fidelity simulations.
-
-Data Libraries
---------------
-
-CE data is loaded from HDF5 files for each nuclide or element, with nuclides loaded at the specified temperature.
-The environment variable ``MCDC_LIB`` must point to the library directory.
-Each nuclide file (e.g., ``U235-293.6K.h5``) contains:
-
-- An energy grid (converted from MeV to eV on load),
-- Pointwise total, elastic, capture, inelastic, and fission cross sections,
-- Angular and energy distributions for secondary particles,
-- Prompt and delayed fission neutron multiplicities and spectra,
-- Delayed neutron precursor data (fractions, decay constants, and energy spectra).
-
-Supported temperature points are 0.1, 233.15, 273.15, 293.6, 600.0, 900.0, 1200.0, and 2500.0 K.
-MC/DC selects the nearest available temperature for each nuclide. Note that electron and photon data are stored per element and have no temperature.
+Cross sections and outgoing-particle distributions are evaluated at the particle's energy rather than averaged over energy groups.
+The random walk follows :doc:`Monte Carlo transport basics <monte_carlo>`.
+For library generation, see :doc:`Neutron data preparation <../user_guide/data_preparation/neutron>`; for stored data structures, see the :doc:`data format reference <../reference/data_format/index>`.
 
 Cross Section Evaluation
 ------------------------
 
-Microscopic cross sections are evaluated by binary search on the energy grid followed by linear interpolation between bounding points.
+Microscopic cross sections are evaluated by binary search on the shared energy grid, using the interpolation rules stored with each reaction's cross section.
 Macroscopic cross sections for a material are computed as the sum over constituent nuclides:
 
 .. math::
@@ -35,16 +21,17 @@ Macroscopic cross sections for a material are computed as the sum over constitue
 
 where :math:`N_i` is the atom density and :math:`\sigma_i(E)` is the microscopic cross section of nuclide :math:`i` at energy :math:`E`.
 
-Collision Physics
------------------
+Elastic Scattering
+------------------
 
-CE collision processing implements full center-of-mass (COM) kinematics:
+Elastic scattering accounts for target thermal motion by sampling a collision-weighted Maxwellian target velocity at the evaluation temperature.
+The neutron velocity is transformed into the center-of-mass frame, its direction is sampled from the reaction's angular distribution, and the outgoing velocity is transformed back to the laboratory frame.
+At energies above the thermal-motion threshold, the target is treated as stationary.
 
-- **Elastic scattering** (MT-2): Thermal motion of the target nucleus is sampled from a Maxwellian distribution parameterized by :math:`\beta = \sqrt{A m / (2 k_B T)}`, where :math:`A` is the mass ratio.
-  Rejection sampling is used for the relative speed.
-- **Inelastic scattering**: Multiple MT channels with tabulated energy-angle distributions (Kalbach-Mann, evaporation, Maxwellian, N-body, level scattering).
-- **Capture**: Particle is absorbed; implicit capture can be enabled as a variance reduction technique.
-- **Fission**: Secondary particles are emitted using :math:`\nu(E)/k_\text{eff}` scaling, with prompt and delayed components sampled separately.
+The :doc:`ACE distribution reference <../reference/ace_distributions>` describes outgoing-energy and angle sampling for the supported reaction distributions.
+
+Neutron Speed
+-------------
 
 Relativistic particle speed is computed as:
 
@@ -52,119 +39,4 @@ Relativistic particle speed is computed as:
 
    v = c \, \frac{\sqrt{E(E + 2m_n c^2)}}{E + m_n c^2}
 
-
-Generating a Data Library from ACE Files
------------------------------------------
-
-MC/DC ships with a conversion tool in ``tools/data_library_generator/neutron/`` that reads standard ACE-format nuclear data files and writes them into MC/DC's per-nuclide HDF5 format.
-This is the primary path for creating CE libraries.
-
-**Prerequisites:**
-
-.. code-block:: sh
-
-   pip install ACEtk h5py numpy tqdm
-
-You also need a set of ACE files from a source such as `NJOY <http://www.njoy21.io/>`_ or an ENDF/B distribution.
-
-**Environment variables:**
-
-.. list-table::
-   :widths: 25 75
-   :header-rows: 1
-
-   * - Variable
-     - Description
-   * - ``MCDC_ACELIB``
-     - Path to the directory containing your ACE files.
-   * - ``MCDC_LIB``
-     - Path to the output directory where MC/DC HDF5 files will be written.
-
-**Running the generator:**
-
-.. code-block:: sh
-
-   export MCDC_ACELIB=/path/to/ace/files
-   export MCDC_LIB=/path/to/mcdc/library
-
-   cd tools/data_library_generator/neutron
-   python generate.py
-
-By default, the tool converts only nuclides without a corresponding HDF5 file in ``$MCDC_LIB``.
-Use ``--rewrite`` to regenerate all files or ``--verbose`` for detailed per-nuclide output:
-
-.. code-block:: sh
-
-   python generate.py --rewrite --verbose
-
-The generator processes each ACE file as follows:
-
-#. Reads the ACE header to determine nuclide identity and temperature.
-#. Extracts the principal cross-section block and writes HDF5 datasets grouped by reaction type.
-#. Extracts angular and energy distributions for each reaction channel.
-#. Extracts prompt and delayed :math:`\nu(E)` data, precursor fractions, decay constants, and energy spectra for fissionable nuclides.
-
-The resulting HDF5 file, such as ``U235-293.6K.h5``, is ready for use with ``mcdc.Material()``.
-
-
-Using CE Materials in an Input Deck
-------------------------------------
-
-Once the library is generated, set the ``MCDC_LIB`` environment variable and define materials with ``mcdc.Material()``:
-
-.. code-block:: python3
-
-   import mcdc
-
-   # Define nuclides and/or elements with atom densities (atoms/barn-cm)
-   fuel = mcdc.Material(
-       number_density={
-         "U235": 5.58e-4,
-         "U238": 2.24e-2,
-         "O": 4.583e-2
-       },
-       temperature=293.6,
-   )
-
-MC/DC will automatically look up the matching HDF5 file in ``$MCDC_LIB``
-(e.g., ``U235-293.6K.h5``) and load the pointwise cross sections.
-
-
-Note on External Data Sources
-------------------------------
-
-MC/DC's internal HDF5 format is independent of the original data source.
-The shipped tool converts ACE data, but users can implement converters for other formats by following the same HDF5 schema used by ``generate.py``.
-
-The key HDF5 structure expected by MC/DC is:
-
-.. code-block:: text
-
-   <Nuclide>-<Temperature>K.h5
-   ├── nuclide_name              (string)
-   ├── temperature               (float, K)
-   ├── atomic_weight_ratio       (float)
-   ├── fissionable               (bool)
-   └── neutron_reactions/
-       ├── xs_energy_grid         (1-D array, MeV)
-       ├── elastic_scattering/
-       │   └── MT-002/
-       │       ├── xs             (1-D array, barns)
-       │       ├── cosine/        (angular distribution)
-       │       └── energy/        (energy distribution)
-       ├── capture/
-       │   └── MT-102/ ...
-       ├── inelastic_scattering/
-       │   └── MT-051/ ...
-       └── fission/
-           └── MT-018/
-               ├── xs
-               ├── cosine/
-               ├── energy/
-               ├── nu_total/
-               ├── nu_prompt/
-               ├── nu_delayed/
-               └── delayed_neutron/ ...
-
-A converter from OpenMC's ``IncidentNeutron`` HDF5 format to this schema is a planned future addition.
-Contributions are welcome through `Issue #333 <https://github.com/mcdc-project/mcdc/issues/333>`_.
+where :math:`E` is the neutron kinetic energy, :math:`m_n` is its rest mass, and :math:`c` is the speed of light.

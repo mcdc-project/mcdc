@@ -166,7 +166,8 @@ jobs:
       - name: Checkout regression test data
         uses: actions/checkout@v4
         with:
-          repository: mcdc-project/mcdc-regression_test_data
+          repository: ilhamv/mcdc-regression_test_data
+          ref: 81627ef7339b95ec856b2fb9ca9c7ae0ba14ed2d
           path: test/regression/mcdc-regression_test_data
           fetch-depth: 1
 

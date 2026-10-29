@@ -1,3 +1,4 @@
+import numpy as np
 from numpy import float64
 from numpy.typing import NDArray
 
@@ -18,7 +19,11 @@ from mcdc.constant import (
 from mcdc.object_.secondary_product import SecondaryProduct
 from mcdc.object_.base import MCDCPolymorphic
 from mcdc.object_.data import DataBase, DataTable
-from mcdc.object_.distribution import DistributionBase, DistributionMultiTable
+from mcdc.object_.distribution import (
+    DistributionBase,
+    DistributionMultiTable,
+)
+from mcdc.object_.util import decode_reference_frame
 from mcdc.print_ import print_1d_array, print_error
 
 # ======================================================================================
@@ -70,15 +75,6 @@ class ElectronReactionBase(MCDCPolymorphic):
         text += f"  - XS {print_1d_array(self.xs)} barn\n"
         text += f"  - Reference frame: {decode_reference_frame(self.reference_frame)}\n"
         return text
-
-
-def decode_reference_frame(type_):
-    """Return the display name for a packed reference-frame code."""
-
-    if type_ == REFERENCE_FRAME_LAB:
-        return "Laboratory"
-    elif type_ == REFERENCE_FRAME_COM:
-        return "Center of mass"
 
 
 # ======================================================================================
@@ -145,24 +141,19 @@ class ElectronReactionIonization(ElectronReactionBase):
                     f"Ionization subshell {name} has no product spectrum above "
                     "its binding energy."
                 )
-            if "CDF" in product:
-                subshell_product.append(
-                    DistributionMultiTable(
-                        product_grid,
-                        product["energy_offset"][()],
-                        read_energy(product["value"]),
-                        cdf=product["CDF"][()],
-                    )
+            offset = product["energy_offset"][()]
+            values = read_energy(product["value"])
+            probabilities = (
+                product["CDF"][()] if "CDF" in product else product["PDF"][()]
+            )
+            subshell_product.append(
+                DistributionMultiTable(
+                    product_grid,
+                    values,
+                    offsets=np.r_[offset, len(values)].astype(np.int64),
+                    **{"cdf" if "CDF" in product else "pdf": probabilities},
                 )
-            else:
-                subshell_product.append(
-                    DistributionMultiTable(
-                        product_grid,
-                        product["energy_offset"][()],
-                        read_energy(product["value"]),
-                        product["PDF"][()],
-                    )
-                )
+            )
 
         return cls(
             MT,
@@ -227,20 +218,17 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
         )
 
         mu_group = large_angle["scattering_cosine"]
-        if "CDF" in mu_group:
-            mu = DistributionMultiTable(
-                read_energy(mu_group["energy_grid"]),
-                mu_group["energy_offset"][()],
-                mu_group["value"][()],
-                cdf=mu_group["CDF"][()],
-            )
-        else:
-            mu = DistributionMultiTable(
-                read_energy(mu_group["energy_grid"]),
-                mu_group["energy_offset"][()],
-                mu_group["value"][()],
-                mu_group["PDF"][()],
-            )
+        offset = mu_group["energy_offset"][()]
+        values = mu_group["value"][()]
+        probabilities = (
+            mu_group["CDF"][()] if "CDF" in mu_group else mu_group["PDF"][()]
+        )
+        mu = DistributionMultiTable(
+            read_energy(mu_group["energy_grid"]),
+            values,
+            offsets=np.r_[offset, len(values)].astype(np.int64),
+            **{"cdf" if "CDF" in mu_group else "pdf": probabilities},
+        )
 
         return cls(MT, xs, xs_offset, reference_frame, xs_large, mu)
 

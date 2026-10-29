@@ -10,12 +10,13 @@ import mcdc.transport.rng as rng
 import mcdc.transport.util as util
 
 from mcdc.constant import (
-    ANGLE_ENERGY_CORRELATED,
-    ANGLE_ISOTROPIC,
+    DISTRIBUTION_NONE,
     EVENT_TIME_CENSUS,
     PARTICLE_ELECTRON,
     PARTICLE_NEUTRON,
     PARTICLE_PROTON,
+    NEUTRON_MASS,
+    PROTON_MASS,
     PI,
     REFERENCE_FRAME_COM,
 )
@@ -24,7 +25,6 @@ from mcdc.transport.distribution import (
     sample_correlated_distribution_with_scale,
     sample_distribution,
     sample_distribution_with_scale,
-    sample_isotropic_cosine,
 )
 from mcdc.transport.physics.util import scatter_direction
 
@@ -96,13 +96,16 @@ def produce_cross_species(
             particle_new["w"] = incident["w"]
 
             # Sample energy and angle
-            if product["angle_type"] == ANGLE_ENERGY_CORRELATED:
+            mu_distribution = simulation["distributions"][product["mu_ID"]]
+            if mu_distribution["sub_type"] == DISTRIBUTION_NONE:
                 E_new, mu = sample_correlated_distribution_with_scale(
                     E,
                     spectrum,
                     particle_container_new,
                     simulation,
                     data,
+                    atomic_weight_ratio * NEUTRON_MASS / PROTON_MASS,
+                    reaction["q_value"],
                 )
             else:
                 E_new = sample_distribution_with_scale(
@@ -112,13 +115,9 @@ def produce_cross_species(
                     simulation,
                     data,
                 )
-                if product["angle_type"] == ANGLE_ISOTROPIC:
-                    mu = sample_isotropic_cosine(particle_container_new)
-                else:
-                    mu_distribution = simulation["distributions"][product["mu_ID"]]
-                    mu = sample_distribution(
-                        E, mu_distribution, particle_container_new, simulation, data
-                    )
+                mu = sample_distribution(
+                    E, mu_distribution, particle_container_new, simulation, data
+                )
 
             # Frame transformation
             if product["reference_frame"] == REFERENCE_FRAME_COM:

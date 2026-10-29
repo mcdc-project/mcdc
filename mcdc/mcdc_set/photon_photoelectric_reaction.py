@@ -30,3 +30,32 @@ def subshell_x_IDs_chunk(start, length, photon_photoelectric_reaction, data, val
     start += photon_photoelectric_reaction["subshell_x_IDs_offset"]
     end = start + length
     data[start:end] = value
+
+
+@njit
+def subshell_designators(index, photon_photoelectric_reaction, data, value):
+    offset = photon_photoelectric_reaction["subshell_designators_offset"]
+    data[offset + index] = value
+
+
+@njit
+def subshell_designators_all(photon_photoelectric_reaction, data, value):
+    start = photon_photoelectric_reaction["subshell_designators_offset"]
+    size = photon_photoelectric_reaction["subshell_designators_length"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def subshell_designators_last(photon_photoelectric_reaction, data, value):
+    start = photon_photoelectric_reaction["subshell_designators_offset"]
+    size = photon_photoelectric_reaction["subshell_designators_length"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def subshell_designators_chunk(start, length, photon_photoelectric_reaction, data, value):
+    start += photon_photoelectric_reaction["subshell_designators_offset"]
+    end = start + length
+    data[start:end] = value

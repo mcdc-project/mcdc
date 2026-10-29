@@ -98,7 +98,7 @@ def _write_proton_library(path):
 
 
 @pytest.fixture
-def secondary_model(tmp_path, monkeypatch, prepare_simulation):
+def secondary_model(tmp_path, monkeypatch, prepare_simulation, neutron_library):
     _write_proton_library(tmp_path)
     monkeypatch.setenv("MCDC_LIB", str(tmp_path))
     material = mcdc.Material(number_density={"H": 1.0})

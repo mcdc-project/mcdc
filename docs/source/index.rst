@@ -44,18 +44,17 @@ Choose the path that best matches what you want to accomplish.
       +++
       Explore the theory :octicon:`arrow-right`
 
-   .. grid-item-card:: :octicon:`code-square;2em` API Reference
-      :link: reference/python_api/index
+   .. grid-item-card:: :octicon:`code-square;2em` Reference
+      :link: reference/index
       :link-type: doc
-      :link-alt: Look up MC/DC Python classes and methods
+      :link-alt: Look up MC/DC Python interfaces and data formats
       :class-card: sd-card-hover
       :text-align: center
 
-      Look up the classes, methods, arguments, and attributes available through
-      MC/DC's Python interface.
+      Look up MC/DC's Python interfaces and the HDF5 transport data format.
 
       +++
-      Browse the API :octicon:`arrow-right`
+      Browse the reference :octicon:`arrow-right`
 
    .. grid-item-card:: :octicon:`tools;2em` Developer Guide
       :link: developer_guide/index

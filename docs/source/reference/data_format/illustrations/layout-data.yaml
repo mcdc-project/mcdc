@@ -1,0 +1,25 @@
+# Reusable Data layout illustrations for dimensionless functions of energy.
+
+# ======================================================================================
+# Table function
+# ======================================================================================
+
+table-data/:
+  '@type': table
+  grid: float [K], eV  # Input coordinates, K >= 2
+  value: float [K]  # Function values
+  interpolation/:
+    laws: string [R]
+    boundaries: integer [R]
+
+# ======================================================================================
+# Polynomial function
+# ======================================================================================
+
+polynomial-data/:
+  '@type': polynomial
+  coefficients: float [L]  # Ascending powers, with a unit per coefficient as needed
+
+constant-data/:
+  '@type': polynomial
+  coefficients: [0.0]  # One coefficient for a constant function

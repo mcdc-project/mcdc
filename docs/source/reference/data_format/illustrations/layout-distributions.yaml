@@ -1,0 +1,157 @@
+# Reusable Distribution layout illustrations.
+# Units shown after the shape are stored as dataset attributes.
+
+# ======================================================================================
+# One continuous distribution
+# ======================================================================================
+
+distribution/:
+  '@type': table
+  value: float [K], eV
+  pdf: float [K], 1/eV
+  interpolation/:
+    laws: string [R]
+    boundaries: integer [R]  # Exclusive upper-point indices
+
+# Discrete-only outcomes.
+discrete-distribution/:
+  '@type': table
+  discrete-value: float [D], eV
+  pmf: float [D]
+
+# A 30% point mass at 2 eV and a 70% uniform density on [0, 10] eV.
+mixed-distribution/:
+  '@type': table
+  discrete-value: [2.0]  # unit = eV
+  pmf: [0.3]
+  value: [0.0, 10.0]  # unit = eV
+  pdf: [0.07, 0.07]  # unit = 1/eV
+  interpolation/:
+    laws: [linear]
+    boundaries: [2]
+
+# ======================================================================================
+# Conditional probability tables indexed by another grid
+# ======================================================================================
+
+energy-distribution/:
+  '@type': multi-table
+  grid: float [I], eV  # One indexing coordinate per table
+  interpolation/:
+    laws: string [G]  # Interpolation between neighboring grid tables
+    boundaries: integer [G]
+
+  tables/:
+    offsets: integer [I + 1]  # Starts at zero and ends at P
+    value: float [P], eV
+    pdf: float [P], 1/eV
+    interpolation/:
+      offsets: integer [I + 1]  # Starts at zero and ends at R
+      laws: string [R]
+      boundaries: integer [R]  # Relative to each individual table
+
+# Each incident table has a line and a continuous background.
+mixed-energy-distribution/:
+  '@type': multi-table
+  grid: [1.0, 3.0]  # unit = eV
+  interpolation/:
+    laws: [linear]
+    boundaries: [2]
+
+  tables/:
+    offsets: [0, 2, 4]
+    value: [0.0, 10.0, 100.0, 120.0]  # unit = eV
+    pdf: [0.08, 0.08, 0.0, 0.04]  # unit = 1/eV
+    interpolation/:
+      offsets: [0, 1, 2]
+      laws: [linear, linear]
+      boundaries: [2, 2]
+
+    discrete-offsets: [0, 1, 2]
+    discrete-value: [2.0, 8.0]  # unit = eV
+    pmf: [0.2, 0.6]
+
+# Pure PMFs omit all continuous fields.
+discrete-energy-distribution/:
+  '@type': multi-table
+  grid: [1.0, 3.0]  # unit = eV
+  interpolation/:
+    laws: [linear]
+    boundaries: [2]
+
+  tables/:
+    discrete-offsets: [0, 2, 4]
+    discrete-value: [2.0, 12.0, 8.0, 18.0]  # unit = eV
+    pmf: [0.2, 0.8, 0.6, 0.4]
+
+# ======================================================================================
+# Joint energy-angle distributions
+# ======================================================================================
+
+energy-angle-distribution/:
+  '@type': energy-angle-table
+  energy: float [I], eV
+  interpolation/:
+    laws: string [G]  # Histogram or linear between incident-energy tables
+    boundaries: integer [G]
+
+  tables/:
+    outgoing-energy/:
+      offsets: integer [I + 1]  # One outgoing-energy table per incident energy
+      value: float [P], eV
+      pdf: float [P], 1/eV
+      interpolation/:
+        offsets: integer [I + 1]
+        laws: string [R]
+        boundaries: integer [R]
+
+    cosine-distributions/:
+      offsets: integer [P + 1]  # One cosine table per outgoing-energy point
+      value: float [A]  # Dimensionless cosine coordinates
+      pdf: float [A]
+      interpolation/:
+        offsets: integer [P + 1]
+        laws: string [S]
+        boundaries: integer [S]
+
+# ======================================================================================
+# N-body phase space
+# ======================================================================================
+
+n-body-distribution/:
+  '@type': n-body
+  number-particles: integer  # At least three
+  total-mass-ratio: float  # Final-state mass divided by emitted particle mass
+  value: float [K]  # Energy fractions in [0, 1]
+  pdf: float [K]
+  interpolation/:
+    laws: string [R]
+    boundaries: integer [R]
+
+# ======================================================================================
+# Mixture of existing spectra with independent probability Data
+# ======================================================================================
+
+mixture-distribution/:
+  '@type': mixture
+  components/:
+    '0/':
+      probability/:
+        '@type': polynomial
+        coefficients: [0.3]
+      distribution/:
+        '@type': evaporation
+        restriction-energy: 0.0  # unit = eV
+        temperature/:
+          '@type': polynomial
+          coefficients: [1.0e6]  # unit = eV
+    '1/':
+      probability/:
+        '@type': polynomial
+        coefficients: [0.7]
+      distribution/:
+        '@type': maxwellian
+        restriction-energy: 0.0  # unit = eV
+        temperature/:
+          '@type': polynomial
+          coefficients: [1.5e6]  # unit = eV

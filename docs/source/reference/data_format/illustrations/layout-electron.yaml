@@ -1,0 +1,83 @@
+# MC/DC HDF5 layout illustration: electron-{element}.h5.
+
+'@format': mcdc-data
+'@format-version': 0.1.0
+
+source-libraries/:
+  '{library}/':
+    title: string
+    version: string
+    release-date: string
+    reference: string
+    comments: string
+    format: string
+    format-version: string
+    processing-date: string
+    conversion-time: string
+
+atomic-number: integer
+
+xs-energy-grid: float [N], eV
+
+reactions/:
+  elastic/:
+    # Basic fields
+    '@ENDF-MT': integer  # Optional source metadata
+    '@GNDS-label': string  # Optional original source label, preserved exactly
+    '@category': elastic-scattering
+    xs: CrossSection
+    reference-frame: LAB or COM
+    cross-products/: {}
+
+    # Category-specific
+    large-angle/:
+      xs: Data, barn  # Stored on its own incident-energy grid
+      angular-cosine-distribution: Distribution, cosine
+
+
+  excitation/:
+    # Basic fields
+    '@ENDF-MT': integer  # Optional source metadata
+    '@GNDS-label': string  # Optional original source label, preserved exactly
+    '@category': excitation
+    xs: CrossSection
+    reference-frame: LAB or COM
+    cross-products/:
+      '{i}': CrossProduct  # Optional de-excitation photon production
+
+    # Category-specific
+    energy-loss: Data, eV
+
+
+  bremsstrahlung/:
+    # Basic fields
+    '@ENDF-MT': integer  # Optional source metadata
+    '@GNDS-label': string  # Optional original source label, preserved exactly
+    '@category': bremsstrahlung
+    xs: CrossSection
+    reference-frame: LAB or COM
+    cross-products/:
+      '{i}': CrossProduct  # Optional photon production when source distributions are available
+
+    # Category-specific
+    energy-loss: Data, eV
+
+
+  ionization/:
+    # Basic fields
+    '@ENDF-MT': integer  # Optional source metadata
+    '@GNDS-label': string  # Optional original source label, preserved exactly
+    '@category': ionization
+    xs: CrossSection
+    reference-frame: LAB or COM
+    cross-products/:
+      '{i}': CrossProduct  # Optional shell-averaged production, instead of subshell entries
+
+    # Category-specific
+    subshells/:
+      '{subshell}/':
+        binding-energy: float, eV
+        xs: Data, barn  # Stored on the subshell's own incident-energy grid
+        secondary-energy-distribution: Distribution, eV
+        cross-products/:
+          '{i}': CrossProduct  # Optional relaxation photons conditional on this subshell

@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 from mcdc.constant import INF
 from mcdc.object_.base import MCDCObject
 from mcdc.object_.data import DataBase
-from mcdc.object_.distribution import DistributionBase
+from mcdc.object_.distribution import DistributionBase, validate_angle_energy
 
 
 class SecondaryProduct(MCDCObject):
@@ -15,8 +15,8 @@ class SecondaryProduct(MCDCObject):
     Production yield is the nonnegative mean number emitted per reaction,
     evaluated at the incident energy.
     Spectra are alternatives selected by their probabilities.
-    A correlated spectrum samples energy and angle together; otherwise, angle_type and
-    mu describe angular sampling.
+    DistributionNone in mu identifies spectra that supply energy and angle
+    together; otherwise, mu supplies an explicit independent angular law.
 
     Nuclear identity is optional (-1 means unspecified).
     excitation_state identifies the nuclear state, with zero denoting the ground state.
@@ -42,7 +42,6 @@ class SecondaryProduct(MCDCObject):
 
     # Emission distributions in the specified reference frame
     reference_frame: int
-    angle_type: int
     mu: DistributionBase
     N_spectrum_probability_bin: int
     N_spectrum: int
@@ -57,7 +56,6 @@ class SecondaryProduct(MCDCObject):
         particle_type,
         production_yield,
         reference_frame,
-        angle_type,
         mu,
         spectrum_probability_grid,
         spectrum_probability,
@@ -84,8 +82,8 @@ class SecondaryProduct(MCDCObject):
 
         # Angular sampling and energy-spectrum selection
         self.reference_frame = reference_frame
-        self.angle_type = angle_type
         self.mu = mu
+        validate_angle_energy(mu, energy_spectra, self.label, reference_frame)
         self.N_spectrum_probability_bin = len(spectrum_probability_grid) - 1
         self.N_spectrum = len(energy_spectra)
         self.spectrum_probability_grid = spectrum_probability_grid

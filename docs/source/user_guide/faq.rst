@@ -42,10 +42,8 @@ For **HPCs or non-standard hardware**, a **conda environment** can provide more 
 
 **Where can I find cross-section data for continuous-energy simulations?**
 
-CE data libraries are provided to CEMeNT members via an internal repository.
-Due to export controls they cannot be publicly distributed.
-If you need cross-section data, we recommend using `OpenMC <https://docs.openmc.org>`_ or `NJOY <http://www.njoy21.io/>`_ to generate it, then converting it to MC/DC format with the tool in ``tools/data_library_generator/neutron/``.
-See :ref:`install-data-library` for setup instructions.
+See :doc:`Data preparation <data_preparation/index>` for source libraries and instructions for preparing transport data.
+The :doc:`data format reference <../reference/data_format/index>` documents the prepared files.
 
 Installation
 ------------

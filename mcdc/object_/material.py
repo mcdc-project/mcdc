@@ -14,9 +14,10 @@ from mcdc.constant import (
 )
 from mcdc.object_.data import DataBase, DataNone, DataTable
 from mcdc.object_.base import MCDCObject
-from mcdc.object_.element import Element
+from mcdc.object_.element import Element, get_or_create_element
 from mcdc.object_.transport_model_data import NeutronMultigroupData
 from mcdc.object_.nuclide import Nuclide
+from mcdc.object_.hdf5_reader import check_format
 from mcdc.object_.util import (
     ISOTOPIC_ABUNDANCE,
     element_symbol_from_nuclide_name,
@@ -265,12 +266,12 @@ class Material(MCDCObject):
         self.mass_density = {name: float(rho) for name, rho in mass_density.items()}
 
         # Create lightweight native-composition objects without loading data
-        nearest_temperature = _get_supported_temperature(self.temperature)
-        self.nuclide_composition = {
-            Nuclide(name, nearest_temperature): float(density)
-            for name, density in number_density.items()
-            if is_nuclide_name(name)
-        }
+        self.nuclide_composition = {}
+        for name, value in number_density.items():
+            if is_nuclide_name(name):
+                nearest_temperature = _get_supported_temperature(self.temperature, name)
+                nuclide = Nuclide(name, nearest_temperature)
+                self.nuclide_composition[nuclide] = float(value)
         self.element_composition = {
             Element(name): float(density)
             for name, density in number_density.items()
@@ -350,16 +351,23 @@ class Material(MCDCObject):
         converted = {}
 
         for element, density in self.element_composition.items():
-            element = _get_or_create_element(element.name, simulation, element)
+            if element.name not in self.number_density:
+                continue
+            density = self.number_density[element.name]
+            element = get_or_create_element(element.name, simulation, element)
+            element._compile_into_simulation(simulation)
             if self.mass_density:
                 density = _number_density_from_mass(
                     self.mass_density[element.name],
-                    _element_weight(element, simulation),
+                    _element_weight(element, self.temperature, simulation),
                 )
                 converted[element.name] = density
             element_composition[element] = density
 
         for nuclide, density in self.nuclide_composition.items():
+            if nuclide.name not in self.number_density:
+                continue
+            density = self.number_density[nuclide.name]
             nuclide = _get_or_create_nuclide(
                 nuclide.name, nuclide.temperature, simulation, nuclide
             )
@@ -447,9 +455,6 @@ class Material(MCDCObject):
         return text
 
 
-# Currently supported temperatures
-TEMPERATURES = [0.0, 0.1, 233.15, 273.15, 293.6, 600.0, 900.0, 1200.0, 2500.0]
-
 # ======================================================================================
 # Native-composition helpers
 # ======================================================================================
@@ -460,9 +465,6 @@ def set_nuclides_from_elements(material, simulation):
     # return early if no elements
     if all(is_nuclide_name(name) for name in material.number_density):
         return
-
-    # Select the nearest supported native-data temperature
-    nearest_temperature = _get_supported_temperature(material.temperature)
 
     # Collect (nuclide name, density) pairs in input order
     pairs = []
@@ -484,6 +486,9 @@ def set_nuclides_from_elements(material, simulation):
     # Register canonical nuclides, summing the density of any repeated nuclide
     material.nuclide_composition = {}
     for nuclide_name, density in pairs:
+        nearest_temperature = _get_supported_temperature(
+            material.temperature, nuclide_name
+        )
         nuclide = _get_or_create_nuclide(nuclide_name, nearest_temperature, simulation)
         nuclide._compile_into_simulation(simulation)
         material.nuclide_composition[nuclide] = (
@@ -508,19 +513,27 @@ def set_elements_from_nuclides(material, simulation):
         element_name = (
             element_symbol_from_nuclide_name(name) if is_nuclide_name(name) else name
         )
-        element_densities[element_name] = (
-            element_densities.get(element_name, 0.0) + density
+        candidate = next(
+            (
+                nuclide.element
+                for nuclide in material.nuclide_composition
+                if nuclide.element.name == element_name
+            ),
+            None,
+        )
+        element = get_or_create_element(element_name, simulation, candidate)
+        element._compile_into_simulation(simulation)
+        element_densities[element] = element_densities.get(element, 0.0) + density
+
+    for nuclide in material.nuclide_composition:
+        nuclide.element = next(
+            element
+            for element in element_densities
+            if element.name == nuclide.element.name
         )
 
-    # Register each element's canonical object
-    material.elements = []
-    material.element_composition = {}
-    for element_name, density in element_densities.items():
-        element = _get_or_create_element(element_name, simulation)
-        element._compile_into_simulation(simulation)
-        material.elements.append(element)
-        material.element_composition[element] = density
-
+    material.elements = list(element_densities)
+    material.element_composition = element_densities
     material.element_densities = np.asarray(
         list(element_densities.values()), dtype=float64
     )
@@ -532,26 +545,87 @@ def _number_density_from_mass(mass_density, weight):
 
 
 def _nuclide_weight(nuclide, simulation):
-    """Atomic weight of a nuclide in amu, read from the data library."""
-    nuclide._compile_into_simulation(simulation)
-    return nuclide.atomic_weight_ratio * NEUTRON_MASS_AMU
+    """Read a nuclide's atomic weight without loading its transport reactions.
+
+    Prefer the active projectile's data, using the neutron evaluation for
+    compositions in element-based transport. A legacy proton filename is
+    accepted by the same adapter used for temperature selection.
+    """
+    directory = os.getenv("MCDC_LIB", "")
+    names = [f"neutron-{nuclide.name}-{nuclide.temperature}K.h5"]
+    if simulation.settings.proton_transport.active:
+        names.insert(0, f"proton-{nuclide.name}.h5")
+    names.append(f"{nuclide.name}-{nuclide.temperature}K.h5")
+    path = next(
+        (
+            os.path.join(directory, name)
+            for name in names
+            if directory and os.path.isfile(os.path.join(directory, name))
+        ),
+        None,
+    )
+    if path is None:
+        raise FileNotFoundError(
+            f"No atomic-weight data for nuclide {nuclide.name} in MCDC_LIB={directory!r}"
+        )
+    with h5py.File(path, "r") as file:
+        if "atomic-weight-ratio" in file:
+            check_format(file)
+            ratio = float(file["atomic-weight-ratio"][()])
+        else:
+            # TODO: Remove this adapter once proton libraries use mcdc-data.
+            ratio = float(file["atomic_weight_ratio"][()])
+    if not np.isfinite(ratio) or ratio <= 0.0:
+        raise ValueError(
+            f"No positive atomic weight available for nuclide {nuclide.name}"
+        )
+    return ratio * NEUTRON_MASS_AMU
 
 
-def _element_weight(element, simulation):
-    """Atomic weight of a natural element in amu, from the element's own data."""
-    element._compile_into_simulation(simulation)
-    return element.atomic_weight_ratio * NEUTRON_MASS_AMU
+def _element_weight(element, temperature, simulation):
+    """Average natural-isotope weights without storing a weight on Element."""
+    if element.name not in ISOTOPIC_ABUNDANCE:
+        print_error(
+            f"No natural isotopic abundance data for element {element.name}; "
+            "specify its nuclides directly."
+        )
+    abundances = ISOTOPIC_ABUNDANCE[element.name]
+    weighted = 0.0
+    for name, abundance in abundances.items():
+        nearest_temperature = _get_supported_temperature(temperature, name)
+        nuclide = Nuclide(name, nearest_temperature)
+        weighted += abundance * _nuclide_weight(nuclide, simulation)
+    return weighted / sum(abundances.values())
 
 
-def _get_supported_temperature(temperature):
-    return min(TEMPERATURES, key=lambda value: abs(value - temperature))
+def _get_supported_temperature(temperature, nuclide_name):
+    """Choose the closest temperature available for this nuclide in MCDC_LIB.
 
-
-def _get_or_create_element(element_name, simulation, candidate=None):
-    for element in simulation.elements:
-        if element.name == element_name:
-            return element
-    return candidate or Element(element_name)
+    Read only filenames here; nuclide compilation validates the selected file.
+    Without a matching library entry, preserve the requested temperature so
+    compilation can report the missing data with its nuclide identity.
+    """
+    directory = os.getenv("MCDC_LIB")
+    if not directory or not os.path.isdir(directory):
+        return float(temperature)
+    prefix, suffix = f"neutron-{nuclide_name}-", "K.h5"
+    if not any(name.startswith(prefix) for name in os.listdir(directory)):
+        # TODO: Remove this filename adapter once proton libraries use mcdc-data.
+        prefix = f"{nuclide_name}-"
+    available = []
+    for filename in os.listdir(directory):
+        if filename.startswith(prefix) and filename.endswith(suffix):
+            try:
+                value = float(filename[len(prefix) : -len(suffix)])
+            except ValueError:
+                continue
+            if np.isfinite(value) and value >= 0.0:
+                available.append(value)
+    return (
+        min(available, key=lambda value: (abs(value - temperature), value))
+        if available
+        else float(temperature)
+    )
 
 
 def _get_or_create_nuclide(nuclide_name, temperature, simulation, candidate=None):

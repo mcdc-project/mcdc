@@ -1,3 +1,4 @@
+import numpy as np
 import math
 
 from numba import njit
@@ -8,26 +9,79 @@ import mcdc.mcdc_get as mcdc_get
 import mcdc.transport.rng as rng
 
 from mcdc.constant import (
+    DISTRIBUTION_ISOTROPIC,
+    DISTRIBUTION_NONE,
+    DISTRIBUTION_MIXTURE,
+    PROBABILITY_TOLERANCE,
     DISTRIBUTION_EVAPORATION,
-    DISTRIBUTION_ACE_LAW4,
     DISTRIBUTION_KALBACH_MANN,
     DISTRIBUTION_LEVEL_SCATTERING,
     DISTRIBUTION_MAXWELLIAN,
     DISTRIBUTION_MULTITABLE,
     DISTRIBUTION_N_BODY,
-    DISTRIBUTION_TABULATED,
-    DISTRIBUTION_TABULATED_ENERGY_ANGLE,
+    DISTRIBUTION_TABLE,
+    DISTRIBUTION_TABLE_ENERGY_ANGLE,
     INTERPOLATION_HISTOGRAM,
     INTERPOLATION_LINEAR,
     PI,
 )
-from mcdc.transport.data import evaluate_data
-from mcdc.transport.util import find_bin
+from mcdc.transport.data import (
+    evaluate_data,
+    evaluate_data_clamped,
+    get_table_interpolation_law,
+)
+from mcdc.transport.util import find_bin, integrate_segment, interpolate
 from mcdc.transport.linalg import make_direction_basis
 
 # ======================================================================================
 # General distribution samplers
 # ======================================================================================
+
+
+@njit
+def resolve_mixture(E, distribution, rng_state, simulation, data):
+    """Select mixture leaves using probability Data at the incident energy.
+
+    Each table clamps to its own endpoints. Probabilities retain their source
+    interpolation and must sum to one within the source-precision tolerance;
+    only that residual is removed when locating the categorical draw.
+    """
+    while distribution["sub_type"] == DISTRIBUTION_MIXTURE:
+        mixture = simulation["mixture_distributions"][distribution["sub_ID"]]
+        total = 0.0
+        last_positive = 0
+        for i in range(mixture["N_probability"]):
+            ID = mcdc_get.mixture_distribution.probability_IDs(i, mixture, data)
+            probability = evaluate_data_clamped(
+                E, simulation["data"][ID], simulation, data
+            )
+            if not math.isfinite(probability) or probability < 0.0:
+                raise ValueError("Mixture probabilities must be finite and nonnegative")
+            total += probability
+            if probability > 0.0:
+                last_positive = i
+        if (
+            not math.isfinite(total)
+            or not 1.0 - PROBABILITY_TOLERANCE <= total <= 1.0 + PROBABILITY_TOLERANCE
+        ):
+            raise ValueError(
+                "Mixture probabilities must sum to one at the incident energy"
+            )
+        threshold = rng.lcg(rng_state) * total
+        cumulative = 0.0
+        selected = last_positive
+        for i in range(mixture["N_probability"]):
+            ID = mcdc_get.mixture_distribution.probability_IDs(i, mixture, data)
+            probability = evaluate_data_clamped(
+                E, simulation["data"][ID], simulation, data
+            )
+            cumulative += probability
+            if probability > 0.0 and threshold < cumulative:
+                selected = i
+                break
+        ID = mcdc_get.mixture_distribution.component_IDs(selected, mixture, data)
+        distribution = simulation["distributions"][ID]
+    return distribution
 
 
 @njit
@@ -51,16 +105,19 @@ def sample_distribution_with_scale(E, distribution, rng_state, simulation, data)
 
 @njit
 def _sample_distribution(E, distribution, rng_state, simulation, data, scale):
+    distribution = resolve_mixture(E, distribution, rng_state, simulation, data)
     distribution_type = distribution["sub_type"]
     ID = distribution["sub_ID"]
 
-    if distribution_type == DISTRIBUTION_TABULATED:
-        table = simulation["tabulated_distributions"][ID]
-        return sample_tabulated(table, rng_state, simulation, data)
+    if distribution_type == DISTRIBUTION_NONE:
+        raise ValueError("Cannot sample an absent Distribution")
 
-    elif distribution_type == DISTRIBUTION_ACE_LAW4:
-        law4 = simulation["ace_law4_distributions"][ID]
-        return _sample_ace_law4(E, rng_state, law4, data, scale)
+    elif distribution_type == DISTRIBUTION_ISOTROPIC:
+        return sample_isotropic_cosine(rng_state)
+
+    elif distribution_type == DISTRIBUTION_TABLE:
+        table = simulation["table_distributions"][ID]
+        return sample_table(table, rng_state, simulation, data)
 
     elif distribution_type == DISTRIBUTION_MULTITABLE:
         multi_table = simulation["multi_table_distributions"][ID]
@@ -84,39 +141,74 @@ def _sample_distribution(E, distribution, rng_state, simulation, data, scale):
 
 
 @njit
-def sample_correlated_distribution(E, distribution, rng_state, simulation, data):
+def sample_correlated_distribution(
+    E, distribution, rng_state, simulation, data, atomic_weight_ratio=None, q_value=None
+):
+    """Sample outgoing energy and cosine in the distribution's reference frame.
+
+    N-body phase space requires the target-to-projectile mass ratio and the
+    reaction Q-value in eV to set its maximum outgoing COM energy.
+    """
     return _sample_correlated_distribution(
-        E, distribution, rng_state, simulation, data, False
+        E,
+        distribution,
+        rng_state,
+        simulation,
+        data,
+        False,
+        atomic_weight_ratio,
+        q_value,
     )
 
 
 @njit
 def sample_correlated_distribution_with_scale(
-    E, distribution, rng_state, simulation, data
+    E, distribution, rng_state, simulation, data, atomic_weight_ratio=None, q_value=None
 ):
+    """Sample a joint law with outgoing-energy support scaling.
+
+    N-body's physical scale uses the supplied target mass ratio and Q-value;
+    its tabulated coordinate is always a dimensionless energy fraction.
+    """
     return _sample_correlated_distribution(
-        E, distribution, rng_state, simulation, data, True
+        E, distribution, rng_state, simulation, data, True, atomic_weight_ratio, q_value
     )
 
 
 @njit
 def _sample_correlated_distribution(
-    E, distribution, rng_state, simulation, data, scale
+    E, distribution, rng_state, simulation, data, scale, atomic_weight_ratio, q_value
 ):
+    distribution = resolve_mixture(E, distribution, rng_state, simulation, data)
     distribution_type = distribution["sub_type"]
     ID = distribution["sub_ID"]
 
     if distribution_type == DISTRIBUTION_KALBACH_MANN:
         kalbach_mann = simulation["kalbach_mann_distributions"][ID]
-        return sample_kalbach_mann(E, rng_state, kalbach_mann, data)
+        return sample_kalbach_mann(E, rng_state, kalbach_mann, data, simulation)
 
-    elif distribution_type == DISTRIBUTION_TABULATED_ENERGY_ANGLE:
-        table = simulation["tabulated_energy_angle_distributions"][ID]
-        return sample_tabulated_energy_angle(E, rng_state, table, data)
+    elif distribution_type == DISTRIBUTION_TABLE_ENERGY_ANGLE:
+        table = simulation["table_energy_angle_distributions"][ID]
+        return sample_table_energy_angle(E, rng_state, table, data)
 
     elif distribution_type == DISTRIBUTION_N_BODY:
+        if atomic_weight_ratio is None or q_value is None:
+            raise ValueError(
+                "N-body sampling requires target mass ratio and reaction Q-value"
+            )
+        if (
+            not math.isfinite(atomic_weight_ratio)
+            or atomic_weight_ratio <= 0
+            or not math.isfinite(q_value)
+        ):
+            raise ValueError("Invalid N-body target mass ratio or reaction Q-value")
         nbody = simulation["nbody_distributions"][ID]
-        E_out = sample_tabulated(nbody, rng_state, simulation, data)
+        fraction, _ = sample_density_with_interval(
+            nbody["pdf_ID"], rng.lcg(rng_state), simulation, data
+        )
+        available = atomic_weight_ratio / (atomic_weight_ratio + 1.0) * E + q_value
+        maximum = (1.0 - 1.0 / nbody["total_mass_ratio"]) * max(0.0, available)
+        E_out = fraction * maximum
         mu = sample_isotropic_cosine(rng_state)
         return E_out, mu
 
@@ -155,22 +247,33 @@ def sample_isotropic_direction(rng_state):
 
 
 @njit
-def sample_tabulated(table, rng_state, simulation, data):
-    """
-    Sample a value from a tabulated distribution.
-    """
+def sample_table(table, rng_state, simulation, data):
+    """Sample a continuous value or an exact discrete outcome from a table."""
 
-    value, _ = sample_tabulated_with_interval(table, rng_state, simulation, data)
+    value, _ = sample_table_with_interval(table, rng_state, simulation, data)
     return value
 
 
 @njit
-def sample_tabulated_with_interval(table, rng_state, simulation, data):
-    """Sample a tabulated distribution and return its interpolation interval."""
+def sample_table_with_interval(table, rng_state, simulation, data):
+    """Sample a table and return its PDF interval, or -1 for a discrete outcome."""
 
     xi = rng.lcg(rng_state)
+    masses = mcdc_get.table_distribution.cmf_all(table, data)
+    discrete_probability = masses[-1]
+    if xi < discrete_probability or table["continuous_probability"] == 0.0:
+        pmf = mcdc_get.table_distribution.pmf_all(table, data)
+        index = sample_discrete_index(xi, masses[1:], pmf)
+        return mcdc_get.table_distribution.discrete_value(index, table, data), -1
+    return sample_density_with_interval(
+        table["pdf_ID"], xi - discrete_probability, simulation, data
+    )
 
-    pdf_data = simulation["data"][table["pdf_ID"]]
+
+@njit
+def sample_density_with_interval(pdf_ID, xi, simulation, data):
+    """Invert a continuous DataTable density at a supplied cumulative mass."""
+    pdf_data = simulation["data"][pdf_ID]
     pdf_table = simulation["table_data"][pdf_data["sub_ID"]]
 
     cdf = mcdc_get.table_data.aux_vector(0, pdf_table, data)
@@ -178,7 +281,9 @@ def sample_tabulated_with_interval(table, rng_state, simulation, data):
     # find_bin returns -1 at the first CDF point; avoid reading before the table.
     if xi <= cdf[0]:
         return mcdc_get.table_data.x(0, pdf_table, data), 0
-    idx = find_bin(xi, cdf)
+    if xi >= cdf[-1]:
+        return mcdc_get.table_data.x_last(pdf_table, data), len(cdf) - 2
+    idx = min(max(find_bin(xi, cdf), 0), len(cdf) - 2)
 
     c0 = mcdc_get.table_data.aux(0, idx, pdf_table, data)
 
@@ -188,16 +293,15 @@ def sample_tabulated_with_interval(table, rng_state, simulation, data):
     v0 = mcdc_get.table_data.x(idx, pdf_table, data)
     v1 = mcdc_get.table_data.x(idx + 1, pdf_table, data)
 
-    # Tabulated pdfs are either histogram or linear.
-    interpolation = mcdc_get.table_data.interpolations(0, pdf_table, data)
+    interpolation = get_table_interpolation_law(idx, pdf_table, data)
 
-    value = invert_tabulated_segment(xi, c0, v0, v1, p0, p1, interpolation)
+    value = invert_table_segment(xi, c0, v0, v1, p0, p1, interpolation)
     return value, idx
 
 
 @njit
-def invert_tabulated_segment(xi, c0, v0, v1, p0, p1, interpolation):
-    """Invert one histogram or linear PDF segment."""
+def invert_table_segment(xi, c0, v0, v1, p0, p1, interpolation):
+    """Invert a density segment, using bounded inversion for logarithmic laws."""
 
     s = xi - c0
 
@@ -210,7 +314,7 @@ def invert_tabulated_segment(xi, c0, v0, v1, p0, p1, interpolation):
         dv = v1 - v0
         dp = p1 - p0
 
-        if abs(dp) <= 1.0e-12 * max(abs(p0), abs(p1), 1.0):
+        if abs(dp) <= 1.0e-12 * max(abs(p0), abs(p1)):
             if p0 <= 0.0:
                 return v0
             return v0 + s / p0
@@ -221,20 +325,18 @@ def invert_tabulated_segment(xi, c0, v0, v1, p0, p1, interpolation):
         if disc < 0.0:
             disc = 0.0
 
-        return v0 + (math.sqrt(disc) - p0) / m
+        # Rationalized form avoids cancellation for almost constant densities.
+        return v0 + 2.0 * s / (math.sqrt(disc) + p0)
 
     else:
-        # Distribution tables should only use histogram or linear interpolation.
-        return v0
-
-
-@njit
-def sample_pmf(pmf, rng_state, data):
-    xi = rng.lcg(rng_state)
-    cmf = mcdc_get.pmf_distribution.cmf_all(pmf, data)
-
-    idx = find_bin(xi, cmf)
-    return mcdc_get.pmf_distribution.value(idx, pmf, data)
+        low, high = v0, v1
+        for _ in range(52):
+            middle = 0.5 * (low + high)
+            if integrate_segment(middle, v0, v1, p0, p1, interpolation) < s:
+                low = middle
+            else:
+                high = middle
+        return 0.5 * (low + high)
 
 
 @njit
@@ -257,237 +359,149 @@ def sample_white_direction(nx, ny, nz, rng_state):
 
 
 @njit
-def sample_ace_law4(E, rng_state, law4, data):
-    """Sample an ACE LAW 4 table without treating discrete lines as a PDF grid."""
-    return _sample_ace_law4(E, rng_state, law4, data, False)
-
-
-@njit
-def _sample_ace_law4(E, rng_state, law4, data, scale):
-    grid = mcdc_get.ace_law4_distribution.energy_all(law4, data)
-    n_tables = len(grid)
-    interval_index = -1
-    fraction = 0.0
-
-    if E <= grid[0]:
-        table_index = 0
-    elif E >= grid[-1]:
-        table_index = n_tables - 1
-    else:
-        interval_index = find_bin(E, grid)
-        fraction = (E - grid[interval_index]) / (
-            grid[interval_index + 1] - grid[interval_index]
-        )
-        table_index = interval_index
-        if rng.lcg(rng_state) < fraction:
-            table_index += 1
-
-    start = mcdc_get.ace_law4_distribution.offset(table_index, law4, data)
-    if table_index + 1 < n_tables:
-        end = mcdc_get.ace_law4_distribution.offset(table_index + 1, law4, data)
-    else:
-        end = law4["value_length"]
-    n_discrete = mcdc_get.ace_law4_distribution.n_discrete(table_index, law4, data)
-
-    xi = rng.lcg(rng_state)
-    for index in range(start, start + n_discrete):
-        if xi < mcdc_get.ace_law4_distribution.cdf(index, law4, data):
-            return mcdc_get.ace_law4_distribution.value(index, law4, data)
-
-    continuum_start = start + n_discrete
-    if continuum_start == end - 1:
-        return mcdc_get.ace_law4_distribution.value(end - 1, law4, data)
-
-    interpolation = mcdc_get.ace_law4_distribution.interpolation(
-        table_index, law4, data
-    )
-    for index in range(continuum_start, end - 1):
-        cdf_next = mcdc_get.ace_law4_distribution.cdf(index + 1, law4, data)
-        if xi <= cdf_next:
-            sample = invert_tabulated_segment(
-                xi,
-                mcdc_get.ace_law4_distribution.cdf(index, law4, data),
-                mcdc_get.ace_law4_distribution.value(index, law4, data),
-                mcdc_get.ace_law4_distribution.value(index + 1, law4, data),
-                mcdc_get.ace_law4_distribution.pdf(index, law4, data),
-                mcdc_get.ace_law4_distribution.pdf(index + 1, law4, data),
-                interpolation,
-            )
-            if scale and interval_index >= 0:
-                sample = _scale_ace_law4_continuum(
-                    sample,
-                    table_index,
-                    interval_index,
-                    fraction,
-                    law4,
-                    data,
-                )
-            return sample
-
-    return mcdc_get.ace_law4_distribution.value(end - 1, law4, data)
-
-
-@njit
-def _scale_ace_law4_continuum(
-    sample, selected_index, interval_index, fraction, law4, data
-):
-    lower_start = mcdc_get.ace_law4_distribution.offset(interval_index, law4, data)
-    upper_start = mcdc_get.ace_law4_distribution.offset(interval_index + 1, law4, data)
-    lower_discrete = mcdc_get.ace_law4_distribution.n_discrete(
-        interval_index, law4, data
-    )
-    upper_discrete = mcdc_get.ace_law4_distribution.n_discrete(
-        interval_index + 1, law4, data
-    )
-    lower_end = (
-        mcdc_get.ace_law4_distribution.offset(interval_index + 1, law4, data)
-        if interval_index + 1 < law4["energy_length"]
-        else law4["value_length"]
-    )
-    upper_end = (
-        mcdc_get.ace_law4_distribution.offset(interval_index + 2, law4, data)
-        if interval_index + 2 < law4["energy_length"]
-        else law4["value_length"]
-    )
-    if (
-        lower_start + lower_discrete >= lower_end
-        or upper_start + upper_discrete >= upper_end
-    ):
-        return sample
-
-    selected_start = mcdc_get.ace_law4_distribution.offset(selected_index, law4, data)
-    selected_discrete = mcdc_get.ace_law4_distribution.n_discrete(
-        selected_index, law4, data
-    )
-    selected_end = (
-        mcdc_get.ace_law4_distribution.offset(selected_index + 1, law4, data)
-        if selected_index + 1 < law4["energy_length"]
-        else law4["value_length"]
-    )
-    selected_min = mcdc_get.ace_law4_distribution.value(
-        selected_start + selected_discrete, law4, data
-    )
-    selected_max = mcdc_get.ace_law4_distribution.value(selected_end - 1, law4, data)
-    if selected_max <= selected_min:
-        return sample
-
-    lower_min = mcdc_get.ace_law4_distribution.value(
-        lower_start + lower_discrete, law4, data
-    )
-    lower_max = mcdc_get.ace_law4_distribution.value(lower_end - 1, law4, data)
-    upper_min = mcdc_get.ace_law4_distribution.value(
-        upper_start + upper_discrete, law4, data
-    )
-    upper_max = mcdc_get.ace_law4_distribution.value(upper_end - 1, law4, data)
-    target_min = lower_min + fraction * (upper_min - lower_min)
-    target_max = lower_max + fraction * (upper_max - lower_max)
-    return target_min + (sample - selected_min) * (
-        (target_max - target_min) / (selected_max - selected_min)
-    )
-
-
-@njit
 def sample_multi_table(E, rng_state, multi_table, simulation, data):
     return _sample_multi_table(E, rng_state, multi_table, simulation, data, False)
 
 
 @njit
+def sample_discrete_index(xi, cmf, pmf):
+    """Select a point mass from upper cumulative bounds, skipping zero masses."""
+    index = min(int(np.searchsorted(cmf, xi, side="right")), len(pmf) - 1)
+    while index > 0 and pmf[index] == 0.0:
+        index -= 1
+    return index
+
+
+@njit
 def _sample_multi_table(E, rng_state, multi_table, simulation, data, scale):
-    """Sample from a multi-table distribution."""
+    """Sample corresponding discrete lines or a unit-base continuous spectrum.
 
-    # Get the grid
+    Line probabilities and coordinates interpolate between incident tables.
+    Continuous endpoint selection is conditional on reaching the continuous
+    component; its weights include each endpoint's continuous probability.
+    """
     grid = mcdc_get.multi_table_distribution.grid_all(multi_table, data)
-
-    # Helper flag for scaling later
-    use_next_table = False
-
-    # Default interpolation factor
-    f = 0.0
-
-    # Below grid: use first table without unit-base scaling.
-    # Include equality: find_bin returns -1 at the first point.
-    if E <= grid[0]:
-        idx = 0
+    laws = mcdc_get.multi_table_distribution.interpolations_all(multi_table, data)
+    boundaries = mcdc_get.multi_table_distribution.interpolation_boundaries_all(
+        multi_table, data
+    )
+    low, high, fraction, interior = incident_table_interval(E, grid, laws, boundaries)
+    if low == high:
         scale = False
 
-    # Above grid: use last table without unit-base scaling.
-    elif E > grid[-1]:
-        idx = len(grid) - 1
-        scale = False
-
-    # Pick the table
+    discrete_offsets = mcdc_get.multi_table_distribution.discrete_offsets_all(
+        multi_table, data
+    )
+    begin, end = int(discrete_offsets[low]), int(discrete_offsets[low + 1])
+    if end > begin:
+        pmf = mcdc_get.multi_table_distribution.pmf_all(multi_table, data)
+        cmf = mcdc_get.multi_table_distribution.cmf_all(multi_table, data)
+        values = mcdc_get.multi_table_distribution.discrete_value_all(multi_table, data)
+        other = int(discrete_offsets[high])
+        xi = rng.lcg(rng_state)
+        cumulative = 0.0
+        last_positive = 0
+        for j in range(end - begin):
+            probability = (1.0 - fraction) * pmf[begin + j] + fraction * pmf[other + j]
+            cumulative = (1.0 - fraction) * cmf[begin + j] + fraction * cmf[other + j]
+            if probability > 0.0:
+                last_positive = j
+                if xi < cumulative:
+                    return (1.0 - fraction) * values[begin + j] + fraction * values[
+                        other + j
+                    ]
+        probabilities = mcdc_get.multi_table_distribution.continuous_probability_all(
+            multi_table, data
+        )
+        continuous = (1.0 - fraction) * probabilities[low] + fraction * probabilities[
+            high
+        ]
+        if continuous <= 0.0:
+            return (1.0 - fraction) * values[begin + last_positive] + fraction * values[
+                other + last_positive
+            ]
+        # Rebase the remaining draw onto the normalized continuous component.
+        xi = min(1.0, max(0.0, (xi - cumulative) / continuous))
+        upper_weight = fraction * probabilities[high] / continuous
+        selected = high if low != high and rng.lcg(rng_state) < upper_weight else low
+        xi *= probabilities[selected]
     else:
-        # Calculate Interpolation factor
-        idx = find_bin(E, grid)
-        E0 = grid[idx]
-        E1 = grid[idx + 1]
-        f = (E - E0) / (E1 - E0)
+        # A continuous-only table retains its ordinary stochastic table selection.
+        selected = high if interior and rng.lcg(rng_state) < fraction else low
+        xi = rng.lcg(rng_state)
 
-        # Sample which table to choose
-        if rng.lcg(rng_state) < f:
-            idx += 1
-            use_next_table = True  # For scaling later if needed
-
-    # Sample from the selected table
-    ID = mcdc_get.multi_table_distribution.table_IDs(idx, multi_table, data)
-    sub_ID = simulation["distributions"][ID]["sub_ID"]
-    table_distribution = simulation["tabulated_distributions"][sub_ID]
-    sample = sample_tabulated(table_distribution, rng_state, simulation, data)
-
-    # No scaling needed?
+    sampled = sample_multi_table_at(selected, xi, multi_table, data)
     if not scale:
-        return sample
+        return sampled
+    offsets = mcdc_get.multi_table_distribution.offsets_all(multi_table, data)
+    # If the continuum exists at only one endpoint, retain that support.
+    if offsets[low + 1] == offsets[low] or offsets[high + 1] == offsets[high]:
+        return sampled
+    values = mcdc_get.multi_table_distribution.value_all(multi_table, data)
+    minimum = values[int(offsets[low])] + fraction * (
+        values[int(offsets[high])] - values[int(offsets[low])]
+    )
+    maximum = values[int(offsets[low + 1]) - 1] + fraction * (
+        values[int(offsets[high + 1]) - 1] - values[int(offsets[low + 1]) - 1]
+    )
+    first = values[int(offsets[selected])]
+    last = values[int(offsets[selected + 1]) - 1]
+    return minimum + (sampled - first) / (last - first) * (maximum - minimum)
 
-    # Retrieve the interval index
-    if use_next_table:
-        idx -= 1
 
-    # PDF tables
-    ID0 = mcdc_get.multi_table_distribution.table_IDs(idx, multi_table, data)
-    ID1 = mcdc_get.multi_table_distribution.table_IDs(idx + 1, multi_table, data)
-    #
-    sub_ID0 = simulation["distributions"][ID0]["sub_ID"]
-    sub_ID1 = simulation["distributions"][ID1]["sub_ID"]
-    #
-    table_distribution0 = simulation["tabulated_distributions"][sub_ID0]
-    table_distribution1 = simulation["tabulated_distributions"][sub_ID1]
-    #
-    ID = table_distribution["pdf_ID"]
-    ID0 = table_distribution0["pdf_ID"]
-    ID1 = table_distribution1["pdf_ID"]
-    #
-    sub_ID = simulation["data"][ID]["sub_ID"]
-    sub_ID0 = simulation["data"][ID0]["sub_ID"]
-    sub_ID1 = simulation["data"][ID1]["sub_ID"]
-    #
-    table = simulation["table_data"][sub_ID]
-    table0 = simulation["table_data"][sub_ID0]
-    table1 = simulation["table_data"][sub_ID1]
+@njit
+def multi_table_arrays(index, table, data):
+    """Return one PDF's coordinates, densities, CDF, and local region arrays."""
+    offsets = mcdc_get.multi_table_distribution.offsets_all(table, data)
+    start, end = int(offsets[index]), int(offsets[index + 1])
+    regions = mcdc_get.multi_table_distribution.pdf_interpolation_offsets_all(
+        table, data
+    )
+    first, last = int(regions[index]), int(regions[index + 1])
+    return (
+        mcdc_get.multi_table_distribution.value_all(table, data)[start:end],
+        mcdc_get.multi_table_distribution.pdf_all(table, data)[start:end],
+        mcdc_get.multi_table_distribution.cdf_all(table, data)[start:end],
+        mcdc_get.multi_table_distribution.pdf_interpolations_all(table, data)[
+            first:last
+        ],
+        mcdc_get.multi_table_distribution.pdf_interpolation_boundaries_all(table, data)[
+            first:last
+        ],
+    )
 
-    # Table's min
-    val_min0 = mcdc_get.table_data.x(0, table0, data)
-    val_min1 = mcdc_get.table_data.x(0, table1, data)
 
-    # Table's max
-    val_max0 = mcdc_get.table_data.x_last(table0, data)
-    val_max1 = mcdc_get.table_data.x_last(table1, data)
-
-    # The effective min and max
-    val_min = val_min0 + f * (val_min1 - val_min0)
-    val_max = val_max0 + f * (val_max1 - val_max0)
-
-    # The sampled table's min and max
-    val_low = mcdc_get.table_data.x(0, table, data)
-    val_high = mcdc_get.table_data.x_last(table, data)
-    return val_min + (sample - val_low) / (val_high - val_low) * (val_max - val_min)
+@njit
+def sample_multi_table_at(index, xi, table, data):
+    """Invert one packed conditional PDF with its own interpolation regions."""
+    value, pdf, cdf, laws, boundaries = multi_table_arrays(index, table, data)
+    if xi <= cdf[0]:
+        return value[0]
+    if xi >= cdf[-1]:
+        return value[-1]
+    interval = min(max(find_bin(xi, cdf), 0), len(cdf) - 2)
+    region = 0
+    while region < len(laws) - 1 and interval + 1 >= boundaries[region]:
+        region += 1
+    return invert_table_segment(
+        xi,
+        cdf[interval],
+        value[interval],
+        value[interval + 1],
+        pdf[interval],
+        pdf[interval + 1],
+        laws[region],
+    )
 
 
 @njit
 def sample_maxwellian(E, rng_state, maxwellian, simulation, data):
     # Get nuclear temperature
     table = simulation["data"][maxwellian["nuclear_temperature_ID"]]
-    nuclear_temperature = evaluate_data(E, table, simulation, data)
+    nuclear_temperature = evaluate_data_clamped(E, table, simulation, data)
     restriction_energy = maxwellian["restriction_energy"]
+    if nuclear_temperature <= 0.0 or E <= restriction_energy:
+        return 0.0
 
     # Rejection sampling
     while True:
@@ -516,8 +530,10 @@ def sample_level_scattering(E, level_scattering):
 def sample_evaporation(E, rng_state, evaporation, simulation, data):
     # Get nuclear temperature
     table = simulation["data"][evaporation["nuclear_temperature_ID"]]
-    nuclear_temperature = evaluate_data(E, table, simulation, data)
+    nuclear_temperature = evaluate_data_clamped(E, table, simulation, data)
     restriction_energy = evaporation["restriction_energy"]
+    if nuclear_temperature <= 0.0 or E <= restriction_energy:
+        return 0.0
 
     w = (E - restriction_energy) / nuclear_temperature
     g = 1.0 - math.exp(-w)
@@ -536,228 +552,198 @@ def sample_evaporation(E, rng_state, evaporation, simulation, data):
 
 
 @njit
-def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
-    grid = mcdc_get.kalbach_mann_distribution.energy_all(kalbach_mann, data)
+def incident_table_interval(E, grid, laws, boundaries):
+    """Locate a conditional interval and its probability interpolation fraction.
 
-    # Random numbers
-    xi1 = rng.lcg(rng_state)
-    xi2 = rng.lcg(rng_state)
-    xi3 = rng.lcg(rng_state)
-    xi4 = rng.lcg(rng_state)
-
-    # Interpolation factor
-    idx = find_bin(E, grid)
-    E0 = grid[idx]
-    E1 = grid[idx + 1]
-    f = (E - E0) / (E1 - E0)
-
-    # ==================================================================================
-    # Min and max energy values for scaling
-    # ==================================================================================
-
-    # First table
-    start = mcdc_get.kalbach_mann_distribution.offset(idx, kalbach_mann, data)
-    end = mcdc_get.kalbach_mann_distribution.offset(idx + 1, kalbach_mann, data)
-    E0_min = mcdc_get.kalbach_mann_distribution.energy_out(start, kalbach_mann, data)
-    E0_max = mcdc_get.kalbach_mann_distribution.energy_out(end - 1, kalbach_mann, data)
-
-    # Second table
-    start = end
-    if idx + 2 == len(grid):
-        end = kalbach_mann["energy_length"]
-    else:
-        end = mcdc_get.kalbach_mann_distribution.offset(idx + 2, kalbach_mann, data)
-    E1_min = mcdc_get.kalbach_mann_distribution.energy_out(start, kalbach_mann, data)
-    E1_max = mcdc_get.kalbach_mann_distribution.energy_out(end - 1, kalbach_mann, data)
-
-    # The combination of the two tables
-    E_min = E0_min + f * (E1_min - E0_min)
-    E_max = E0_max + f * (E1_max - E0_max)
-
-    # Sample which table to choose
-    if xi1 < f:
-        idx += 1
-
-    # Get the table range
-    start = mcdc_get.kalbach_mann_distribution.offset(idx, kalbach_mann, data)
-    if idx + 1 == len(grid):
-        end = kalbach_mann["energy_length"]
-    else:
-        end = mcdc_get.kalbach_mann_distribution.offset(idx + 1, kalbach_mann, data)
-    size = end - start
-
-    # The CDF
-    cdf = mcdc_get.kalbach_mann_distribution.cdf_chunk(start, size, kalbach_mann, data)
-
-    # Sample bin index
-    idx = find_bin(xi2, cdf)
-    c = cdf[idx]
-
-    # Get the other values
-    idx += start  # Apply the offset as these are not chunk-extracted like the cdf
-    p0 = mcdc_get.kalbach_mann_distribution.pdf(idx, kalbach_mann, data)
-    p1 = mcdc_get.kalbach_mann_distribution.pdf(idx + 1, kalbach_mann, data)
-    E0 = mcdc_get.kalbach_mann_distribution.energy_out(idx, kalbach_mann, data)
-    E1 = mcdc_get.kalbach_mann_distribution.energy_out(idx + 1, kalbach_mann, data)
-
-    # Calculate the outgoing energy (not-scaled)
-    m = (p1 - p0) / (E1 - E0)
-    if m == 0.0:
-        E_hat = E0 + (xi2 - c) / p0
-    else:
-        E_hat = E0 + 1.0 / m * (math.sqrt(p0**2 + 2 * m * (xi2 - c)) - p0)
-
-    # Scale against the bounds
-    E_low = mcdc_get.kalbach_mann_distribution.energy_out(start, kalbach_mann, data)
-    E_high = mcdc_get.kalbach_mann_distribution.energy_out(end - 1, kalbach_mann, data)
-    E_new = E_min + (E_hat - E_low) / (E_high - E_low) * (E_max - E_min)
-
-    # Precompound factor and angular slope
-    R0 = mcdc_get.kalbach_mann_distribution.precompound_factor(idx, kalbach_mann, data)
-    R1 = mcdc_get.kalbach_mann_distribution.precompound_factor(
-        idx + 1, kalbach_mann, data
-    )
-    A0 = mcdc_get.kalbach_mann_distribution.angular_slope(idx, kalbach_mann, data)
-    A1 = mcdc_get.kalbach_mann_distribution.angular_slope(idx + 1, kalbach_mann, data)
-    #
-    mE = (E_hat - E0) / (E1 - E0)
-    R = R0 + mE * (R1 - R0)
-    A = A0 + mE * (A1 - A0)
-
-    # Calculate the angular coine
-    T = (2.0 * xi4 - 1.0) * math.sinh(A)
-    if xi3 > R:
-        mu = math.log(T + math.sqrt(T**2 + 1.0)) / A
-    else:
-        mu = math.log(xi4 * math.exp(A) + (1.0 - xi4) * math.exp(-A)) / A
-
-    return E_new, mu
+    Histogram selects the lower table; linear uses the incident-energy
+    fraction between neighboring tables. Repeated grid points are
+    evaluated on their right side, and exterior values use endpoint tables.
+    """
+    if E <= grid[0]:
+        index = int(np.searchsorted(grid, E, side="right")) - 1 if E == grid[0] else 0
+        return index, index, 0.0, False
+    if E >= grid[-1]:
+        index = len(grid) - 1
+        return index, index, 0.0, False
+    low = int(np.searchsorted(grid, E, side="right")) - 1
+    high = low + 1
+    law = INTERPOLATION_LINEAR
+    if len(laws):
+        region = 0
+        while region < len(boundaries) - 1 and low + 1 >= boundaries[region]:
+            region += 1
+        law = laws[region]
+    if law == INTERPOLATION_HISTOGRAM:
+        return low, low, 0.0, True
+    fraction = interpolate(E, grid[low], grid[high], 0.0, 1.0, law)
+    return low, high, min(1.0, max(0.0, fraction)), True
 
 
 @njit
-def sample_tabulated_energy_angle(E, rng_state, table, data):
-    grid = mcdc_get.tabulated_energy_angle_distribution.energy_all(table, data)
+def correlated_table_indices(E, grid, xi, laws, boundaries):
+    """Select an incident table under its explicit interpolation regions."""
+    low, high, fraction, _ = incident_table_interval(E, grid, laws, boundaries)
+    selected = high if xi < fraction else low
+    return low, high, selected, fraction
 
-    # Random numbers
-    xi1 = rng.lcg(rng_state)
-    xi2 = rng.lcg(rng_state)
-    xi3 = rng.lcg(rng_state)
 
-    # Interpolation factor
-    idx = find_bin(E, grid)
-    E0 = grid[idx]
-    E1 = grid[idx + 1]
-    f = (E - E0) / (E1 - E0)
-
-    # ==================================================================================
-    # Min and max energy values for scaling
-    # ==================================================================================
-
-    # First table
-    start = mcdc_get.tabulated_energy_angle_distribution.offset(idx, table, data)
-    end = mcdc_get.tabulated_energy_angle_distribution.offset(idx + 1, table, data)
-    E0_min = mcdc_get.tabulated_energy_angle_distribution.energy_out(start, table, data)
-    E0_max = mcdc_get.tabulated_energy_angle_distribution.energy_out(
-        end - 1, table, data
+@njit
+def sample_flat_density(xi, values, pdf, cdf, laws):
+    """Sample a normalized flattened-table slice, returning the local interval."""
+    idx = min(max(find_bin(xi, cdf), 0), len(values) - 2)
+    law = INTERPOLATION_LINEAR if len(laws) == 0 else laws[idx]
+    value = invert_table_segment(
+        xi, cdf[idx], values[idx], values[idx + 1], pdf[idx], pdf[idx + 1], law
     )
+    return value, idx, law
 
-    # Second table
-    start = end
-    if idx + 2 == len(grid):
-        end = table["energy_length"]
-    else:
-        end = mcdc_get.tabulated_energy_angle_distribution.offset(idx + 2, table, data)
-    E1_min = mcdc_get.tabulated_energy_angle_distribution.energy_out(start, table, data)
-    E1_max = mcdc_get.tabulated_energy_angle_distribution.energy_out(
-        end - 1, table, data
+
+@njit
+def sample_kalbach_mann(E, rng_state, kalbach_mann, data, simulation=None):
+    """Sample unit-base outgoing energy and its conditional Kalbach-Mann angle."""
+    grid = mcdc_get.kalbach_mann_distribution.energy_all(kalbach_mann, data)
+    offsets = mcdc_get.kalbach_mann_distribution.offset_all(kalbach_mann, data)
+    values = mcdc_get.kalbach_mann_distribution.energy_out_all(kalbach_mann, data)
+    pdf = mcdc_get.kalbach_mann_distribution.pdf_all(kalbach_mann, data)
+    cdf = mcdc_get.kalbach_mann_distribution.cdf_all(kalbach_mann, data)
+    laws = mcdc_get.kalbach_mann_distribution.interpolations_all(kalbach_mann, data)
+    xi1, xi2 = rng.lcg(rng_state), rng.lcg(rng_state)
+    xi3, xi4 = rng.lcg(rng_state), rng.lcg(rng_state)
+    incident_laws = mcdc_get.kalbach_mann_distribution.incident_interpolations_all(
+        kalbach_mann, data
     )
-
-    # The combination of the two tables
-    E_min = E0_min + f * (E1_min - E0_min)
-    E_max = E0_max + f * (E1_max - E0_max)
-
-    # Sample which table to choose
-    if xi1 < f:
-        idx += 1
-
-    # Get the table range
-    start = mcdc_get.tabulated_energy_angle_distribution.offset(idx, table, data)
-    if idx + 1 == len(grid):
-        end = table["energy_length"]
-    else:
-        end = mcdc_get.tabulated_energy_angle_distribution.offset(idx + 1, table, data)
-    size = end - start
-
-    # The CDF
-    cdf = mcdc_get.tabulated_energy_angle_distribution.cdf_chunk(
-        start, size, table, data
-    )
-
-    # Sample bin index
-    idx = find_bin(xi2, cdf)
-    c = cdf[idx]
-
-    # Get the other values
-    idx_local = (
-        idx + start
-    )  # Apply the offset as these are not chunk-extracted like the cdf
-    p0 = mcdc_get.tabulated_energy_angle_distribution.pdf(idx_local, table, data)
-    p1 = mcdc_get.tabulated_energy_angle_distribution.pdf(idx_local + 1, table, data)
-    E0 = mcdc_get.tabulated_energy_angle_distribution.energy_out(idx_local, table, data)
-    E1 = mcdc_get.tabulated_energy_angle_distribution.energy_out(
-        idx_local + 1, table, data
-    )
-
-    # Calculate the outgoing energy (not-scaled)
-    m = (p1 - p0) / (E1 - E0)
-    if m == 0.0:
-        E_hat = E0 + (xi2 - c) / p0
-    else:
-        E_hat = E0 + 1.0 / m * (math.sqrt(p0**2 + 2 * m * (xi2 - c)) - p0)
-
-    # Scale against the bounds
-    E_low = mcdc_get.tabulated_energy_angle_distribution.energy_out(start, table, data)
-    E_high = mcdc_get.tabulated_energy_angle_distribution.energy_out(
-        end - 1, table, data
-    )
-    E_new = E_min + (E_hat - E_low) / (E_high - E_low) * (E_max - E_min)
-
-    # Determine angular table index
-    if xi2 - cdf[idx] > cdf[idx + 1] - xi2:
-        idx += 1
-
-    # Get the angular table range
-    start = mcdc_get.tabulated_energy_angle_distribution.cosine_offset_(
-        idx, table, data
-    )
-    if idx + 1 == len(grid):
-        end = table["cosine_length"]
-    else:
-        end = mcdc_get.tabulated_energy_angle_distribution.cosine_offset_(
-            idx + 1, table, data
+    incident_boundaries = (
+        mcdc_get.kalbach_mann_distribution.incident_interpolation_boundaries_all(
+            kalbach_mann, data
         )
-    size = end - start
-
-    # The CDF
-    cdf = mcdc_get.tabulated_energy_angle_distribution.cosine_cdf_chunk(
-        start, size, table, data
+    )
+    low, high, selected, fraction = correlated_table_indices(
+        E, grid, xi1, incident_laws, incident_boundaries
+    )
+    low_end = int(offsets[low + 1]) if low + 1 < len(grid) else len(values)
+    high_end = int(offsets[high + 1]) if high + 1 < len(grid) else len(values)
+    start = int(offsets[selected])
+    end = int(offsets[selected + 1]) if selected + 1 < len(grid) else len(values)
+    local_laws = laws[start:end] if len(laws) else laws
+    sampled, interval, law = sample_flat_density(
+        xi2, values[start:end], pdf[start:end], cdf[start:end], local_laws
+    )
+    minimum = values[int(offsets[low])] + fraction * (
+        values[int(offsets[high])] - values[int(offsets[low])]
+    )
+    maximum = values[low_end - 1] + fraction * (
+        values[high_end - 1] - values[low_end - 1]
+    )
+    E_new = minimum + (sampled - values[start]) / (values[end - 1] - values[start]) * (
+        maximum - minimum
     )
 
-    # Sample bin index
-    idx = find_bin(xi3, cdf)
-    c = cdf[idx]
-
-    # Get the other values
-    idx += start  # Apply the offset as these are not chunk-extracted like the cdf
-    p0 = mcdc_get.tabulated_energy_angle_distribution.cosine_pdf(idx, table, data)
-    p1 = mcdc_get.tabulated_energy_angle_distribution.cosine_pdf(idx + 1, table, data)
-    mu0 = mcdc_get.tabulated_energy_angle_distribution.cosine(idx, table, data)
-    mu1 = mcdc_get.tabulated_energy_angle_distribution.cosine(idx + 1, table, data)
-
-    m = (p1 - p0) / (mu1 - mu0)
-    if m == 0.0:
-        mu = mu0 + (xi3 - c) / p0
+    # Parameter Data can be constant, polynomial, or independently tabulated.
+    if simulation is not None and kalbach_mann["N_precompound_table"] > 0:
+        ID = mcdc_get.kalbach_mann_distribution.precompound_table_IDs(
+            selected, kalbach_mann, data
+        )
+        R = evaluate_data_clamped(sampled, simulation["data"][ID], simulation, data)
+        ID = mcdc_get.kalbach_mann_distribution.angular_slope_table_IDs(
+            selected, kalbach_mann, data
+        )
+        A = evaluate_data_clamped(sampled, simulation["data"][ID], simulation, data)
     else:
-        mu = mu0 + 1.0 / m * (math.sqrt(p0**2 + 2 * m * (xi3 - c)) - p0)
+        index = start + interval
+        R = interpolate(
+            sampled,
+            values[index],
+            values[index + 1],
+            mcdc_get.kalbach_mann_distribution.precompound_factor(
+                index, kalbach_mann, data
+            ),
+            mcdc_get.kalbach_mann_distribution.precompound_factor(
+                index + 1, kalbach_mann, data
+            ),
+            law,
+        )
+        A = interpolate(
+            sampled,
+            values[index],
+            values[index + 1],
+            mcdc_get.kalbach_mann_distribution.angular_slope(index, kalbach_mann, data),
+            mcdc_get.kalbach_mann_distribution.angular_slope(
+                index + 1, kalbach_mann, data
+            ),
+            law,
+        )
+    if abs(A) < 1.0e-12:
+        mu = 2.0 * xi4 - 1.0
+    elif xi3 > R:
+        mu = math.asinh((2.0 * xi4 - 1.0) * math.sinh(A)) / A
+    else:
+        mu = 1.0 + math.log(xi4 + (1.0 - xi4) * math.exp(-2.0 * A)) / A
+    return E_new, max(-1.0, min(1.0, mu))
 
-    return E_new, mu
+
+@njit
+def sample_table_energy_angle(E, rng_state, table, data):
+    """Sample outgoing energy and the corresponding conditional cosine table."""
+    grid = mcdc_get.table_energy_angle_distribution.energy_all(table, data)
+    offsets = mcdc_get.table_energy_angle_distribution.offset_all(table, data)
+    values = mcdc_get.table_energy_angle_distribution.energy_out_all(table, data)
+    pdf = mcdc_get.table_energy_angle_distribution.pdf_all(table, data)
+    cdf = mcdc_get.table_energy_angle_distribution.cdf_all(table, data)
+    laws = mcdc_get.table_energy_angle_distribution.interpolations_all(table, data)
+    xi1, xi2, xi3 = rng.lcg(rng_state), rng.lcg(rng_state), rng.lcg(rng_state)
+    incident_laws = (
+        mcdc_get.table_energy_angle_distribution.incident_interpolations_all(
+            table, data
+        )
+    )
+    incident_boundaries = (
+        mcdc_get.table_energy_angle_distribution.incident_interpolation_boundaries_all(
+            table, data
+        )
+    )
+    low, high, selected, fraction = correlated_table_indices(
+        E, grid, xi1, incident_laws, incident_boundaries
+    )
+    low_end = int(offsets[low + 1]) if low + 1 < len(grid) else len(values)
+    high_end = int(offsets[high + 1]) if high + 1 < len(grid) else len(values)
+    start = int(offsets[selected])
+    end = int(offsets[selected + 1]) if selected + 1 < len(grid) else len(values)
+    local_laws = laws[start:end] if len(laws) else laws
+    sampled, interval, law = sample_flat_density(
+        xi2, values[start:end], pdf[start:end], cdf[start:end], local_laws
+    )
+    minimum = values[int(offsets[low])] + fraction * (
+        values[int(offsets[high])] - values[int(offsets[low])]
+    )
+    maximum = values[low_end - 1] + fraction * (
+        values[high_end - 1] - values[low_end - 1]
+    )
+    E_new = minimum + (sampled - values[start]) / (values[end - 1] - values[start]) * (
+        maximum - minimum
+    )
+
+    # Histogram laws use the lower angular table. Linear laws use the nearest
+    # cumulative-probability endpoint, measured within the selected incident table.
+    index = start + interval
+    if law != INTERPOLATION_HISTOGRAM and xi2 - cdf[index] > cdf[index + 1] - xi2:
+        index += 1
+    cosine_offsets = mcdc_get.table_energy_angle_distribution.cosine_offset__all(
+        table, data
+    )
+    cosine = mcdc_get.table_energy_angle_distribution.cosine_all(table, data)
+    cosine_pdf = mcdc_get.table_energy_angle_distribution.cosine_pdf_all(table, data)
+    cosine_cdf = mcdc_get.table_energy_angle_distribution.cosine_cdf_all(table, data)
+    cosine_laws = mcdc_get.table_energy_angle_distribution.cosine_interpolations_all(
+        table, data
+    )
+    start = int(cosine_offsets[index])
+    end = (
+        int(cosine_offsets[index + 1])
+        if index + 1 < len(cosine_offsets)
+        else len(cosine)
+    )
+    local_laws = cosine_laws[start:end] if len(cosine_laws) else cosine_laws
+    mu, _, _ = sample_flat_density(
+        xi3, cosine[start:end], cosine_pdf[start:end], cosine_cdf[start:end], local_laws
+    )
+    return E_new, max(-1.0, min(1.0, mu))

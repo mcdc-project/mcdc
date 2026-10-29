@@ -1,0 +1,95 @@
+# MC/DC HDF5 layout illustration: photon-{element}.h5.
+
+'@format': mcdc-data
+'@format-version': 0.1.0
+
+source-libraries/:
+  '{library}/':
+    title: string
+    version: string
+    release-date: string
+    reference: string
+    comments: string
+    format: string
+    format-version: string
+    processing-date: string
+    conversion-time: string
+
+atomic-number: integer
+
+xs-energy-grid: float [N], eV
+
+reactions/:
+  coherent-scattering/:
+    # Basic fields
+    '@ENDF-MT': 502  # Optional source metadata
+    '@GNDS-label': string  # Optional original source label, preserved exactly
+    '@category': coherent-scattering
+    xs: CrossSection
+    reference-frame: LAB or COM
+    cross-products/: {}
+
+    # Category-specific
+    form-factor: Data, dimensionless  # Input is momentum-transfer coordinate in 1/angstrom
+
+
+  incoherent-scattering/:
+    # Basic fields
+    '@ENDF-MT': 504  # Optional source metadata
+    '@GNDS-label': string  # Optional original source label, preserved exactly
+    '@category': incoherent-scattering
+    xs: CrossSection
+    reference-frame: LAB or COM
+    cross-products/:
+      '{i}': CrossProduct  # Optional recoil-electron production
+
+    # Category-specific
+    scattering-function: Data, dimensionless  # Optional; input is momentum-transfer coordinate in 1/angstrom
+
+
+  photoelectric/:
+    # Basic fields
+    '@ENDF-MT': 522  # Optional source metadata
+    '@GNDS-label': string  # Optional original source label, preserved exactly
+    '@category': photoelectric
+    xs: CrossSection
+    reference-frame: LAB or COM
+    cross-products/:
+      '{i}': CrossProduct  # Optional shell-averaged production, instead of subshell entries
+
+    # Category-specific
+    subshells/:
+      '{subshell}/':
+        designator: integer  # Shell identity shared with atomic-relaxation
+        binding-energy: float, eV
+        xs: Data, barn
+        cross-products/:
+          '{i}': CrossProduct  # Optional photoelectron production conditional on this subshell
+
+
+  pair-production-electron-field/:
+    # Basic fields
+    '@ENDF-MT': 515  # Optional source metadata
+    '@GNDS-label': string  # Optional original source label, preserved exactly
+    '@category': pair-production
+    xs: CrossSection
+    reference-frame: LAB or COM
+    cross-products/:
+      '{i}': CrossProduct  # Optional electron and positron production
+
+    # Category-specific
+    field: electron
+
+
+  pair-production-nuclear-field/:
+    # Basic fields
+    '@ENDF-MT': 517  # Optional source metadata
+    '@GNDS-label': string  # Optional original source label, preserved exactly
+    '@category': pair-production
+    xs: CrossSection
+    reference-frame: LAB or COM
+    cross-products/:
+      '{i}': CrossProduct  # Optional electron and positron production
+
+    # Category-specific
+    field: nuclear

@@ -55,7 +55,6 @@ def write_photon_library(
     path,
     *,
     atomic_number=82,
-    atomic_weight_ratio=205.4,
     coherent=1.0,
     incoherent=2.0,
     photoelectric=4.0,
@@ -69,71 +68,84 @@ def write_photon_library(
     Each channel is constant above its threshold, so the expected macroscopic
     cross sections are exactly computable and the tests do not depend on
     interpolation detail. Photoelectric opens at the K edge and pair production
-    at its physical threshold, both expressed through the ``offset`` attribute
-    the loader reads.
+    at its physical threshold, both expressed through shared-grid xs offsets.
     """
     N = _grid_length()
 
     with h5py.File(path, "w") as file:
-        file["atomic_number"] = np.int64(atomic_number)
-        file["atomic_weight_ratio"] = np.float64(atomic_weight_ratio)
-        file["element_name"] = np.bytes_("X")
+        file.attrs["format"] = "mcdc-data"
+        file.attrs["format-version"] = "0.1.0"
+        file["atomic-number"] = np.int64(atomic_number)
 
-        reactions = file.create_group("photon_reactions")
-        grid = reactions.create_dataset("xs_energy_grid", data=np.array(ENERGY_GRID))
+        photon = file
+        reactions = photon.create_group("reactions")
+        grid = photon.create_dataset("xs-energy-grid", data=np.array(ENERGY_GRID))
         grid.attrs["unit"] = "eV"
 
-        def channel(group_name, MT, value, threshold_index):
-            group = reactions.require_group(group_name)
-            mt_group = group.create_group(f"MT{MT}")
-            mt_group.attrs["MT"] = np.int64(MT)
-            xs = np.full(N - threshold_index, value, dtype=np.float64)
-            dataset = mt_group.create_dataset("xs", data=xs)
-            dataset.attrs["offset"] = np.int64(threshold_index)
-            dataset.attrs["unit"] = "barns"
-            mt_group["reference_frame"] = np.bytes_("LAB")
-            return mt_group
+        def interpolation(group, size):
+            rule = group.create_group("interpolation")
+            rule["laws"] = np.array(["linear"], dtype=h5py.string_dtype())
+            rule["boundaries"] = [size]
+
+        def table(group, x, y, x_unit, y_unit=None):
+            group.attrs["type"] = "table"
+            group.create_dataset("grid", data=x).attrs["unit"] = x_unit
+            value = group.create_dataset("value", data=y)
+            if y_unit:
+                value.attrs["unit"] = y_unit
+            interpolation(group, len(x))
+
+        def channel(name, MT, value, threshold_index, category=None):
+            group = reactions.create_group(name)
+            group.attrs["ENDF-MT"] = MT
+            group.attrs["category"] = category or name
+            xs = group.create_group("xs")
+            xs["offset"] = threshold_index
+            xs.create_dataset("value", data=np.full(N - threshold_index, value)).attrs[
+                "unit"
+            ] = "barn"
+            interpolation(xs, N - threshold_index)
+            group["reference-frame"] = "LAB"
+            group.create_group("cross-products")
+            return group
 
         # Coherent, with a form factor whose forward value is Z, as F(0, Z) = Z.
-        coherent_group = channel("coherent_scattering", 502, coherent, 0)
-        form_factor = coherent_group.create_group("form_factor")
-        momentum_transfer = np.array([0.0, 1.0, 10.0, 1.0e4])
-        form_factor_value = np.array(
-            [float(atomic_number), 0.5 * atomic_number, 0.01 * atomic_number, 0.0]
+        coherent_group = channel("coherent-scattering", 502, coherent, 0)
+        table(
+            coherent_group.create_group("form-factor"),
+            [0.0, 1.0, 10.0, 1.0e4],
+            [float(atomic_number), 0.5 * atomic_number, 0.01 * atomic_number, 0.0],
+            "1/angstrom",
         )
-        dataset = form_factor.create_dataset(
-            "momentum_transfer", data=momentum_transfer
-        )
-        dataset.attrs["unit"] = "1/angstrom"
-        form_factor.create_dataset("value", data=form_factor_value)
-
-        channel("incoherent_scattering", 504, incoherent, 0)
+        channel("incoherent-scattering", 504, incoherent, 0)
 
         # Photoelectric opens at the K edge, with two subshells.
         photoelectric_group = channel("photoelectric", 522, photoelectric, 2)
         subshells = photoelectric_group.create_group("subshells")
-        for MT, binding_energy, fraction in (
-            (534, K_BINDING_ENERGY, 0.75),
-            (535, L_BINDING_ENERGY, 0.25),
+        for designator, name, binding_energy, fraction in (
+            (1, "K", K_BINDING_ENERGY, 0.75),
+            (3, "L2", L_BINDING_ENERGY, 0.25),
         ):
-            subshell = subshells.create_group(f"MT-{MT}")
-            subshell.attrs["MT"] = np.int64(MT)
-            energy = subshell.create_dataset("energy_grid", data=np.array(ENERGY_GRID))
-            energy.attrs["unit"] = "eV"
+            subshell = subshells.create_group(name)
+            subshell["designator"] = np.int64(designator)
             values = np.where(
                 np.array(ENERGY_GRID) >= binding_energy,
                 photoelectric * fraction,
                 0.0,
             )
-            dataset = subshell.create_dataset("xs", data=values)
-            dataset.attrs["unit"] = "barns"
+            table(
+                subshell.create_group("xs"), np.array(ENERGY_GRID), values, "eV", "barn"
+            )
+            subshell.create_group("cross-products")
             binding = subshell.create_dataset(
-                "binding_energy", data=np.float64(binding_energy)
+                "binding-energy", data=np.float64(binding_energy)
             )
             binding.attrs["unit"] = "eV"
 
         # Pair production opens at its physical threshold.
-        channel("pair_production", 515, pair, 5)
+        channel("pair-production-nuclear-field", 517, pair, 5, "pair-production")[
+            "field"
+        ] = "nuclear"
 
         if not include_relaxation:
             return
@@ -146,15 +158,14 @@ def write_photon_library(
         # is where the vacancy moves next: the K line is filled from L, which
         # leaves an L vacancy. Whether that second vacancy can itself relax
         # radiatively is what ``cascade`` controls.
-        relaxation = file.create_group("atomic_relaxation")
-        relaxation["n_subshells"] = np.int64(2)
+        relaxation = file.create_group("atomic-relaxation")
         subshell_group = relaxation.create_group("subshells")
 
-        k_shell = subshell_group.create_group("MT-534")
+        k_shell = subshell_group.create_group("vacancy-K")
         k_shell["designator"] = np.int64(1)
-        k_shell["n_electrons"] = np.float64(2.0)
+        k_shell["electron-count"] = np.float64(2.0)
         binding = k_shell.create_dataset(
-            "binding_energy", data=np.float64(K_BINDING_ENERGY)
+            "binding-energy", data=np.float64(K_BINDING_ENERGY)
         )
         binding.attrs["unit"] = "eV"
         transitions = k_shell.create_group("transitions")
@@ -165,15 +176,15 @@ def write_photon_library(
         else:
             energies = [K_ALPHA_ENERGY, K_ALPHA_ENERGY]
             probabilities = [fluorescence_yield, 1.0 - fluorescence_yield]
-            secondary = [0, 2]  # the second is non-radiative (Auger)
+            secondary = [0, 3]  # the second is non-radiative (Auger)
         energy = transitions.create_dataset("energy", data=np.array(energies))
         energy.attrs["unit"] = "eV"
         transitions.create_dataset("probability", data=np.array(probabilities))
         transitions.create_dataset(
-            "origin_designator", data=np.array([2] * len(energies), dtype=np.int64)
+            "origin-designator", data=np.array([3] * len(energies), dtype=np.int64)
         )
         transitions.create_dataset(
-            "secondary_designator", data=np.array(secondary, dtype=np.int64)
+            "secondary-designator", data=np.array(secondary, dtype=np.int64)
         )
 
         # By default the L shell has nothing above it to fill the vacancy, so
@@ -181,11 +192,11 @@ def write_photon_library(
         # shells, and which terminates the cascade after one photon. With
         # ``cascade=True`` it gets one radiative transition filled from M, so a
         # K event emits the primary line plus one cascade line.
-        l_shell = subshell_group.create_group("MT-535")
-        l_shell["designator"] = np.int64(2)
-        l_shell["n_electrons"] = np.float64(8.0)
+        l_shell = subshell_group.create_group("vacancy-L")
+        l_shell["designator"] = np.int64(3)
+        l_shell["electron-count"] = np.float64(8.0)
         binding = l_shell.create_dataset(
-            "binding_energy", data=np.float64(L_BINDING_ENERGY)
+            "binding-energy", data=np.float64(L_BINDING_ENERGY)
         )
         binding.attrs["unit"] = "eV"
 
@@ -197,19 +208,56 @@ def write_photon_library(
             energy.attrs["unit"] = "eV"
             l_transitions.create_dataset("probability", data=np.array([1.0]))
             l_transitions.create_dataset(
-                "origin_designator", data=np.array([3], dtype=np.int64)
+                "origin-designator", data=np.array([5], dtype=np.int64)
             )
             l_transitions.create_dataset(
-                "secondary_designator", data=np.array([0], dtype=np.int64)
+                "secondary-designator", data=np.array([0], dtype=np.int64)
             )
+
+        else:
+            terminal = l_shell.create_group("transitions")
+            for name in (
+                "energy",
+                "probability",
+                "origin-designator",
+                "secondary-designator",
+            ):
+                terminal[name] = np.zeros(0)
+
+        m_shell = subshell_group.create_group("relaxation-only-M")
+        m_shell["designator"] = 5
+        m_shell["binding-energy"] = M_BINDING_ENERGY
+        m_shell["electron-count"] = 2.0
+        terminal = m_shell.create_group("transitions")
+        for name in (
+            "energy",
+            "probability",
+            "origin-designator",
+            "secondary-designator",
+        ):
+            terminal[name] = np.zeros(0)
+
+        # The shared atomic collection is independent of the projectile file.
+        with h5py.File(path.parent / "atoms.h5", "a") as atoms:
+            atoms.attrs["format"], atoms.attrs["format-version"] = "mcdc-data", "0.1.0"
+            symbol = path.stem.removeprefix("photon-")
+            if symbol in atoms:
+                del atoms[symbol]
+            record = atoms.create_group(symbol)
+            record["atomic-number"] = atomic_number
+            file.copy(file["atomic-relaxation"], record, name="atomic-relaxation")
+        del file["atomic-relaxation"]
 
 
 @pytest.fixture
 def photon_model(tmp_path, monkeypatch, prepare_simulation):
     """A one-element photon material at unit atom density."""
 
-    def build(density=1.0, **library):
-        write_photon_library(tmp_path / "X.h5", **library)
+    def build(density=1.0, edit=None, **library):
+        write_photon_library(tmp_path / "photon-X.h5", **library)
+        if edit is not None:
+            with h5py.File(tmp_path / "photon-X.h5", "r+") as file:
+                edit(file)
         monkeypatch.setenv("MCDC_LIB", str(tmp_path))
 
         material = mcdc.Material(number_density={"X": density})

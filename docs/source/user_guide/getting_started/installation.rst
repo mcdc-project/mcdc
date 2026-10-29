@@ -132,59 +132,12 @@ For container-based installation and execution, see :doc:`../container`.
 
 .. _install-data-library:
 
--------------------------------------------------
-Generating a Neutron Data Library from ACE Files
--------------------------------------------------
+------------------------
+Preparing Transport Data
+------------------------
 
-MC/DC ships with a neutron conversion tool in ``tools/data_library_generator/neutron/`` that reads standard ACE-format nuclear data files and writes them into MC/DC's per-nuclide HDF5 format.
-This is the primary path for creating continuous-energy neutron libraries.
-
-**Prerequisites:**
-
-.. code-block:: sh
-
-   pip install ACEtk h5py numpy tqdm
-
-You also need a set of ACE files from a source such as `NJOY <http://www.njoy21.io/>`_ or an ENDF/B distribution.
-
-**Environment variables:**
-
-.. list-table::
-   :widths: 25 75
-   :header-rows: 1
-
-   * - Variable
-     - Description
-   * - ``MCDC_ACELIB``
-     - Path to the directory containing your ACE files.
-   * - ``MCDC_LIB``
-     - Path to the output directory where MC/DC HDF5 files will be written.
-
-**Running the generator:**
-
-.. code-block:: sh
-
-   export MCDC_ACELIB=/path/to/ace/files
-   export MCDC_LIB=/path/to/mcdc/library
-
-   cd tools/data_library_generator/neutron
-   python generate.py
-
-By default, the tool converts only nuclides without a corresponding HDF5 file in ``$MCDC_LIB``.
-Use ``--rewrite`` to regenerate all files or ``--verbose`` for detailed per-nuclide output:
-
-.. code-block:: sh
-
-   python generate.py --rewrite --verbose
-
-The generator processes each ACE file as follows:
-
-#. Reads the ACE header to determine nuclide identity (Z, A, isomeric state) and temperature.
-#. Extracts the principal cross-section block and writes HDF5 datasets grouped by reaction type.
-#. Extracts angular and energy distributions for each reaction channel.
-#. Extracts prompt and delayed :math:`\nu(E)` data, precursor fractions, decay constants, and energy spectra for fissionable nuclides.
-
-The resulting HDF5 file (e.g., ``U235-293.6K.h5``) is ready for use with ``mcdc.Material()``.
+See :doc:`../data_preparation/index` for projectile-specific requirements, commands, and source-library conventions for generating transport data.
+The :doc:`MC/DC data format reference <../../reference/data_format/index>` specifies the output structure.
 
 
 ---------------------------------
