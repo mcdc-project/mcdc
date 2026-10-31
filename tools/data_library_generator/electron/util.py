@@ -47,12 +47,13 @@ def load_elastic_angular_distribution(block, h5_group: h5py.Group):
     h5_group.create_dataset("CDF", data=np.array(cdf))
 
 
-def load_electroionization_subshell(block, h5_group: h5py.Group):
+def load_outgoing_energy_distribution(block, h5_group: h5py.Group):
     """
-    Load electroionization energy distribution for a single subshell.
-    Stores incident energy grid, outgoing (knock-on) electron energy grid, and
-    CDF per incident energy.
-    Note: ACEtk provides CDF only (no PDF) for electroionization distributions.
+    Load an outgoing-energy distribution block into HDF5 group: the knock-on
+    electron spectrum of one ionization subshell, or the bremsstrahlung photon
+    spectrum. Stores incident energy grid, outgoing energy grid, and CDF per
+    incident energy.
+    Note: ACEtk provides CDF only (no PDF) for these distributions.
     """
     energies = np.array(block.energies) * 1e6
     dataset = h5_group.create_dataset("energy_grid", data=energies)
