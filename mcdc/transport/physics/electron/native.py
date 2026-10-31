@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 from numba import njit
 
@@ -36,9 +37,10 @@ from mcdc.transport.physics.cross_species_production import (
     is_transported,
 )
 from mcdc.transport.distribution import (
-    invert_tabulated_segment,
+    invert_table_segment,
+    multi_table_arrays,
     sample_distribution,
-    sample_tabulated,
+    sample_multi_table_at,
     sample_isotropic_direction,
 )
 from mcdc.transport.physics.util import (
@@ -433,11 +435,7 @@ def sample_scaled_cosine(E, distribution, mean_deflection, rng_state, simulation
     else:
         idx = find_bin(E, grid)
 
-    ID = mcdc_get.multi_table_distribution.table_IDs(idx, multi_table, data)
-    table = simulation["tabulated_distributions"][
-        simulation["distributions"][ID]["sub_ID"]
-    ]
-    mu = sample_tabulated(table, rng_state, simulation, data)
+    mu = sample_multi_table_at(idx, rng.lcg(rng_state), multi_table, data)
 
     if E <= grid[idx]:
         return mu
@@ -784,35 +782,28 @@ def sample_delta_energy(E, B, distribution, rng_state, simulation, data):
 def _invert_spectrum_table(idx, xi, multi_table, simulation, data):
     """Invert the spectrum table at grid index idx with a given random number."""
 
-    ID = mcdc_get.multi_table_distribution.table_IDs(idx, multi_table, data)
-    sub_ID = simulation["distributions"][ID]["sub_ID"]
-    table = simulation["tabulated_distributions"][sub_ID]
-
-    pdf_data = simulation["data"][table["pdf_ID"]]
-    pdf_table = simulation["table_data"][pdf_data["sub_ID"]]
-
-    cdf = mcdc_get.table_data.aux_vector(0, pdf_table, data)
+    values, pdf, cdf, laws, boundaries = multi_table_arrays(idx, multi_table, data)
 
     # find_bin returns -1 at the first CDF point; avoid reading before the table.
     if xi <= cdf[0]:
-        return mcdc_get.table_data.x(0, pdf_table, data)
+        return values[0]
     idx = find_bin(xi, cdf)
 
     c0 = cdf[idx]
     c1 = cdf[idx + 1]
-    v0 = mcdc_get.table_data.x(idx, pdf_table, data)
-    v1 = mcdc_get.table_data.x(idx + 1, pdf_table, data)
+    v0 = values[idx]
+    v1 = values[idx + 1]
 
     # A repeated CDF value has a zero-width segment; take its upper value
     if xi == c1:
         return v1
 
     # PDF input is piecewise linear; invert the PDF segment exactly
-    interpolation = mcdc_get.table_data.interpolations(0, pdf_table, data)
+    interpolation = laws[np.searchsorted(boundaries, idx + 1, side="right")]
     if interpolation == INTERPOLATION_LINEAR:
-        p0 = mcdc_get.table_data.y(idx, pdf_table, data)
-        p1 = mcdc_get.table_data.y(idx + 1, pdf_table, data)
-        return invert_tabulated_segment(xi, c0, v0, v1, p0, p1, interpolation)
+        p0 = pdf[idx]
+        p1 = pdf[idx + 1]
+        return invert_table_segment(xi, c0, v0, v1, p0, p1, interpolation)
 
     # CDF input is stored as a histogram PDF (a piecewise-linear CDF), but the
     # EPRDATA14 CDF is log-log in (CDF, energy); the segment starting at

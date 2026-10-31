@@ -19,11 +19,12 @@ In MC/DC, *native* refers to data-library-backed transport physics derived from 
 The composition identifies the physical constituents whose library records provide the interaction data.
 Continuous-energy transport physics data are read from a library that uses MC/DC's internal cross-section format.
 Material data is loaded by listing either isotopes (e.g. :code:`U235`) or elements (e.g. :code:`C`), which uses that element's natural isotopic abundance for neutron transport, or that element's data for electron and photon transport.
-Material composition is given by the atom densities (``number_density``) in atoms/(barn cm), mass densities (``mass_density``) in g/cc, or mass fractions (``mass_fraction``) combined with total material ``density`` in g/cc.
+Material composition is given by the atom densities (``number_density``) in atoms/(barn cm), mass densities (``mass_density``) in g/cc, or mass fractions (``mass_fractions``) combined with total material ``density`` in g/cc.
+Mass inputs use library nuclide weights, with natural-element weights averaged over the natural isotope abundances.
+The corresponding nuclide files must be available even for transport using element data.
 
 If both an element and one or more of its isotopes are specified, the densities are summed.
-Element/nuclide names are not checked when the Material is created, so custom elements or nuclides can be used; 
-a name missing from the data library raises an error when the simulation is compiled.
+Element/nuclide names are not checked when the Material is created, so custom elements or nuclides can be used; a name missing from the data library raises an error when the simulation is compiled.
 Material temperature is specified in K:
 
 .. code-block:: python
@@ -48,8 +49,8 @@ The same material can be specified using mass fractions:
         density=10.09,
     )
 
-Note that :code:`h5`-formatted cross sections must be available for these nuclides or elements at the directory defined by the environment variable :code:`MCDC_LIB` (see :ref:`install-data-library` for instructions on generating data libraries). 
-These files contain a table of energies and cross sections for each reaction.
+Set ``MCDC_LIB`` to the directory containing the prepared projectile files for these targets.
+See :doc:`data_preparation/index` for library generation and the :doc:`data format reference <../reference/data_format/index>` for file naming and contents.
 
 Multigroup Transport and Data
 -----------------------------

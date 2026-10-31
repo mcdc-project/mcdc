@@ -1,4 +1,6 @@
-from numpy import float64
+import numpy as np
+
+from numpy import float64, int64
 from numpy.typing import NDArray
 
 ####
@@ -9,13 +11,19 @@ from mcdc.constant import (
     PHOTON_REACTION_INCOHERENT_SCATTERING,
     PHOTON_REACTION_PAIR_PRODUCTION,
     PHOTON_REACTION_PHOTOELECTRIC,
-    REFERENCE_FRAME_COM,
     REFERENCE_FRAME_LAB,
 )
 from mcdc.object_.base import MCDCPolymorphic
-from mcdc.object_.data import DataBase, DataTable
-from mcdc.object_.electron_reaction import read_energy
+from mcdc.object_.data import DataBase
+from mcdc.object_.hdf5_reader import (
+    ordered_subshells,
+    read_data,
+    read_reaction_properties,
+    set_xs_interpolation,
+    text,
+)
 from mcdc.object_.secondary_product import SecondaryProduct
+from mcdc.object_.util import decode_reference_frame
 from mcdc.print_ import print_1d_array
 
 # ======================================================================================
@@ -39,6 +47,8 @@ class PhotonReactionBase(MCDCPolymorphic):
     MT: int
     xs: NDArray[float64]
     xs_offset_: int  # "xs_offset" is reserved for "xs"
+    xs_interpolations: NDArray[int64]
+    xs_interpolation_boundaries: NDArray[int64]
     reference_frame: int
 
     secondary_products: list[SecondaryProduct]
@@ -49,6 +59,8 @@ class PhotonReactionBase(MCDCPolymorphic):
         self.MT = MT
         self.xs = xs
         self.xs_offset_ = xs_offset
+        self.xs_interpolations = np.array([INTERPOLATION_LINEAR], dtype=int64)
+        self.xs_interpolation_boundaries = np.array([len(xs)], dtype=int64)
         self.reference_frame = reference_frame
 
     def __repr__(self):
@@ -71,15 +83,6 @@ def decode_type(type_):
         return "Photon photoelectric absorption"
     elif type_ == PHOTON_REACTION_PAIR_PRODUCTION:
         return "Photon pair production"
-
-
-def decode_reference_frame(type_):
-    """Return the display name for a packed reference-frame code."""
-
-    if type_ == REFERENCE_FRAME_LAB:
-        return "Laboratory"
-    elif type_ == REFERENCE_FRAME_COM:
-        return "Center of mass"
 
 
 # ======================================================================================
@@ -110,20 +113,16 @@ class PhotonReactionCoherentScattering(PhotonReactionBase):
         """Build a coherent-scattering reaction from a library HDF5 group."""
         MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
-        # Linear, not log-log: the library's momentum-transfer grid starts at
-        # q = 0, where log(q) is undefined.
-        form_factor_group = h5_group["form_factor"]
-        form_factor = DataTable(
-            form_factor_group["momentum_transfer"][()],
-            form_factor_group["value"][()],
-            INTERPOLATION_LINEAR,
+        form_factor = read_data(h5_group["form-factor"])
+        return set_xs_interpolation(
+            cls(MT, xs, xs_offset, reference_frame, form_factor), h5_group
         )
-
-        return cls(MT, xs, xs_offset, reference_frame, form_factor)
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Form factor: DataTable [ID: {self.form_factor.ID}]\n"
+        text += (
+            f"  - Form factor: {self.form_factor.label} [ID: {self.form_factor.ID}]\n"
+        )
         return text
 
 
@@ -148,7 +147,9 @@ class PhotonReactionIncoherentScattering(PhotonReactionBase):
     @classmethod
     def from_h5_group(cls, h5_group):
         """Build an incoherent-scattering reaction from a library HDF5 group."""
-        return cls(*set_basic_properties(h5_group))
+        # TODO: Load and store scattering-function when transport applies it
+        # to the Klein-Nishina angular distribution.
+        return set_xs_interpolation(cls(*set_basic_properties(h5_group)), h5_group)
 
 
 # ======================================================================================
@@ -170,42 +171,39 @@ class PhotonReactionPhotoelectric(PhotonReactionBase):
 
     N_subshell: int
     subshell_xs: list[DataBase]
+    subshell_designators: NDArray[int64]
 
-    def __init__(self, MT, xs, xs_offset, reference_frame, subshell_xs):
+    def __init__(
+        self, MT, xs, xs_offset, reference_frame, subshell_xs, subshell_designators
+    ):
         super().__init__(MT, xs, xs_offset, reference_frame)
         self.N_subshell = len(subshell_xs)
         self.subshell_xs = subshell_xs
+        self.subshell_designators = np.asarray(subshell_designators, dtype=int64)
 
     @classmethod
     def from_h5_group(cls, h5_group):
         """Build a photoelectric reaction from a library HDF5 group."""
         MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
-        subshell_xs = []
-        if "subshells" in h5_group:
-            subshells = h5_group["subshells"]
-            for name in subshells:
-                subshell = subshells[name]
-                # Linear, matching ElectronReactionIonization: subshell cross
-                # sections are identically zero below their absorption edge, and
-                # log-log interpolation is undefined across a zero ordinate.
-                subshell_xs.append(
-                    DataTable(
-                        read_energy(subshell["energy_grid"]),
-                        subshell["xs"][()],
-                        INTERPOLATION_LINEAR,
-                    )
+        subshell_xs, designators = [], []
+        for subshell in ordered_subshells(h5_group.get("subshells", {})):
+            if len(subshell.get("cross-products", ())):
+                raise ValueError(
+                    f"{subshell.name}: cross-product transport is unsupported"
                 )
+            subshell_xs.append(read_data(subshell["xs"]))
+            designators.append(int(subshell["designator"][()]))
 
-        return cls(MT, xs, xs_offset, reference_frame, subshell_xs)
+        return set_xs_interpolation(
+            cls(MT, xs, xs_offset, reference_frame, subshell_xs, designators), h5_group
+        )
 
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Number of subshells: {self.N_subshell}\n"
         for i in range(self.N_subshell):
-            text += (
-                f"    - Subshell {i+1} XS: DataTable [ID: {self.subshell_xs[i].ID}]\n"
-            )
+            text += f"    - Subshell {i+1} XS: {self.subshell_xs[i].label} [ID: {self.subshell_xs[i].ID}]\n"
         return text
 
 
@@ -217,8 +215,8 @@ class PhotonReactionPhotoelectric(PhotonReactionBase):
 class PhotonReactionPairProduction(PhotonReactionBase):
     """Pair production in the nuclear (MT-517) or electron (MT-515) field.
 
-    Above the ``2 m_e c^2`` threshold the photon converts to an electron-positron
-    pair. The pair kinetic energy deposits locally and the positron annihilates,
+    The channel cross section supplies its threshold. The photon converts to
+    an electron-positron pair whose kinetic energy deposits locally; the positron annihilates,
     emitting two 511 keV photons; both are handled in
     :mod:`mcdc.transport.physics.photon.native`.
     """
@@ -227,10 +225,23 @@ class PhotonReactionPairProduction(PhotonReactionBase):
     label = "photon_pair_production_reaction"
     sub_type = PHOTON_REACTION_PAIR_PRODUCTION
 
+    electron_field: bool
+
+    def __init__(self, MT, xs, xs_offset, reference_frame, electron_field):
+        super().__init__(MT, xs, xs_offset, reference_frame)
+        self.electron_field = electron_field
+
     @classmethod
     def from_h5_group(cls, h5_group):
-        """Build a pair-production reaction from a library HDF5 group."""
-        return cls(*set_basic_properties(h5_group))
+        """Read pair-production cross sections and the producing field."""
+        field = text(h5_group["field"][()])
+        if field not in ("electron", "nuclear"):
+            raise ValueError(
+                f"{h5_group.name}: unknown pair-production field {field!r}"
+            )
+        return set_xs_interpolation(
+            cls(*set_basic_properties(h5_group), field == "electron"), h5_group
+        )
 
 
 # ======================================================================================
@@ -239,16 +250,8 @@ class PhotonReactionPairProduction(PhotonReactionBase):
 
 
 def set_basic_properties(h5_group):
-    """Read properties shared by all photon reactions from an HDF5 group."""
-
-    MT = h5_group.attrs["MT"][()]
-    xs = h5_group["xs"][()]
-    xs_offset = h5_group["xs"].attrs["offset"]
-    reference_frame = REFERENCE_FRAME_LAB
-    if "reference_frame" in h5_group:
-        frame_name = h5_group["reference_frame"][()]
-        if isinstance(frame_name, bytes):
-            frame_name = frame_name.decode("utf-8")
-        if frame_name == "COM":
-            reference_frame = REFERENCE_FRAME_COM
+    """Read shared reaction fields and require the photon model's LAB frame."""
+    MT, xs, xs_offset, reference_frame = read_reaction_properties(h5_group)
+    if reference_frame != REFERENCE_FRAME_LAB:
+        raise ValueError(f"{h5_group.name}: photon reactions require LAB data")
     return MT, xs, xs_offset, reference_frame

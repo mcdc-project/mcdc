@@ -1,0 +1,31 @@
+# MC/DC HDF5 layout illustration: atoms.h5.
+
+'@format': mcdc-data
+'@format-version': 0.1.0
+
+source-libraries/:
+  '{library}/':
+    title: string
+    version: string
+    release-date: string
+    reference: string
+    comments: string
+    format: string
+    format-version: string
+    processing-date: string
+    conversion-time: string
+
+'{element}/':
+  atomic-number: integer
+
+  atomic-relaxation/:
+    subshells/:
+      '{subshell}/':
+        designator: integer
+        binding-energy: float, eV
+        electron-count: float
+        transitions/:
+          energy: float [T], eV
+          probability: float [T]  # Branching probabilities for this vacancy
+          origin-designator: integer [T]  # Shell supplying the filling electron
+          secondary-designator: integer [T]  # Zero for a radiative transition, otherwise the second vacancy shell

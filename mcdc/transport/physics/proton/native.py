@@ -15,13 +15,13 @@ import mcdc.transport.util as util
 
 from mcdc.constant import (
     EVENT_TIME_CENSUS,
-    ANGLE_DISTRIBUTED,
-    ANGLE_ENERGY_CORRELATED,
-    ANGLE_ISOTROPIC,
+    DISTRIBUTION_NONE,
+    DISTRIBUTION_ISOTROPIC,
     BOLTZMANN_K,
     THERMAL_THRESHOLD_FACTOR,
     LIGHT_SPEED,
     PROTON_MASS,
+    NEUTRON_MASS,
     PI,
     PI_HALF,
     PI_SQRT,
@@ -39,17 +39,13 @@ from mcdc.transport.distribution import (
     sample_correlated_distribution_with_scale,
     sample_distribution_with_scale,
     sample_distribution,
-    sample_isotropic_cosine,
-    sample_isotropic_direction,
-    sample_multi_table,
-    sample_kalbach_mann,
 )
 from mcdc.transport.physics.util import (
     evaluate_proton_xs_energy_grid,
     relativistic_energy_from_speed,
     scatter_direction,
 )
-from mcdc.transport.util import find_bin, linear_interpolation
+from mcdc.transport.util import linear_interpolation
 from mcdc.transport.data import evaluate_data
 
 # ======================================================================================
@@ -503,8 +499,7 @@ def inelastic_scattering(
         and rng.lcg(particle_container) < fractional_multiplicity
     ):
         N_proton += 1
-    N_spectrum = inelastic_scattering["N_spectrum"]
-    use_all_spectrum = inelastic_scattering["use_all_spectra"]
+    spectrum = simulation["distributions"][inelastic_scattering["spectrum_ID"]]
 
     # Set up secondary particle container
     particle_container_new = util.local_array(1, type_.particle_data)
@@ -519,62 +514,35 @@ def inelastic_scattering(
         # Sample angle (if not energy-correlated)
         # ==============================================================================
 
-        angle_type = inelastic_scattering["angle_type"]
-        if angle_type == ANGLE_ENERGY_CORRELATED:
-            pass
-        elif angle_type == ANGLE_ISOTROPIC:
-            mu = sample_isotropic_cosine(particle_container_new)
-        elif angle_type == ANGLE_DISTRIBUTED:
-            mu_distribution = simulation["distributions"][inelastic_scattering["mu_ID"]]
-            mu = sample_distribution(
-                E, mu_distribution, particle_container, simulation, data
-            )
+        mu_distribution = simulation["distributions"][inelastic_scattering["mu_ID"]]
+        if mu_distribution["sub_type"] != DISTRIBUTION_NONE:
+            if mu_distribution["sub_type"] == DISTRIBUTION_ISOTROPIC:
+                mu = sample_distribution(
+                    E, mu_distribution, particle_container_new, simulation, data
+                )
+            else:
+                mu = sample_distribution(
+                    E, mu_distribution, particle_container, simulation, data
+                )
 
         # ==============================================================================
         # Sample energy (also angle if correlated)
         # ==============================================================================
 
-        # Get energy spectrum
-        if use_all_spectrum:
-            ID = int(
-                mcdc_get.proton_inelastic_scattering_reaction.energy_spectrum_IDs(
-                    n, inelastic_scattering, data
-                )
-            )
-            spectrum_base = simulation["distributions"][ID]
-        else:
-            offset = inelastic_scattering["spectrum_probability_grid_offset"]
-            length = inelastic_scattering["spectrum_probability_grid_length"]
-            probability_grid = data[offset : offset + length]
-            probability_idx = find_bin(E, probability_grid)
-            if probability_idx < 0:
-                probability_idx = 0 if E < probability_grid[0] else length - 2
-            xi = rng.lcg(particle_container_new)
-            total = 0.0
-            for j in range(N_spectrum):
-                probability = (
-                    mcdc_get.proton_inelastic_scattering_reaction.spectrum_probability(
-                        probability_idx, j, inelastic_scattering, data
-                    )
-                )
-                total += probability
-                if xi < total:
-                    ID = int(
-                        mcdc_get.proton_inelastic_scattering_reaction.energy_spectrum_IDs(
-                            j, inelastic_scattering, data
-                        )
-                    )
-                    spectrum_base = simulation["distributions"][ID]
-                    break
-
         # Sample energy
-        if not angle_type == ANGLE_ENERGY_CORRELATED:
+        if mu_distribution["sub_type"] != DISTRIBUTION_NONE:
             E_new = sample_distribution_with_scale(
-                E, spectrum_base, particle_container_new, simulation, data
+                E, spectrum, particle_container_new, simulation, data
             )
         else:
             E_new, mu = sample_correlated_distribution_with_scale(
-                E, spectrum_base, particle_container_new, simulation, data
+                E,
+                spectrum,
+                particle_container_new,
+                simulation,
+                data,
+                nuclide["atomic_weight_ratio"] * NEUTRON_MASS / PROTON_MASS,
+                reaction["q_value"],
             )
 
         # ==============================================================================

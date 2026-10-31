@@ -224,6 +224,7 @@ This behavior has two purposes:
 
 Deduplication is based on Python object identity within one compilation, not on equal field values.
 Two separately constructed materials with identical cross sections remain two objects unless a class performs its own canonicalization.
+For example, nuclide compilation canonicalizes element references by chemical symbol, so all isotopes and temperatures of an element share one element object within the simulation.
 
 Simulation-local IDs
 --------------------

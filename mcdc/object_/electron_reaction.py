@@ -13,32 +13,28 @@ from mcdc.constant import (
     ELECTRON_REACTION_IONIZATION,
     INTERPOLATION_LINEAR,
     MU_CUTOFF,
-    REFERENCE_FRAME_COM,
-    REFERENCE_FRAME_LAB,
 )
 from mcdc.object_.secondary_product import SecondaryProduct
 from mcdc.object_.base import MCDCPolymorphic
 from mcdc.object_.data import DataBase, DataNone, DataTable
+from mcdc.object_.hdf5_reader import (
+    ordered_subshells,
+    read_data,
+    read_distribution,
+    read_interpolation,
+    read_reaction_properties,
+)
 from mcdc.object_.distribution import (
     DistributionBase,
     DistributionMultiTable,
     DistributionNone,
 )
+from mcdc.object_.util import decode_reference_frame
 from mcdc.print_ import print_1d_array, print_error
 
 # ======================================================================================
 # Electron reaction base class
 # ======================================================================================
-
-
-def read_energy(dataset):
-    """Read an electron energy dataset in MC/DC's internal eV units."""
-
-    values = dataset[()]
-    unit = dataset.attrs.get("unit", "eV")
-    if unit == "MeV":
-        values = values * 1e6
-    return values
 
 
 class ElectronReactionBase(MCDCPolymorphic):
@@ -75,15 +71,6 @@ class ElectronReactionBase(MCDCPolymorphic):
         text += f"  - XS {print_1d_array(self.xs)} barn\n"
         text += f"  - Reference frame: {decode_reference_frame(self.reference_frame)}\n"
         return text
-
-
-def decode_reference_frame(type_):
-    """Return the display name for a packed reference-frame code."""
-
-    if type_ == REFERENCE_FRAME_LAB:
-        return "Laboratory"
-    elif type_ == REFERENCE_FRAME_COM:
-        return "Center of mass"
 
 
 # ======================================================================================
@@ -123,51 +110,33 @@ class ElectronReactionIonization(ElectronReactionBase):
         MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
         subshells = h5_group["subshells"]
-        subshell_names = list(subshells.keys())
 
         subshell_xs = []
         subshell_product = []
 
-        for name in subshell_names:
-            subshell = subshells[name]
+        for subshell in ordered_subshells(subshells):
+            if len(subshell.get("cross-products", ())):
+                raise ValueError(
+                    f"{subshell.name}: cross-product transport is unsupported"
+                )
 
             # Subshell cross section table (each has its own energy grid)
-            subshell_xs.append(
-                DataTable(
-                    read_energy(subshell["energy_grid"]),
-                    subshell["xs"][()],
-                    INTERPOLATION_LINEAR,
-                )
-            )
+            subshell_xs.append(read_data(subshell["xs"]))
 
             # Secondary electron energy distribution. The sampler skips the
             # tables at or below the subshell binding energy.
-            product = subshell["product"]
-            product_grid = read_energy(product["energy_grid"])
-            binding_energy = float(read_energy(subshell["binding_energy"]))
-            if product_grid[-1] <= binding_energy:
+            product = read_distribution(subshell["secondary-energy-distribution"])
+            binding_energy = float(subshell["binding-energy"][()])
+            if not isinstance(product, DistributionMultiTable):
+                raise ValueError(
+                    f"{subshell.name}: ionization requires multi-table spectra"
+                )
+            if product.grid[-1] <= binding_energy:
                 print_error(
-                    f"Ionization subshell {name} has no product spectrum above "
+                    f"Ionization subshell {subshell.name} has no product spectrum above "
                     "its binding energy."
                 )
-            if "CDF" in product:
-                subshell_product.append(
-                    DistributionMultiTable(
-                        product_grid,
-                        product["energy_offset"][()],
-                        read_energy(product["value"]),
-                        cdf=product["CDF"][()],
-                    )
-                )
-            else:
-                subshell_product.append(
-                    DistributionMultiTable(
-                        product_grid,
-                        product["energy_offset"][()],
-                        read_energy(product["value"]),
-                        product["PDF"][()],
-                    )
-                )
+            subshell_product.append(product)
 
         return cls(
             MT,
@@ -234,34 +203,24 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
         """Build an elastic-scattering reaction from a library HDF5 group."""
         MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
-        large_angle = h5_group["large_angle"]
-        xs_large = DataTable(
-            read_energy(large_angle["xs_energy"]),
-            large_angle["xs"][()],
-            INTERPOLATION_LINEAR,
-        )
-
-        mu_group = large_angle["scattering_cosine"]
-        if "CDF" in mu_group:
-            mu = DistributionMultiTable(
-                read_energy(mu_group["energy_grid"]),
-                mu_group["energy_offset"][()],
-                mu_group["value"][()],
-                cdf=mu_group["CDF"][()],
-            )
-        else:
-            mu = DistributionMultiTable(
-                read_energy(mu_group["energy_grid"]),
-                mu_group["energy_offset"][()],
-                mu_group["value"][()],
-                mu_group["PDF"][()],
-            )
+        large_angle = h5_group["large-angle"]
+        xs_large = read_data(large_angle["xs"])
+        mu = read_distribution(large_angle["angular-cosine-distribution"])
+        if not isinstance(mu, DistributionMultiTable):
+            raise ValueError(f"{large_angle.name}: elastic angles require multi-table")
 
         mean_deflection = DataNone()
-        if "transport" in h5_group:
-            grid = read_energy(h5_group.file["electron_reactions/xs_energy_grid"])
-            transport = h5_group["transport"][()]
+        if "transport-xs" in h5_group:
+            grid = h5_group.file["xs-energy-grid"][()]
+            transport_data = read_data(h5_group["transport-xs"])
             energy = grid[xs_offset : xs_offset + len(xs)]
+            if not isinstance(transport_data, DataTable) or not np.array_equal(
+                transport_data.x, energy
+            ):
+                raise ValueError(
+                    f"{h5_group.name}: transport-xs must use the elastic grid"
+                )
+            transport = transport_data.y
             ratio = np.divide(
                 transport, xs, out=np.zeros_like(transport), where=xs > 0.0
             )
@@ -306,24 +265,17 @@ class ElectronReactionBremsstrahlung(ElectronReactionBase):
         """Build a bremsstrahlung reaction from a library HDF5 group."""
         MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
-        base = h5_group["energy_loss"]
-        eloss = DataTable(
-            read_energy(base["energy"]),
-            read_energy(base["value"]),
-            INTERPOLATION_LINEAR,
-        )
+        eloss = read_data(h5_group["energy-loss"])
 
         # Older libraries have no photon spectrum; the photon then takes the
         # mean energy loss
         photon_energy = DistributionNone()
-        if "photon_energy" in h5_group:
-            spectrum = h5_group["photon_energy"]
-            photon_energy = DistributionMultiTable(
-                read_energy(spectrum["energy_grid"]),
-                spectrum["energy_offset"][()],
-                read_energy(spectrum["value"]),
-                cdf=spectrum["CDF"][()],
-            )
+        if "photon-energy-distribution" in h5_group:
+            photon_energy = read_distribution(h5_group["photon-energy-distribution"])
+            if not isinstance(photon_energy, DistributionMultiTable):
+                raise ValueError(
+                    f"{h5_group.name}: bremsstrahlung requires multi-table spectra"
+                )
 
         return cls(MT, xs, xs_offset, reference_frame, eloss, photon_energy)
 
@@ -357,12 +309,7 @@ class ElectronReactionExcitation(ElectronReactionBase):
         """Build an excitation reaction from a library HDF5 group."""
         MT, xs, xs_offset, reference_frame = set_basic_properties(h5_group)
 
-        base = h5_group["energy_loss"]
-        eloss = DataTable(
-            read_energy(base["energy"]),
-            read_energy(base["value"]),
-            INTERPOLATION_LINEAR,
-        )
+        eloss = read_data(h5_group["energy-loss"])
 
         return cls(MT, xs, xs_offset, reference_frame, eloss)
 
@@ -380,12 +327,10 @@ class ElectronReactionExcitation(ElectronReactionBase):
 def set_basic_properties(h5_group):
     """Read properties shared by all electron reactions from an HDF5 group."""
 
-    MT = h5_group.attrs["MT"][()]
-    xs = h5_group["xs"][()]
-    xs_offset = h5_group["xs"].attrs["offset"]
-    reference_frame = h5_group["reference_frame"][()].decode("utf-8")
-    if reference_frame == "LAB":
-        reference_frame = REFERENCE_FRAME_LAB
-    elif reference_frame == "COM":
-        reference_frame = REFERENCE_FRAME_COM
-    return MT, xs, xs_offset, reference_frame
+    properties = read_reaction_properties(h5_group)
+    laws, _ = read_interpolation(h5_group["xs"])
+    if np.any(laws != INTERPOLATION_LINEAR):
+        raise ValueError(
+            f"{h5_group.name}: electron cross sections require linear interpolation"
+        )
+    return properties

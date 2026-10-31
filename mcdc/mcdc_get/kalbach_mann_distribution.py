@@ -40,6 +40,64 @@ def energy_chunk(start, length, kalbach_mann_distribution, data):
 
 
 @njit
+def incident_interpolations(index, kalbach_mann_distribution, data):
+    offset = kalbach_mann_distribution["incident_interpolations_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def incident_interpolations_all(kalbach_mann_distribution, data):
+    start = kalbach_mann_distribution["incident_interpolations_offset"]
+    size = kalbach_mann_distribution["incident_interpolations_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def incident_interpolations_last(kalbach_mann_distribution, data):
+    start = kalbach_mann_distribution["incident_interpolations_offset"]
+    size = kalbach_mann_distribution["incident_interpolations_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def incident_interpolations_chunk(start, length, kalbach_mann_distribution, data):
+    start += kalbach_mann_distribution["incident_interpolations_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def incident_interpolation_boundaries(index, kalbach_mann_distribution, data):
+    offset = kalbach_mann_distribution["incident_interpolation_boundaries_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def incident_interpolation_boundaries_all(kalbach_mann_distribution, data):
+    start = kalbach_mann_distribution["incident_interpolation_boundaries_offset"]
+    size = kalbach_mann_distribution["incident_interpolation_boundaries_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def incident_interpolation_boundaries_last(kalbach_mann_distribution, data):
+    start = kalbach_mann_distribution["incident_interpolation_boundaries_offset"]
+    size = kalbach_mann_distribution["incident_interpolation_boundaries_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def incident_interpolation_boundaries_chunk(start, length, kalbach_mann_distribution, data):
+    start += kalbach_mann_distribution["incident_interpolation_boundaries_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
 def offset(index, kalbach_mann_distribution, data):
     offset = kalbach_mann_distribution["offset_offset"]
     return int64(data[offset + index])
@@ -209,5 +267,92 @@ def angular_slope_last(kalbach_mann_distribution, data):
 @array_return(nb.types.float64)
 def angular_slope_chunk(start, length, kalbach_mann_distribution, data):
     start += kalbach_mann_distribution["angular_slope_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def interpolations(index, kalbach_mann_distribution, data):
+    offset = kalbach_mann_distribution["interpolations_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def interpolations_all(kalbach_mann_distribution, data):
+    start = kalbach_mann_distribution["interpolations_offset"]
+    size = kalbach_mann_distribution["interpolations_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def interpolations_last(kalbach_mann_distribution, data):
+    start = kalbach_mann_distribution["interpolations_offset"]
+    size = kalbach_mann_distribution["interpolations_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def interpolations_chunk(start, length, kalbach_mann_distribution, data):
+    start += kalbach_mann_distribution["interpolations_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def precompound_table_IDs(index, kalbach_mann_distribution, data):
+    offset = kalbach_mann_distribution["precompound_table_IDs_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def precompound_table_IDs_all(kalbach_mann_distribution, data):
+    start = kalbach_mann_distribution["precompound_table_IDs_offset"]
+    size = kalbach_mann_distribution["N_precompound_table"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def precompound_table_IDs_last(kalbach_mann_distribution, data):
+    start = kalbach_mann_distribution["precompound_table_IDs_offset"]
+    size = kalbach_mann_distribution["N_precompound_table"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def precompound_table_IDs_chunk(start, length, kalbach_mann_distribution, data):
+    start += kalbach_mann_distribution["precompound_table_IDs_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def angular_slope_table_IDs(index, kalbach_mann_distribution, data):
+    offset = kalbach_mann_distribution["angular_slope_table_IDs_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def angular_slope_table_IDs_all(kalbach_mann_distribution, data):
+    start = kalbach_mann_distribution["angular_slope_table_IDs_offset"]
+    size = kalbach_mann_distribution["N_angular_slope_table"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def angular_slope_table_IDs_last(kalbach_mann_distribution, data):
+    start = kalbach_mann_distribution["angular_slope_table_IDs_offset"]
+    size = kalbach_mann_distribution["N_angular_slope_table"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def angular_slope_table_IDs_chunk(start, length, kalbach_mann_distribution, data):
+    start += kalbach_mann_distribution["angular_slope_table_IDs_offset"]
     end = start + length
     return array_result(data[start:end])

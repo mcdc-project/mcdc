@@ -66,6 +66,7 @@ dev = [
   "pre-commit<5",
   "pyright<1.2",
   "pytest<10",
+  "tqdm<5",
 ]
 
 docs = [
