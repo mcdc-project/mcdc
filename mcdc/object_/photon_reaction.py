@@ -16,6 +16,7 @@ from mcdc.constant import (
 from mcdc.object_.base import MCDCPolymorphic
 from mcdc.object_.data import DataBase
 from mcdc.object_.hdf5_reader import (
+    ordered_subshells,
     read_data,
     read_reaction_properties,
     set_xs_interpolation,
@@ -254,12 +255,3 @@ def set_basic_properties(h5_group):
     if reference_frame != REFERENCE_FRAME_LAB:
         raise ValueError(f"{h5_group.name}: photon reactions require LAB data")
     return MT, xs, xs_offset, reference_frame
-
-
-def ordered_subshells(group):
-    """Order shell records by explicit designator, independently of group names."""
-    children = sorted(group.values(), key=lambda child: int(child["designator"][()]))
-    designators = [int(child["designator"][()]) for child in children]
-    if len(set(designators)) != len(designators) or any(i <= 0 for i in designators):
-        raise ValueError("Subshell designators must be distinct positive integers")
-    return children

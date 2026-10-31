@@ -13,11 +13,16 @@ import re
 from pathlib import Path
 
 import ACEtk
+import h5py
 import numpy as np
 
 from .hdf5_writer import (
     PROBABILITY_TOLERANCE,
     ProbabilityTableError,
+    atomic_file,
+    atomic_relaxation,
+    check_format,
+    data_table as write_electron_data,
     incident_interpolation,
     interpolation,
     multi_table,
@@ -1723,3 +1728,233 @@ SYMBOL_TO_Z = {
 }
 
 Z_TO_SYMBOL = {value: key for key, value in SYMBOL_TO_Z.items()}
+
+
+# ======================================================================================
+# Electron EPR tables and reaction data
+# ======================================================================================
+
+ELECTRON_REACTIONS = {
+    "elastic": (526, "elastic-scattering"),
+    "excitation": (528, "excitation"),
+    "bremsstrahlung": (527, "bremsstrahlung"),
+    "ionization": (522, "ionization"),
+}
+ELECTRON_SUBSHELL_LABELS = (
+    "K L1 L2 L3 M1 M2 M3 M4 M5 N1 N2 N3 N4 N5 N6 N7 "
+    "O1 O2 O3 O4 O5 O6 O7 O8 O9 P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 "
+    "Q1 Q2 Q3"
+).split()
+
+
+def electron_target(ace):
+    """Return elemental Z and symbol from an EPR ZAID such as 13000.14p.
+
+    EPR tables describe atoms, so the mass-number part must be zero.
+    Atomic weight is deliberately not assigned to an element: it depends on
+    the material's isotopic composition.
+    """
+    za = int(ace.zaid.split(".")[0])
+    z, a = divmod(za, 1000)
+    if a or z not in Z_TO_SYMBOL:
+        raise ValueError(f"Invalid elemental EPR ZAID: {ace.zaid}")
+    return z, Z_TO_SYMBOL[z]
+
+
+def write_electron_distribution(group, source, *, angular=False):
+    """Pack EPR conditional CDFs into the shared MultiTable representation.
+
+    Source incident and outgoing energies are converted from MeV to eV;
+    angular coordinates are dimensionless. Histogram densities encode the
+    source CDF knots without changing their values. Electron kernels retain
+    their specialized inverse-CDF and incident-energy sampling procedures.
+    Every packed table is validated before publication, with its incident
+    energy attached to any source-data error.
+    """
+    grid = np.asarray(source.energies) * EV_PER_MEV
+    tables = []
+    for i, distribution in enumerate(source.distributions):
+        value = np.asarray(
+            distribution.cosines if angular else distribution.outgoing_energies,
+            dtype=float,
+        )
+        if not angular:
+            value = value * EV_PER_MEV
+        cdf = np.asarray(distribution.cdf, dtype=float)
+        if (
+            value.ndim != 1
+            or value.shape != cdf.shape
+            or len(value) < 2
+            or not np.all(np.isfinite(value))
+            or not np.all(np.isfinite(cdf))
+            or np.any(np.diff(value) <= 0)
+            or cdf[0] != 0
+            or np.any(np.diff(cdf) < 0)
+            or abs(cdf[-1] - 1) > PROBABILITY_TOLERANCE
+        ):
+            energy = grid[i] if i < len(grid) else float("nan")
+            raise ValueError(
+                f"{group.name}: invalid EPR CDF table {i}, incident energy {energy:g} eV"
+            )
+        # This is the same histogram encoding used by DistributionMultiTable(cdf=...).
+        pdf = np.diff(cdf) / np.diff(value)
+        pdf = np.r_[pdf, pdf[-1]]
+        tables.append((value, pdf, ["histogram"]))
+    multi_table(group, grid, tables, unit=None if angular else "eV")
+
+
+def write_electron(file, ace, verbose=False):
+    """Write the EPR electron cross sections and conditional source tables.
+
+    Total elastic includes small and large angles; the explicit large-angle
+    component and transport cross section remain separate. Total ionization
+    is the sum of the source subshell cross sections. All electron reaction
+    cross sections use the source's shared grid and linear interpolation.
+    BREML values retain their established interpretation as mean photon
+    energy, despite ACEtk's energy_after_bremsstrahlung accessor name.
+    """
+    z, _ = electron_target(ace)
+    quantity(file, "atomic-number", z)
+    block = ace.electron_cross_section_block
+    elastic = ace.electron_elastic_cross_section_block
+    shells = ace.electron_subshell_block
+    grid = np.asarray(block.energies) * EV_PER_MEV
+    quantity(file, "xs-energy-grid", grid, "eV")
+    count = shells.number_electron_subshells
+    ionization = [np.asarray(block.electroionisation(i + 1)) for i in range(count)]
+    cross_sections = {
+        "elastic": elastic.total,
+        "excitation": block.excitation,
+        "bremsstrahlung": block.bremsstrahlung,
+        "ionization": np.sum(ionization, axis=0),
+    }
+    reactions = file.create_group("reactions", track_order=True)
+    for name, (mt, category) in ELECTRON_REACTIONS.items():
+        if verbose:
+            print(f"  MT {mt}: {name} ({category})")
+        reaction = reactions.create_group(name, track_order=True)
+        reaction.attrs["ENDF-MT"] = mt
+        reaction.attrs["category"] = category
+        xs = reaction.create_group("xs")
+        quantity(xs, "value", cross_sections[name], "barn")
+        quantity(xs, "offset", 0)
+        interpolation(xs, len(grid))
+        quantity(reaction, "reference-frame", "LAB")
+        reaction.create_group("cross-products")
+    reaction = reactions["elastic"]
+    write_electron_data(
+        reaction.create_group("transport-xs"), grid, elastic.transport, "barn"
+    )
+    large = reaction.create_group("large-angle")
+    large.attrs["ENDF-MT"] = 525
+    write_electron_data(large.create_group("xs"), grid, block.elastic, "barn")
+    write_electron_distribution(
+        large.create_group("angular-cosine-distribution"),
+        ace.electron_elastic_angular_distribution_block,
+        angular=True,
+    )
+    for name, source, attribute in (
+        (
+            "excitation",
+            ace.electron_excitation_energy_loss_block,
+            "excitation_energy_loss",
+        ),
+        (
+            "bremsstrahlung",
+            ace.electron_energy_after_bremsstrahlung_block,
+            "energy_after_bremsstrahlung",
+        ),
+    ):
+        write_electron_data(
+            reactions[name].create_group("energy-loss"),
+            np.asarray(source.energies) * EV_PER_MEV,
+            np.asarray(getattr(source, attribute)) * EV_PER_MEV,
+            "eV",
+        )
+    write_electron_distribution(
+        reactions["bremsstrahlung"].create_group("photon-energy-distribution"),
+        ace.bremsstrahlung_energy_distribution_block,
+    )
+    parent = reactions["ionization"].create_group("subshells", track_order=True)
+    for i in range(count):
+        index = i + 1
+        designator = int(shells.designator(index))
+        if not 1 <= designator <= len(ELECTRON_SUBSHELL_LABELS):
+            raise ValueError(f"Unknown EPR subshell designator: {designator}")
+        shell = parent.create_group(ELECTRON_SUBSHELL_LABELS[designator - 1])
+        shell.attrs["ENDF-MT"] = 533 + designator
+        quantity(shell, "designator", designator)
+        quantity(
+            shell, "binding-energy", shells.binding_energy(index) * EV_PER_MEV, "eV"
+        )
+        write_electron_data(shell.create_group("xs"), grid, ionization[i], "barn")
+        write_electron_distribution(
+            shell.create_group("secondary-energy-distribution"),
+            ace.electroionisation_energy_distribution_block(index),
+        )
+        shell.create_group("cross-products")
+
+
+# ======================================================================================
+# EPR atomic-relaxation preparation
+# ======================================================================================
+
+
+def prepare_epr_atomic_data(ace, output_dir, sources, verbose=False):
+    """Fill a missing atoms.h5 element record from an EPRDATA14 table.
+
+    Existing atomic records are retained regardless of projectile rewrite
+    requests, so preparing electrons cannot switch a photon's atomic
+    evaluation. Only newly written contributions add root provenance.
+    EPR14 transition probabilities are cumulative; differences recover the
+    absolute branching probabilities required by the shared atomic layout.
+    """
+    z, symbol = electron_target(ace)
+    destination = Path(output_dir) / "atoms.h5"
+    if destination.is_file():
+        with h5py.File(destination, "r") as file:
+            check_format(file)
+            if symbol in file:
+                if int(file[f"{symbol}/atomic-number"][()]) != z:
+                    raise ValueError(
+                        f"{destination}/{symbol}: inconsistent atomic-number"
+                    )
+                return
+    block = ace.electron_subshell_block
+    shells = {}
+    for i in range(1, block.number_electron_subshells + 1):
+        designator = int(block.designator(i))
+        td = ace.subshell_transition_data_block.transition_data(i)
+        indices = range(1, td.number_transitions + 1)
+        cumulative = np.asarray([td.probability(j) for j in indices])
+        probability = np.diff(np.r_[0.0, cumulative])
+        if len(cumulative) and (
+            not np.all(np.isfinite(cumulative))
+            or np.any(probability < 0)
+            or abs(cumulative[-1] - 1.0) > PROBABILITY_TOLERANCE
+        ):
+            raise ValueError(f"{symbol} subshell {designator}: invalid transition CDF")
+        shells[designator] = {
+            "binding-energy": block.binding_energy(i) * EV_PER_MEV,
+            "electron-count": block.population(i),
+            "energy": np.asarray([td.energy(j) for j in indices]) * EV_PER_MEV,
+            "probability": probability,
+            "origin-designator": np.asarray(
+                [td.primary_designator(j) for j in indices], dtype=int
+            ),
+            "secondary-designator": np.asarray(
+                [td.secondary_designator(j) for j in indices], dtype=int
+            ),
+        }
+    shared = ("version", "release-date", "reference", "format", "format-version")
+    provenance = {
+        key: {field: source.get(field, "") for field in shared}
+        for key, source in sources.items()
+    }
+    if verbose:
+        print(f"Create atoms.h5/{symbol} from {ace.zaid}")
+    with atomic_file(destination, provenance, preserve=True) as file:
+        record = file.create_group(symbol)
+        quantity(record, "atomic-number", z)
+        names = {d: ELECTRON_SUBSHELL_LABELS[d - 1] for d in shells}
+        atomic_relaxation(record.create_group("atomic-relaxation"), shells, names)

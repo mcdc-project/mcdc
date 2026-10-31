@@ -133,6 +133,15 @@ def numbered_groups(group, prefix=""):
     return [group[name] for name in names]
 
 
+def ordered_subshells(group):
+    """Order shell records by explicit designator, independently of group names."""
+    children = sorted(group.values(), key=lambda child: int(child["designator"][()]))
+    designators = [int(child["designator"][()]) for child in children]
+    if len(set(designators)) != len(designators) or any(i <= 0 for i in designators):
+        raise ValueError("Subshell designators must be distinct positive integers")
+    return children
+
+
 # ======================================================================================
 # Shared-grid cross sections and reaction fields
 # ======================================================================================

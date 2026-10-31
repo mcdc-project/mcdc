@@ -1,8 +1,27 @@
 """Share command-line conversion failure handling across projectile generators."""
 
+import os
+from pathlib import Path
+
 # ======================================================================================
 # Command-line option
 # ======================================================================================
+
+
+def ace_input_directory(parser, variable):
+    """Resolve an ACE input directory, giving the common override precedence.
+
+    Projectile-specific settings can coexist in shell configuration.
+    MCDC_ACE_LIB explicitly overrides the selected generator's setting for
+    an invocation. Missing or invalid directories are argument errors.
+    """
+    value = os.getenv("MCDC_ACE_LIB") or os.getenv(variable)
+    if not value:
+        parser.error(f"Set {variable} or the MCDC_ACE_LIB override")
+    path = Path(value)
+    if not path.is_dir():
+        parser.error(f"ACE directory does not exist: {path}")
+    return path
 
 
 def add_keep_going_option(parser):

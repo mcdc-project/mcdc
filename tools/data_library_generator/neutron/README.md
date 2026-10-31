@@ -7,7 +7,7 @@ From the repository root:
 
 ```bash
 export MCDC_LIB="/path/to/output/mcdc-library"
-export MCDC_ACE_LIB="/path/to/input/ace-library"
+export MCDC_ACE_NEUTRON_LIB="/path/to/input/ace-library"
 
 python tools/data_library_generator/neutron/generate.py --ace-files 1002.10c 88223.10c 92240.10c
 ```

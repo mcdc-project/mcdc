@@ -26,9 +26,9 @@ From the repository root, set the source and output directories and run the gene
 
 .. code-block:: sh
 
-   export MCDC_ACELIB_PROTON="/path/to/tendl/proton/ace"
+   export MCDC_ACE_PROTON_LIB="/path/to/tendl/proton/ace"
    export MCDC_PSTAR_LIB="/path/to/pstar/tables"
-   export MCDC_LIB_PROTON="/path/to/mcdc/library"
+   export MCDC_LIB="/path/to/mcdc/library"
 
    python tools/data_library_generator/proton/generate.py
 
@@ -39,7 +39,7 @@ From the repository root, set the source and output directories and run the gene
    * - Option
      - Behavior
    * - ``--only p-Al027.ace p-Si028.ace``
-     - Convert only these filenames from ``MCDC_ACELIB_PROTON``.
+     - Convert only these filenames from ``MCDC_ACE_PROTON_LIB``.
    * - ``--rewrite``
      - Regenerate existing output files.
    * - ``--verbose``

@@ -11,6 +11,7 @@ from mcdc.object_.base import MCDCObject
 from mcdc.object_.hdf5_reader import (
     check_format,
     load_target_properties,
+    ordered_subshells,
     read_xs_energy_grid,
     text,
     xs_is_linear,
@@ -20,12 +21,10 @@ from mcdc.object_.electron_reaction import (
     ElectronReactionElasticScattering,
     ElectronReactionExcitation,
     ElectronReactionIonization,
-    read_energy,
 )
 from mcdc.object_.photon_reaction import (
     PhotonReactionBase,
     PhotonReactionCoherentScattering,
-    ordered_subshells,
     PhotonReactionIncoherentScattering,
     PhotonReactionPairProduction,
     PhotonReactionPhotoelectric,
@@ -178,114 +177,84 @@ class Element(MCDCObject):
         )
 
     def set_electron_data(self, simulation):
-        """Load and register electron reaction data from ``MCDC_LIB``."""
-        element_name = self.name
+        """Load electron reactions and shared-grid cross sections from mcdc-data.
 
-        # Load data library
-        dir_name = os.getenv("MCDC_LIB")
-        file_name = f"{element_name}.h5"
-        file = h5py.File(f"{dir_name}/{file_name}", "r")
-
-        self._load_properties(
-            file, field="atomic_number" if "atomic_number" in file else "atomic-number"
-        )
-
-        # The reactions
-        rx_names = [
-            "elastic_scattering",
-            "excitation",
-            "bremsstrahlung",
-            "ionization",
-        ]
-
-        # The reaction MTs
-        MTs = {}
-        for name in rx_names:
-            if name not in file["electron_reactions"]:
-                MTs[name] = []
-                continue
-
-            MTs[name] = [
-                x for x in file[f"electron_reactions/{name}"] if x.startswith("MT")
-            ]
-
-        # ==========================================================================
-        # Reaction XS
-        # ==========================================================================
-
-        self.electron_xs_energy_grid = read_energy(
-            file["electron_reactions/xs_energy_grid"]
-        )
-        self.electron_total_xs = np.zeros_like(self.electron_xs_energy_grid)
-        self.electron_elastic_xs = np.zeros_like(self.electron_xs_energy_grid)
-        self.electron_excitation_xs = np.zeros_like(self.electron_xs_energy_grid)
-        self.electron_bremsstrahlung_xs = np.zeros_like(self.electron_xs_energy_grid)
-        self.electron_ionization_xs = np.zeros_like(self.electron_xs_energy_grid)
-
-        xs_containers = [
-            self.electron_elastic_xs,
-            self.electron_excitation_xs,
-            self.electron_bremsstrahlung_xs,
-            self.electron_ionization_xs,
-        ]
-        for xs_container, rx_name in list(zip(xs_containers, rx_names)):
-            for MT in MTs[rx_name]:
-                xs = file[f"electron_reactions/{rx_name}/{MT}/xs"]
-                xs_container[xs.attrs["offset"] :] += xs[()]
-
-        self.electron_total_xs = (
-            self.electron_elastic_xs
-            + self.electron_excitation_xs
-            + self.electron_bremsstrahlung_xs
-            + self.electron_ionization_xs
-        )
-
-        # ==========================================================================
-        # The reactions
-        # ==========================================================================
-
-        self.electron_elastic_scattering_reactions = []
-        self.electron_excitation_reactions = []
-        self.electron_bremsstrahlung_reactions = []
-        self.electron_ionization_reactions = []
-
-        rx_containers = [
-            self.electron_elastic_scattering_reactions,
-            self.electron_excitation_reactions,
-            self.electron_bremsstrahlung_reactions,
-            self.electron_ionization_reactions,
-        ]
-        rx_classes = [
-            ElectronReactionElasticScattering,
-            ElectronReactionExcitation,
-            ElectronReactionBremsstrahlung,
-            ElectronReactionIonization,
-        ]
-        for rx_container, rx_name, rx_class in list(
-            zip(rx_containers, rx_names, rx_classes)
-        ):
-            for MT in MTs[rx_name]:
-                h5_group = file[f"electron_reactions/{rx_name}/{MT}"]
-                rx_container.append(rx_class.from_h5_group(h5_group))
-
-        # ==========================================================================
-        # Ionization element attributes
-        # ==========================================================================
-
-        binding_energy = []
-        if len(MTs["ionization"]) > 0:
-            h5_group = file[f"electron_reactions/ionization/{MTs['ionization'][0]}"]
-            for name in h5_group["subshells"]:
-                subshell = h5_group[f"subshells/{name}"]
-                binding_energy.append(float(read_energy(subshell["binding_energy"])))
-
-        self.electron_ionization_subshell_binding_energy = np.asarray(binding_energy)
-
-        file.close()
-
-        # Register data loaded during object-model finalization.
-        for reaction_container in rx_containers:
-            for reaction in reaction_container:
+        Category attributes select the existing electron reaction classes.
+        Subshell designators establish a common ordering for binding energies,
+        cross sections, and knock-on spectra. Source interpretation and unit
+        conversion are completed during library preparation.
+        """
+        path = os.path.join(os.environ["MCDC_LIB"], f"electron-{self.name}.h5")
+        categories = {
+            "elastic-scattering": (
+                "electron_elastic_scattering_reactions",
+                "electron_elastic_xs",
+                ElectronReactionElasticScattering,
+            ),
+            "excitation": (
+                "electron_excitation_reactions",
+                "electron_excitation_xs",
+                ElectronReactionExcitation,
+            ),
+            "bremsstrahlung": (
+                "electron_bremsstrahlung_reactions",
+                "electron_bremsstrahlung_xs",
+                ElectronReactionBremsstrahlung,
+            ),
+            "ionization": (
+                "electron_ionization_reactions",
+                "electron_ionization_xs",
+                ElectronReactionIonization,
+            ),
+        }
+        # Read target identity and construct the category-specific objects.
+        with h5py.File(path, "r") as file:
+            check_format(file)
+            self._load_properties(file)
+            grid = read_xs_energy_grid(file)
+            self.electron_xs_energy_grid = grid
+            for reactions, xs, _ in categories.values():
+                setattr(self, reactions, [])
+                setattr(self, xs, np.zeros_like(grid))
+            binding_energy = []
+            for group in file["reactions"].values():
+                category = text(group.attrs["category"])
+                if category not in categories:
+                    raise ValueError(
+                        f"{group.name}: unknown electron category {category!r}"
+                    )
+                reactions, xs, cls = categories[category]
+                reaction = cls.from_h5_group(group)
+                end = reaction.xs_offset_ + len(reaction.xs)
+                if reaction.xs_offset_ < 0 or end != len(grid):
+                    raise ValueError(
+                        f"{group.name}: cross-section segment must end at the shared grid boundary"
+                    )
+                if not np.all(np.isfinite(reaction.xs)) or np.any(reaction.xs < 0):
+                    raise ValueError(
+                        f"{group.name}: cross sections must be finite and nonnegative"
+                    )
+                getattr(self, reactions).append(reaction)
+                getattr(self, xs)[reaction.xs_offset_ : end] += reaction.xs
+                if category == "ionization":
+                    energies = [
+                        float(shell["binding-energy"][()])
+                        for shell in ordered_subshells(group["subshells"])
+                    ]
+                    if binding_energy and binding_energy != energies:
+                        raise ValueError(
+                            f"{group.name}: inconsistent ionization subshells"
+                        )
+                    binding_energy = energies
+            self.electron_ionization_subshell_binding_energy = np.asarray(
+                binding_energy
+            )
+            self.electron_total_xs = sum(
+                getattr(self, xs) for _, xs, _ in categories.values()
+            )
+        # Register the complete reaction trees after loading finishes.
+        for reactions, _, _ in categories.values():
+            for reaction in getattr(self, reactions):
                 reaction._compile_into_simulation(simulation)
 
     def set_photon_data(self, simulation):

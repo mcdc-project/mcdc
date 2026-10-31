@@ -30,6 +30,7 @@ reactions/:
     cross-products/: {}
 
     # Category-specific
+    transport-xs: Data, barn  # Uses the total elastic cross-section grid
     large-angle/:
       xs: Data, barn  # Stored on its own incident-energy grid
       angular-cosine-distribution: Distribution, cosine
@@ -61,6 +62,7 @@ reactions/:
 
     # Category-specific
     energy-loss: Data, eV
+    photon-energy-distribution: Distribution, eV  # Optional emitted-photon spectrum
 
 
   ionization/:
@@ -76,6 +78,7 @@ reactions/:
     # Category-specific
     subshells/:
       '{subshell}/':
+        designator: integer
         binding-energy: float, eV
         xs: Data, barn  # Stored on the subshell's own incident-energy grid
         secondary-energy-distribution: Distribution, eV

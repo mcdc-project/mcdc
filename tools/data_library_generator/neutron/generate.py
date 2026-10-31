@@ -1,6 +1,6 @@
 """Coordinate neutron ACE conversion into the MC/DC HDF5 data format.
 
-The command-line interface selects input tables from ``MCDC_ACE_LIB`` and writes
+The command-line interface selects input tables from ``MCDC_ACE_NEUTRON_LIB`` and writes
 prepared data to ``MCDC_LIB``. Each table contributes neutron reactions to a
 self-contained neutron projectile file, including target properties and provenance.
 
@@ -31,7 +31,11 @@ from data_library_generator.common.ace_converter import (
     read_target,
     write_temperature,
 )
-from data_library_generator.common.batch import ConversionErrors, add_keep_going_option
+from data_library_generator.common.batch import (
+    ConversionErrors,
+    ace_input_directory,
+    add_keep_going_option,
+)
 from data_library_generator.common.hdf5_writer import (
     atomic_file,
     check_format,
@@ -115,7 +119,7 @@ def main():
 
     Notes
     -----
-    Options are read from ``sys.argv``. ``MCDC_ACE_LIB`` identifies the input
+    Options are read from ``sys.argv``. ``MCDC_ACE_NEUTRON_LIB`` identifies the input
     directory and ``MCDC_LIB`` the output directory, which is created along
     with any missing parents. ``--ace-files`` selects filenames in the order
     supplied; without it, every regular file in the input directory is
@@ -137,7 +141,7 @@ def main():
         "--verbose", action="store_true", help="Report reaction details"
     )
     parser.add_argument(
-        "--ace-files", nargs="+", help="Select filenames from MCDC_ACE_LIB"
+        "--ace-files", nargs="+", help="Select filenames from MCDC_ACE_NEUTRON_LIB"
     )
     parser.add_argument(
         "--source-library",
@@ -148,13 +152,10 @@ def main():
     args = parser.parse_args()
 
     # Validate configured directories and create the output location
-    for variable in ("MCDC_ACE_LIB", "MCDC_LIB"):
-        if not os.getenv(variable):
-            parser.error(f"Environment variable {variable} is not set")
-    ace_dir = Path(os.environ["MCDC_ACE_LIB"])
+    if not os.getenv("MCDC_LIB"):
+        parser.error("Environment variable MCDC_LIB is not set")
+    ace_dir = ace_input_directory(parser, "MCDC_ACE_NEUTRON_LIB")
     output_dir = Path(os.environ["MCDC_LIB"])
-    if not ace_dir.is_dir():
-        parser.error(f"ACE directory does not exist: {ace_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)
     # Use explicit filenames or discover all regular files in deterministic order
     paths = (

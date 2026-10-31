@@ -17,6 +17,7 @@ import numpy as np
 
 from .hdf5_writer import (
     atomic_file,
+    atomic_relaxation,
     check_format,
     interpolation,
     prepared_file_exists,
@@ -511,20 +512,7 @@ def read_relaxation(block):
 
 def write_relaxation(group, shells):
     """Write source shell identities and aligned transitions at element scope."""
-    parent = group.create_group("subshells")
-    for designator, shell in sorted(shells.items()):
-        child = parent.create_group(subshell_name(designator))
-        quantity(child, "designator", designator)
-        quantity(child, "binding-energy", shell["binding-energy"], "eV")
-        quantity(child, "electron-count", shell["electron-count"])
-        transitions = child.create_group("transitions")
-        for name in (
-            "energy",
-            "probability",
-            "origin-designator",
-            "secondary-designator",
-        ):
-            quantity(transitions, name, shell[name], "eV" if name == "energy" else None)
+    atomic_relaxation(group, shells, {d: subshell_name(d) for d in shells})
 
 
 # ======================================================================================

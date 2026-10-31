@@ -1,6 +1,16 @@
+from pathlib import Path
+import sys
+
 import h5py
 import numpy as np
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools"))
+from data_library_generator.common.hdf5_writer import (
+    data_table as write_electron_data,
+    interpolation,
+    multi_table,
+)
 
 import mcdc
 import mcdc.mcdc_get as mcdc_get
@@ -16,31 +26,37 @@ def _write_elastic_library(path, transport):
     # A small synthetic library exercising the real HDF5 reader and packing.
     # The single cosine table, at 100 eV, is uniform in mu (mean 1 - mu = 1).
     with h5py.File(path, "w") as file:
-        file["atomic_weight_ratio"] = 1.0
-        file["atomic_number"] = 1
-        electron = file.create_group("electron_reactions")
-        electron["xs_energy_grid"] = [100.0, 1.0e4, 1.0e6]
-        reaction = electron.create_group("elastic_scattering/MT-526")
-        reaction.attrs["MT"] = 526
-        reaction["xs"] = [1.0, 1.0, 1.0]
-        reaction["xs"].attrs["offset"] = 0
-        reaction["reference_frame"] = np.bytes_("LAB")
+        file.attrs["format"] = "mcdc-data"
+        file.attrs["format-version"] = "0.1.0"
+        file["atomic-number"] = 1
+        grid = np.array([100.0, 1e4, 1e6])
+        file["xs-energy-grid"] = grid
+        reaction = file.create_group("reactions/elastic")
+        reaction.attrs["ENDF-MT"] = 526
+        reaction.attrs["category"] = "elastic-scattering"
+        reaction["xs/value"] = [1.0, 1.0, 1.0]
+        reaction["xs/offset"] = 0
+        interpolation(reaction["xs"], 3)
+        reaction["reference-frame"] = "LAB"
+        reaction.create_group("cross-products")
         if transport:
-            reaction["transport"] = MEAN_DEFLECTION
-        large_angle = reaction.create_group("large_angle")
-        large_angle["xs_energy"] = [100.0, 1.0e4, 1.0e6]
-        large_angle["xs"] = [1.0, 1.0, 1.0]
-        cosine = large_angle.create_group("scattering_cosine")
-        cosine["energy_grid"] = [100.0, 1.0e6]
-        cosine["energy_offset"] = [0, 2]
-        cosine["value"] = [-1.0, 1.0, -1.0, 1.0]
-        cosine["CDF"] = [0.0, 1.0, 0.0, 1.0]
+            write_electron_data(
+                reaction.create_group("transport-xs"), grid, MEAN_DEFLECTION, "barn"
+            )
+        large = reaction.create_group("large-angle")
+        write_electron_data(large.create_group("xs"), grid, [1.0, 1.0, 1.0], "barn")
+        multi_table(
+            large.create_group("angular-cosine-distribution"),
+            [100, 1e6],
+            [([-1, 1], [0.5, 0.5], ["histogram"])] * 2,
+            unit=None,
+        )
 
 
 @pytest.fixture
 def elastic_model(tmp_path, monkeypatch, prepare_simulation):
     def build(transport=True):
-        _write_elastic_library(tmp_path / "H.h5", transport)
+        _write_elastic_library(tmp_path / "electron-H.h5", transport)
         monkeypatch.setenv("MCDC_LIB", str(tmp_path))
         cell = mcdc.Cell(fill=mcdc.Material(number_density={"H": 1.0}))
 

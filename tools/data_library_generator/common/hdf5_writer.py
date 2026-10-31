@@ -190,6 +190,48 @@ def quantity(group, name, data, unit=None):
     return dataset
 
 
+def data_table(group, grid, values, unit=None, *, grid_unit="eV"):
+    """Write linear Data in supplied output units without resampling.
+
+    A single coordinate represents a constant and uses a polynomial; longer
+    source tables retain every knot, including tables with constant values.
+    """
+    grid, values = np.asarray(grid), np.asarray(values)
+    if grid.ndim != 1 or values.shape != grid.shape or not len(grid):
+        raise ValueError(f"{group.name}: invalid Data arrays")
+    if len(grid) == 1:
+        group.attrs["type"] = "polynomial"
+        quantity(group, "coefficients", values, unit)
+    else:
+        group.attrs["type"] = "table"
+        quantity(group, "grid", grid, grid_unit)
+        quantity(group, "value", values, unit)
+        interpolation(group, len(grid))
+
+
+def atomic_relaxation(group, shells, names):
+    """Write aligned atomic transition arrays in the shared element layout.
+
+    Converters supply scalar shell properties, absolute transition
+    probabilities, eV line energies, and a designator-to-name mapping.
+    Empty arrays represent terminal subshells.
+    """
+    parent = group.create_group("subshells")
+    for designator, shell in sorted(shells.items()):
+        child = parent.create_group(names[designator])
+        quantity(child, "designator", designator)
+        quantity(child, "binding-energy", shell["binding-energy"], "eV")
+        quantity(child, "electron-count", shell["electron-count"])
+        transitions = child.create_group("transitions")
+        for name in (
+            "energy",
+            "probability",
+            "origin-designator",
+            "secondary-designator",
+        ):
+            quantity(transitions, name, shell[name], "eV" if name == "energy" else None)
+
+
 def interpolation(group, count, laws=None, boundaries=None):
     """Create interpolation metadata for a table of known length.
 

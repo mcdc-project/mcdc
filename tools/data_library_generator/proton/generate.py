@@ -6,9 +6,9 @@ serialization are handled by ``common.ace_converter``. This module coordinates
 proton-specific target metadata, optional PSTAR stopping powers, and batch I/O.
 
 Environment variables
-    MCDC_ACELIB_PROTON  directory with proton ACE files (*.ace)
-    MCDC_PSTAR_LIB      directory with NIST PSTAR stopping-power tables (<Symbol>.txt)
-    MCDC_LIB_PROTON     output directory for the MC/DC HDF5 files
+    MCDC_ACE_PROTON_LIB  directory with proton ACE files (*.ace)
+    MCDC_PSTAR_LIB       directory with NIST PSTAR stopping-power tables (<Symbol>.txt)
+    MCDC_LIB             output directory for the MC/DC HDF5 files
 
 Usage
     python generate.py                 # convert only nuclides with no output yet
@@ -35,7 +35,11 @@ from data_library_generator.common.ace_converter import (
     write_proton_ace_target_properties,
     write_proton_reactions,
 )
-from data_library_generator.common.batch import ConversionErrors, add_keep_going_option
+from data_library_generator.common.batch import (
+    ConversionErrors,
+    ace_input_directory,
+    add_keep_going_option,
+)
 from data_library_generator.common.hdf5_writer import (
     atomic_file,
     interpolation,
@@ -362,14 +366,12 @@ def main():
     add_keep_going_option(parser)
     args = parser.parse_args()
 
-    for variable in ("MCDC_ACELIB_PROTON", "MCDC_PSTAR_LIB", "MCDC_LIB_PROTON"):
+    for variable in ("MCDC_PSTAR_LIB", "MCDC_LIB"):
         if not os.getenv(variable):
             parser.error(f"Environment variable {variable} is not set")
-    ace_dir = Path(os.environ["MCDC_ACELIB_PROTON"])
+    ace_dir = ace_input_directory(parser, "MCDC_ACE_PROTON_LIB")
     pstar_dir = Path(os.environ["MCDC_PSTAR_LIB"])
-    output_dir = Path(os.environ["MCDC_LIB_PROTON"])
-    if not ace_dir.is_dir():
-        parser.error(f"ACE directory does not exist: {ace_dir}")
+    output_dir = Path(os.environ["MCDC_LIB"])
     if not pstar_dir.is_dir():
         parser.error(f"PSTAR directory does not exist: {pstar_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)

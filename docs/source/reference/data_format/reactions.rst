@@ -208,19 +208,23 @@ All include the basic fields, with ``cross-products`` available for additional p
      - Fields
      - Meaning
    * - ``elastic-scattering``
-     - ``large-angle/xs``: Data, barn; ``large-angle/angular-cosine-distribution``: Distribution
-     - Explicit large-angle elastic component; its cross section uses its own incident-energy grid.
+     - ``transport-xs``: Data, barn; ``large-angle/xs``: Data, barn; ``large-angle/angular-cosine-distribution``: Distribution
+     - Total elastic scattering with its transport cross section and explicit large-angle component.
    * - ``excitation``
      - ``energy-loss``: Data, eV
      - Energy transferred to atomic excitation as a function of incident energy.
    * - ``bremsstrahlung``
-     - ``energy-loss``: Data, eV
+     - ``energy-loss``: Data, eV; ``photon-energy-distribution``: Distribution, optional
      - Electron energy lost through photon emission as a function of incident energy.
    * - ``ionization``
      - ``subshells/{subshell}/`` records described below
      - Subshell-resolved ionization and secondary electron energy data.
 
-Each ionization subshell record contains ``binding-energy`` (float, eV), ``xs`` (Data, barn), ``secondary-energy-distribution`` (Distribution, eV), and a ``cross-products`` group.
+``transport-xs`` uses the total elastic cross-section grid and supplies the mean deflection through its ratio to the total elastic cross section.
+The large-angle cross section retains its own grid.
+``photon-energy-distribution`` supplies the emitted bremsstrahlung photon spectrum; when absent, transport uses the mean energy loss.
+
+Each ionization subshell record contains ``designator`` (integer), ``binding-energy`` (float, eV), ``xs`` (Data, barn), ``secondary-energy-distribution`` (Distribution, eV), and a ``cross-products`` group.
 The subshell cross section has its own incident-energy grid when represented as a table.
 The secondary energy distribution alone does not specify a secondary angular distribution.
 Additional emission can be described at reaction level or conditional on a subshell, without duplicating the same production.

@@ -6,9 +6,19 @@ same Numba layer packing as a production library, so a schema mistake surfaces
 here rather than in a deck.
 """
 
+from pathlib import Path
+import sys
+
 import h5py
 import numpy as np
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools"))
+from data_library_generator.common.hdf5_writer import (
+    data_table as write_electron_data,
+    interpolation,
+    multi_table,
+)
 
 import mcdc
 import mcdc.numba_types as type_
@@ -260,32 +270,34 @@ def write_electron_bremsstrahlung(path, brems_spectrum=False, atomic_number=82):
     is the only one the coupling tests need. With ``brems_spectrum``, the
     photon energy is uniform in ``[0, E]``.
     """
-    with h5py.File(path, "a") as file:
-        file["atomic_number"] = np.int64(atomic_number)
-        reactions = file.create_group("electron_reactions")
-        grid = reactions.create_dataset("xs_energy_grid", data=np.array(ENERGY_GRID))
-        grid.attrs["unit"] = "eV"
-
-        mt_group = reactions.create_group("bremsstrahlung/MT527")
-        mt_group.attrs["MT"] = np.int64(527)
-        dataset = mt_group.create_dataset("xs", data=np.ones(_grid_length()))
-        dataset.attrs["offset"] = np.int64(0)
-        mt_group["reference_frame"] = np.bytes_("LAB")
-
-        energy_loss = mt_group.create_group("energy_loss")
-        energy = energy_loss.create_dataset("energy", data=np.array([1.0e2, 1.0e8]))
-        energy.attrs["unit"] = "eV"
-        value = energy_loss.create_dataset(
-            "value", data=BREMSSTRAHLUNG_LOSS_FRACTION * np.array([1.0e2, 1.0e8])
+    with h5py.File(path, "w") as file:
+        file.attrs["format"] = "mcdc-data"
+        file.attrs["format-version"] = "0.1.0"
+        file["atomic-number"] = np.int64(atomic_number)
+        file.create_dataset("xs-energy-grid", data=np.array(ENERGY_GRID)).attrs[
+            "unit"
+        ] = "eV"
+        reaction = file.create_group("reactions/bremsstrahlung")
+        reaction.attrs["ENDF-MT"] = 527
+        reaction.attrs["category"] = "bremsstrahlung"
+        reaction["xs/value"] = np.ones(_grid_length())
+        reaction["xs/offset"] = 0
+        interpolation(reaction["xs"], _grid_length())
+        reaction["reference-frame"] = "LAB"
+        reaction.create_group("cross-products")
+        energy = np.array([1e2, 1e8])
+        write_electron_data(
+            reaction.create_group("energy-loss"),
+            energy,
+            BREMSSTRAHLUNG_LOSS_FRACTION * energy,
+            "eV",
         )
-        value.attrs["unit"] = "eV"
-
         if brems_spectrum:
-            spectrum = mt_group.create_group("photon_energy")
-            spectrum.create_dataset("energy_grid", data=np.array([1.0e2, 1.0e8]))
-            spectrum.create_dataset("energy_offset", data=np.array([0, 2]))
-            spectrum.create_dataset("value", data=np.array([0.0, 1.0e2, 0.0, 1.0e8]))
-            spectrum.create_dataset("CDF", data=np.array([0.0, 1.0, 0.0, 1.0]))
+            multi_table(
+                reaction.create_group("photon-energy-distribution"),
+                energy,
+                [([0, e], [1 / e, 1 / e], ["histogram"]) for e in energy],
+            )
 
 
 @pytest.fixture
@@ -295,7 +307,7 @@ def coupled_model(tmp_path, monkeypatch, prepare_simulation):
     def build(density=1.0, brems_spectrum=False, **library):
         write_photon_library(tmp_path / "photon-X.h5", **library)
         write_electron_bremsstrahlung(
-            tmp_path / "X.h5", brems_spectrum, library.get("atomic_number", 82)
+            tmp_path / "electron-X.h5", brems_spectrum, library.get("atomic_number", 82)
         )
         monkeypatch.setenv("MCDC_LIB", str(tmp_path))
 

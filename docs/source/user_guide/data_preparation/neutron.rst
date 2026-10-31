@@ -17,7 +17,7 @@ From the repository root, set the input and output directories and run the gener
 .. code-block:: sh
 
    export MCDC_LIB="/path/to/output/mcdc-library"
-   export MCDC_ACE_LIB="/path/to/input/ace-library"
+   export MCDC_ACE_NEUTRON_LIB="/path/to/input/ace-library"
 
    python tools/data_library_generator/neutron/generate.py
 
@@ -28,7 +28,7 @@ From the repository root, set the input and output directories and run the gener
    * - Option
      - Behavior
    * - ``--ace-files 1002.10c 88223.10c 92240.10c``
-     - Convert selected filenames from ``MCDC_ACE_LIB``; omit the option to process all files in that directory.
+     - Convert selected filenames from ``MCDC_ACE_NEUTRON_LIB``; omit the option to process all files in that directory.
    * - ``--rewrite``
      - Regenerate existing neutron files.
    * - ``--verbose``

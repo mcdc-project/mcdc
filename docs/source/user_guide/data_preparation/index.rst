@@ -21,17 +21,45 @@ The :doc:`format conventions <../../reference/data_format/conventions>` and :doc
    * - :doc:`Photon <photon>`
      - `EPICS2025 <https://nuclear.llnl.gov/EPICS/index.html>`_: EPDL for photon interactions and optional EADL for shared atomic-relaxation data.
      - ENDF
-   * - Electron
-     - To be documented.
-     - —
+   * - :doc:`Electron <electron>`
+     - `LANL EPRDATA14 <https://nucleardata.lanl.gov/ace/eprdata14>`_: electron interactions and atomic-relaxation data based on EPICS2014.
+     - ACE
    * - :doc:`Proton <proton>`
      - `TENDL2021 <https://tendl.imperial.ac.uk/tendl_2021/tendl2021.html>`: TENDL2021 ACE data
      - `NIST PSTAR <https://physics.nist.gov/PhysRefData/Star/Text/PSTAR.html>`: stopping power tables
 
+Input and output locations
+--------------------------
+
+Each ACE generator has an input variable that can remain configured alongside the others.
+Release names belong in directory paths and recorded provenance.
+
+.. list-table:: ACE input directories
+   :header-rows: 1
+
+   * - Variable
+     - Input
+   * - ``MCDC_ACE_NEUTRON_LIB``
+     - Neutron ACE files, such as Lib81 or processed TENDL neutron data.
+   * - ``MCDC_ACE_PROTON_LIB``
+     - Proton ACE files, such as processed TENDL proton data.
+   * - ``MCDC_ACE_EPRDATA_LIB``
+     - Concatenated electron/photon/relaxation ACE files.
+
+``MCDC_ACE_LIB``, when set, overrides the selected generator's input variable.
+Use it for a particular invocation, for example:
+
+.. code-block:: sh
+
+   MCDC_ACE_LIB="/path/to/another/neutron-library" python tools/data_library_generator/neutron/generate.py
+
+All generators write to ``MCDC_LIB``.
+Photon EPICS inputs use ``MCDC_EPICS_LIB``, and proton stopping-power inputs use ``MCDC_PSTAR_LIB``.
+
 Batch conversion
 ----------------
 
-The neutron, photon, and proton generators stop at the first conversion error by default.
+The neutron, photon, electron, and proton generators stop at the first conversion error by default.
 Use ``--keep-going`` to process the remaining inputs and summarize all failed conversions at the end.
 Successful conversions are retained, and the command returns a nonzero exit status if any conversion fails.
 Error messages identify the source input and include reaction or distribution context when available.
@@ -50,4 +78,5 @@ Library recognition supplies metadata defaults and library-specific conventions;
 
    neutron
    photon
+   electron
    proton

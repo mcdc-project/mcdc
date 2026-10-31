@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 @pytest.fixture(params=["neutron", "photon", "proton"])
 def generator_case(request, tmp_path, monkeypatch):
     projectile = request.param
+    monkeypatch.delenv("MCDC_ACE_LIB", raising=False)
     if projectile != "photon":
         pytest.importorskip("ACEtk")
     generate = import_module(f"data_library_generator.{projectile}.generate")
@@ -29,13 +30,13 @@ def generator_case(request, tmp_path, monkeypatch):
             converter = "process_ace_file"
             pstar = tmp_path / "pstar"
             pstar.mkdir()
-            monkeypatch.setenv("MCDC_ACELIB_PROTON", str(source))
+            monkeypatch.setenv("MCDC_ACE_PROTON_LIB", str(source))
             monkeypatch.setenv("MCDC_PSTAR_LIB", str(pstar))
-            monkeypatch.setenv("MCDC_LIB_PROTON", str(output))
+            monkeypatch.setenv("MCDC_LIB", str(output))
             monkeypatch.setattr(generate, "process_pstar_only_file", lambda *args: None)
             selection = ["--only", *names]
         else:
-            monkeypatch.setenv("MCDC_ACE_LIB", str(source))
+            monkeypatch.setenv("MCDC_ACE_NEUTRON_LIB", str(source))
             selection = ["--ace-files", *names]
     for name in names:
         (source / name).touch()
@@ -131,3 +132,45 @@ def test_ace_generators_forward_source_library_override(generator_case, monkeypa
     monkeypatch.setattr(case.generate, case.converter, convert)
     case.generate.main()
     assert labels == ["CustomLibrary"] * len(case.names)
+
+
+@pytest.mark.parametrize(
+    "variable", ["MCDC_ACE_NEUTRON_LIB", "MCDC_ACE_PROTON_LIB", "MCDC_ACE_EPRDATA_LIB"]
+)
+def test_ace_input_override_takes_precedence(tmp_path, monkeypatch, variable):
+    """Persistent projectile settings coexist with an invocation-specific override."""
+    from argparse import ArgumentParser
+    from data_library_generator.common.batch import ace_input_directory
+
+    configured, override = tmp_path / "configured", tmp_path / "override"
+    configured.mkdir()
+    override.mkdir()
+    monkeypatch.delenv("MCDC_ACE_LIB", raising=False)
+    monkeypatch.setenv(variable, str(configured))
+    parser = ArgumentParser()
+    assert ace_input_directory(parser, variable) == configured
+    monkeypatch.setenv("MCDC_ACE_LIB", str(override))
+    assert ace_input_directory(parser, variable) == override
+    monkeypatch.delenv(variable)
+    assert ace_input_directory(parser, variable) == override
+
+
+def test_ace_input_missing_or_invalid_is_reported(tmp_path, monkeypatch, capsys):
+    from argparse import ArgumentParser
+    from data_library_generator.common.batch import ace_input_directory
+
+    variable = "MCDC_ACE_EPRDATA_LIB"
+    monkeypatch.delenv("MCDC_ACE_LIB", raising=False)
+    monkeypatch.delenv(variable, raising=False)
+    for value in [None, str(tmp_path / "missing")]:
+        if value is not None:
+            monkeypatch.setenv(variable, value)
+        with pytest.raises(SystemExit) as error:
+            ace_input_directory(ArgumentParser(), variable)
+        assert error.value.code == 2
+        message = capsys.readouterr().err
+        assert (
+            "Set MCDC_ACE_EPRDATA_LIB or the MCDC_ACE_LIB override"
+            if value is None
+            else "ACE directory does not exist"
+        ) in message
