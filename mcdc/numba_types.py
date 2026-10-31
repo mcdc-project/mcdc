@@ -345,6 +345,7 @@ electron_reaction = into_dtype([
 
 electron_bremsstrahlung_reaction = into_dtype([
     ('eloss_ID', int64),
+    ('photon_energy_ID', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])
@@ -353,6 +354,7 @@ electron_elastic_scattering_reaction = into_dtype([
     ('mu_cut', float64),
     ('xs_large_ID', int64),
     ('mu_ID', int64),
+    ('mean_deflection_ID', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])

@@ -13,8 +13,11 @@ import mcdc.transport.util as util
 
 from mcdc.constant import (
     DATA_TABLE,
+    ELECTRON_CUTOFF_ENERGY,
     ELECTRON_MASS,
     LIGHT_SPEED,
+    PARTICLE_ELECTRON,
+    PARTICLE_POSITRON,
     PHOTON_CUTOFF_ENERGY,
     PHOTON_REACTION_COHERENT_SCATTERING,
     PHOTON_REACTION_INCOHERENT_SCATTERING,
@@ -24,6 +27,10 @@ from mcdc.constant import (
     PI,
 )
 from mcdc.transport.data import evaluate_data, evaluate_data_clamped
+from mcdc.transport.physics.cross_species_production import (
+    emit_cross_species,
+    is_transported,
+)
 from mcdc.transport.distribution import sample_isotropic_direction
 from mcdc.transport.physics.util import (
     evaluate_photon_xs_energy_grid,
@@ -244,7 +251,9 @@ def collision(particle_container, interaction_data_container, program, data):
             data,
         )
     else:
-        pair_production(particle_container, interaction_data_container, program, data)
+        pair_production(
+            particle_container, interaction_data_container, element, program, data
+        )
 
 
 # ======================================================================================
@@ -359,9 +368,11 @@ def incoherent_scattering(
 
     The tabulated incoherent cross section set the interaction probability; the
     outgoing energy and angle come from the Klein-Nishina distribution, sampled
-    by Kahn's composition-rejection method. The recoil electron is not
-    transported, so its energy deposits at the collision site.
+    by Kahn's composition-rejection method. The recoil electron carries
+    ``E (1 - eps)``: it is banked when electrons are transported, and otherwise
+    its energy deposits at the collision site.
     """
+    simulation = util.access_simulation(program)
     particle = particle_container[0]
     interaction_data = interaction_data_container[0]
 
@@ -370,18 +381,39 @@ def incoherent_scattering(
     # the Klein-Nishina angular distribution for bound atomic electrons.
     eps, mu = sample_klein_nishina(E, particle_container)
 
-    # The scattered photon carries away E * eps; the recoil electron's energy
-    # deposits locally, because electrons are not transported.
+    # The scattered photon carries away E * eps; the recoil electron takes the
+    # rest, which deposits locally unless the electron is banked below.
     particle["E"] = E * eps
     interaction_data["energy_deposition"] += E * (1.0 - eps) * particle["w"]
 
+    ux_in = particle["ux"]
+    uy_in = particle["uy"]
+    uz_in = particle["uz"]
     azi = 2.0 * PI * rng.lcg(particle_container)
-    ux, uy, uz = scatter_direction(
-        particle["ux"], particle["uy"], particle["uz"], mu, azi
-    )
+    ux, uy, uz = scatter_direction(ux_in, uy_in, uz_in, mu, azi)
     particle["ux"] = ux
     particle["uy"] = uy
     particle["uz"] = uz
+
+    # The recoil electron takes the momentum the photon lost, p_e = p - p'.
+    T = E * (1.0 - eps)
+    if T > ELECTRON_CUTOFF_ENERGY and is_transported(
+        PARTICLE_ELECTRON, simulation["settings"]
+    ):
+        px = E * (ux_in - eps * ux)
+        py = E * (uy_in - eps * uy)
+        pz = E * (uz_in - eps * uz)
+        norm = math.sqrt(px * px + py * py + pz * pz)
+        emit_cross_species(
+            PARTICLE_ELECTRON,
+            T,
+            px / norm,
+            py / norm,
+            pz / norm,
+            particle_container,
+            interaction_data_container,
+            program,
+        )
 
 
 @njit
@@ -439,11 +471,12 @@ def photoelectric(
 ):
     """Absorb the photon, then relax the resulting inner-shell vacancy.
 
-    The photoelectron is not transported, so its kinetic energy deposits at the
-    collision site. The vacancy de-excites radiatively with probability equal to
-    the shell's fluorescence yield, emitting a characteristic X-ray that *is*
-    transported because it is the same species; a non-radiative (Auger) outcome
-    deposits locally for the same reason the photoelectron does.
+    The photoelectron carries ``E - B`` for the vacated subshell. The vacancy
+    de-excites radiatively with probability equal to the shell's fluorescence
+    yield, emitting a characteristic X-ray that is always transported because it
+    is the same species; a non-radiative outcome emits an Auger electron. The
+    photoelectron and Auger electrons are banked, isotropically, when electrons
+    are transported, and otherwise deposit at the collision site.
 
     A radiative transition leaves a new vacancy in the subshell the filling
     electron came from, and that vacancy relaxes in turn. One further step is
@@ -463,26 +496,61 @@ def photoelectric(
         particle_container, element, simulation, data
     )
 
+    # Photon lines and Auger electrons from the first and second relaxation steps
     E_primary = 0.0
     E_cascade = 0.0
+    E_auger_primary = 0.0
+    E_auger_cascade = 0.0
     if subshell >= 0:
-        E_primary, origin = relax_subshell(
+        E_emitted, origin, radiative = relax_subshell(
             particle_container, subshell, E, element, data
         )
+        if radiative:
+            E_primary = E_emitted
+        else:
+            E_auger_primary = E_emitted
         if E_primary > 0.0 and origin > 0:
             # The vacancy has moved to the subshell the filling electron left.
             next_subshell = find_subshell_by_designator(origin, element, data)
             if next_subshell >= 0:
-                E_cascade, _ = relax_subshell(
+                E_emitted, _, radiative = relax_subshell(
                     particle_container,
                     next_subshell,
                     E - E_primary,
                     element,
                     data,
                 )
+                if radiative:
+                    E_cascade = E_emitted
+                else:
+                    E_auger_cascade = E_emitted
 
-    # Everything the fluorescence photons do not carry away deposits locally.
+    # Everything the fluorescence photons do not carry away deposits locally,
+    # less whatever the electrons banked below carry away.
     interaction_data["energy_deposition"] += (E - E_primary - E_cascade) * particle["w"]
+
+    if subshell >= 0 and is_transported(PARTICLE_ELECTRON, simulation["settings"]):
+        B = mcdc_get.element.photon_photoelectric_subshell_binding_energy(
+            subshell, element, data
+        )
+        # Line and Auger energies come from the relaxation tables and can
+        # slightly exceed this binding energy, so each electron takes at most
+        # what is left, keeping the local deposit non-negative.
+        E_left = E - E_primary - E_cascade
+        T = min(E - B, E_left)
+        emit_isotropic_electron(
+            T, particle_container, interaction_data_container, program
+        )
+        E_left -= max(T, 0.0)
+        T = min(E_auger_primary, E_left)
+        emit_isotropic_electron(
+            T, particle_container, interaction_data_container, program
+        )
+        E_left -= max(T, 0.0)
+        T = min(E_auger_cascade, E_left)
+        emit_isotropic_electron(
+            T, particle_container, interaction_data_container, program
+        )
 
     if E_primary <= 0.0:
         particle["alive"] = False
@@ -512,6 +580,24 @@ def photoelectric(
     particle_new["uy"] = uy
     particle_new["uz"] = uz
     particle_bank_module.bank_active_particle(particle_container_new, program)
+
+
+@njit
+def emit_isotropic_electron(T, particle_container, interaction_data_container, program):
+    """Bank an electron of kinetic energy ``T`` emitted isotropically, if above cutoff."""
+    if T <= ELECTRON_CUTOFF_ENERGY:
+        return
+    ux, uy, uz = sample_isotropic_direction(particle_container)
+    emit_cross_species(
+        PARTICLE_ELECTRON,
+        T,
+        ux,
+        uy,
+        uz,
+        particle_container,
+        interaction_data_container,
+        program,
+    )
 
 
 @njit
@@ -616,8 +702,8 @@ def relax_subshell(particle_container, subshell, E_available, element, data):
     """Draw one de-excitation transition for a vacancy in ``subshell``.
 
     A radiative transition emits a characteristic X-ray at the tabulated line
-    energy; a non-radiative (Auger) transition emits nothing, because its
-    electron is not transported and so deposits locally.
+    energy; a non-radiative (Auger) transition emits an electron at the
+    tabulated Auger energy, and the cascade is not followed past it.
 
     A line energy is always the difference between two binding energies and is
     therefore strictly below the binding energy of the shell that produced it,
@@ -626,21 +712,22 @@ def relax_subshell(particle_container, subshell, E_available, element, data):
 
     Returns
     -------
-    (float, int)
-        Line energy in eV -- ``0.0`` when the outcome is non-radiative or no
-        transition is accessible -- and the EADL designator of the subshell the
-        vacancy moves to, or ``-1`` when there is none to follow.
+    (float, int, bool)
+        Emitted energy in eV -- ``0.0`` when no transition is accessible -- the
+        EADL designator of the subshell the vacancy moves to, or ``-1`` when there
+        is none to follow, and whether the emission is a photon (``True``) or an
+        Auger electron (``False``).
     """
     if subshell < 0:
-        return 0.0, -1
+        return 0.0, -1, True
     if subshell >= int(element["photon_relaxation_subshell_count_length"]):
-        return 0.0, -1
+        return 0.0, -1, True
 
     N_transition = int(
         mcdc_get.element.photon_relaxation_subshell_count(subshell, element, data)
     )
     if N_transition == 0:
-        return 0.0, -1
+        return 0.0, -1, True
 
     start = int(
         mcdc_get.element.photon_relaxation_subshell_start(subshell, element, data)
@@ -657,24 +744,26 @@ def relax_subshell(particle_container, subshell, E_available, element, data):
             radiative = mcdc_get.element.photon_relaxation_transition_radiative(
                 start + i, element, data
             )
-            if radiative == 0.0:
-                # Non-radiative (Auger): the electron is not transported.
-                return 0.0, -1
-
             E_line = mcdc_get.element.photon_relaxation_transition_energy(
                 start + i, element, data
             )
+            if radiative == 0.0:
+                # Non-radiative (Auger): the cascade is not followed further.
+                if E_line <= 0.0 or E_line > E_available:
+                    return 0.0, -1, False
+                return E_line, -1, False
+
             if E_line <= 0.0 or E_line > E_available:
-                return 0.0, -1
+                return 0.0, -1, True
             origin = int(
                 mcdc_get.element.photon_relaxation_transition_origin(
                     start + i, element, data
                 )
             )
-            return E_line, origin
+            return E_line, origin, True
 
-    # No transition selected after rounding: deposit locally.
-    return 0.0, -1
+    # Beyond the tabulated probability: unmodeled channel, deposit locally.
+    return 0.0, -1, True
 
 
 # ======================================================================================
@@ -683,25 +772,75 @@ def relax_subshell(particle_container, subshell, E_available, element, data):
 
 
 @njit
-def pair_production(particle_container, interaction_data_container, program, data):
+def pair_production(
+    particle_container, interaction_data_container, element, program, data
+):
     """Convert the photon to an electron-positron pair.
 
-    The pair's kinetic energy, ``E - 2 m_e c^2``, deposits at the collision site
-    because electrons are not transported and bremsstrahlung is neglected. The
-    positron annihilates at rest and emits two 511 keV photons, which *are*
-    transported: they carry the deep-penetration buildup that treating pair
-    production as pure absorption would discard.
+    The pair's kinetic energy, ``E - 2 m_e c^2``, deposits at the collision site.
+    When electrons are transported, the electron and positron are banked
+    instead, with the Bethe-Heitler split of that energy, and the positron
+    annihilates into two 511 keV photons where it stops. Otherwise the positron
+    annihilates at rest here; the annihilation photons are transported either
+    way, since they carry the deep-penetration buildup that treating pair
+    production as pure absorption would discard. Pair production in the
+    electron field (triplet) is sampled the same way.
     """
+    simulation = util.access_simulation(program)
     particle = particle_container[0]
     interaction_data = interaction_data_container[0]
 
     E = particle["E"]
 
-    # The pair's kinetic energy deposits locally; the two annihilation photons
-    # deposit their energy at their own later collision sites.
+    # The pair's kinetic energy deposits locally, less the shares that are
+    # banked; the two annihilation photons deposit their energy at their own
+    # later collision sites.
     interaction_data["energy_deposition"] += (E - PAIR_PRODUCTION_THRESHOLD) * particle[
         "w"
     ]
+
+    if is_transported(PARTICLE_ELECTRON, simulation["settings"]):
+        eps = sample_bethe_heitler(E, element["atomic_number"], particle_container)
+        T = eps * E - ELECTRON_MASS
+        azi = 2.0 * PI * rng.lcg(particle_container)
+        if T > ELECTRON_CUTOFF_ENERGY:
+            # Fixed polar angle 1/gamma about the photon direction, as in EGS4.
+            mu = math.cos(ELECTRON_MASS / (T + ELECTRON_MASS))
+            ux, uy, uz = scatter_direction(
+                particle["ux"], particle["uy"], particle["uz"], mu, azi
+            )
+            emit_cross_species(
+                PARTICLE_ELECTRON,
+                T,
+                ux,
+                uy,
+                uz,
+                particle_container,
+                interaction_data_container,
+                program,
+            )
+
+        # The positron takes the rest, on the opposite azimuth, and annihilates
+        # where it stops.
+        T_positron = (1.0 - eps) * E - ELECTRON_MASS
+        if T_positron > ELECTRON_CUTOFF_ENERGY:
+            mu = math.cos(ELECTRON_MASS / (T_positron + ELECTRON_MASS))
+            ux, uy, uz = scatter_direction(
+                particle["ux"], particle["uy"], particle["uz"], mu, azi + PI
+            )
+            emit_cross_species(
+                PARTICLE_POSITRON,
+                T_positron,
+                ux,
+                uy,
+                uz,
+                particle_container,
+                interaction_data_container,
+                program,
+            )
+            particle["alive"] = False
+            particle["E"] = 0.0
+            return
 
     # Revive the current history in place as the first annihilation photon.
     ux, uy, uz = sample_isotropic_direction(particle_container)
@@ -720,3 +859,85 @@ def pair_production(particle_container, interaction_data_container, program, dat
     particle_new["uy"] = -uy
     particle_new["uz"] = -uz
     particle_bank_module.bank_active_particle(particle_container_new, program)
+
+
+#: Below this photon energy the electron's share is sampled uniformly.
+BETHE_HEITLER_LOW_ENERGY = 2.0e6
+
+#: Above this photon energy the Coulomb correction is applied.
+BETHE_HEITLER_COULOMB_ENERGY = 5.0e7
+
+
+@njit
+def sample_bethe_heitler(E, Z, particle_container):
+    """Sample the electron's share of the photon energy in pair production.
+
+    Returns ``eps``, the electron's total energy over ``E``, in
+    ``[m c^2 / E, 1 - m c^2 / E]``. The screened Bethe-Heitler distribution with
+    the Coulomb correction is sampled by the Butcher-Messel composition-rejection
+    method, as in Geant4's G4BetheHeitlerModel; below 2 MeV, ``eps`` is sampled
+    uniformly.
+    """
+    eps0 = ELECTRON_MASS / E
+
+    if E < BETHE_HEITLER_LOW_ENERGY:
+        eps = eps0 + (0.5 - eps0) * rng.lcg(particle_container)
+    else:
+        F_Z = 8.0 * math.log(Z) / 3.0
+        if E > BETHE_HEITLER_COULOMB_ENERGY:
+            a2 = (Z / 137.035999) ** 2
+            F_Z += (
+                8.0
+                * a2
+                * (
+                    1.0 / (1.0 + a2)
+                    + 0.20206
+                    - 0.0369 * a2
+                    + 0.0083 * a2 * a2
+                    - 0.002 * a2 * a2 * a2
+                )
+            )
+
+        screen_factor = 136.0 * eps0 / Z ** (1.0 / 3.0)
+        screen_max = math.exp((42.24 - F_Z) / 8.368) - 0.952
+        screen_min = min(4.0 * screen_factor, screen_max)
+        eps1 = 0.5 - 0.5 * math.sqrt(1.0 - screen_min / screen_max)
+        eps_min = max(eps0, eps1)
+        eps_range = 0.5 - eps_min
+
+        F10 = _screen_function_1(screen_min) - F_Z
+        F20 = _screen_function_2(screen_min) - F_Z
+        norm_F1 = max(F10 * eps_range * eps_range, 0.0)
+        norm_F2 = max(1.5 * F20, 0.0)
+
+        eps = 0.5
+        while True:
+            if norm_F1 / (norm_F1 + norm_F2) > rng.lcg(particle_container):
+                eps = 0.5 - eps_range * rng.lcg(particle_container) ** (1.0 / 3.0)
+                screen = screen_factor / (eps * (1.0 - eps))
+                rejection = (_screen_function_1(screen) - F_Z) / F10
+            else:
+                eps = eps_min + eps_range * rng.lcg(particle_container)
+                screen = screen_factor / (eps * (1.0 - eps))
+                rejection = (_screen_function_2(screen) - F_Z) / F20
+            if rejection >= rng.lcg(particle_container):
+                break
+
+    # The distribution is symmetric; the electron takes either share.
+    if rng.lcg(particle_container) > 0.5:
+        eps = 1.0 - eps
+    return eps
+
+
+@njit
+def _screen_function_1(delta):
+    if delta > 1.0:
+        return 42.24 - 8.368 * math.log(delta + 0.952)
+    return 42.392 - delta * (7.796 - 1.961 * delta)
+
+
+@njit
+def _screen_function_2(delta):
+    if delta > 1.0:
+        return 42.24 - 8.368 * math.log(delta + 0.952)
+    return 41.405 - delta * (5.828 - 0.8945 * delta)

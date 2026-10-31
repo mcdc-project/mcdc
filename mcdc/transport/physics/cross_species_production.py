@@ -14,6 +14,8 @@ from mcdc.constant import (
     EVENT_TIME_CENSUS,
     PARTICLE_ELECTRON,
     PARTICLE_NEUTRON,
+    PARTICLE_PHOTON,
+    PARTICLE_POSITRON,
     PARTICLE_PROTON,
     NEUTRON_MASS,
     PROTON_MASS,
@@ -48,7 +50,6 @@ def produce_cross_species(
     """
     simulation = util.access_simulation(program)
     settings = simulation["settings"]
-    particle = particle_container[0]
     interaction_data = interaction_data_container[0]
     incident = interaction_data["incident_particle"]
     E = incident["E"]
@@ -64,14 +65,7 @@ def produce_cross_species(
             continue
 
         # Untransported products retain their energy in the deposition balance.
-        active = False
-        if product_type == PARTICLE_NEUTRON:
-            active = settings["neutron_transport"]["active"]
-        elif product_type == PARTICLE_ELECTRON:
-            active = settings["electron_transport"]["active"]
-        elif product_type == PARTICLE_PROTON:
-            active = settings["proton_transport"]["active"]
-        if not active:
+        if not is_transported(product_type, settings):
             continue
 
         # Get the product count
@@ -132,20 +126,96 @@ def produce_cross_species(
             azi = 2.0 * PI * rng.lcg(particle_container_new)
             ux_new, uy_new, uz_new = scatter_direction(ux, uy, uz, mu, azi)
 
-            # Finalize the product and account for energy carried away.
-            particle_new["ux"] = ux_new
-            particle_new["uy"] = uy_new
-            particle_new["uz"] = uz_new
-            particle_new["E"] = E_new
-            particle_new["particle_type"] = product_type
-            interaction_data["energy_deposition"] -= E_new * particle_new["w"]
+            bank_cross_species(
+                particle_container_new,
+                product_type,
+                E_new,
+                ux_new,
+                uy_new,
+                uz_new,
+                particle_container,
+                interaction_data_container,
+                program,
+            )
 
-            # Prompt products follow the parent's census routing.
-            if particle["event"] & EVENT_TIME_CENSUS:
-                particle_bank_module.bank_census_particle(
-                    particle_container_new, program
-                )
-            else:
-                particle_bank_module.bank_active_particle(
-                    particle_container_new, program
-                )
+
+@njit
+def is_transported(particle_type, settings):
+    """Whether products of ``particle_type`` are transported in this simulation."""
+    if particle_type == PARTICLE_NEUTRON:
+        return settings["neutron_transport"]["active"]
+    elif particle_type == PARTICLE_ELECTRON or particle_type == PARTICLE_POSITRON:
+        return settings["electron_transport"]["active"]
+    elif particle_type == PARTICLE_PROTON:
+        return settings["proton_transport"]["active"]
+    elif particle_type == PARTICLE_PHOTON:
+        return settings["photon_transport"]["active"]
+    return False
+
+
+@njit
+def emit_cross_species(
+    product_type,
+    E,
+    ux,
+    uy,
+    uz,
+    particle_container,
+    interaction_data_container,
+    program,
+):
+    """Bank one kinematically determined product at the active particle's site.
+
+    For products whose energy and direction follow from the reaction itself
+    rather than from a tabulated spectrum, such as a Compton recoil electron or
+    a bremsstrahlung photon. The caller checks ``is_transported`` first, so an
+    untransported product leaves its energy, and the RNG stream, untouched.
+    """
+    particle_container_new = util.local_array(1, type_.particle_data)
+    particle_module.copy_as_child(particle_container_new, particle_container)
+    bank_cross_species(
+        particle_container_new,
+        product_type,
+        E,
+        ux,
+        uy,
+        uz,
+        particle_container,
+        interaction_data_container,
+        program,
+    )
+
+
+@njit
+def bank_cross_species(
+    particle_container_new,
+    product_type,
+    E,
+    ux,
+    uy,
+    uz,
+    particle_container,
+    interaction_data_container,
+    program,
+):
+    """Finalize a cross-species product and bank it.
+
+    The product's energy is subtracted from the deposition balance, and it
+    follows the parent's census routing.
+    """
+    particle = particle_container[0]
+    particle_new = particle_container_new[0]
+    interaction_data = interaction_data_container[0]
+
+    particle_new["ux"] = ux
+    particle_new["uy"] = uy
+    particle_new["uz"] = uz
+    particle_new["E"] = E
+    particle_new["particle_type"] = product_type
+    interaction_data["energy_deposition"] -= E * particle_new["w"]
+
+    # Prompt products follow the parent's census routing.
+    if particle["event"] & EVENT_TIME_CENSUS:
+        particle_bank_module.bank_census_particle(particle_container_new, program)
+    else:
+        particle_bank_module.bank_active_particle(particle_container_new, program)

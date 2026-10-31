@@ -33,7 +33,8 @@ For each element (Z=1 to Z=100) in the EPRDATA14 library, the generator:
    the large-angle cross section under `large_angle/xs`, and the tabulated
    large-angle scattering cosine CDFs.
 4. Extracts the excitation average energy loss as a function of incident energy (MT-528).
-5. Extracts the bremsstrahlung average energy loss as a function of incident energy (MT-527).
+5. Extracts the bremsstrahlung average energy loss and the photon energy CDFs as a
+   function of incident energy (MT-527).
 6. Extracts per-subshell ionization cross sections, binding energies, and knock-on
    electron energy CDFs, grouped under the total ionization reaction (MT-522).
 7. Extracts atomic relaxation (fluorescence and Auger) transition data per subshell.
@@ -74,9 +75,14 @@ after changing the schema or energy units.
 │   │   └── MT-527/                             (attr: MT)
 │   │       ├── reference_frame                 (string: "LAB")
 │   │       ├── xs                              (1-D array, barns; attr: offset)
-│   │       └── energy_loss/
-│   │           ├── energy                      (1-D array, eV)
-│   │           └── value                       (1-D array, eV)
+│   │       ├── energy_loss/
+│   │       │   ├── energy                      (1-D array, eV)
+│   │       │   └── value                       (1-D array, eV; mean photon energy)
+│   │       └── photon_energy/
+│   │           ├── energy_grid                 (1-D array, eV)
+│   │           ├── energy_offset               (1-D array, int)
+│   │           ├── value                       (1-D array, eV)
+│   │           └── CDF                         (1-D array)
 │   └── ionization/
 │       └── MT-522/                             (attr: MT; all subshells grouped here)
 │           ├── reference_frame                 (string: "LAB")

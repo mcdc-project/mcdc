@@ -18,10 +18,11 @@ from mcdc.constant import (
 )
 from mcdc.object_.secondary_product import SecondaryProduct
 from mcdc.object_.base import MCDCPolymorphic
-from mcdc.object_.data import DataBase, DataTable
+from mcdc.object_.data import DataBase, DataNone, DataTable
 from mcdc.object_.distribution import (
     DistributionBase,
     DistributionMultiTable,
+    DistributionNone,
 )
 from mcdc.object_.util import decode_reference_frame
 from mcdc.print_ import print_1d_array, print_error
@@ -181,7 +182,14 @@ class ElectronReactionIonization(ElectronReactionBase):
 
 
 class ElectronReactionElasticScattering(ElectronReactionBase):
-    """Elastic electron scattering with large-angle cross section and cosine law."""
+    """Elastic electron scattering with large-angle cross section and cosine law.
+
+    ``mean_deflection`` is the mean of ``1 - mu``, the transport cross section
+    over the elastic one, on the cross-section grid. With it, a cosine sampled
+    from the table below the incident energy is rescaled to that energy's mean
+    deflection; libraries without a transport cross section carry a
+    ``DataNone`` and choose between the bounding tables instead.
+    """
 
     # MC/DC framework metadata
     label = "electron_elastic_scattering_reaction"
@@ -190,6 +198,7 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
     mu_cut: float
     xs_large: DataBase
     mu: DistributionMultiTable
+    mean_deflection: DataBase
 
     def __init__(
         self,
@@ -199,11 +208,13 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
         reference_frame,
         xs_large,
         mu,
+        mean_deflection,
     ):
         super().__init__(MT, xs, xs_offset, reference_frame)
         self.mu_cut = MU_CUTOFF
         self.xs_large = xs_large
         self.mu = mu
+        self.mean_deflection = mean_deflection
 
     @classmethod
     def from_h5_group(cls, h5_group):
@@ -230,7 +241,17 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
             **{"cdf" if "CDF" in mu_group else "pdf": probabilities},
         )
 
-        return cls(MT, xs, xs_offset, reference_frame, xs_large, mu)
+        mean_deflection = DataNone()
+        if "transport" in h5_group:
+            grid = read_energy(h5_group.file["electron_reactions/xs_energy_grid"])
+            transport = h5_group["transport"][()]
+            energy = grid[xs_offset : xs_offset + len(xs)]
+            ratio = np.divide(
+                transport, xs, out=np.zeros_like(transport), where=xs > 0.0
+            )
+            mean_deflection = DataTable(energy, ratio, INTERPOLATION_LINEAR)
+
+        return cls(MT, xs, xs_offset, reference_frame, xs_large, mu, mean_deflection)
 
     def __repr__(self):
         text = super().__repr__()
@@ -246,17 +267,23 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
 
 
 class ElectronReactionBremsstrahlung(ElectronReactionBase):
-    """Electron bremsstrahlung reaction with tabulated energy loss."""
+    """Electron bremsstrahlung reaction with tabulated energy loss.
+
+    ``photon_energy`` is the photon energy spectrum, sampled when photons are
+    transported.
+    """
 
     # MC/DC framework metadata
     label = "electron_bremsstrahlung_reaction"
     sub_type = ELECTRON_REACTION_BREMSSTRAHLUNG
 
     eloss: DataBase
+    photon_energy: DistributionBase
 
-    def __init__(self, MT, xs, xs_offset, reference_frame, eloss):
+    def __init__(self, MT, xs, xs_offset, reference_frame, eloss, photon_energy):
         super().__init__(MT, xs, xs_offset, reference_frame)
         self.eloss = eloss
+        self.photon_energy = photon_energy
 
     @classmethod
     def from_h5_group(cls, h5_group):
@@ -270,11 +297,27 @@ class ElectronReactionBremsstrahlung(ElectronReactionBase):
             INTERPOLATION_LINEAR,
         )
 
-        return cls(MT, xs, xs_offset, reference_frame, eloss)
+        # Older libraries have no photon spectrum; the photon then takes the
+        # mean energy loss
+        photon_energy = DistributionNone()
+        if "photon_energy" in h5_group:
+            spectrum = h5_group["photon_energy"]
+            values = read_energy(spectrum["value"])
+            photon_energy = DistributionMultiTable(
+                read_energy(spectrum["energy_grid"]),
+                values,
+                offsets=np.r_[spectrum["energy_offset"][()], len(values)].astype(
+                    np.int64
+                ),
+                cdf=spectrum["CDF"][()],
+            )
+
+        return cls(MT, xs, xs_offset, reference_frame, eloss, photon_energy)
 
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Energy loss: DataTable [ID: {self.eloss.ID}]\n"
+        text += f"  - Photon energy: {distribution.decode_type(self.photon_energy.type)} [ID: {self.photon_energy.ID}]\n"
         return text
 
 
