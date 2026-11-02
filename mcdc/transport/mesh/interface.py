@@ -34,7 +34,7 @@ def get_flat_index(particle_container, mesh, simulation, data):
         return ((i_x * mesh["Ny"]) + i_y) * mesh["Nz"] + i_z
     elif mesh_type == MESH_STRUCTURED:
         mesh = simulation["structured_meshes"][mesh_ID]
-        i_x, i_y, i_z = structured.get_indices(particle_container, mesh)
+        i_x, i_y, i_z = structured.get_indices(particle_container, mesh, data)
         if i_x == -1 or i_y == -1 or i_z == -1:
             return -1
         return ((i_x * mesh["Ny"]) + i_y) * mesh["Nz"] + i_z

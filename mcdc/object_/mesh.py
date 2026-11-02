@@ -174,8 +174,11 @@ class MeshStructured(MeshBase):
     sub_type = MESH_STRUCTURED
 
     x: NDArray[float64]
+    Nx: int
     y: NDArray[float64]
+    Ny: int
     z: NDArray[float64]
+    Nz: int
 
     def __init__(
         self,

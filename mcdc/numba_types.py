@@ -559,10 +559,13 @@ mesh = into_dtype([
 structured_mesh = into_dtype([
     ('x_offset', int64),
     ('x_length', int64),
+    ('Nx', int64),
     ('y_offset', int64),
     ('y_length', int64),
+    ('Ny', int64),
     ('z_offset', int64),
     ('z_length', int64),
+    ('Nz', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])
