@@ -22,7 +22,7 @@ def test_kalbach_mann_sample(mock_rng_sequence, make_distribution_record):
     # Law 44 uses the Law 4 energy construction, so with xi_2 = 0.1 in the first bin
     # of the selected table:
     E_min, E_max = 1.5, 4.5
-    E_hat = 2.0 + (xi2 - 0.0) / 0.2
+    E_hat = 2.0 + (xi2 - 0.0) / 0.25
     # As in the Law 4 tests, the constant bin PDF means Eq. (2.66) collapses to the
     # simpler Eq. (2.65) interpolation for the sampled E'.
     expected_E = E_min + (E_hat - 2.0) / (6.0 - 2.0) * (E_max - E_min)

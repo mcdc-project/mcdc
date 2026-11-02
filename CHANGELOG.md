@@ -65,6 +65,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Fixed
 
+- Correct flattened outgoing-energy bounds and conditional angular indices in the Kalbach-Mann and correlated energy-angle samplers, from [@ilhamv]
+- Sample delayed-fission groups with their proper yields and assign each delayed neutron its group spectrum and isotropic direction, from [@ilhamv]
 - Fix delayed neutron data preparation, from [@hansenkyle]
 - Preserve very low particle energies when converting from speed by avoiding floating-point cancellation in the relativistic kinetic-energy calculation, from [@ilhamv]
 - Prevent particles from becoming trapped at zero-distance crossings of quadratic surfaces, from [@ilhamv]
