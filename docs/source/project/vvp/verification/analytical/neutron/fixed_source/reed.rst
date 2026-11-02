@@ -138,14 +138,14 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--reed_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--reed_flux.png
          :alt: Flux convergence for Reed's problem.
 
          Relative scalar-flux error over the source-particle study.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--reed_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--reed_flux.png
          :alt: Flux comparison for Reed's problem.
 
          Highest-statistics MC/DC flux and the semi-analytical reference.

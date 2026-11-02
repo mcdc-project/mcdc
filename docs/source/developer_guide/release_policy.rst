@@ -130,9 +130,9 @@ Publish from Main
    * **Release label:** select **Latest**.
    * **Finish:** click **Publish release** when creating the release, or **Update release** when editing an existing release.
 
-#. Replace the assets attached to the mutable `VVP results release <https://github.com/mcdc-project/mcdc/releases/tag/vvp-results>`_ with the contents of the prepared MC/DC-VVP ``release/`` directory.
+#. Replace the assets attached to the mutable `VVP results release <https://github.com/mcdc-project/mcdc/releases/tag/vvp-dev>`_ with the contents of the prepared MC/DC-VVP ``release/`` directory.
    Update its release notes to identify the MC/DC and MC/DC-VVP versions used for the published campaign.
-#. Confirm that every VVP figure and animation referenced by the documentation is available from the ``vvp-results`` release and renders on its case page.
+#. Confirm that every VVP figure and animation referenced by the documentation is available from the ``vvp-dev`` release and renders on its case page.
 #. Confirm that the automatically triggered `Publish Python Package to PyPI <https://github.com/mcdc-project/mcdc/actions/workflows/publish-pypi.yml>`_ and `Check citation metadata <https://github.com/mcdc-project/mcdc/actions/workflows/check_citation.yml>`_ workflows complete successfully, and that the release is available from the `stable Read the Docs site <https://mcdc.readthedocs.io/en/stable/>`_.
 #. Verify the Zenodo archive's version, date, authors, license, and DOI.
    Submit the record to the CARRE community (``carre``) through Zenodo and confirm inclusion; CFF does not configure community submission.

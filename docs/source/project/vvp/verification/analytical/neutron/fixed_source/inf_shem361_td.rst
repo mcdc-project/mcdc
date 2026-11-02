@@ -40,21 +40,21 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--inf_shem361_td_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--inf_shem361_td_flux.png
          :alt: Flux convergence for transient infinite-medium SHEM-361 transport.
 
          Relative time-energy flux error.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--inf_shem361_td_n.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--inf_shem361_td_n.png
          :alt: Neutron-density convergence for transient infinite-medium SHEM-361 transport.
 
          Relative neutron-density-history error.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--inf_shem361_td_flux.gif
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--inf_shem361_td_flux.gif
          :alt: Animated spectrum comparison for transient infinite-medium SHEM-361 transport.
 
          Highest-statistics spectrum and matrix-exponential reference throughout the transient.

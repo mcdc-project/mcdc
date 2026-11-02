@@ -11,7 +11,7 @@ These separate activities provide verification evidence at complementary scales.
 Verification suites and cases
 -----------------------------
 
-The current VVP verification program is organized first by verification method, then by particle type, suite, and case.
+The current VVP verification campaign is organized first by verification method, then by particle type, suite, and case.
 
 - **Analytical verification** — Provides the strongest direct test when an analytical, manufactured, or accurately converged semi-analytical reference is available.
 

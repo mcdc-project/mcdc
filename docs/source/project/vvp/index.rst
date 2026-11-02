@@ -4,7 +4,16 @@
 Verification, Validation, and Performance
 =========================================
 
-`MC/DC Verification, Validation, and Performance (MC/DC-VVP) <https://github.com/mcdc-project/mcdc-vvp>`_ provides the evidence used to assess the correctness, physical credibility, and computational behavior of MC/DC.
+.. figure:: ../../images/project/vvp-workflow.png
+   :width: 100%
+   :class: vvp-workflow-figure
+   :alt: MC/DC-VVP workflow from campaign configuration through Maestro orchestration to verification, validation, and performance assessments, with results presented in documentation and release assets.
+
+   MC/DC-VVP workflow: campaign configuration and Maestro orchestration connect
+   verification, validation, and performance studies to documented assessments
+   and release assets.
+
+`MC/DC Verification, Validation, and Performance (MC/DC-VVP) <https://github.com/mcdc-project/mcdc-vvp>`_ orchestrates campaigns that generate the evidence used to assess the correctness, physical credibility, and computational behavior of MC/DC.
 The campaigns are maintained alongside MC/DC so that repeatable systematic problems exercise major code changes.
 VVP focuses on full-transport problems that test complete simulations, complementing the component-level verification provided separately by :doc:`unit tests <../../developer_guide/contributing/unit_testing>`.
 
@@ -14,33 +23,34 @@ Three kinds of evidence
 
 There are three kinds of evidence: verification, validation, and performance.
 
-1. **Verification** asks whether MC/DC solves its stated mathematical problems correctly.
+.. rst-class:: evidence-list
+
+1. :doc:`Verification <verification/index>` asks whether MC/DC solves its stated mathematical problems correctly.
 
    a. **Analytical verification** compares MC/DC with an analytical, semi-analytical, or manufactured reference solution and checks for the expected statistical convergence rate.
 
-   b. **Code-to-code verification** compares independently implemented transport codes and checks whether their relative differences decrease at the expected Monte Carlo rate.
+   b. **Code-to-code verification** compares independently implemented transport codes and checks whether their relative differences decrease, to some extent, at the expected Monte Carlo rate.
       Agreement between codes increases confidence but does not establish correctness because the codes may share assumptions or biases.
+      Even so, comparisons can reveal differences in modeling assumptions, numerical methods, or implementation, while agreement helps characterize where the codes behave consistently.
 
-2. **Validation** asks whether an MC/DC model reproduces experimental observations within the relevant measurement, model, and nuclear-data uncertainties.
+2. :doc:`Validation <validation/index>` assesses whether MC/DC predictions agree with experimental observations within the relevant measurement, model, and nuclear-data uncertainties.
    Validation assesses the combined physical model, data, and implementation against experimental evidence.
 
-3. **Performance** studies measure quantities such as runtime, throughput, memory use, and parallel scalability.
+3. :doc:`Performance <performance/index>` studies measure quantities such as runtime, throughput, memory use, and parallel scalability.
    They characterize computational efficiency separately from numerical correctness and physical fidelity.
-
-The development campaign currently reports neutron-transport verification.
-Validation and performance results will be added as their suites mature.
 
 Organization
 ------------
 
 MC/DC-VVP uses **suite**, **case**, and **task** as its standard hierarchy.
-`Maestro Workflow Conductor <https://github.com/LLNL/maestrowf>`_ orchestrates these task sequences for local workstations and HPC platforms while each suite retains its own launch and processing workflow.
 
 .. code-block:: text
 
    suite
    └── case
        └── task
+
+`Maestro Workflow Conductor <https://github.com/LLNL/maestrowf>`_ orchestrates these task sequences for local workstations and HPC platforms while each suite retains its own launch and processing workflow.
 
 A **suite** is a related collection of VVP problems that shares a launch and processing workflow.
 A **case** is one physical or mathematical problem definition together with its model, reference, and result-processing logic.
@@ -62,15 +72,15 @@ For example, the analytical neutron fixed-source verification suite contains the
 This example describes verification, where repeated sampling levels reveal an error-convergence trend.
 The same hierarchy applies to validation and performance, but their tasks will likely represent different variations, such as experimental configurations for validation or hardware and scaling points for performance.
 
-Current status and next steps
------------------------------
+Results presentation
+--------------------
 
-The :doc:`verification program <verification/index>` currently covers analytical and code-to-code neutron transport.
-Each case page presents its problem definition, reference solution, convergence study, and published results as one narrative.
-The figures and animations are loaded from the rolling `VVP results release <https://github.com/mcdc-project/mcdc/releases/tag/vvp-results>`_, which is updated when a new MC/DC campaign is published.
-The initial result set was generated from the development branches in preparation for MC/DC v0.16.0.
+Results are presented as plots and animations showing comparisons with reference results and trends across tasks, such as statistical convergence as the particle count increases.
+Figures and animations are embedded directly from GitHub release assets, which can also be browsed and downloaded from the corresponding release page.
 
-Future campaigns will extend the program with :doc:`validation <validation/index>` against experimental observations and :doc:`performance <performance/index>` studies of computational efficiency and scalability.
+For the ``dev`` documentation, assets are hosted in the rolling `VVP evidence for dev <https://github.com/mcdc-project/mcdc/releases/tag/vvp-dev>`_ release and updated when a new development campaign is published.
+Starting with MC/DC v0.16.0, evidence for each released version, including patch releases, is attached to that version's release and retained as a fixed record.
+Versioned documentation uses the assets associated with its corresponding MC/DC release.
 
 .. toctree::
    :hidden:

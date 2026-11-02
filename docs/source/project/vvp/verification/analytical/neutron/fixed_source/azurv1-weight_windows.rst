@@ -62,14 +62,14 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--azurv1-weight_windows_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--azurv1-weight_windows_flux.png
          :alt: Flux convergence for AZURV1 with spatial weight windows.
 
          Relative space-time flux error with analytical-solution-derived windows.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--azurv1-weight_windows_flux.gif
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--azurv1-weight_windows_flux.gif
          :alt: Animated flux comparison for AZURV1 with spatial weight windows.
 
          Highest-statistics weight-window solution and analytical reference.

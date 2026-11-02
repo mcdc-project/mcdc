@@ -53,14 +53,14 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--inf_shem361-weight_windows_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--inf_shem361-weight_windows_flux.png
          :alt: Spectrum convergence for infinite-medium SHEM-361 with energy weight windows.
 
          Relative spectrum error with energy-dependent windows.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--inf_shem361-weight_windows_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--inf_shem361-weight_windows_flux.png
          :alt: Spectrum comparison for infinite-medium SHEM-361 with energy weight windows.
 
          Highest-statistics weight-window spectrum and matrix reference.

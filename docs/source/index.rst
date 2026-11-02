@@ -70,13 +70,31 @@ Choose the path that best matches what you want to accomplish.
       +++
       Develop MC/DC :octicon:`arrow-right`
 
-More resources
---------------
+   .. grid-item-card:: :octicon:`checklist;2em` Verification, Validation, and Performance
+      :link: project/vvp/index
+      :link-type: doc
+      :link-alt: Explore MC/DC verification, validation, and performance evidence
+      :class-card: sd-card-hover
+      :text-align: center
 
-- Learn from complete input decks in :doc:`user_guide/examples/index`.
-- Review the :doc:`MC/DC verification, validation, and performance (VVP)<project/vvp/index>` evidence.
-- Explore the ongoing :doc:`CARRE research program <project/carre>`, its collaboration opportunities, and the :doc:`MC/DC publication record <project/publications>`.
-- Follow the contribution workflow in :doc:`developer_guide/contributing/index`.
+      Explore benchmark problems and results used to assess MC/DC's correctness,
+      physical credibility, and computational performance.
+
+      +++
+      Explore the evidence :octicon:`arrow-right`
+
+   .. grid-item-card:: :octicon:`telescope;2em` CARRE Project
+      :link: project/carre
+      :link-type: doc
+      :link-alt: Explore the CARRE research program and collaboration opportunities
+      :class-card: sd-card-hover
+      :text-align: center
+
+      Explore the research program advancing MC/DC, its goals, and
+      opportunities for collaboration.
+
+      +++
+      Explore CARRE :octicon:`arrow-right`
 
 .. admonition:: Recommended citation
    :class: tip

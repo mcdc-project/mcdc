@@ -41,14 +41,14 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--inf_shem361_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--inf_shem361_flux.png
          :alt: Spectrum convergence for steady-state infinite-medium SHEM-361.
 
          Relative spectrum error over the source-particle study.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--inf_shem361_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--inf_shem361_flux.png
          :alt: Spectrum comparison for steady-state infinite-medium SHEM-361.
 
          Highest-statistics MC/DC spectrum and matrix reference.

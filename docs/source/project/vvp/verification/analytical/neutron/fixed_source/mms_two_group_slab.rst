@@ -131,21 +131,21 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--mms_two_group_slab_source.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--mms_two_group_slab_source.png
          :alt: Manufactured source distributions for the two-group slab.
 
          Positive group-wise volume-source distributions.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--mms_two_group_slab_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--mms_two_group_slab_flux.png
          :alt: Flux convergence for the manufactured two-group slab.
 
          Relative multigroup flux error from :math:`10^4` through :math:`10^6` histories.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--mms_two_group_slab_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--mms_two_group_slab_flux.png
          :alt: Flux comparison for the manufactured two-group slab.
 
          Highest-statistics group fluxes and manufactured reference.

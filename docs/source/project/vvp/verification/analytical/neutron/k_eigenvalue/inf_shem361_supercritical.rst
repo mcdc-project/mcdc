@@ -44,35 +44,35 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--convergence--inf_shem361_supercritical_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--convergence--inf_shem361_supercritical_flux.png
          :alt: Spectrum convergence for supercritical infinite-medium SHEM-361.
 
          Relative fundamental-spectrum error.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--convergence--inf_shem361_supercritical_k-effective.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--convergence--inf_shem361_supercritical_k-effective.png
          :alt: Multiplication-factor convergence for supercritical infinite-medium SHEM-361.
 
          Relative multiplication-factor error.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--convergence--inf_shem361_supercritical_k-effective_errorbar.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--convergence--inf_shem361_supercritical_k-effective_errorbar.png
          :alt: Multiplication-factor estimates and uncertainties for supercritical infinite-medium SHEM-361.
 
          MC/DC estimates, reported uncertainties, and the matrix reference.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--comparison--inf_shem361_supercritical_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--comparison--inf_shem361_supercritical_flux.png
          :alt: Fundamental spectrum comparison for supercritical infinite-medium SHEM-361.
 
          Highest-statistics normalized spectrum and generalized-eigenvalue reference.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--comparison--inf_shem361_supercritical_k_history.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--comparison--inf_shem361_supercritical_k_history.png
          :alt: Cycle-by-cycle multiplication-factor history for supercritical infinite-medium SHEM-361.
 
          Inactive and active cycle history, active mean, uncertainty, and reference.
