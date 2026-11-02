@@ -4,6 +4,15 @@
 Verification, Validation, and Performance
 =========================================
 
+.. figure:: ../../images/project/vvp-workflow.png
+   :width: 100%
+   :class: vvp-workflow-figure
+   :alt: MC/DC-VVP workflow from campaign configuration through Maestro orchestration to verification, validation, and performance assessments, with results presented in documentation and release assets.
+
+   MC/DC-VVP workflow: campaign configuration and Maestro orchestration connect
+   verification, validation, and performance studies to documented assessments
+   and release assets.
+
 `MC/DC Verification, Validation, and Performance (MC/DC-VVP) <https://github.com/mcdc-project/mcdc-vvp>`_ orchestrates campaigns that generate the evidence used to assess the correctness, physical credibility, and computational behavior of MC/DC.
 The campaigns are maintained alongside MC/DC so that repeatable systematic problems exercise major code changes.
 VVP focuses on full-transport problems that test complete simulations, complementing the component-level verification provided separately by :doc:`unit tests <../../developer_guide/contributing/unit_testing>`.
