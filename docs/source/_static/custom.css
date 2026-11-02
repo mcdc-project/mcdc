@@ -26,3 +26,6 @@ readthedocs-flyout,
 .rst-versions {
     display: none !important;
 }
+.evidence-list > li > p:first-child > a:first-child {
+  font-weight: bold;
+}

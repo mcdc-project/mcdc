@@ -26,7 +26,7 @@ Methods for Predictive Science
 
 CARRE's mission requires more than additional particle-interaction physics.
 The broader MC/DC methods program includes uncertainty quantification, variance reduction, hybrid methods, verification and validation (V&V), and other advances needed for predictive radiation-transport simulation.
-These methods must work with the evolving multiparticle physics while remaining usable across the Python, Numba-CPU, and Numba-GPU execution paths.
+These methods must work with the evolving multiparticle physics while remaining usable across the :doc:`Python, Numba-CPU, and Numba-GPU execution paths <../developer_guide/architecture/transport_execution>`.
 
 Users and Collaborators
 -----------------------
@@ -39,7 +39,7 @@ Foundation in CEMeNT
 --------------------
 
 The CARRE effort builds on MC/DC's origins in the `Center for Exascale Monte Carlo Neutron Transport (CEMeNT) <https://cement-psaap.github.io/>`_, a PSAAP-III project.
-CEMeNT established MC/DC's core software architecture, Numba-based compilation framework, and Python-first design and development philosophy.
+CEMeNT established MC/DC's :doc:`core software architecture <../developer_guide/architecture/index>`, :doc:`Numba-based compilation framework <../developer_guide/architecture/transport_execution>`, and :doc:`Python-first design and development philosophy <../developer_guide/architecture/python_first_numba_accelerated_design>`.
 CEMeNT also developed transient Monte Carlo neutron-transport methods and scalable execution capabilities for exascale computing platforms.
 CARRE leverages these software, methods-development, neutron-transport, and performance-portability foundations as MC/DC expands into its broader multiparticle and predictive-science role.
 

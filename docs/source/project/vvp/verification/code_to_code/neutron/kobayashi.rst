@@ -56,19 +56,19 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--code_to_code--neutron--convergence--kobayashi_convergence_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--code_to_code--neutron--convergence--kobayashi_convergence_flux.png
          :alt: MC/DC and OpenMC flux convergence for the Kobayashi transient.
 
          Relative 2-norm and maximum space-time flux differences.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--code_to_code--neutron--convergence--kobayashi_convergence_density.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--code_to_code--neutron--convergence--kobayashi_convergence_density.png
          :alt: MC/DC and OpenMC neutron-density convergence for the Kobayashi transient.
 
          Relative 2-norm and maximum neutron-density-history differences.
 
-.. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--code_to_code--neutron--reference--kobayashi_reference_flux.gif
+.. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--code_to_code--neutron--reference--kobayashi_reference_flux.gif
    :alt: Animated fixed flux reference for the Kobayashi transient.
 
    Fixed largest-sample reference formed by averaging the MC/DC and OpenMC flux estimates, shown through its orthogonal projections together with the corresponding reference neutron-density history.
@@ -78,14 +78,14 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--code_to_code--neutron--comparison--kobayashi_comparison.gif
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--code_to_code--neutron--comparison--kobayashi_comparison.gif
          :alt: Animated MC/DC and OpenMC flux comparison for the Kobayashi transient.
 
          Orthogonal flux projections and neutron-density histories from the largest shared sample.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--code_to_code--neutron--comparison--kobayashi_difference.gif
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--code_to_code--neutron--comparison--kobayashi_difference.gif
          :alt: Animated relative differences for the Kobayashi transient.
 
          Spatial flux differences and neutron-density differences throughout the transient.

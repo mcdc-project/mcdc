@@ -42,14 +42,14 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--azurv1-basic_techniques_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--azurv1-basic_techniques_flux.png
          :alt: Flux convergence for AZURV1 with basic variance-reduction techniques.
 
          Relative space-time flux error with all three techniques enabled.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--azurv1-basic_techniques_flux.gif
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--azurv1-basic_techniques_flux.gif
          :alt: Animated flux comparison for AZURV1 with basic variance reduction.
 
          Highest-statistics variance-reduced solution and analytical reference.

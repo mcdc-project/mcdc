@@ -127,35 +127,35 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--convergence--kornreich_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--convergence--kornreich_flux.png
          :alt: Flux-shape convergence for the Kornreich-Parsons slab.
 
          Relative fundamental-mode flux-shape error.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--convergence--kornreich_k-effective.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--convergence--kornreich_k-effective.png
          :alt: Multiplication-factor convergence for the Kornreich-Parsons slab.
 
          Relative multiplication-factor error.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--convergence--kornreich_k-effective_errorbar.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--convergence--kornreich_k-effective_errorbar.png
          :alt: Multiplication-factor estimates and uncertainties for the Kornreich-Parsons slab.
 
          MC/DC estimates, reported uncertainties, and the published reference.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--comparison--kornreich_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--comparison--kornreich_flux.png
          :alt: Fundamental-mode flux comparison for the Kornreich-Parsons slab.
 
          Highest-statistics normalized flux and collision-integral reference.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--comparison--kornreich_k_history.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--comparison--kornreich_k_history.png
          :alt: Cycle-by-cycle multiplication-factor history for the Kornreich-Parsons slab.
 
          Inactive and active cycle history, active mean, uncertainty, and reference.

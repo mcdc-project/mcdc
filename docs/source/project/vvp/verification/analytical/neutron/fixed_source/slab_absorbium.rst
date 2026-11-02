@@ -108,28 +108,28 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--slab_absorbium_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--slab_absorbium_flux.png
          :alt: Scalar-flux convergence for the absorbium slab.
 
          Relative scalar-flux error over the source-particle study.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--slab_absorbium_angular_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--slab_absorbium_angular_flux.png
          :alt: Angular-flux convergence for the absorbium slab.
 
          Relative angular-flux error over the source-particle study.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--slab_absorbium_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--slab_absorbium_flux.png
          :alt: Scalar-flux comparison for the absorbium slab.
 
          Highest-statistics scalar flux and the analytical reference.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--slab_absorbium_angular_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--slab_absorbium_angular_flux.png
          :alt: Angular-flux comparison for the absorbium slab.
 
          Highest-statistics angular flux and the analytical reference.
