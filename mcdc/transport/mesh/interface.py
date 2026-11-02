@@ -1,9 +1,10 @@
 from numba import njit
 
 from mcdc import mcdc_get
-from mcdc.constant import MESH_STRUCTURED, MESH_UNIFORM
+from mcdc.constant import MESH_STRUCTURED, MESH_UNIFORM, MESH_RECTILINEAR_UNSTRUCTURED
 import mcdc.transport.mesh.structured as structured
 import mcdc.transport.mesh.uniform as uniform
+import mcdc.transport.mesh.rectilinear_unstructured as rectilinear_unstructured
 
 
 @njit
@@ -17,6 +18,9 @@ def get_indices(particle_container, mesh, simulation, data):
     elif mesh_type == MESH_STRUCTURED:
         structured_mesh = simulation["structured_meshes"][mesh_ID]
         return structured.get_indices(particle_container, structured_mesh, data)
+    elif mesh_type == MESH_RECTILINEAR_UNSTRUCTURED:
+        mesh = simulation["rectilinear_unstructured_meshes"][mesh_ID]
+        return rectilinear_unstructured.get_indices(particle_container, mesh, data)
 
     return -1, -1, -1
 
