@@ -546,7 +546,8 @@ def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
     xi4 = rng.lcg(rng_state)
 
     # Interpolation factor
-    idx = find_bin(E, grid)
+    E = min(max(E, grid[0]), grid[-1])
+    idx = min(max(find_bin(E, grid), 0), len(grid) - 2)
     E0 = grid[idx]
     E1 = grid[idx + 1]
     f = (E - E0) / (E1 - E0)
@@ -564,7 +565,7 @@ def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
     # Second table
     start = end
     if idx + 2 == len(grid):
-        end = kalbach_mann["energy_length"]
+        end = kalbach_mann["energy_out_length"]
     else:
         end = mcdc_get.kalbach_mann_distribution.offset(idx + 2, kalbach_mann, data)
     E1_min = mcdc_get.kalbach_mann_distribution.energy_out(start, kalbach_mann, data)
@@ -581,7 +582,7 @@ def sample_kalbach_mann(E, rng_state, kalbach_mann, data):
     # Get the table range
     start = mcdc_get.kalbach_mann_distribution.offset(idx, kalbach_mann, data)
     if idx + 1 == len(grid):
-        end = kalbach_mann["energy_length"]
+        end = kalbach_mann["energy_out_length"]
     else:
         end = mcdc_get.kalbach_mann_distribution.offset(idx + 1, kalbach_mann, data)
     size = end - start
@@ -644,7 +645,8 @@ def sample_tabulated_energy_angle(E, rng_state, table, data):
     xi3 = rng.lcg(rng_state)
 
     # Interpolation factor
-    idx = find_bin(E, grid)
+    E = min(max(E, grid[0]), grid[-1])
+    idx = min(max(find_bin(E, grid), 0), len(grid) - 2)
     E0 = grid[idx]
     E1 = grid[idx + 1]
     f = (E - E0) / (E1 - E0)
@@ -664,7 +666,7 @@ def sample_tabulated_energy_angle(E, rng_state, table, data):
     # Second table
     start = end
     if idx + 2 == len(grid):
-        end = table["energy_length"]
+        end = table["energy_out_length"]
     else:
         end = mcdc_get.tabulated_energy_angle_distribution.offset(idx + 2, table, data)
     E1_min = mcdc_get.tabulated_energy_angle_distribution.energy_out(start, table, data)
@@ -683,7 +685,7 @@ def sample_tabulated_energy_angle(E, rng_state, table, data):
     # Get the table range
     start = mcdc_get.tabulated_energy_angle_distribution.offset(idx, table, data)
     if idx + 1 == len(grid):
-        end = table["energy_length"]
+        end = table["energy_out_length"]
     else:
         end = mcdc_get.tabulated_energy_angle_distribution.offset(idx + 1, table, data)
     size = end - start
@@ -722,15 +724,17 @@ def sample_tabulated_energy_angle(E, rng_state, table, data):
     )
     E_new = E_min + (E_hat - E_low) / (E_high - E_low) * (E_max - E_min)
 
-    # Determine angular table index
+    # Choose the closest local CDF point, then apply its outgoing-table offset.
+    angular_idx = idx_local
     if xi2 - cdf[idx] > cdf[idx + 1] - xi2:
-        idx += 1
+        angular_idx += 1
+    idx = angular_idx
 
     # Get the angular table range
     start = mcdc_get.tabulated_energy_angle_distribution.cosine_offset_(
         idx, table, data
     )
-    if idx + 1 == len(grid):
+    if idx + 1 == table["energy_out_length"]:
         end = table["cosine_length"]
     else:
         end = mcdc_get.tabulated_energy_angle_distribution.cosine_offset_(

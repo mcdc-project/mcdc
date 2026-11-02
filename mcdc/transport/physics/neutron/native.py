@@ -795,7 +795,7 @@ def sample_fission(
 
         # Prompt or delayed?
         prompt = True
-        delayed_group = -1
+        delayed_group = N_delayed - 1
         xi = rng.lcg(particle_container_new)
         total = nu_p / nu
         if xi > total:
@@ -805,7 +805,7 @@ def sample_fission(
                 fraction = mcdc_get.nuclide.neutron_fission_delayed_fractions(
                     j, nuclide, data
                 )
-                total += fraction
+                total += fraction * nu_d / nu
                 if xi < total:
                     delayed_group = j
                     break
@@ -875,6 +875,17 @@ def sample_fission(
         else:
             # Sample isotropic angle
             ux_new, uy_new, uz_new = sample_isotropic_direction(particle_container_new)
+
+            particle_new["ux"] = ux_new
+            particle_new["uy"] = uy_new
+            particle_new["uz"] = uz_new
+            spectrum_ID = mcdc_get.nuclide.neutron_fission_delayed_spectrum_IDs(
+                delayed_group, nuclide, data
+            )
+            spectrum = simulation["distributions"][spectrum_ID]
+            particle_new["E"] = sample_distribution_with_scale(
+                E, spectrum, particle_container_new, simulation, data
+            )
 
             # Sample emission time
             decay_rate = mcdc_get.nuclide.neutron_fission_delayed_decay_rates(
