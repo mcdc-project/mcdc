@@ -79,12 +79,20 @@ def z_bounds_chunk(start, length, rectilinear_unstructured_mesh, data):
     return array_result(data[start:end])
 
 
-@njit
-def x_neighbors(index_1, index_2, index_3, rectilinear_unstructured_mesh, data):
+@array_return(nb.types.float64)
+def x_neighbors_vector(index_1, rectilinear_unstructured_mesh, data):
     offset = rectilinear_unstructured_mesh["x_neighbors_offset"]
-    stride_2 = rectilinear_unstructured_mesh["N_dim"]
-    stride_3 = 2
-    return int64(data[offset + index_1 * stride_2 * stride_3 + index_2 * stride_3 + index_3])
+    stride = 2
+    start = offset + index_1 * stride
+    end = start + stride
+    return array_result(data[start:end])
+
+
+@njit
+def x_neighbors(index_1, index_2, rectilinear_unstructured_mesh, data):
+    offset = rectilinear_unstructured_mesh["x_neighbors_offset"]
+    stride = 2
+    return int64(data[offset + index_1 * stride + index_2])
 
 
 @array_return(nb.types.float64)
@@ -94,12 +102,20 @@ def x_neighbors_chunk(start, length, rectilinear_unstructured_mesh, data):
     return array_result(data[start:end])
 
 
-@njit
-def y_neighbors(index_1, index_2, index_3, rectilinear_unstructured_mesh, data):
+@array_return(nb.types.float64)
+def y_neighbors_vector(index_1, rectilinear_unstructured_mesh, data):
     offset = rectilinear_unstructured_mesh["y_neighbors_offset"]
-    stride_2 = rectilinear_unstructured_mesh["N_dim"]
-    stride_3 = 2
-    return int64(data[offset + index_1 * stride_2 * stride_3 + index_2 * stride_3 + index_3])
+    stride = 2
+    start = offset + index_1 * stride
+    end = start + stride
+    return array_result(data[start:end])
+
+
+@njit
+def y_neighbors(index_1, index_2, rectilinear_unstructured_mesh, data):
+    offset = rectilinear_unstructured_mesh["y_neighbors_offset"]
+    stride = 2
+    return int64(data[offset + index_1 * stride + index_2])
 
 
 @array_return(nb.types.float64)
@@ -109,12 +125,20 @@ def y_neighbors_chunk(start, length, rectilinear_unstructured_mesh, data):
     return array_result(data[start:end])
 
 
-@njit
-def z_neighbors(index_1, index_2, index_3, rectilinear_unstructured_mesh, data):
+@array_return(nb.types.float64)
+def z_neighbors_vector(index_1, rectilinear_unstructured_mesh, data):
     offset = rectilinear_unstructured_mesh["z_neighbors_offset"]
-    stride_2 = rectilinear_unstructured_mesh["N_dim"]
-    stride_3 = 2
-    return int64(data[offset + index_1 * stride_2 * stride_3 + index_2 * stride_3 + index_3])
+    stride = 2
+    start = offset + index_1 * stride
+    end = start + stride
+    return array_result(data[start:end])
+
+
+@njit
+def z_neighbors(index_1, index_2, rectilinear_unstructured_mesh, data):
+    offset = rectilinear_unstructured_mesh["z_neighbors_offset"]
+    stride = 2
+    return int64(data[offset + index_1 * stride + index_2])
 
 
 @array_return(nb.types.float64)

@@ -180,6 +180,7 @@ class Tally(MCDCPolymorphic):
     # Basic properties
     name: str
     scores: list[int]
+    N_scores: int
 
     # Non-spatial filters
     particle_type: int
@@ -310,6 +311,7 @@ class Tally(MCDCPolymorphic):
                 self.scores.append(SCORE_ENERGY_DEPOSITION)
             else:
                 print_error(f"Unknown tally score: {score}")
+        self.N_scores = len(self.scores)
 
         # Particle filter
         if particle_type is None:

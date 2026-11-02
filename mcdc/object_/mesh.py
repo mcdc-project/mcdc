@@ -212,16 +212,14 @@ class MeshUnstructured(MeshBase):
     sub_type = MESH_RECTILINEAR_UNSTRUCTURED
 
     N_cells: int
-    N_dim: int
     x_bounds: Annotated[NDArray[float64], ("N_cells", 2)]
     y_bounds: Annotated[NDArray[float64], ("N_cells", 2)]
     z_bounds: Annotated[NDArray[float64], ("N_cells", 2)]
-    x_neighbors: Annotated[NDArray[int], ("N_cells", "N_dim", 2)]
-    y_neighbors: Annotated[NDArray[int], ("N_cells", "N_dim", 2)]
-    z_neighbors: Annotated[NDArray[int], ("N_cells", "N_dim", 2)]
+    x_neighbors: Annotated[NDArray[int], ("N_cells", 2)]
+    y_neighbors: Annotated[NDArray[int], ("N_cells", 2)]
+    z_neighbors: Annotated[NDArray[int], ("N_cells", 2)]
 
     def __init__(self):
-        self.N_dim = 1
         self.N_bin = 1
         self.N_cells = self.N_bin
         self.x_bounds = np.array([[-INF, INF]])

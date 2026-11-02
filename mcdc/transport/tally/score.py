@@ -142,15 +142,6 @@ def interaction(interaction_data_container, tally, simulation, data):
 
     # Mesh tally indices if needed
     i_x, i_y, i_z = 0, 0, 0
-    if interaction_tally["mesh_filtered"]:
-        mesh = simulation["meshes"][interaction_tally["mesh_filter_ID"]]
-        i_x, i_y, i_z = mesh_module.get_indices(
-            interaction_data_container["incident_particle"], mesh, simulation, data
-        )
-
-        # No score outside mesh bins
-        if i_x == -1 or i_y == -1 or i_z == -1:
-            return
 
     # Tally index
     idx_base = (
@@ -161,11 +152,15 @@ def interaction(interaction_data_container, tally, simulation, data):
         + i_time * tally["stride_time"]
     )
     if interaction_tally["mesh_filtered"]:
-        idx_base += (
-            +i_x * interaction_tally["mesh_stride_x"]
-            + i_y * interaction_tally["mesh_stride_y"]
-            + i_z * interaction_tally["mesh_stride_z"]
+        mesh = simulation["meshes"][interaction_tally["mesh_filter_ID"]]
+        mesh_index = mesh_module.get_flat_index(
+            interaction_data_container["incident_particle"], mesh, simulation, data
         )
+
+        # No score outside mesh bins
+        if mesh_index == -1:
+            return 
+        idx_base += mesh_index * tally["N_scores"]
 
     # Score
     for i_score in range(tally["scores_length"]):

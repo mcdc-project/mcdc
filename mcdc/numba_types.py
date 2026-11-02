@@ -583,7 +583,6 @@ uniform_mesh = into_dtype([
 
 rectilinear_unstructured_mesh = into_dtype([
     ('N_cells', int64),
-    ('N_dim', int64),
     ('x_bounds_offset', int64),
     ('x_bounds_length', int64),
     ('y_bounds_offset', int64),
@@ -925,6 +924,7 @@ tally = into_dtype([
     ('name', 'U32'),
     ('scores_offset', int64),
     ('scores_length', int64),
+    ('N_scores', int64),
     ('particle_type', int64),
     ('filter_direction', bool_),
     ('filter_energy', bool_),
