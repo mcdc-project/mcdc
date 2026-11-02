@@ -581,6 +581,25 @@ uniform_mesh = into_dtype([
     ('base_ID', int64),
 ])
 
+rectilinear_unstructured_mesh = into_dtype([
+    ('N_cells', int64),
+    ('N_dim', int64),
+    ('x_bounds_offset', int64),
+    ('x_bounds_length', int64),
+    ('y_bounds_offset', int64),
+    ('y_bounds_length', int64),
+    ('z_bounds_offset', int64),
+    ('z_bounds_length', int64),
+    ('x_neighbors_offset', int64),
+    ('x_neighbors_length', int64),
+    ('y_neighbors_offset', int64),
+    ('y_neighbors_length', int64),
+    ('z_neighbors_offset', int64),
+    ('z_neighbors_length', int64),
+    ('ID', int64),
+    ('base_ID', int64),
+])
+
 neutron_reaction = into_dtype([
     ('MT', int64),
     ('xs_offset', int64),
@@ -1052,6 +1071,8 @@ def make_simulation_type(N: dict):
         ('N_structured_mesh', int64),
         ('uniform_meshes', uniform_mesh, (N['uniform_mesh'])),
         ('N_uniform_mesh', int64),
+        ('rectilinear_unstructured_meshes', rectilinear_unstructured_mesh, (N['rectilinear_unstructured_mesh'])),
+        ('N_rectilinear_unstructured_mesh', int64),
         ('interaction_tallies', interaction_tally, (N['interaction_tally'])),
         ('N_interaction_tally', int64),
         ('tracklength_tallies', tracklength_tally, (N['tracklength_tally'])),

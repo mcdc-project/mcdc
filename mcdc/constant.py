@@ -139,6 +139,7 @@ AXIS_T = 3
 # Mesh types
 MESH_UNIFORM = 0
 MESH_STRUCTURED = 1
+MESH_RECTILINEAR_UNSTRUCTURED = 2
 
 # Boundary conditions
 BC_NONE = 0

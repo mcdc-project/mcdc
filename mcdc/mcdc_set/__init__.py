@@ -38,6 +38,8 @@ import mcdc.mcdc_set.nuclide as nuclide
 
 import mcdc.mcdc_set.structured_mesh as structured_mesh
 
+import mcdc.mcdc_set.rectilinear_unstructured_mesh as rectilinear_unstructured_mesh
+
 import mcdc.mcdc_set.neutron_reaction as neutron_reaction
 
 import mcdc.mcdc_set.neutron_inelastic_scattering_reaction as neutron_inelastic_scattering_reaction

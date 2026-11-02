@@ -1,4 +1,5 @@
-from typing import Sequence
+from typing import Sequence, Annotated
+from pathlib import Path
 import numpy as np
 
 from numpy import float64
@@ -6,7 +7,7 @@ from numpy.typing import NDArray
 
 ####
 
-from mcdc.constant import INF, MESH_STRUCTURED, MESH_UNIFORM
+from mcdc.constant import INF, MESH_STRUCTURED, MESH_UNIFORM, MESH_RECTILINEAR_UNSTRUCTURED
 from mcdc.object_.base import MCDCPolymorphic
 from mcdc.print_ import print_1d_array
 
@@ -203,3 +204,33 @@ class MeshStructured(MeshBase):
         text += f"    - y {print_1d_array(self.y)} cm\n"
         text += f"    - z {print_1d_array(self.z)} cm\n"
         return text
+
+
+class MeshUnstructured(MeshBase):
+
+    label = "rectilinear_unstructured_mesh"
+    sub_type = MESH_RECTILINEAR_UNSTRUCTURED
+
+    N_cells: int
+    N_dim: int
+    x_bounds: Annotated[NDArray[float64], ("N_cells", 2)]
+    y_bounds: Annotated[NDArray[float64], ("N_cells", 2)]
+    z_bounds: Annotated[NDArray[float64], ("N_cells", 2)]
+    x_neighbors: Annotated[NDArray[int], ("N_cells", "N_dim", 2)]
+    y_neighbors: Annotated[NDArray[int], ("N_cells", "N_dim", 2)]
+    z_neighbors: Annotated[NDArray[int], ("N_cells", "N_dim", 2)]
+
+    def __init__(self):
+        self.N_dim = 1
+        self.N_bin = 1
+        self.N_cells = self.N_bin
+        self.x_bounds = np.array([[-INF, INF]])
+        self.y_bounds = np.array([[-INF, INF]]) 
+        self.z_bounds = np.array([[-INF, INF]])
+        self.x_neighbors = np.array([[-1, -1]])
+        self.y_neighbors = np.array([[-1, -1]])
+        self.z_neighbors = np.array([[-1, -1]])
+
+    @classmethod
+    def from_gmsh(cls, gmsh_file: str | Path):
+        return cls()
