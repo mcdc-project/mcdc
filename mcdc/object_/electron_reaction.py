@@ -197,11 +197,15 @@ class ElectronReactionIonization(ElectronReactionBase):
 class ElectronReactionElasticScattering(ElectronReactionBase):
     """Elastic electron scattering with large-angle cross section and cosine law.
 
-    ``mean_deflection`` is the mean of ``1 - mu``, the transport cross section
-    over the elastic one, on the cross-section grid. With it, a cosine sampled
-    from the table below the incident energy is rescaled to that energy's mean
-    deflection; libraries without a transport cross section carry a
-    ``DataNone`` and choose between the bounding tables instead.
+    ``mean_deflection`` is the source transport cross section divided by the
+    large-angle cross section, tabulated on the elastic cross-section grid.
+    It supplies the weights for stochastic selection between angular tables.
+    Each source CDF is preserved at its incident energy. Libraries without a
+    transport cross section carry ``DataNone`` and interpolate table-selection
+    probabilities linearly in incident energy.
+
+    The large-angle definition of the transport correction is given in
+    LANL report LA-UR-24-30590, section 2.4.
     """
 
     # MC/DC framework metadata
@@ -262,8 +266,13 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
             grid = read_energy(h5_group.file["electron_reactions/xs_energy_grid"])
             transport = h5_group["transport"][()]
             energy = grid[xs_offset : xs_offset + len(xs)]
+            large_xs = np.interp(energy, xs_large.x, xs_large.y)
+            # TODO: Repeat the angular-CDF moment vs transport/large-angle XS
+            # comparison with EPRDATA25. Verify its processing and CDF
+            # interpolation rules to establish whether discrepancies originate
+            # in the supplied data or in our interpretation of the CDF.
             ratio = np.divide(
-                transport, xs, out=np.zeros_like(transport), where=xs > 0.0
+                transport, large_xs, out=np.zeros_like(transport), where=large_xs > 0.0
             )
             mean_deflection = DataTable(energy, ratio, INTERPOLATION_LINEAR)
 
