@@ -363,7 +363,7 @@ def sample_elastic_scattering(
         mu_distribution = simulation["distributions"][elastic_scattering["mu_ID"]]
         mean_deflection = simulation["data"][elastic_scattering["mean_deflection_ID"]]
         if mean_deflection["sub_type"] == DATA_TABLE:
-            mu0 = sample_scaled_cosine(
+            mu0 = sample_elastic_cosine(
                 E,
                 mu_distribution,
                 mean_deflection,
@@ -412,16 +412,20 @@ def compute_scattering_eta(E, Z):
 
 
 @njit
-def sample_scaled_cosine(E, distribution, mean_deflection, rng_state, simulation, data):
-    """Sample the large-angle cosine at the table below E, rescaled to E.
+def sample_elastic_cosine(
+    E, distribution, mean_deflection, rng_state, simulation, data
+):
+    """Select a large-angle CDF using the source mean-deflection progression.
 
-    EPRDATA14 tabulates the angular distribution at few incident energies
-    (none between 256 keV and 10 MeV), while the angular width falls roughly as
-    1 / p^2. The sampled ``1 - mu`` is scaled by the ratio of the mean
-    deflections, the transport over the elastic cross section, at E and at the
-    table energy. That keeps the screened-Rutherford shape, which is
-    self-similar in ``(1 - mu) / eta``, and reproduces the transport cross
-    section at every energy.
+    At a tabulated energy, use its CDF unchanged. Between energies, select
+    either neighboring CDF with a probability interpolated in the source
+    transport-to-large-angle cross-section ratio. Equal endpoint ratios use
+    linear incident-energy interpolation. Probabilities are bounded to [0, 1]
+    when the ratio at E lies outside the endpoint range.
+
+    Samples retain the angular support of the source CDFs. Numerical
+    differences between their moments and the independently tabulated
+    transport correction are interpolated along with the distributions.
     """
     multi_table = simulation["multi_table_distributions"][distribution["sub_ID"]]
     grid = mcdc_get.multi_table_distribution.grid_all(multi_table, data)
@@ -432,20 +436,29 @@ def sample_scaled_cosine(E, distribution, mean_deflection, rng_state, simulation
         idx = len(grid) - 1
     else:
         idx = find_bin(E, grid)
+        if E == grid[idx + 1]:
+            idx += 1
+        else:
+            # TODO: Check these selection weights with EPRDATA25 at knots and
+            # across sparse intervals, including angular moments and the
+            # forward-peak cutoff. Follow with electron-backscattering and
+            # Lockwood benchmark validation.
+            mean0 = evaluate_data(grid[idx], mean_deflection, simulation, data)
+            mean1 = evaluate_data(grid[idx + 1], mean_deflection, simulation, data)
+            if mean0 == mean1:
+                fraction = (E - grid[idx]) / (grid[idx + 1] - grid[idx])
+            else:
+                mean = evaluate_data(E, mean_deflection, simulation, data)
+                fraction = (mean - mean0) / (mean1 - mean0)
+            fraction = max(0.0, min(fraction, 1.0))
+            if rng.lcg(rng_state) < fraction:
+                idx += 1
 
     ID = mcdc_get.multi_table_distribution.table_IDs(idx, multi_table, data)
     table = simulation["tabulated_distributions"][
         simulation["distributions"][ID]["sub_ID"]
     ]
-    mu = sample_tabulated(table, rng_state, simulation, data)
-
-    if E <= grid[idx]:
-        return mu
-    mean_table = evaluate_data(grid[idx], mean_deflection, simulation, data)
-    if mean_table <= 0.0:
-        return mu
-    scale = evaluate_data(E, mean_deflection, simulation, data) / mean_table
-    return 1.0 - (1.0 - mu) * min(scale, 1.0)
+    return sample_tabulated(table, rng_state, simulation, data)
 
 
 @njit
