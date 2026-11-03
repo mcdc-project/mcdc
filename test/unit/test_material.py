@@ -8,6 +8,7 @@ from mcdc.constant import FILL_MATERIAL
 from mcdc.object_.base import MCDCObject, MCDCPolymorphic
 from mcdc.object_.material import (
     Material,
+    _element_weight,
     set_elements_from_nuclides,
     set_nuclides_from_elements,
 )
@@ -403,6 +404,25 @@ def element_weight(element):
     abundances = ISOTOPIC_ABUNDANCE[element]
     weighted = sum(a * AWR[isotope] * AMU for isotope, a in abundances.items())
     return weighted / sum(abundances.values())
+
+
+@pytest.mark.parametrize("projectile", ["electron", "photon"])
+def test_element_mass_uses_only_the_active_projectile_library(
+    tmp_path, monkeypatch, projectile
+):
+    """Elemental mass conversion must not require any isotope evaluations."""
+    monkeypatch.setenv("MCDC_LIB", str(tmp_path))
+    with h5py.File(tmp_path / f"{projectile}-Al.h5", "w") as file:
+        file.attrs["format"] = "mcdc-data"
+        file.attrs["format-version"] = "0.1.0"
+        file["atomic-weight-ratio"] = 26.7498
+    simulation = mcdc.Simulation()
+    getattr(simulation.settings, f"{projectile}_transport").active = True
+
+    assert _element_weight(Element("Al"), 293.6, simulation) == pytest.approx(
+        26.7498 * AMU
+    )
+    assert simulation.nuclides == []
 
 
 def test_mass_density_is_stored_with_placeholder_atomic_densities():

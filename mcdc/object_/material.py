@@ -94,10 +94,10 @@ class Material(MCDCObject):
 
     ``mass_density`` and ``mass_fractions`` are converted to atomic densities as
     :math:`N = \\rho N_A / A`, where :math:`A` is the atomic weight. A nuclide uses
-    its library atomic weight. An element uses the abundance-weighted average of
-    its natural isotopes' weights, so the isotope files of that element must be
-    in the data library. After compilation, ``number_density`` holds the
-    resulting atomic densities.
+    its library atomic weight. An element uses its evaluation's atomic weight
+    for electron/photon-only transport, or the abundance-weighted average of
+    its natural isotopes' library atomic weights for nuclear transport.
+    After compilation, ``number_density`` holds the resulting atomic densities.
 
     Examples
     --------
@@ -547,9 +547,9 @@ def _number_density_from_mass(mass_density, weight):
 def _nuclide_weight(nuclide, simulation):
     """Read a nuclide's atomic weight without loading its transport reactions.
 
-    Prefer the active projectile's data, using the neutron evaluation for
-    compositions in element-based transport. A legacy proton filename is
-    accepted by the same adapter used for temperature selection.
+    Prefer the active nuclear projectile's data. Explicit isotope compositions
+    retain their isotope masses even in element-based transport. A legacy
+    proton filename is accepted by the temperature-selection adapter.
     """
     directory = os.getenv("MCDC_LIB", "")
     names = [f"neutron-{nuclide.name}-{nuclide.temperature}K.h5"]
@@ -583,7 +583,30 @@ def _nuclide_weight(nuclide, simulation):
 
 
 def _element_weight(element, temperature, simulation):
-    """Average natural-isotope weights without storing a weight on Element."""
+    """Read an elemental evaluation's mass or average nuclear isotope masses.
+
+    Electron/photon-only transport uses the elemental mass supplied by its
+    active projectile library, without requiring isotope files. Electron data
+    takes precedence in coupled photon-electron transport, matching reaction
+    loading order. Nuclear transport uses the natural isotopic composition.
+    """
+    settings = simulation.settings
+    if not (settings.neutron_transport.active or settings.proton_transport.active):
+        for projectile in ("electron", "photon"):
+            if not getattr(settings, f"{projectile}_transport").active:
+                continue
+            path = os.path.join(
+                os.environ["MCDC_LIB"], f"{projectile}-{element.name}.h5"
+            )
+            with h5py.File(path, "r") as file:
+                check_format(file)
+                ratio = float(file["atomic-weight-ratio"][()])
+            if not np.isfinite(ratio) or ratio <= 0.0:
+                raise ValueError(
+                    f"{path}: atomic-weight-ratio must be positive and finite"
+                )
+            return ratio * NEUTRON_MASS_AMU
+
     if element.name not in ISOTOPIC_ABUNDANCE:
         print_error(
             f"No natural isotopic abundance data for element {element.name}; "

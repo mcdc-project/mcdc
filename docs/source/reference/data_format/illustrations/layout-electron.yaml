@@ -16,6 +16,7 @@ source-libraries/:
     conversion-time: string
 
 atomic-number: integer
+atomic-weight-ratio: float  # Target mass / neutron mass
 
 xs-energy-grid: float [N], eV
 

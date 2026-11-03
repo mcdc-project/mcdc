@@ -67,7 +67,7 @@ def convert_table(
             check_format(file)
             if int(file["atomic-number"][()]) != z:
                 raise ValueError(f"{path}: inconsistent atomic-number")
-    required = ["atomic-number", "xs-energy-grid"]
+    required = ["atomic-number", "atomic-weight-ratio", "xs-energy-grid"]
     for name in ELECTRON_REACTIONS:
         required.extend(
             f"reactions/{name}/{field}"

@@ -369,16 +369,7 @@ class Simulation(MCDCBase):
                 "prioritize_low_energy is currently supported only for electron transport."
             )
 
-        # Enable transport for every particle species present in the sources.
-        for source in self.sources:
-            if source.particle_type == PARTICLE_NEUTRON:
-                settings.neutron_transport.active = True
-            elif source.particle_type == PARTICLE_ELECTRON:
-                settings.electron_transport.active = True
-            elif source.particle_type == PARTICLE_PROTON:
-                settings.proton_transport.active = True
-            elif source.particle_type == PARTICLE_PHOTON:
-                settings.photon_transport.active = True
+        self._activate_source_transport()
 
         # Check that specified weight windows will actually trigger
         active_ww = lambda pname: getattr(
@@ -654,6 +645,18 @@ class Simulation(MCDCBase):
     # Operations
     # ==================================================================================
 
+    def _activate_source_transport(self):
+        """Enable source species before resolving projectile-dependent material data."""
+        for source in self.sources:
+            if source.particle_type == PARTICLE_NEUTRON:
+                self.settings.neutron_transport.active = True
+            elif source.particle_type == PARTICLE_ELECTRON:
+                self.settings.electron_transport.active = True
+            elif source.particle_type == PARTICLE_PROTON:
+                self.settings.proton_transport.active = True
+            elif source.particle_type == PARTICLE_PHOTON:
+                self.settings.photon_transport.active = True
+
     def compile(self) -> None:
         """Compile and finalize the Python model into a simulation snapshot.
 
@@ -670,6 +673,7 @@ class Simulation(MCDCBase):
         type(self)._next_compile_ID += 1
 
         override_settings(self)
+        self._activate_source_transport()
 
         compile_simulation(self)
         self.compiled = True

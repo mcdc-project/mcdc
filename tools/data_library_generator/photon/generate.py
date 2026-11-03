@@ -65,7 +65,7 @@ def convert_file(epdl_path, output_dir, eadl_path=None, rewrite=False, verbose=F
             eadl_path, output_dir, atomic_number=z, rewrite=rewrite, verbose=verbose
         )
     path = output_dir / f"photon-{symbol}.h5"
-    required = ["atomic-number", "xs-energy-grid"]
+    required = ["atomic-number", "atomic-weight-ratio", "xs-energy-grid"]
     for mt, (name, _) in PHOTON_REACTIONS.items():
         base = f"reactions/{name}"
         required.extend(

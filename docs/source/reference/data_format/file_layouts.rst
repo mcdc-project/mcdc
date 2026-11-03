@@ -57,7 +57,7 @@ A projectile file includes its own target properties, even when another projecti
      - integer, nuclide targets
      - Target nucleus's number of protons and neutrons.
    * - ``atomic-weight-ratio``
-     - float, nuclide targets
+     - float
      - Target mass divided by neutron mass.
    * - ``excitation-level``
      - integer, nuclide targets
@@ -76,6 +76,8 @@ A projectile file includes its own target properties, even when another projecti
      - Boltzmann constant times target temperature.
 
 The parent element follows from the nuclide identifier.
+For elemental targets, ``atomic-weight-ratio`` describes the evaluation's isotopic composition and supports mass-density input without isotope files.
+Explicit nuclide compositions use their individual isotope masses.
 ``temperature`` and ``kT`` describe the same thermodynamic state and must agree to the precision of the data.
 A spectrum's ``temperature`` parameter is a separate quantity in eV, defined in :doc:`representations`.
 

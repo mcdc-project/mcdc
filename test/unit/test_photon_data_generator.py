@@ -91,6 +91,18 @@ def fingerprint(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def test_photon_reuse_restores_missing_elemental_mass(sources):
+    """An existing file without the target mass must be regenerated."""
+    epdl, eadl, output = sources
+    convert_file(epdl, output, eadl)
+    path = output / "photon-Mg.h5"
+    with h5py.File(path, "a") as file:
+        del file["atomic-weight-ratio"]
+    convert_file(epdl, output, eadl)
+    with h5py.File(path) as file:
+        assert file["atomic-weight-ratio"][()] == pytest.approx(24.1)
+
+
 @pytest.mark.parametrize(
     "field, expected",
     [(" 1.234567+6", 1234567), ("-1.23456-2", -0.0123456), ("1.25D+03", 1250), ("", 0)],
@@ -161,7 +173,8 @@ def test_conversion_preserves_other_projectiles_and_source_records(sources):
         assert set(atoms["source-libraries"]) == {"EADL2025"}
         assert "source-libraries" not in atoms["Mg"]
         assert "atomic-relaxation" not in file
-        assert "atomic-weight-ratio" not in file
+        assert file["atomic-weight-ratio"][()] == pytest.approx(24.1)
+        assert "unit" not in file["atomic-weight-ratio"].attrs
         assert "temperature" not in file
         assert "kT" not in file
         photon = file

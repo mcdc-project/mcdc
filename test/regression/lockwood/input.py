@@ -2,10 +2,18 @@ import numpy as np
 import os
 import math
 import mcdc
-from datetime import datetime
+import h5py
+from pathlib import Path
+from shutil import copyfile
+from tempfile import TemporaryDirectory
 
-# Set the XS library directory
-os.environ["MCDC_LIB"] = "../mcdc-regression_test_data/"
+from mcdc.constant import NEUTRON_MASS_AMU
+
+# Isolate electron data so isotope files cannot supply the elemental mass.
+library = TemporaryDirectory()
+source_library = Path(__file__).resolve().parents[1] / "mcdc-regression_test_data"
+copyfile(source_library / "electron-Al.h5", Path(library.name) / "electron-Al.h5")
+os.environ["MCDC_LIB"] = library.name
 
 # Create MC/DC simulation
 simulation = mcdc.Simulation("Lockwood")
@@ -25,7 +33,8 @@ z0 = 0.0  # Starting source position
 
 # Material Properties
 RHO_G_CM3 = 2.70  # g/cm3
-ATOMIC_WEIGHT_G_MOL = 26.7497084  # g/mol
+with h5py.File(Path(library.name) / "electron-Al.h5") as file:
+    ATOMIC_WEIGHT_G_MOL = float(file["atomic-weight-ratio"][()]) * NEUTRON_MASS_AMU
 AREAL_DENSITY_G_CM2 = 5.05e-3  # g/cm2
 
 # Standard Calculations
@@ -47,7 +56,10 @@ e_name = f"{ENERGY:.2g}"
 # =============================================================================
 # Set materials
 # =============================================================================
-mat = mcdc.Material(number_density={MATERIAL_SYMBOL: MAT_DENSITY_ATOMS_PER_BARN_CM})
+mat_number_density = mcdc.Material(
+    number_density={MATERIAL_SYMBOL: MAT_DENSITY_ATOMS_PER_BARN_CM}
+)
+mat_mass_density = mcdc.Material(mass_density={MATERIAL_SYMBOL: RHO_G_CM3})
 
 # =============================================================================
 # Set geometry (surfaces and cells)
@@ -55,11 +67,12 @@ mat = mcdc.Material(number_density={MATERIAL_SYMBOL: MAT_DENSITY_ATOMS_PER_BARN_
 # Z-direction surfaces for layers
 
 s1 = mcdc.Surface.PlaneZ(z=0.0, boundary_condition="vacuum")
-
+midplane = mcdc.Surface.PlaneZ(z=0.5 * L)
 s2 = mcdc.Surface.PlaneZ(z=L, boundary_condition="vacuum")
 
-cell = mcdc.Cell(region=+s1 & -s2, fill=mat)
-simulation.set_model([cell])
+first_half = mcdc.Cell(region=+s1 & -midplane, fill=mat_number_density)
+second_half = mcdc.Cell(region=+midplane & -s2, fill=mat_mass_density)
+simulation.set_model([first_half, second_half])
 
 # =============================================================================
 # Set source
@@ -94,4 +107,15 @@ simulation.set_tallies([edep_tally, flux_tally, s1_current, s2_current])
 simulation.settings.N_particle = N_PARTICLES
 simulation.settings.active_bank_buffer = N_PARTICLES * 1000
 
+simulation.compile()
+np.testing.assert_allclose(
+    mat_mass_density.element_densities,
+    mat_number_density.element_densities,
+    rtol=1e-12,
+    atol=0.0,
+)
+assert not simulation.settings.neutron_transport.active
+assert not simulation.settings.photon_transport.active
+assert not simulation.nuclides
 simulation.run()
+library.cleanup()

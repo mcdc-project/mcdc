@@ -31,6 +31,7 @@ def electron_ace():
     terminal = SimpleNamespace(number_transitions=0)
     return SimpleNamespace(
         zaid="14000.14p",
+        atomic_weight_ratio=27.844,
         header=SimpleNamespace(
             title="EPICS2014 test evaluation", date="07/02/15", version="1.0.0"
         ),
@@ -74,7 +75,8 @@ def test_electron_preparation_preserves_source_fields(tmp_path, electron_ace):
     convert_table(electron_ace, tmp_path)
     with h5py.File(tmp_path / "electron-Si.h5", "r") as file:
         assert file.attrs["format"] == "mcdc-data"
-        assert "atomic-weight-ratio" not in file
+        assert file["atomic-weight-ratio"][()] == electron_ace.atomic_weight_ratio
+        assert "unit" not in file["atomic-weight-ratio"].attrs
         assert "temperature" not in file
         assert (
             file["source-libraries/EPRDATA14/title"].asstr()[()]
@@ -131,6 +133,17 @@ def test_electron_reuse_and_failed_rewrite_preserve_output(tmp_path, electron_ac
     with pytest.raises(ValueError, match="invalid EPR CDF"):
         convert_table(electron_ace, tmp_path, rewrite=True)
     assert path.read_bytes() == previous
+
+
+def test_electron_reuse_restores_missing_elemental_mass(tmp_path, electron_ace):
+    """An existing file without the target mass must be regenerated."""
+    convert_table(electron_ace, tmp_path)
+    path = tmp_path / "electron-Si.h5"
+    with h5py.File(path, "a") as file:
+        del file["atomic-weight-ratio"]
+    convert_table(electron_ace, tmp_path)
+    with h5py.File(path) as file:
+        assert file["atomic-weight-ratio"][()] == electron_ace.atomic_weight_ratio
 
 
 def test_epr_atomic_probabilities_are_cumulative(tmp_path, electron_ace):

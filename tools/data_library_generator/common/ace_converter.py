@@ -1751,8 +1751,7 @@ def electron_target(ace):
     """Return elemental Z and symbol from an EPR ZAID such as 13000.14p.
 
     EPR tables describe atoms, so the mass-number part must be zero.
-    Atomic weight is deliberately not assigned to an element: it depends on
-    the material's isotopic composition.
+    Their atomic weight describes the evaluation's elemental composition.
     """
     za = int(ace.zaid.split(".")[0])
     z, a = divmod(za, 1000)
@@ -1815,6 +1814,7 @@ def write_electron(file, ace, verbose=False):
     """
     z, _ = electron_target(ace)
     quantity(file, "atomic-number", z)
+    quantity(file, "atomic-weight-ratio", ace.atomic_weight_ratio)
     block = ace.electron_cross_section_block
     elastic = ace.electron_elastic_cross_section_block
     shells = ace.electron_subshell_block

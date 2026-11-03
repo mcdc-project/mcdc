@@ -586,6 +586,7 @@ def write_photon(file, sections, shells=None, verbose=False):
     """
     grid = photon_energy_grid(sections)
     photon = file
+    quantity(photon, "atomic-weight-ratio", endf_float(sections[1, 451][0][11:22]))
     quantity(photon, "xs-energy-grid", grid, "eV")
     reactions = photon.create_group("reactions", track_order=True)
     for mt, (name, category) in PHOTON_REACTIONS.items():
