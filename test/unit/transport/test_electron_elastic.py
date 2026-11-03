@@ -135,8 +135,9 @@ def test_library_without_transport_keeps_table_selection(elastic_model):
     assert simulation["data"][elastic["mean_deflection_ID"]]["sub_type"] == DATA_NONE
 
 
+@pytest.mark.parametrize("near_boundary_draw", [1, 2])
 def test_large_angle_sampling_stays_outside_the_forward_peak(
-    elastic_model, monkeypatch
+    elastic_model, near_boundary_draw
 ):
     """A quantile near the forward boundary must stay within the source support."""
     from mcdc.transport import rng
@@ -144,25 +145,40 @@ def test_large_angle_sampling_stays_outside_the_forward_peak(
     simulation, data, elastic = elastic_model()
     distribution = simulation["distributions"][elastic["mu_ID"]]
     mean_deflection = simulation["data"][elastic["mean_deflection_ID"]]
-    monkeypatch.setattr(rng, "lcg", lambda state: np.nextafter(1.0, 0.0))
     state = np.zeros(1, dtype=type_.particle)
+    # Invert the LCG so the selected draw is close to one in both execution modes.
+    # Include near-one values for both the table-selection and CDF draws.
+    modulus = int(rng.RNG_MOD)
+    inverse = pow(int(rng.RNG_G), -1, modulus)
+    seed = modulus - (1 << 20)
+    for _ in range(near_boundary_draw):
+        seed = ((seed - int(rng.RNG_C)) * inverse) % modulus
+    state[0]["rng_seed"] = np.uint64(seed)
     mu = sample_elastic_cosine(
         1e5, distribution, mean_deflection, state, simulation, data
     )
     assert -1.0 <= mu <= MU_CUTOFF
+    if near_boundary_draw == 2:
+        assert MU_CUTOFF - mu < 1e-10
 
 
-def test_equal_source_moments_use_linear_energy_selection(elastic_model, monkeypatch):
+@pytest.mark.parametrize("seed", [1, 2])
+def test_equal_source_moments_use_linear_energy_selection(elastic_model, seed):
     """Flat source moment data still gives a bounded mixture of the supplied CDFs."""
     from mcdc.transport import rng
 
     simulation, data, elastic = elastic_model(moments=[0.5] * 3)
     distribution = simulation["distributions"][elastic["mu_ID"]]
     mean_deflection = simulation["data"][elastic["mean_deflection_ID"]]
-    monkeypatch.setattr(rng, "lcg", lambda state: 0.25)
     state = np.zeros(1, dtype=type_.particle)
+    state[0]["rng_seed"] = np.uint64(seed)
+    reference_state = state.copy()
+    table_index = 1 if rng.lcg(reference_state) < 0.5 else 0
+    quantile = rng.lcg(reference_state)
     mu = sample_elastic_cosine(
         5050.0, distribution, mean_deflection, state, simulation, data
     )
-    lower_mu = 2.0 - 2.0 * MEAN_DEFLECTION[1] - MU_CUTOFF
-    assert mu == pytest.approx(lower_mu + 0.25 * (MU_CUTOFF - lower_mu))
+    lower_mu = 2.0 - 2.0 * MEAN_DEFLECTION[table_index] - MU_CUTOFF
+    assert mu == pytest.approx(
+        lower_mu + quantile * (MU_CUTOFF - lower_mu), rel=0.0, abs=1e-14
+    )
