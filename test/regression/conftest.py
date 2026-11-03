@@ -20,7 +20,9 @@ def regression_cases():
     return sorted(
         path
         for path in REGRESSION_DIR.iterdir()
-        if path.is_dir() and path.name not in NON_TEST_DIRS
+        if path.is_dir()
+        and path.name not in NON_TEST_DIRS
+        and (path / "input.py").is_file()
     )
 
 

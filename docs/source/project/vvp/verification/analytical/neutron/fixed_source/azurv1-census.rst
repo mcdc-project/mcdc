@@ -42,14 +42,14 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--azurv1-census_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--azurv1-census_flux.png
          :alt: Flux convergence for AZURV1 with time censuses.
 
          Relative space-time flux error with 19 census boundaries.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--azurv1-census_flux.gif
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--azurv1-census_flux.gif
          :alt: Animated flux comparison for AZURV1 with time censuses.
 
          Highest-statistics censused solution and analytical reference.

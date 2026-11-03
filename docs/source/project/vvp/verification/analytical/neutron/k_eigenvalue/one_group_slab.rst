@@ -113,35 +113,35 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--convergence--one_group_slab_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--convergence--one_group_slab_flux.png
          :alt: Flux-shape convergence for the homogeneous one-group slab criticality problem.
 
          Relative fundamental-mode flux-shape error.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--convergence--one_group_slab_k-effective.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--convergence--one_group_slab_k-effective.png
          :alt: Multiplication-factor convergence for the homogeneous one-group slab criticality problem.
 
          Relative multiplication-factor error.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--convergence--one_group_slab_k-effective_errorbar.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--convergence--one_group_slab_k-effective_errorbar.png
          :alt: Multiplication-factor estimates and uncertainties for the homogeneous one-group slab criticality problem.
 
          MC/DC estimates, reported uncertainties, and the reference value.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--comparison--one_group_slab_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--comparison--one_group_slab_flux.png
          :alt: Fundamental-mode flux comparison for the homogeneous one-group slab criticality problem.
 
          Highest-statistics normalized flux and semi-analytical reference.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--k_eigenvalue--comparison--one_group_slab_k_history.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--k_eigenvalue--comparison--one_group_slab_k_history.png
          :alt: Cycle-by-cycle multiplication-factor history for the homogeneous one-group slab criticality problem.
 
          Inactive and active cycle history, active mean, uncertainty, and reference.

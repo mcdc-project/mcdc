@@ -51,12 +51,12 @@ Comparison derivation
 Results
 -------
 
-.. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--code_to_code--neutron--convergence--c5g7-4phase_convergence_fission.png
+.. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--code_to_code--neutron--convergence--c5g7-4phase_convergence_fission.png
    :alt: MC/DC and OpenMC fission-rate convergence for the C5G7 four-phase transient.
 
    Relative 2-norm and maximum fission-rate differences as the common sampling effort increases.
 
-.. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--code_to_code--neutron--reference--c5g7-4phase_reference_fission.gif
+.. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--code_to_code--neutron--reference--c5g7-4phase_reference_fission.gif
    :alt: Animated fixed fission-rate reference for the C5G7 four-phase transient.
 
    Fixed largest-sample reference formed by averaging the MC/DC and OpenMC fission-rate estimates, shown through its orthogonal projections together with the integrated fission-rate history.
@@ -66,14 +66,14 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--code_to_code--neutron--comparison--c5g7-4phase_comparison.gif
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--code_to_code--neutron--comparison--c5g7-4phase_comparison.gif
          :alt: Animated MC/DC and OpenMC fission-rate comparison for the C5G7 four-phase transient.
 
          Orthogonal fission-rate projections from the largest shared sample.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--code_to_code--neutron--comparison--c5g7-4phase_difference.gif
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--code_to_code--neutron--comparison--c5g7-4phase_difference.gif
          :alt: Animated relative fission-rate differences for the C5G7 four-phase transient.
 
          Spatial relative differences and their root-mean-square history.

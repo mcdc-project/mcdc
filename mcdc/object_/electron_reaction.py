@@ -16,7 +16,7 @@ from mcdc.constant import (
 )
 from mcdc.object_.secondary_product import SecondaryProduct
 from mcdc.object_.base import MCDCPolymorphic
-from mcdc.object_.data import DataBase, DataNone, DataTable
+from mcdc.object_.data import DataBase, DataNone, DataPolynomial, DataTable
 from mcdc.object_.hdf5_reader import (
     ordered_subshells,
     read_data,
@@ -166,11 +166,15 @@ class ElectronReactionIonization(ElectronReactionBase):
 class ElectronReactionElasticScattering(ElectronReactionBase):
     """Elastic electron scattering with large-angle cross section and cosine law.
 
-    ``mean_deflection`` is the mean of ``1 - mu``, the transport cross section
-    over the elastic one, on the cross-section grid. With it, a cosine sampled
-    from the table below the incident energy is rescaled to that energy's mean
-    deflection; libraries without a transport cross section carry a
-    ``DataNone`` and choose between the bounding tables instead.
+    ``mean_deflection`` is the source transport cross section divided by the
+    large-angle cross section, tabulated on the elastic cross-section grid.
+    It supplies the weights for stochastic selection between angular tables.
+    Each source CDF is preserved at its incident energy. Libraries without a
+    transport cross section carry ``DataNone`` and interpolate table-selection
+    probabilities linearly in incident energy.
+
+    The large-angle definition of the transport correction is given in
+    LANL report LA-UR-24-30590, section 2.4.
     """
 
     # MC/DC framework metadata
@@ -221,8 +225,13 @@ class ElectronReactionElasticScattering(ElectronReactionBase):
                     f"{h5_group.name}: transport-xs must use the elastic grid"
                 )
             transport = transport_data.y
+            large_xs = _values_on_grid(xs_large, energy)
+            # TODO: Repeat the angular-CDF moment vs transport/large-angle XS
+            # comparison with EPRDATA25. Verify its processing and CDF
+            # interpolation rules to establish whether discrepancies originate
+            # in the supplied data or in our interpretation of the CDF.
             ratio = np.divide(
-                transport, xs, out=np.zeros_like(transport), where=xs > 0.0
+                transport, large_xs, out=np.zeros_like(transport), where=large_xs > 0.0
             )
             mean_deflection = DataTable(energy, ratio, INTERPOLATION_LINEAR)
 
@@ -322,6 +331,43 @@ class ElectronReactionExcitation(ElectronReactionBase):
 # ======================================================================================
 # Helper functions
 # ======================================================================================
+
+
+def _values_on_grid(parameter, grid):
+    """Evaluate a Data parameter on a grid before simulation packing.
+
+    Polynomial coefficients use ascending powers. Tables retain their own
+    interpolation regions and use constant endpoint values outside their
+    domain, matching the clamped transport evaluator.
+    """
+    from mcdc.transport.util import interpolate
+
+    if isinstance(parameter, DataPolynomial):
+        return np.polynomial.polynomial.polyval(grid, parameter.coefficients)
+    if not isinstance(parameter, DataTable):
+        raise TypeError("Cross-section parameters must be polynomial or table Data")
+    values = np.empty(len(grid), dtype=float64)
+    for i, energy in enumerate(grid):
+        if energy < parameter.x[0]:
+            values[i] = parameter.y[0]
+        elif energy >= parameter.x[-1]:
+            values[i] = parameter.y[-1]
+        else:
+            index = int(np.searchsorted(parameter.x, energy, side="right")) - 1
+            region = int(
+                np.searchsorted(
+                    parameter.interpolation_boundaries, index + 1, side="right"
+                )
+            )
+            values[i] = interpolate(
+                energy,
+                parameter.x[index],
+                parameter.x[index + 1],
+                parameter.y[index],
+                parameter.y[index + 1],
+                parameter.interpolations[region],
+            )
+    return values
 
 
 def set_basic_properties(h5_group):

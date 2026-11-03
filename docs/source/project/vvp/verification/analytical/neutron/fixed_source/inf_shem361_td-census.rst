@@ -41,21 +41,21 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--inf_shem361_td-census_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--inf_shem361_td-census_flux.png
          :alt: Flux convergence for transient infinite-medium SHEM-361 transport with censuses.
 
          Relative time-energy flux error with population control.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--inf_shem361_td-census_n.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--inf_shem361_td-census_n.png
          :alt: Neutron-density convergence for transient infinite-medium SHEM-361 transport with censuses.
 
          Relative neutron-density-history error with population control.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--inf_shem361_td-census_flux.gif
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--inf_shem361_td-census_flux.gif
          :alt: Animated spectrum comparison for transient infinite-medium SHEM-361 transport with censuses.
 
          Highest-statistics censused spectrum and matrix-exponential reference.

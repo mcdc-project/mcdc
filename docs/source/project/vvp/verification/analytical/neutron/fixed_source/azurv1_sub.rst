@@ -38,14 +38,14 @@ Results
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--convergence--azurv1_sub_flux.png
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--convergence--azurv1_sub_flux.png
          :alt: Flux convergence for subcritical AZURV1.
 
          Relative space-time flux error for the subcritical medium.
 
    .. grid-item::
 
-      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-results/verification--analytical--neutron--fixed_source--comparison--azurv1_sub_flux.gif
+      .. figure:: https://github.com/mcdc-project/mcdc/releases/download/vvp-dev/verification--analytical--neutron--fixed_source--comparison--azurv1_sub_flux.gif
          :alt: Animated flux comparison for subcritical AZURV1.
 
          Highest-statistics MC/DC and analytical flux throughout the transient.

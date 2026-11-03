@@ -127,6 +127,8 @@ def weight_windows(particle_container, program, data):
         Simulation data for array access.
     """
     [lower, target, upper] = query_weight_window(particle_container, program, data)
+    if upper == -1:
+        return
     # split
     split_from_weight_window(particle_container, upper, target, lower, program)
     # roulette original particle
@@ -159,7 +161,9 @@ def query_weight_window(particle_container, program, data):
     # grab objects
     ww_obj = get_weight_window_object(particle_container, program)
     indices = get_ww_indices(particle_container, ww_obj, program, data)
-    # grab the actual ww parameters
+    for index in indices:
+        if index == -1:
+            return (-1.0, -1.0, -1.0)
     lower = ww_get.weights(*indices, 0, ww_obj, data)
     target = ww_get.weights(*indices, 1, ww_obj, data)
     upper = ww_get.weights(*indices, 2, ww_obj, data)
