@@ -6,6 +6,7 @@ still close its energy balance: the local deposit plus the energy the banked
 products carry equals the energy the event made available.
 """
 
+import h5py
 import numpy as np
 import pytest
 
@@ -97,6 +98,74 @@ def test_photoelectric_banks_the_photoelectron_and_auger_electron(coupled_model)
     deposited = interaction[0]["energy_deposition"]
     assert deposited >= 0.0
     assert deposited + sum(energies) == pytest.approx(E, rel=1e-12)
+
+
+@pytest.mark.parametrize("extra_shell", ["relaxation", "photoelectric"])
+def test_photoelectron_uses_its_photoelectric_binding_energy(
+    coupled_model, tmp_path, extra_shell
+):
+    """Different subshell lists must retain the selected shell's electron energy."""
+
+    def edit(file):
+        shells = file["reactions/photoelectric/subshells"]
+        if extra_shell == "relaxation":
+            del shells["K"]
+        else:
+            shells["K/xs/value"][...] = 0.0
+            with h5py.File(tmp_path / "atoms.h5", "r+") as atoms:
+                del atoms["X/atomic-relaxation/subshells/vacancy-K"]
+
+    simulation, data = coupled_model(edit=edit)
+    _banked(simulation)
+    E, weight = 1.0e6, 0.25
+    container = make_photon(E, seed=5, weight=weight)
+    interaction = make_interaction_data()
+
+    native.photoelectric(
+        container, interaction, simulation["elements"][0], simulation, data
+    )
+
+    (photoelectron,) = _banked(simulation)
+    assert photoelectron["particle_type"] == PARTICLE_ELECTRON
+    assert photoelectron["E"] == pytest.approx(E - L_BINDING_ENERGY)
+    assert not container[0]["alive"]
+    assert interaction[0]["energy_deposition"] == pytest.approx(
+        L_BINDING_ENERGY * weight
+    )
+    assert interaction[0]["energy_deposition"] + photoelectron["E"] * weight == (
+        pytest.approx(E * weight)
+    )
+
+
+@pytest.mark.parametrize("missing", ["atomic-file", "relaxation-shell"])
+def test_photoelectron_does_not_require_a_relaxation_record(
+    coupled_model, tmp_path, missing
+):
+    """A missing vacancy record must not suppress a known photoelectron."""
+
+    def edit(file):
+        file["reactions/photoelectric/subshells/L2/xs/value"][...] = 0.0
+        path = tmp_path / "atoms.h5"
+        if missing == "atomic-file":
+            path.unlink()
+        else:
+            with h5py.File(path, "r+") as atoms:
+                del atoms["X/atomic-relaxation/subshells/vacancy-K"]
+
+    simulation, data = coupled_model(edit=edit)
+    _banked(simulation)
+    E = 1.0e6
+    container = make_photon(E, seed=5)
+    interaction = make_interaction_data()
+
+    native.photoelectric(
+        container, interaction, simulation["elements"][0], simulation, data
+    )
+
+    (photoelectron,) = _banked(simulation)
+    assert photoelectron["E"] == pytest.approx(E - K_BINDING_ENERGY)
+    assert not container[0]["alive"]
+    assert interaction[0]["energy_deposition"] == pytest.approx(K_BINDING_ENERGY)
 
 
 def test_pair_production_banks_the_electron_and_positron(coupled_model):

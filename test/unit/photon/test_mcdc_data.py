@@ -128,6 +128,23 @@ def test_table_subshell_edge_and_threshold(photon_model):
     assert evaluate_data_clamped(K_BINDING_ENERGY, table, simulation, data) == 3.0
 
 
+@pytest.mark.parametrize("missing", ["reaction", "subshells", "accessible-xs"])
+def test_no_photoelectric_shell_returns_both_missing_indices(photon_model, missing):
+    """An unavailable shell supplies neither a binding index nor a vacancy index."""
+
+    def edit(file):
+        if missing == "reaction":
+            del file["reactions/photoelectric"]
+        elif missing == "subshells":
+            del file["reactions/photoelectric/subshells"]
+
+    simulation, data = photon_model(edit=edit)
+    container = make_photon(100.0)
+    assert native.sample_photoelectric_subshell(
+        container, simulation["elements"][0], simulation, data
+    ) == (-1, -1)
+
+
 # ======================================================================================
 # Reaction identity and format validation
 # ======================================================================================

@@ -304,11 +304,14 @@ def write_electron_bremsstrahlung(path, brems_spectrum=False, atomic_number=82):
 def coupled_model(tmp_path, monkeypatch, prepare_simulation):
     """A one-element material with photon and electron transport both active."""
 
-    def build(density=1.0, brems_spectrum=False, **library):
+    def build(density=1.0, brems_spectrum=False, edit=None, **library):
         write_photon_library(tmp_path / "photon-X.h5", **library)
         write_electron_bremsstrahlung(
             tmp_path / "electron-X.h5", brems_spectrum, library.get("atomic_number", 82)
         )
+        if edit is not None:
+            with h5py.File(tmp_path / "photon-X.h5", "r+") as file:
+                edit(file)
         monkeypatch.setenv("MCDC_LIB", str(tmp_path))
 
         material = mcdc.Material(number_density={"X": density})

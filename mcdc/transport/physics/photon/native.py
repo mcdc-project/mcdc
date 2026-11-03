@@ -492,7 +492,7 @@ def photoelectric(
 
     E = particle["E"]
 
-    subshell = sample_photoelectric_subshell(
+    photoelectric_subshell, relaxation_subshell = sample_photoelectric_subshell(
         particle_container, element, simulation, data
     )
 
@@ -501,9 +501,9 @@ def photoelectric(
     E_cascade = 0.0
     E_auger_primary = 0.0
     E_auger_cascade = 0.0
-    if subshell >= 0:
+    if relaxation_subshell >= 0:
         E_emitted, origin, radiative = relax_subshell(
-            particle_container, subshell, E, element, data
+            particle_container, relaxation_subshell, E, element, data
         )
         if radiative:
             E_primary = E_emitted
@@ -529,9 +529,11 @@ def photoelectric(
     # less whatever the electrons banked below carry away.
     interaction_data["energy_deposition"] += (E - E_primary - E_cascade) * particle["w"]
 
-    if subshell >= 0 and is_transported(PARTICLE_ELECTRON, simulation["settings"]):
+    if photoelectric_subshell >= 0 and is_transported(
+        PARTICLE_ELECTRON, simulation["settings"]
+    ):
         B = mcdc_get.element.photon_photoelectric_subshell_binding_energy(
-            subshell, element, data
+            photoelectric_subshell, element, data
         )
         # Line and Auger energies come from the relaxation tables and can
         # slightly exceed this binding energy, so each electron takes at most
@@ -626,16 +628,18 @@ def sample_photoelectric_subshell(particle_container, element, simulation, data)
 
     Returns
     -------
-    int
-        Atomic-relaxation subshell index, or ``-1`` when no accessible shell
-        has a matching relaxation record.
+    (int, int)
+        Photoelectric subshell index for the binding-energy lookup, and the
+        matching atomic-relaxation subshell index. Both are ``-1`` when no
+        shell is selected. A selected shell without a relaxation record
+        retains its photoelectric index and returns ``-1`` for relaxation.
     """
     particle = particle_container[0]
     E = particle["E"]
 
     N_reaction = element["N_photon_photoelectric_reaction"]
     if N_reaction == 0:
-        return -1
+        return -1, -1
 
     reaction_ID = int(
         mcdc_get.element.photon_photoelectric_reaction_IDs(0, element, data)
@@ -645,15 +649,13 @@ def sample_photoelectric_subshell(particle_container, element, simulation, data)
             PHOTON_REACTION_PHOTOELECTRIC, particle_container, element, simulation, data
         )
         if reaction_ID < 0:
-            return -1
+            return -1, -1
     reaction_base = simulation["photon_reactions"][reaction_ID]
     reaction = simulation["photon_photoelectric_reactions"][reaction_base["sub_ID"]]
 
     N_subshell = reaction["N_subshell"]
     if N_subshell == 0:
-        return -1
-    if element["photon_relaxation_subshell_count_length"] == 0:
-        return -1
+        return -1, -1
 
     # Total shell-resolved cross section at this energy.
     sigma_total = 0.0
@@ -665,7 +667,7 @@ def sample_photoelectric_subshell(particle_container, element, simulation, data)
         sigma_total += subshell_micro_xs(E, subshell_xs, simulation, data)
 
     if sigma_total <= 0.0:
-        return -1
+        return -1, -1
 
     # Select the vacancy subshell.
     xi = rng.lcg(particle_container) * sigma_total
@@ -684,7 +686,7 @@ def sample_photoelectric_subshell(particle_container, element, simulation, data)
     designator = mcdc_get.photon_photoelectric_reaction.subshell_designators(
         subshell, reaction, data
     )
-    return find_subshell_by_designator(designator, element, data)
+    return subshell, find_subshell_by_designator(designator, element, data)
 
 
 @njit
