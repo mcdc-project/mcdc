@@ -6,7 +6,7 @@ import mcdc.mcdc_get.rectilinear_unstructured_mesh as mesh_get
 from mcdc.constant import COINCIDENCE_TOLERANCE, INF
 
 @njit
-def get_indices(particle_container, mesh, data):
+def get_index(particle_container, mesh, data):
     particle = particle_container[0]
     x = particle["x"]
     y = particle["y"]

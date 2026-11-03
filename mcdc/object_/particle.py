@@ -57,6 +57,7 @@ class Particle(ParticleData):
     cell_ID: int = -1
     material_ID: int = -1
     surface_ID: int = -1
+    unstructured_mesh_ID: int = -1
     alive: bool = False
     fresh: bool = False
     event: int = -1

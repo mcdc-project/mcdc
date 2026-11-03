@@ -218,9 +218,8 @@ class MeshUnstructured(MeshBase):
     x_bounds: Annotated[NDArray[float64], ("N_cells", 2)]
     y_bounds: Annotated[NDArray[float64], ("N_cells", 2)]
     z_bounds: Annotated[NDArray[float64], ("N_cells", 2)]
-    x_neighbors: Annotated[NDArray[int], ("N_cells", 2)]
-    y_neighbors: Annotated[NDArray[int], ("N_cells", 2)]
-    z_neighbors: Annotated[NDArray[int], ("N_cells", 2)]
+    neighbors: NDArray[int]
+    neighbor_offsets: NDArray[int]
 
     def __init__(self):
         self.N_bin = 1
@@ -228,9 +227,8 @@ class MeshUnstructured(MeshBase):
         self.x_bounds = np.array([[-INF, INF]])
         self.y_bounds = np.array([[-INF, INF]]) 
         self.z_bounds = np.array([[-INF, INF]])
-        self.x_neighbors = np.array([[-1, -1]])
-        self.y_neighbors = np.array([[-1, -1]])
-        self.z_neighbors = np.array([[-1, -1]])
+        self.neighbors = np.array([[-1]])
+        self.neighbor_offsets = np.array([[0]])
 
     @classmethod
     def from_gmsh(cls, gmsh_file: str | Path):

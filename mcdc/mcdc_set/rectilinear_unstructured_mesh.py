@@ -73,69 +73,58 @@ def z_bounds_chunk(start, length, rectilinear_unstructured_mesh, data, value):
 
 
 @njit
-def x_neighbors_vector(index_1, rectilinear_unstructured_mesh, data, value):
-    offset = rectilinear_unstructured_mesh["x_neighbors_offset"]
-    stride = 2
-    start = offset + index_1 * stride
-    end = start + stride
+def neighbors(index, rectilinear_unstructured_mesh, data, value):
+    offset = rectilinear_unstructured_mesh["neighbors_offset"]
+    data[offset + index] = value
+
+
+@njit
+def neighbors_all(rectilinear_unstructured_mesh, data, value):
+    start = rectilinear_unstructured_mesh["neighbors_offset"]
+    size = rectilinear_unstructured_mesh["neighbors_length"]
+    end = start + size
     data[start:end] = value
 
 
 @njit
-def x_neighbors(index_1, index_2, rectilinear_unstructured_mesh, data, value):
-    offset = rectilinear_unstructured_mesh["x_neighbors_offset"]
-    stride = 2
-    data[offset + index_1 * stride + index_2] = value
+def neighbors_last(rectilinear_unstructured_mesh, data, value):
+    start = rectilinear_unstructured_mesh["neighbors_offset"]
+    size = rectilinear_unstructured_mesh["neighbors_length"]
+    end = start + size
+    data[end - 1] = value
 
 
 @njit
-def x_neighbors_chunk(start, length, rectilinear_unstructured_mesh, data, value):
-    start += rectilinear_unstructured_mesh["x_neighbors_offset"]
+def neighbors_chunk(start, length, rectilinear_unstructured_mesh, data, value):
+    start += rectilinear_unstructured_mesh["neighbors_offset"]
     end = start + length
     data[start:end] = value
 
 
 @njit
-def y_neighbors_vector(index_1, rectilinear_unstructured_mesh, data, value):
-    offset = rectilinear_unstructured_mesh["y_neighbors_offset"]
-    stride = 2
-    start = offset + index_1 * stride
-    end = start + stride
+def neighbor_offsets(index, rectilinear_unstructured_mesh, data, value):
+    offset = rectilinear_unstructured_mesh["neighbor_offsets_offset"]
+    data[offset + index] = value
+
+
+@njit
+def neighbor_offsets_all(rectilinear_unstructured_mesh, data, value):
+    start = rectilinear_unstructured_mesh["neighbor_offsets_offset"]
+    size = rectilinear_unstructured_mesh["neighbor_offsets_length"]
+    end = start + size
     data[start:end] = value
 
 
 @njit
-def y_neighbors(index_1, index_2, rectilinear_unstructured_mesh, data, value):
-    offset = rectilinear_unstructured_mesh["y_neighbors_offset"]
-    stride = 2
-    data[offset + index_1 * stride + index_2] = value
+def neighbor_offsets_last(rectilinear_unstructured_mesh, data, value):
+    start = rectilinear_unstructured_mesh["neighbor_offsets_offset"]
+    size = rectilinear_unstructured_mesh["neighbor_offsets_length"]
+    end = start + size
+    data[end - 1] = value
 
 
 @njit
-def y_neighbors_chunk(start, length, rectilinear_unstructured_mesh, data, value):
-    start += rectilinear_unstructured_mesh["y_neighbors_offset"]
-    end = start + length
-    data[start:end] = value
-
-
-@njit
-def z_neighbors_vector(index_1, rectilinear_unstructured_mesh, data, value):
-    offset = rectilinear_unstructured_mesh["z_neighbors_offset"]
-    stride = 2
-    start = offset + index_1 * stride
-    end = start + stride
-    data[start:end] = value
-
-
-@njit
-def z_neighbors(index_1, index_2, rectilinear_unstructured_mesh, data, value):
-    offset = rectilinear_unstructured_mesh["z_neighbors_offset"]
-    stride = 2
-    data[offset + index_1 * stride + index_2] = value
-
-
-@njit
-def z_neighbors_chunk(start, length, rectilinear_unstructured_mesh, data, value):
-    start += rectilinear_unstructured_mesh["z_neighbors_offset"]
+def neighbor_offsets_chunk(start, length, rectilinear_unstructured_mesh, data, value):
+    start += rectilinear_unstructured_mesh["neighbor_offsets_offset"]
     end = start + length
     data[start:end] = value
