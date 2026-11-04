@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Introduce documented, projectile-specific `mcdc-data` libraries and shared converters for neutron, photon, electron, and proton transport, with generalized data, interpolation, and distribution representations across preparation, loading, and sampling, from [@ilhamv], [@ethan-lame], [@hansenkyle], [@melekderman], [@nglaser3], and [@DouglasHouser]
 - Add photon-electron coupling: Compton, photoelectric, Auger, and pair-production electrons and positrons, and bremsstrahlung photons with energies sampled from the EPRDATA14 spectrum, are transported when the other species is active, from [@DouglasHouser]
 - Add 'mass_density', 'mass_fraction', and 'number_density' to Material.__init__, each of which allows mixing elements and nuclides, from [@hansenkyle]
 - Add photon transport with coherent and incoherent scattering, photoelectric absorption with atomic relaxation, and pair production, from [@DouglasHouser]
