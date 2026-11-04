@@ -58,9 +58,9 @@ def source_distribution(kind, grid, laws, boundaries, *, invalid_table=None):
 
 @pytest.mark.parametrize("kind", [4, 44, 61])
 def test_invalid_outgoing_table_reports_law_path_and_incident_energy(tmp_path, kind):
+    source = source_distribution(kind, [5.0e6, 7.4e6], [], [], invalid_table=1)
     from data_library_generator.common.ace_converter import write_energy_distribution
 
-    source = source_distribution(kind, [5.0e6, 7.4e6], [], [], invalid_table=1)
     with h5py.File(tmp_path / "invalid.h5", "w") as file:
         distribution = file.create_group("reactions/test/energy-distribution")
         with pytest.raises(ValueError) as error:
