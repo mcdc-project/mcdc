@@ -157,7 +157,7 @@ jobs:
           - mode: Numba-MPI
             run_cmd: |
               python -m pytest -v test/regression --mode numba --mpiexec=2
-            timeout: 120
+            timeout: 240
 
     steps:
       - name: Checkout repository

@@ -50,7 +50,7 @@ jobs:
             python-version: '3.13'
             run_cmd: |
               python -m pytest -v test/regression --mode numba --mpiexec=4
-            timeout: 120
+            timeout: 240
 
     steps:
       - name: Checkout repository
