@@ -9,8 +9,10 @@ import pytest
 
 REGRESSION_DIR = Path(__file__).parent
 REGRESSION_DATA_NAME = "mcdc-regression_test_data"
-REGRESSION_DATA_REPOSITORY = "https://github.com/ilhamv/mcdc-regression_test_data.git"
-REGRESSION_DATA_REVISION = "81627ef7339b95ec856b2fb9ca9c7ae0ba14ed2d"
+REGRESSION_DATA_REPOSITORY = (
+    "https://github.com/mcdc-project/mcdc-regression_test_data.git"
+)
+REGRESSION_DATA_REVISION = "398d4aa75b5be482bcccd11858bcece5fd683901"
 RELATIVE_TOLERANCE = 1e-6
 ABSOLUTE_TOLERANCE = 1e-14
 NON_TEST_DIRS = {"__pycache__", REGRESSION_DATA_NAME}

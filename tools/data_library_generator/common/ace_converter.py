@@ -37,6 +37,7 @@ from .hdf5_writer import (
 
 
 EV_PER_MEV = 1.0e6
+SECONDS_PER_SHAKE = 1.0e-8
 BOLTZMANN_K = 8.61733326e-5
 ACE_INTERPOLATION = {
     1: "histogram",
@@ -680,7 +681,8 @@ def write_fission(group, ace):
             ):
                 raise ValueError("Delayed-neutron precursor fractions must be constant")
             fractions.append(precursor.probabilities[0])
-            decay_rates.append(precursor.decay_constant)
+            # ACE stores precursor decay constants in inverse shakes.
+            decay_rates.append(precursor.decay_constant / SECONDS_PER_SHAKE)
             distribution = (
                 ace.delayed_neutron_energy_distribution_block.energy_distribution_data(
                     i + 1
