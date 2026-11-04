@@ -1,4 +1,5 @@
 import doctest
+import h5py
 import pytest
 from types import SimpleNamespace
 
@@ -7,6 +8,7 @@ from mcdc.constant import FILL_MATERIAL
 from mcdc.object_.base import MCDCObject, MCDCPolymorphic
 from mcdc.object_.material import (
     Material,
+    _element_weight,
     set_elements_from_nuclides,
     set_nuclides_from_elements,
 )
@@ -119,6 +121,8 @@ def test_absent_mg_points_to_the_reserved_simulation_object(monkeypatch):
     # Isolate object registration from native data-library loading
     def compile_nuclide(nuclide, simulation):
         nuclide.fissionable = False
+        nuclide.element.atomic_number = 1
+        MCDCObject._compile_into_simulation(nuclide.element, simulation)
         return MCDCObject._compile_into_simulation(nuclide, simulation)
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)
@@ -361,7 +365,19 @@ AMU = 1.00866491595
 
 
 @pytest.fixture
-def weighted_simulation(monkeypatch):
+def atomic_weight_library(tmp_path, monkeypatch):
+    """Provide target masses independently of the reaction-loading mocks."""
+    monkeypatch.setenv("MCDC_LIB", str(tmp_path))
+    for name, ratio in AWR.items():
+        with h5py.File(tmp_path / f"neutron-{name}-293.6K.h5", "w") as file:
+            file.attrs["format"] = "mcdc-data"
+            file.attrs["format-version"] = "0.1.0"
+            file["atomic-weight-ratio"] = ratio
+    return tmp_path
+
+
+@pytest.fixture
+def weighted_simulation(monkeypatch, atomic_weight_library):
     # Provide atomic weights without reading the data library
     def compile_nuclide(nuclide, simulation):
         nuclide.fissionable = False
@@ -369,7 +385,6 @@ def weighted_simulation(monkeypatch):
         return MCDCObject._compile_into_simulation(nuclide, simulation)
 
     def compile_element(element, simulation):
-        element.atomic_weight_ratio = element_weight(element.name) / AMU
         return MCDCObject._compile_into_simulation(element, simulation)
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)
@@ -389,6 +404,25 @@ def element_weight(element):
     abundances = ISOTOPIC_ABUNDANCE[element]
     weighted = sum(a * AWR[isotope] * AMU for isotope, a in abundances.items())
     return weighted / sum(abundances.values())
+
+
+@pytest.mark.parametrize("projectile", ["electron", "photon"])
+def test_element_mass_uses_only_the_active_projectile_library(
+    tmp_path, monkeypatch, projectile
+):
+    """Elemental mass conversion must not require any isotope evaluations."""
+    monkeypatch.setenv("MCDC_LIB", str(tmp_path))
+    with h5py.File(tmp_path / f"{projectile}-Al.h5", "w") as file:
+        file.attrs["format"] = "mcdc-data"
+        file.attrs["format-version"] = "0.1.0"
+        file["atomic-weight-ratio"] = 26.7498
+    simulation = mcdc.Simulation()
+    getattr(simulation.settings, f"{projectile}_transport").active = True
+
+    assert _element_weight(Element("Al"), 293.6, simulation) == pytest.approx(
+        26.7498 * AMU
+    )
+    assert simulation.nuclides == []
 
 
 def test_mass_density_is_stored_with_placeholder_atomic_densities():
@@ -424,6 +458,8 @@ def test_element_mass_density_uses_the_abundance_weighted_weight(weighted_simula
     expected = 1.195 * N_A_BARN_CM / element_weight("O")
     assert material.element_densities == pytest.approx([expected])
     assert material.number_density["O"] == pytest.approx(expected)
+    assert weighted_simulation.nuclides == []
+    assert not hasattr(material.elements[0], "atomic_weight_ratio")
 
 
 def test_converted_element_expands_to_the_same_total_density(weighted_simulation):
@@ -527,11 +563,10 @@ def test_mass_inputs_are_validated(kwargs, expected_message, capsys):
 
 
 @pytest.fixture
-def compile_without_data(monkeypatch):
+def compile_without_data(monkeypatch, atomic_weight_library):
     # Full simulation compilation without reading data-library files
     def compile_nuclide(nuclide, simulation):
         nuclide.fissionable = False
-        nuclide.atomic_number = 1
         nuclide.mass_number = 1
         nuclide.excitation_level = 0
         nuclide.radiation_length = 1.0
@@ -540,9 +575,6 @@ def compile_without_data(monkeypatch):
 
     def compile_element(element, simulation):
         element.atomic_number = 1
-        element.atomic_weight_ratio = (
-            element_weight(element.name) / AMU if element.name == "O" else 1.0
-        )
         return MCDCObject._compile_into_simulation(element, simulation)
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)

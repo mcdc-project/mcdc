@@ -5,11 +5,11 @@ import pytest
 
 from mcdc.object_.distribution import (
     DistributionKalbachMann,
-    DistributionTabulatedEnergyAngle,
+    DistributionTableEnergyAngle,
 )
 from mcdc.transport.distribution import (
     sample_kalbach_mann,
-    sample_tabulated_energy_angle,
+    sample_table_energy_angle,
 )
 
 
@@ -42,7 +42,7 @@ def test_energy_angle_uses_global_conditional_index(
 ):
     intervals = np.array([[-1, 1], [-1, 0], [0, 1], [-0.8, -0.4], [0.1, 0.5], [0.6, 1]])
     density = np.repeat(1 / np.diff(intervals)[:, 0], 2)
-    distribution = DistributionTabulatedEnergyAngle(
+    distribution = DistributionTableEnergyAngle(
         [1, 3],
         [0, 3],
         [1, 2, 3, 2, 4, 6],
@@ -52,8 +52,8 @@ def test_energy_angle_uses_global_conditional_index(
         density,
     )
     container, data = prepare_simulation(objects=[distribution])
-    record = container[0]["tabulated_energy_angle_distributions"][distribution.sub_ID]
+    record = container[0]["table_energy_angle_distributions"][distribution.sub_ID]
     state = mock_rng_sequence(0.3, quantile, 0.25)
-    sampled, cosine = sample_tabulated_energy_angle(2.0, state, record, data)
+    sampled, cosine = sample_table_energy_angle(2.0, state, record, data)
     assert sampled == pytest.approx(1.5 + 3 * quantile)
     assert cosine == pytest.approx(expected_cosine)

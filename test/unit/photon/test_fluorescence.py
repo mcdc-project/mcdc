@@ -29,7 +29,7 @@ def _sample(simulation, data, E, seed):
     """The primary line energy, as the single-photon sampler used to return."""
     container = make_photon(E, seed=seed)
     element = _element(simulation)
-    subshell = native.sample_photoelectric_subshell(
+    _, subshell = native.sample_photoelectric_subshell(
         container, element, simulation, data
     )
     E_line, _, _ = native.relax_subshell(container, subshell, E, element, data)

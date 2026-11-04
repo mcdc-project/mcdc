@@ -6,6 +6,10 @@ import mcdc
 import mcdc.numba_types as type_
 from mcdc.constant import PARTICLE_PROTON
 import mcdc.transport.physics.proton.native as proton_native
+from mcdc.object_.proton_reaction import ProtonReactionInelasticScattering
+from mcdc.object_.distribution import DistributionMixture
+from mcdc.transport.data import evaluate_data
+from mcdc.transport.distribution import sample_distribution_with_scale
 
 
 def _write_tabulated_distribution(group, *, energy, value, pdf):
@@ -98,7 +102,7 @@ def _write_proton_library(path):
 
 
 @pytest.fixture
-def inelastic_model(tmp_path, monkeypatch, prepare_simulation):
+def inelastic_model(tmp_path, monkeypatch, prepare_simulation, neutron_library):
     _write_proton_library(tmp_path)
     monkeypatch.setenv("MCDC_LIB", str(tmp_path))
     material = mcdc.Material(number_density={"H": 1.0})
@@ -172,3 +176,131 @@ def test_inelastic_scattering_conserves_energy(inelastic_model):
         + particle_container[0]["E"] * particle_container[0]["w"]
         + bank_energy
     ) == pytest.approx(3.0e6 + reaction["q_value"] * 1.0e6, rel=1e-12)
+
+
+def test_energy_dependent_proton_yield(tmp_path, prepare_simulation):
+    _write_proton_library(tmp_path)
+    with h5py.File(tmp_path / "H1-293.6K.h5", "a") as file:
+        group = file["proton_reactions/inelastic_scattering/MT-4"]
+        del group["multiplicity"]
+        yield_group = group.create_group("proton_yield")
+        yield_group["energy"], yield_group["value"] = [1.0, 5.0], [0.0, 2.0]
+        reaction = ProtonReactionInelasticScattering.from_h5_group(group, None)
+    container, data = prepare_simulation(objects=[reaction])
+    simulation = container[0]
+    packed = simulation["proton_inelastic_scattering_reactions"][reaction.sub_ID]
+    mean = evaluate_data(
+        2e6, simulation["data"][packed["multiplicity_data_ID"]], simulation, data
+    )
+    assert mean == 0.5
+    assert "use_all_spectra" not in packed.dtype.names
+    assert "spectrum_ID" in packed.dtype.names
+
+
+def _set_alternative_spectra(group, grid, probabilities):
+    """Two deterministic energy laws make component selection observable."""
+    for name in (
+        "spectrum_probability_grid",
+        "spectrum_probability",
+        "energy_spectrum-1",
+    ):
+        del group[name]
+    group["spectrum_probability_grid"] = grid
+    group["spectrum_probability"] = probabilities
+    for index, coefficient in enumerate((0.1, 0.2), start=1):
+        spectrum = group.create_group(f"energy_spectrum-{index}")
+        spectrum.attrs["type"] = "level-scattering"
+        spectrum["C1"], spectrum["C2"] = 0.0, coefficient
+
+
+def test_multiplicity_does_not_assign_one_particle_per_spectrum(
+    tmp_path, monkeypatch, prepare_simulation, neutron_library
+):
+    _write_proton_library(tmp_path)
+    with h5py.File(tmp_path / "H1-293.6K.h5", "a") as file:
+        group = file["proton_reactions/inelastic_scattering/MT-4"]
+        group["multiplicity"][()] = 2
+        _set_alternative_spectra(group, [0.0, 10.0], [[0.0, 1.0]])
+    monkeypatch.setenv("MCDC_LIB", str(tmp_path))
+    material = mcdc.Material(number_density={"H1": 1.0})
+
+    def configure(simulation):
+        simulation.settings.proton_transport.active = True
+        simulation.settings.neutron_transport.active = True
+
+    container, data = prepare_simulation(
+        cells=[mcdc.Cell(fill=material)], configure=configure
+    )
+    simulation = container[0]
+    particle = _make_particle(3e6)
+    interaction = _make_interaction_data(particle[0])
+    simulation["bank_active"]["size"][0] = 0
+    proton_native.inelastic_scattering(
+        simulation["proton_reactions"][1],
+        particle,
+        interaction,
+        simulation["nuclides"][0],
+        simulation,
+        data,
+    )
+    bank = simulation["bank_active"]
+    energies = [particle[0]["E"]]
+    energies.extend(
+        product["E"]
+        for product in bank["particle_data"][: bank["size"][0]]
+        if product["particle_type"] == PARTICLE_PROTON
+    )
+    assert particle[0]["alive"]
+    np.testing.assert_allclose(energies, [0.6e6, 0.6e6])
+
+
+@pytest.mark.parametrize(
+    "energy,expected",
+    [(0.5e6, 0.1e6), (1.5e6, 0.3e6), (2e6, 0.4e6), (2.5e6, 0.25e6), (4e6, 0.4e6)],
+)
+def test_proton_mixture_uses_probability_bins_and_endpoint_values(
+    tmp_path, prepare_simulation, energy, expected
+):
+    _write_proton_library(tmp_path)
+    with h5py.File(tmp_path / "H1-293.6K.h5", "a") as file:
+        group = file["proton_reactions/inelastic_scattering/MT-4"]
+        _set_alternative_spectra(group, [1.0, 2.0, 3.0], [[0.0, 1.0], [1.0, 0.0]])
+        reaction = ProtonReactionInelasticScattering.from_h5_group(group, None)
+    assert isinstance(reaction.spectrum, DistributionMixture)
+    container, data = prepare_simulation(objects=[reaction])
+    simulation = container[0]
+    packed = simulation["proton_inelastic_scattering_reactions"][reaction.sub_ID]
+    sampled = sample_distribution_with_scale(
+        energy,
+        simulation["distributions"][packed["spectrum_ID"]],
+        _make_particle(energy),
+        simulation,
+        data,
+    )
+    assert sampled == pytest.approx(expected)
+
+
+def test_proton_spectrum_columns_follow_numeric_suffixes(tmp_path, prepare_simulation):
+    _write_proton_library(tmp_path)
+    with h5py.File(tmp_path / "H1-293.6K.h5", "a") as file:
+        group = file["proton_reactions/inelastic_scattering/MT-4"]
+        del group["energy_spectrum-1"]
+        del group["spectrum_probability"]
+        probabilities = np.zeros((1, 11))
+        probabilities[0, 9] = 1.0
+        group["spectrum_probability"] = probabilities
+        for index in range(1, 12):
+            spectrum = group.create_group(f"energy_spectrum-{index}")
+            spectrum.attrs["type"] = "level-scattering"
+            spectrum["C1"], spectrum["C2"] = 0.0, 0.01 * index
+        reaction = ProtonReactionInelasticScattering.from_h5_group(group, None)
+    container, data = prepare_simulation(objects=[reaction])
+    simulation = container[0]
+    result = sample_distribution_with_scale(
+        1e6,
+        simulation["distributions"][reaction.spectrum.ID],
+        _make_particle(1e6),
+        simulation,
+        data,
+    )
+    assert result == pytest.approx(0.1e6)

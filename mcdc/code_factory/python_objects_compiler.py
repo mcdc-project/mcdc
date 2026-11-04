@@ -1,7 +1,11 @@
 from mcdc.object_.base import MCDCObject, MCDCPolymorphic
 from mcdc.object_.cell import Region, Cell
 from mcdc.object_.data import DataBase, DataNone
-from mcdc.object_.distribution import DistributionBase, DistributionNone
+from mcdc.object_.distribution import (
+    DistributionBase,
+    DistributionNone,
+    DistributionIsotropic,
+)
 from mcdc.object_.electron_reaction import ElectronReactionBase
 from mcdc.object_.element import Element
 from mcdc.object_.material import Material
@@ -19,7 +23,7 @@ from mcdc.object_.surface import Surface
 from mcdc.object_.tally import Tally
 from mcdc.print_ import print_error
 
-NONE_OBJECT_CLASSES = (DataNone, DistributionNone)  # Has customized compilation
+SHARED_OBJECT_CLASSES = (DataNone, DistributionNone, DistributionIsotropic)
 
 
 def compile_simulation(simulation: Simulation):
@@ -47,11 +51,13 @@ def compile_simulation(simulation: Simulation):
     # Reserved objects
     none_data = DataNone()
     none_distribution = DistributionNone()
+    isotropic_distribution = DistributionIsotropic()
     none_neutron_multigroup = NeutronMultigroupData()
 
     # Compile reserved objects
     none_data._compile_into_simulation(simulation)
     none_distribution._compile_into_simulation(simulation)
+    isotropic_distribution._compile_into_simulation(simulation)
     none_neutron_multigroup._compile_into_simulation(simulation)
 
     # Compile model
@@ -75,9 +81,25 @@ def compile_simulation(simulation: Simulation):
 
 
 def register_object(object_: MCDCObject, simulation: Simulation) -> bool:
+    """Assign IDs, sharing stateless representations within one compilation.
+
+    Distinct Python None/isotropic objects resolve to one canonical runtime
+    record of each type. Their IDs are refreshed on every compilation, while
+    stateful objects retain the usual identity-based registration behavior.
+    """
     # Skip if already compiled
     if object_.compile_ID == simulation.compile_ID:
         return False
+
+    # Stateless objects share their canonical IDs without duplicating records.
+    shared = type(object_) in SHARED_OBJECT_CLASSES
+    if shared:
+        canonical = simulation._shared_objects.get(type(object_))
+        if canonical is not None:
+            object_.ID = canonical.ID
+            object_.sub_ID = canonical.sub_ID
+            object_.compile_ID = simulation.compile_ID
+            return False
 
     # Get the object list
     if isinstance(object_, Cell):
@@ -140,5 +162,7 @@ def register_object(object_: MCDCObject, simulation: Simulation) -> bool:
 
     # Register to simulation (TODO: Resolve IDE error message)
     object_list.append(object_)
+    if shared:
+        simulation._shared_objects[type(object_)] = object_
 
     return True

@@ -17,8 +17,7 @@ from mcdc.object_.base import MCDCObject
 from mcdc.object_.distribution import (
     DistributionBase,
     DistributionMultiTable,
-    DistributionPMF,
-    DistributionTabulated,
+    DistributionTable,
 )
 from mcdc.object_.util import move_object, parse_particle_type, decode_particle_type
 from mcdc.print_ import print_error
@@ -238,9 +237,9 @@ class Source(MCDCObject):
     x: Annotated[NDArray[float64], (2,)]
     y: Annotated[NDArray[float64], (2,)]
     z: Annotated[NDArray[float64], (2,)]
-    x_pdf: DistributionTabulated
-    y_pdf: DistributionTabulated
-    z_pdf: DistributionTabulated
+    x_pdf: DistributionTable
+    y_pdf: DistributionTable
+    z_pdf: DistributionTable
 
     # Direction
     isotropic_direction: bool
@@ -251,8 +250,8 @@ class Source(MCDCObject):
     uniform_azimuthal: bool
     polar_cosine: Annotated[NDArray[float64], (2,)]
     azimuthal: Annotated[NDArray[float64], (2,)]
-    polar_cosine_pdf: DistributionTabulated
-    azimuthal_pdf: DistributionTabulated
+    polar_cosine_pdf: DistributionTable
+    azimuthal_pdf: DistributionTable
 
     # Energy
     mono_energetic: bool
@@ -260,8 +259,8 @@ class Source(MCDCObject):
     energy_at_polar_cosine_active: bool
     energy_at_polar_cosine_is_distribution: bool
     energy: float
-    energy_pdf: DistributionTabulated
-    energy_pmf: DistributionPMF
+    energy_pdf: DistributionTable
+    energy_pmf: DistributionTable
     energy_at_polar_cosine: NDArray[float64]
     energy_at_polar_cosine_distribution: DistributionBase
 
@@ -270,7 +269,7 @@ class Source(MCDCObject):
     uniform_time: bool
     time: float
     time_range: Annotated[NDArray[float64], (2,)]
-    time_pdf: DistributionTabulated
+    time_pdf: DistributionTable
 
     # Misc.
     particle_type: int
@@ -331,7 +330,7 @@ class Source(MCDCObject):
         self.x = np.array([0.0, 0.0])
         self.y = np.array([0.0, 0.0])
         self.z = np.array([0.0, 0.0])
-        spatial_pdf = DistributionTabulated(
+        spatial_pdf = DistributionTable(
             np.array([0.0, 1.0]),
             np.array([1.0, 1.0]),
         )
@@ -348,11 +347,11 @@ class Source(MCDCObject):
         self.uniform_azimuthal = True
         self.polar_cosine = np.array([-1.0, 1.0])
         self.azimuthal = np.array([0.0, 2.0 * PI])
-        self.polar_cosine_pdf = DistributionTabulated(
+        self.polar_cosine_pdf = DistributionTable(
             np.array([-1.0, 1.0]),
             np.array([1.0, 1.0]),
         )
-        self.azimuthal_pdf = DistributionTabulated(
+        self.azimuthal_pdf = DistributionTable(
             np.array([0.0, 2.0 * PI]),
             np.array([1.0, 1.0]),
         )
@@ -363,11 +362,11 @@ class Source(MCDCObject):
         self.energy_at_polar_cosine_active = False
         self.energy_at_polar_cosine_is_distribution = False
         self.energy = 1.0e6
-        self.energy_pdf = DistributionTabulated(
+        self.energy_pdf = DistributionTable(
             np.array([1.0e6 - 1.0, 1.0e6 + 1.0]),
             np.array([1.0, 1.0]),
         )
-        self.energy_pmf = DistributionPMF(np.array([1.0e6]), np.array([1.0]))
+        self.energy_pmf = DistributionTable(discrete_value=[1.0e6], pmf=[1.0])
         self.energy_at_polar_cosine = np.zeros(0)
         self.energy_at_polar_cosine_distribution = self.energy_pdf
 
@@ -376,7 +375,7 @@ class Source(MCDCObject):
         self.uniform_time = True
         self.time = 0.0
         self.time_range = np.array([0.0, 0.0])
-        self.time_pdf = DistributionTabulated(
+        self.time_pdf = DistributionTable(
             np.array([0.0, 1.0]),
             np.array([1.0, 1.0]),
         )
@@ -483,7 +482,9 @@ class Source(MCDCObject):
             )
             self.mono_energetic = False
             self.discrete_energy = True
-            self.energy_pmf = DistributionPMF(values, probabilities)
+            self.energy_pmf = DistributionTable(
+                discrete_value=values, pmf=probabilities
+            )
 
         # Energy
         if energy is not None:
@@ -492,7 +493,7 @@ class Source(MCDCObject):
             else:
                 values, pdf = _distribution_pair(energy, "Energy")
                 self.mono_energetic = False
-                self.energy_pdf = DistributionTabulated(values, pdf)
+                self.energy_pdf = DistributionTable(values, pdf)
 
         # Energy determined by the sampled polar cosine
         if energy_at_polar_cosine is not None:
@@ -566,13 +567,11 @@ class Source(MCDCObject):
                 if np.any(energy_pdf < 0.0):
                     print_error("energy_at_polar_cosine PDFs must be nonnegative.")
 
-                N_energy = correlated_energy.shape[2]
                 self.energy_at_polar_cosine_is_distribution = True
                 self.energy_at_polar_cosine_distribution = DistributionMultiTable(
                     grid=self.polar_cosine_pdf.pdf.x,
-                    offset=np.arange(N_mu) * N_energy,
-                    value=energy_grid.reshape(-1),
-                    pdf=energy_pdf.reshape(-1),
+                    value=energy_grid,
+                    pdf=energy_pdf,
                 )
 
         # Time
@@ -713,7 +712,7 @@ class Source(MCDCObject):
 def _continuous_distribution(
     value: float | ArrayLike,
     name: str,
-) -> tuple[bool, NDArray[float64], DistributionTabulated | None]:
+) -> tuple[bool, NDArray[float64], DistributionTable | None]:
     """Normalize one scalar, uniform, or tabulated source distribution."""
     if isinstance(value, Real) and not isinstance(value, (bool, np.bool_)):
         scalar = float(value)
@@ -749,7 +748,7 @@ def _continuous_distribution(
         if np.any(pdf < 0.0):
             print_error(f"Source {name} tabulated PDF must be nonnegative.")
 
-        distribution = DistributionTabulated(grid, pdf)
+        distribution = DistributionTable(grid, pdf)
         bounds = np.array([grid[0], grid[-1]])
         return False, bounds, distribution
 

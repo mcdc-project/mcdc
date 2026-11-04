@@ -1,36 +1,35 @@
-from typing import Annotated
 from numpy import float64
+from numpy import int64
 from numpy.typing import NDArray
+import numpy as np
 
 ####
 
-import mcdc.object_.distribution as distribution
-
 from mcdc.constant import (
-    ANGLE_ISOTROPIC,
-    ANGLE_ENERGY_CORRELATED,
-    ANGLE_DISTRIBUTED,
     NEUTRON_REACTION_CAPTURE,
     NEUTRON_REACTION_ELASTIC_SCATTERING,
     NEUTRON_REACTION_FISSION,
     NEUTRON_REACTION_INELASTIC_SCATTERING,
     REFERENCE_FRAME_COM,
-    REFERENCE_FRAME_LAB,
+    INTERPOLATION_LINEAR,
 )
 from mcdc.object_.secondary_product import SecondaryProduct
 from mcdc.object_.base import MCDCPolymorphic
-from mcdc.object_.data import encode_interpolation
+from mcdc.object_.data import DataBase, DataPolynomial
+from mcdc.object_.hdf5_reader import (
+    read_data,
+    read_reaction_properties,
+    read_distribution,
+    set_xs_interpolation,
+    numbered_groups,
+)
 from mcdc.object_.distribution import (
     DistributionBase,
-    DistributionMultiTable,
-    DistributionLevelScattering,
-    DistributionEvaporation,
-    DistributionMaxwellian,
-    DistributionKalbachMann,
-    DistributionTabulatedEnergyAngle,
-    DistributionNBody,
+    DistributionNone,
+    validate_angle_energy,
 )
-from mcdc.print_ import print_1d_array, print_error
+from mcdc.object_.util import decode_reference_frame
+from mcdc.print_ import print_1d_array
 
 # ======================================================================================
 # Neutron reaction base class
@@ -50,7 +49,9 @@ class NeutronReactionBase(MCDCPolymorphic):
 
     MT: int
     xs: NDArray[float64]
-    xs_offset_: int  # "xs_offset" ir reserved for "xs"
+    xs_offset_: int  # "xs_offset" is reserved for the packed xs array.
+    xs_interpolations: NDArray[int64]
+    xs_interpolation_boundaries: NDArray[int64]
     reference_frame: int
     q_value: float64
 
@@ -62,6 +63,8 @@ class NeutronReactionBase(MCDCPolymorphic):
         self.MT = MT
         self.xs = xs
         self.xs_offset_ = xs_offset
+        self.xs_interpolations = np.array([INTERPOLATION_LINEAR], dtype=int64)
+        self.xs_interpolation_boundaries = np.array([len(xs)], dtype=int64)
         self.reference_frame = reference_frame
         self.q_value = q_value
 
@@ -76,15 +79,6 @@ class NeutronReactionBase(MCDCPolymorphic):
         return text
 
 
-def decode_reference_frame(type_):
-    """Return the display name for a packed reference-frame code."""
-
-    if type_ == REFERENCE_FRAME_LAB:
-        return "Laboratory"
-    elif type_ == REFERENCE_FRAME_COM:
-        return "Center of mass"
-
-
 # ======================================================================================
 # Neutron elastic scattering
 # ======================================================================================
@@ -97,24 +91,34 @@ class NeutronReactionElasticScattering(NeutronReactionBase):
     label = "neutron_elastic_scattering_reaction"
     sub_type = NEUTRON_REACTION_ELASTIC_SCATTERING
 
-    mu_table: DistributionMultiTable
+    mu_table: DistributionBase
 
     def __init__(self, MT, xs, xs_offset, reference_frame, mu):
         super().__init__(MT, xs, xs_offset, reference_frame, 0.0)
+        if isinstance(mu, DistributionNone):
+            raise ValueError(
+                "Elastic scattering requires an explicit angular distribution"
+            )
         self.mu_table = mu
 
     @classmethod
     def from_h5_group(cls, h5_group, simulation):
         """Build an elastic-scattering reaction from a library HDF5 group."""
         MT, xs, xs_offset, reference_frame, _ = set_basic_properties(h5_group)
-        _, mu = set_angular_distribution(
-            h5_group["angular_cosine_distribution"], simulation
+        if reference_frame != REFERENCE_FRAME_COM:
+            raise ValueError(
+                f"{h5_group.name}: elastic scattering requires center-of-mass angular data"
+            )
+        mu = set_angular_distribution(h5_group["angular-cosine-distribution"])
+        return set_xs_interpolation(
+            cls(MT, xs, xs_offset, reference_frame, mu), h5_group
         )
-        return cls(MT, xs, xs_offset, reference_frame, mu)
 
     def __repr__(self):
         text = super().__repr__()
-        text += f"  - Scattering cosine: {distribution.decode_type(self.mu_table.type)} [ID: {self.mu_table.ID}]\n"
+        text += (
+            f"  - Scattering cosine: {self.mu_table.label} [ID: {self.mu_table.ID}]\n"
+        )
         return text
 
 
@@ -137,7 +141,9 @@ class NeutronReactionCapture(NeutronReactionBase):
     def from_h5_group(cls, h5_group, simulation):
         """Build a capture reaction from a library HDF5 group."""
         MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
-        return cls(MT, xs, xs_offset, reference_frame, q_value)
+        return set_xs_interpolation(
+            cls(MT, xs, xs_offset, reference_frame, q_value), h5_group
+        )
 
 
 # ======================================================================================
@@ -153,103 +159,6 @@ class NeutronReactionInelasticScattering(NeutronReactionBase):
     sub_type = NEUTRON_REACTION_INELASTIC_SCATTERING
 
     multiplicity: int
-    angle_type: int
-    mu: DistributionBase
-    N_spectrum_probability_bin: int
-    N_spectrum: int
-    spectrum_probability_grid: NDArray[float64]
-    spectrum_probability: Annotated[
-        NDArray[float64], ("N_spectrum_probability_bin", "N_spectrum")
-    ]
-    energy_spectra: list[DistributionBase]
-
-    def __init__(
-        self,
-        MT,
-        xs,
-        xs_offset,
-        reference_frame,
-        q_value,
-        multiplicity,
-        angle_type,
-        mu,
-        spectrum_probability_grid,
-        spectrum_probability,
-        energy_spectra,
-    ):
-        super().__init__(MT, xs, xs_offset, reference_frame, q_value)
-
-        self.multiplicity = multiplicity
-        self.angle_type = angle_type
-        self.mu = mu
-        self.N_spectrum_probability_bin = len(spectrum_probability_grid) - 1
-        self.N_spectrum = len(energy_spectra)
-        self.spectrum_probability_grid = spectrum_probability_grid
-        self.spectrum_probability = spectrum_probability
-        self.energy_spectra = energy_spectra
-
-    @classmethod
-    def from_h5_group(cls, h5_group, simulation):
-        """Build an inelastic-scattering reaction from a library HDF5 group."""
-        MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
-        multiplicity = int(h5_group["multiplicity"][()])
-
-        angle_type, mu = set_angular_distribution(
-            h5_group["angular_cosine_distribution"], simulation
-        )
-
-        # Energy spectra
-        spectrum_probability_grid = (
-            h5_group[f"spectrum_probability_grid"][()] * 1e6
-        )  # MeV to eV
-        spectrum_probability = h5_group[f"spectrum_probability"][()]
-        energy_spectra = []
-        spectrum_names = [x for x in h5_group if x.startswith("energy_spectrum-")]
-        for spectrum_name in spectrum_names:
-            energy_spectra.append(set_energy_distribution(h5_group[f"{spectrum_name}"]))
-
-        return cls(
-            MT,
-            xs,
-            xs_offset,
-            reference_frame,
-            q_value,
-            multiplicity,
-            angle_type,
-            mu,
-            spectrum_probability_grid,
-            spectrum_probability,
-            energy_spectra,
-        )
-
-    def __repr__(self):
-        text = super().__repr__()
-        if self.angle_type == ANGLE_ISOTROPIC:
-            text += f"  - Scattering cosine: Isotropic\n"
-        elif self.angle_type == ANGLE_ENERGY_CORRELATED:
-            text += f"  - Scattering cosine: Energy-correlated\n"
-        else:
-            text += f"  - Scattering cosine: {distribution.decode_type(self.mu.type)} [ID: {self.mu.ID}]\n"
-        text += f"  - Energy spectra\n"
-        text += f"      - Probability energy grid {print_1d_array(self.spectrum_probability_grid)}\n"
-        for i in range(len(self.energy_spectra)):
-            text += f"      - Spectrum {i+1}: {distribution.decode_type(self.energy_spectra[i])} [{print_1d_array(self.spectrum_probability[:,i])}] [ID: {self.energy_spectra[i].ID}]\n"
-        return text
-
-
-# ======================================================================================
-# Neutron fission
-# ======================================================================================
-
-
-class NeutronReactionFission(NeutronReactionBase):
-    """Fission reaction with prompt angular and energy distributions."""
-
-    # MC/DC framework metadata
-    label = "neutron_fission_reaction"
-    sub_type = NEUTRON_REACTION_FISSION
-
-    angle_type: int
     mu: DistributionBase
     spectrum: DistributionBase
 
@@ -260,14 +169,93 @@ class NeutronReactionFission(NeutronReactionBase):
         xs_offset,
         reference_frame,
         q_value,
-        angle_type,
+        multiplicity,
         mu,
         spectrum,
     ):
         super().__init__(MT, xs, xs_offset, reference_frame, q_value)
-        self.angle_type = angle_type
+
+        self.multiplicity = multiplicity
+        self.mu = mu
+        validate_angle_energy(mu, [spectrum], self.label, reference_frame)
+        self.spectrum = spectrum
+
+    @classmethod
+    def from_h5_group(cls, h5_group, simulation):
+        """Build an inelastic-scattering reaction from a library HDF5 group."""
+        MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
+        multiplicity = int(h5_group["multiplicity"][()])
+
+        mu = set_angular_distribution(h5_group.get("angular-cosine-distribution"))
+
+        # Energy distribution, including component-selection probabilities
+        spectrum = read_distribution(h5_group["energy-distribution"])
+
+        return set_xs_interpolation(
+            cls(
+                MT,
+                xs,
+                xs_offset,
+                reference_frame,
+                q_value,
+                multiplicity,
+                mu,
+                spectrum,
+            ),
+            h5_group,
+        )
+
+    def __repr__(self):
+        text = super().__repr__()
+        if isinstance(self.mu, DistributionNone):
+            text += f"  - Scattering cosine: Energy-correlated\n"
+        else:
+            text += f"  - Scattering cosine: {self.mu.label} [ID: {self.mu.ID}]\n"
+        text += f"  - Energy spectrum: {self.spectrum.label} [ID: {self.spectrum.ID}]\n"
+        return text
+
+
+# ======================================================================================
+# Neutron fission
+# ======================================================================================
+
+
+class NeutronReactionFission(NeutronReactionBase):
+    """Fission channel owning prompt yields, spectra, and delayed precursor groups."""
+
+    # MC/DC framework metadata
+    label = "neutron_fission_reaction"
+    sub_type = NEUTRON_REACTION_FISSION
+
+    mu: DistributionBase
+    spectrum: DistributionBase
+    prompt_multiplicity: DataBase
+    delayed_multiplicity: DataBase
+    N_delayed_precursor: int
+    delayed_fractions: NDArray[float64]
+    delayed_decay_rates: NDArray[float64]
+    delayed_spectra: list[DistributionBase]
+
+    def __init__(
+        self,
+        MT,
+        xs,
+        xs_offset,
+        reference_frame,
+        q_value,
+        mu,
+        spectrum,
+    ):
+        super().__init__(MT, xs, xs_offset, reference_frame, q_value)
         self.mu = mu
         self.spectrum = spectrum
+        validate_angle_energy(mu, [spectrum], self.label, reference_frame)
+        self.prompt_multiplicity = DataPolynomial(np.array([0.0]))
+        self.delayed_multiplicity = DataPolynomial(np.array([0.0]))
+        self.N_delayed_precursor = 0
+        self.delayed_fractions = np.zeros(0)
+        self.delayed_decay_rates = np.zeros(0)
+        self.delayed_spectra = []
 
     @classmethod
     def from_h5_group(cls, h5_group, simulation):
@@ -275,30 +263,52 @@ class NeutronReactionFission(NeutronReactionBase):
         MT, xs, xs_offset, reference_frame, q_value = set_basic_properties(h5_group)
 
         # Prompt angular distribution
-        angle_type, mu = set_angular_distribution(
-            h5_group["angular_cosine_distribution"], simulation
+        mu = set_angular_distribution(
+            h5_group.get("prompt-angular-cosine-distribution")
         )
 
         # Prompt spectrum
-        spectrum_names = [x for x in h5_group if x.startswith("energy_spectrum-")]
-        if len(spectrum_names) > 1:
-            print_error("Unsupported multi-distribution prompt fission spectrum")
-        spectrum = set_energy_distribution(h5_group[f"energy_spectrum-1"])
+        spectrum = read_distribution(h5_group["prompt-energy-distribution"])
+        validate_angle_energy(mu, [spectrum], h5_group.name, reference_frame)
 
-        return cls(
-            MT, xs, xs_offset, reference_frame, q_value, angle_type, mu, spectrum
-        )
+        result = cls(MT, xs, xs_offset, reference_frame, q_value, mu, spectrum)
+        result.prompt_multiplicity = read_data(h5_group["prompt-multiplicity"])
+        result.delayed_multiplicity = read_data(h5_group["delayed-multiplicity"])
+        delayed = h5_group["delayed-neutrons"]
+        result.delayed_fractions = delayed["fractions"][()]
+        result.delayed_decay_rates = delayed["decay-rates"][()]
+        result.delayed_spectra = [
+            read_distribution(child)
+            for child in numbered_groups(delayed, "energy-distribution-")
+        ]
+        result.N_delayed_precursor = len(result.delayed_fractions)
+        if (
+            len(result.delayed_decay_rates) != result.N_delayed_precursor
+            or len(result.delayed_spectra) != result.N_delayed_precursor
+        ):
+            raise ValueError(
+                f"{delayed.name}: delayed fractions, decay rates, and spectra must have equal lengths"
+            )
+        if result.N_delayed_precursor and (
+            np.any(result.delayed_fractions < 0)
+            or not np.isclose(sum(result.delayed_fractions), 1.0)
+            or np.any(result.delayed_decay_rates <= 0)
+        ):
+            raise ValueError(
+                f"{delayed.name}: invalid delayed-neutron probabilities or decay rates"
+            )
+        return set_xs_interpolation(result, h5_group)
 
     def __repr__(self):
         text = super().__repr__()
         text += f"  - Prompt neutron\n"
-        if self.angle_type == ANGLE_ISOTROPIC:
-            text += f"  - Emission cosine: Isotropic\n"
-        elif self.angle_type == ANGLE_ENERGY_CORRELATED:
+        if isinstance(self.mu, DistributionNone):
             text += f"  - Emission cosine: Energy-correlated\n"
         else:
-            text += f"  - Emission cosine: {distribution.decode_type(self.mu.type)} [ID: {self.mu.ID}]\n"
-        text += f"      - Energy spectrum: {distribution.decode_type(self.spectrum)} [ID: {self.spectrum.ID}]\n"
+            text += f"  - Emission cosine: {self.mu.label} [ID: {self.mu.ID}]\n"
+        text += (
+            f"      - Energy spectrum: {self.spectrum.label} [ID: {self.spectrum.ID}]\n"
+        )
 
         return text
 
@@ -309,149 +319,12 @@ class NeutronReactionFission(NeutronReactionBase):
 
 
 def set_basic_properties(h5_group):
-    """Read properties shared by all neutron reactions from an HDF5 group."""
-
-    MT = h5_group.attrs["MT"][()]
-    xs = h5_group["xs"][()]
-    xs_offset = h5_group["xs"].attrs["offset"]
-    reference_frame = h5_group["reference_frame"][()].decode("utf-8")
-    if reference_frame == "LAB":
-        reference_frame = REFERENCE_FRAME_LAB
-    elif reference_frame == "COM":
-        reference_frame = REFERENCE_FRAME_COM
-    q_value = h5_group["Q-value"][()]
-    return MT, xs, xs_offset, reference_frame, q_value
+    """Read shared reaction fields and the neutron reaction's eV Q value."""
+    return (*read_reaction_properties(h5_group), float(h5_group["Q-value"][()]))
 
 
-def set_angular_distribution(h5_group, simulation):
-    """Create the packed angle type and distribution from an HDF5 group."""
-
-    mu_type = h5_group.attrs["type"]
-    if mu_type == "isotropic":
-        angle_type = ANGLE_ISOTROPIC
-        mu = simulation.distributions[0]
-    elif mu_type == "energy-correlated":
-        angle_type = ANGLE_ENERGY_CORRELATED
-        mu = simulation.distributions[0]
-    else:
-        angle_type = ANGLE_DISTRIBUTED
-        grid = h5_group[f"energy"][()] * 1e6  # MeV to eV
-        offset = h5_group[f"offset"][()]
-        value = h5_group[f"value"][()]
-        pdf = h5_group[f"pdf"][()]
-        mu = DistributionMultiTable(grid, offset, value, pdf)
-
-    return angle_type, mu
-
-
-def set_energy_distribution(h5_group):
-    """Create an outgoing-energy distribution from an HDF5 group."""
-
-    spectrum_type = h5_group.attrs["type"]
-
-    if spectrum_type == "tabulated":
-        grid = h5_group[f"energy"][()] * 1e6  # MeV to eV
-        offset = h5_group[f"offset"][()]
-        value = h5_group[f"value"][()] * 1e6  # MeV to eV
-        pdf = h5_group[f"pdf"][()] / 1e6  # /MeV to /eV
-        energy_spectrum = DistributionMultiTable(grid, offset, value, pdf)
-
-    elif spectrum_type == "level-scattering":
-        C1 = h5_group["C1"][()] * 1e6  # MeV to eV
-        C2 = h5_group["C2"][()]
-
-        energy_spectrum = DistributionLevelScattering(C1, C2)
-
-    elif spectrum_type == "evaporation":
-        energy = h5_group[f"temperature_energy_grid"][()] * 1e6  # MeV to eV
-        temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
-        restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
-        interpolations, interpolation_boundaries = _load_temperature_interpolation(
-            h5_group
-        )
-
-        energy_spectrum = DistributionEvaporation(
-            energy,
-            temperature,
-            restriction_energy,
-            interpolations,
-            interpolation_boundaries,
-        )
-
-    elif spectrum_type == "maxwellian":
-        energy = h5_group[f"temperature_energy_grid"][()] * 1e6  # MeV to eV
-        temperature = h5_group[f"temperature"][()] * 1e6  # MeV to eV
-        restriction_energy = h5_group[f"restriction_energy"][()] * 1e6  # MeV to eV
-        interpolations, interpolation_boundaries = _load_temperature_interpolation(
-            h5_group
-        )
-
-        energy_spectrum = DistributionMaxwellian(
-            energy,
-            temperature,
-            restriction_energy,
-            interpolations,
-            interpolation_boundaries,
-        )
-
-    elif spectrum_type == "kalbach-mann":
-        energy = h5_group[f"energy"][()] * 1e6  # MeV to eV
-        offset = h5_group[f"offset"][()]
-
-        energy_out = h5_group[f"energy_out"][()] * 1e6  # MeV to eV
-        pdf = h5_group[f"pdf"][()] / 1e6  # /MeV to /eV
-
-        precompound_factor = h5_group[f"precompound_factor"][()]
-        angular_slope = h5_group[f"angular_slope"][()]
-
-        energy_spectrum = DistributionKalbachMann(
-            energy, offset, energy_out, pdf, precompound_factor, angular_slope
-        )
-
-    elif spectrum_type == "energy-angle-tabulated":
-        energy = h5_group[f"energy"][()] * 1e6  # MeV to eV
-        offset = h5_group[f"offset"][()]
-
-        energy_out = h5_group[f"energy_out"][()] * 1e6  # MeV to eV
-        pdf = h5_group[f"pdf"][()] / 1e6  # /MeV to /eV
-        cosine_offset = h5_group[f"cosine_offset"][()]
-
-        cosine = h5_group[f"cosine"][()]
-        cosine_pdf = h5_group[f"cosine_pdf"][()]
-
-        energy_spectrum = DistributionTabulatedEnergyAngle(
-            energy, offset, energy_out, pdf, cosine_offset, cosine, cosine_pdf
-        )
-
-    elif spectrum_type == "N-body":
-        value = h5_group["value"][()] * 1e6  # MeV to eV
-        pdf = h5_group["pdf"][()] / 1e6  # MeV to eV
-
-        energy_spectrum = DistributionNBody(value, pdf)
-
-    else:
-        print_error(f"Unsupported energy spectrum of type {spectrum_type}")
-
-    return energy_spectrum
-
-
-def _load_temperature_interpolation(h5_group):
-    """Load an explicit or implicit temperature-table interpolation rule."""
-    # Older generated libraries used the singular dataset name for Maxwellian
-    # spectra.  Accept it so those libraries remain usable.
-    dataset_name = "temperature_interpolations"
-    if dataset_name not in h5_group:
-        dataset_name = "temperature_interpolation"
-
-    interpolation_names = h5_group[dataset_name][()]
-
-    # ACE uses zero interpolation regions for its default linear-linear rule.
-    # Return the scalar form so DataTable supplies the full-table boundary.
-    if len(interpolation_names) == 0:
-        return encode_interpolation("linear"), None
-
-    interpolations = [
-        encode_interpolation(name.decode("utf-8")) for name in interpolation_names
-    ]
-    interpolation_boundaries = h5_group["interpolation_boundaries"][()]
-    return interpolations, interpolation_boundaries
+def set_angular_distribution(h5_group):
+    """Read an explicit angle law, or identify an angle supplied by a joint law."""
+    if h5_group is None:
+        return DistributionNone()
+    return read_distribution(h5_group)

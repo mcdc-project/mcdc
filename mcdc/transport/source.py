@@ -9,9 +9,8 @@ import mcdc.transport.rng as rng
 from mcdc.transport.distribution import (
     sample_distribution_with_scale,
     sample_uniform,
-    sample_tabulated,
-    sample_tabulated_with_interval,
-    sample_pmf,
+    sample_table,
+    sample_table_with_interval,
     sample_white_direction,
     sample_isotropic_direction,
 )
@@ -83,14 +82,14 @@ def source_particle(particle_container, seed, simulation, data):
             )
         else:
             if source["energy_at_polar_cosine_active"]:
-                mu, polar_interval = _sample_source_tabulated_with_interval(
+                mu, polar_interval = _sample_source_table_with_interval(
                     source["polar_cosine_pdf_ID"],
                     particle_container,
                     simulation,
                     data,
                 )
             else:
-                mu = _sample_source_tabulated(
+                mu = _sample_source_table(
                     source["polar_cosine_pdf_ID"],
                     particle_container,
                     simulation,
@@ -104,7 +103,7 @@ def source_particle(particle_container, seed, simulation, data):
                 particle_container,
             )
         else:
-            azi = _sample_source_tabulated(
+            azi = _sample_source_table(
                 source["azimuthal_pdf_ID"],
                 particle_container,
                 simulation,
@@ -138,10 +137,10 @@ def source_particle(particle_container, seed, simulation, data):
     elif source["discrete_energy"]:
         ID = source["energy_pmf_ID"]
         sub_ID = simulation["distributions"][ID]["sub_ID"]
-        pmf = simulation["pmf_distributions"][sub_ID]
-        E = sample_pmf(pmf, particle_container, data)
+        pmf = simulation["table_distributions"][sub_ID]
+        E = sample_table(pmf, particle_container, simulation, data)
     else:
-        E = _sample_source_tabulated(
+        E = _sample_source_table(
             source["energy_pdf_ID"], particle_container, simulation, data
         )
 
@@ -153,7 +152,7 @@ def source_particle(particle_container, seed, simulation, data):
             source["time_range"][0], source["time_range"][1], particle_container
         )
     else:
-        t = _sample_source_tabulated(
+        t = _sample_source_table(
             source["time_pdf_ID"], particle_container, simulation, data
         )
 
@@ -204,23 +203,23 @@ def sample_position_axis(uniform, bounds, pdf_ID, rng_state, simulation, data):
     if uniform:
         return sample_uniform(bounds[0], bounds[1], rng_state)
 
-    return _sample_source_tabulated(pdf_ID, rng_state, simulation, data)
+    return _sample_source_table(pdf_ID, rng_state, simulation, data)
 
 
 @njit
-def _sample_source_tabulated(pdf_ID, rng_state, simulation, data):
+def _sample_source_table(pdf_ID, rng_state, simulation, data):
     """Sample one of a source's tabulated continuous distributions."""
     sub_ID = simulation["distributions"][pdf_ID]["sub_ID"]
-    table = simulation["tabulated_distributions"][sub_ID]
-    return sample_tabulated(table, rng_state, simulation, data)
+    table = simulation["table_distributions"][sub_ID]
+    return sample_table(table, rng_state, simulation, data)
 
 
 @njit
-def _sample_source_tabulated_with_interval(pdf_ID, rng_state, simulation, data):
+def _sample_source_table_with_interval(pdf_ID, rng_state, simulation, data):
     """Sample a source distribution and retain its interpolation interval."""
     sub_ID = simulation["distributions"][pdf_ID]["sub_ID"]
-    table = simulation["tabulated_distributions"][sub_ID]
-    return sample_tabulated_with_interval(table, rng_state, simulation, data)
+    table = simulation["table_distributions"][sub_ID]
+    return sample_table_with_interval(table, rng_state, simulation, data)
 
 
 @njit
@@ -228,7 +227,7 @@ def _interpolate_energy_at_polar_cosine(mu, interval, source, simulation, data):
     """Interpolate deterministic source energy in the sampled cosine interval."""
     pdf_ID = source["polar_cosine_pdf_ID"]
     sub_ID = simulation["distributions"][pdf_ID]["sub_ID"]
-    table = simulation["tabulated_distributions"][sub_ID]
+    table = simulation["table_distributions"][sub_ID]
     pdf_data = simulation["data"][table["pdf_ID"]]
     pdf_table = simulation["table_data"][pdf_data["sub_ID"]]
 

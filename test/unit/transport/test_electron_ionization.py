@@ -1,8 +1,18 @@
+from pathlib import Path
+import sys
+
 import math
 
 import h5py
 import numpy as np
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools"))
+from data_library_generator.common.hdf5_writer import (
+    data_table as write_electron_data,
+    interpolation,
+    multi_table,
+)
 
 import mcdc
 import mcdc.numba_types as type_
@@ -29,30 +39,40 @@ def _rng_state_for_xi(xi, draw_count):
 def _write_ionization_library(path, product_grid, product_offset, value, cdf):
     # A small synthetic library exercising the real HDF5 reader and packing
     with h5py.File(path, "w") as file:
-        file["atomic_weight_ratio"] = 1.0
-        file["atomic_number"] = 1
-        electron = file.create_group("electron_reactions")
-        electron["xs_energy_grid"] = [100.0, 10_000.0]
-        reaction = electron.create_group("ionization/MT-522")
-        reaction.attrs["MT"] = 522
-        reaction["xs"] = [1.0, 1.0]
-        reaction["xs"].attrs["offset"] = 0
-        reaction["reference_frame"] = np.bytes_("LAB")
-        subshell = reaction.create_group("subshells/MT-534")
-        subshell["binding_energy"] = 100.0
-        subshell["energy_grid"] = [100.0, 10_000.0]
-        subshell["xs"] = [1.0, 1.0]
-        product = subshell.create_group("product")
-        product["energy_grid"] = product_grid
-        product["energy_offset"] = product_offset
-        product["value"] = value
-        product["CDF"] = cdf
+        file.attrs["format"] = "mcdc-data"
+        file.attrs["format-version"] = "0.1.0"
+        file["atomic-number"] = 1
+        grid = np.array([100.0, 10000.0])
+        file["xs-energy-grid"] = grid
+        reaction = file.create_group("reactions/ionization")
+        reaction.attrs["ENDF-MT"] = 522
+        reaction.attrs["category"] = "ionization"
+        reaction["xs/value"] = [1.0, 1.0]
+        reaction["xs/offset"] = 0
+        interpolation(reaction["xs"], 2)
+        reaction["reference-frame"] = "LAB"
+        reaction.create_group("cross-products")
+        shell = reaction.create_group("subshells/K")
+        shell["designator"] = 1
+        shell["binding-energy"] = 100.0
+        write_electron_data(shell.create_group("xs"), grid, [1.0, 1.0], "barn")
+        shell.create_group("cross-products")
+        offsets = [*product_offset, len(value)]
+        tables = []
+        for i in range(len(product_grid)):
+            start, end = offsets[i : i + 2]
+            x, c = np.asarray(value[start:end]), np.asarray(cdf[start:end])
+            pdf = np.diff(c) / np.diff(x)
+            tables.append((x, np.r_[pdf, pdf[-1]], ["histogram"]))
+        multi_table(
+            shell.create_group("secondary-energy-distribution"), product_grid, tables
+        )
 
 
 @pytest.fixture
 def ionization_model(tmp_path, monkeypatch, prepare_simulation):
     _write_ionization_library(
-        tmp_path / "H.h5",
+        tmp_path / "electron-H.h5",
         product_grid=[100.0, 1000.0, 10_000.0],
         product_offset=[0, 2, 5],
         value=[0.01, 0.1, 1.0, 4.0, 16.0, 9.0, 36.0, 576.0],
@@ -74,7 +94,7 @@ def test_ionization_library_without_spectrum_above_binding_energy(
 ):
     # Every product table at or below the binding energy is rejected on load.
     _write_ionization_library(
-        tmp_path / "H.h5",
+        tmp_path / "electron-H.h5",
         product_grid=[50.0, 100.0],
         product_offset=[0, 2],
         value=[0.01, 0.1, 0.01, 0.1],

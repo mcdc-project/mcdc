@@ -40,6 +40,64 @@ def xs_chunk(start, length, photon_reaction, data):
 
 
 @njit
+def xs_interpolations(index, photon_reaction, data):
+    offset = photon_reaction["xs_interpolations_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def xs_interpolations_all(photon_reaction, data):
+    start = photon_reaction["xs_interpolations_offset"]
+    size = photon_reaction["xs_interpolations_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def xs_interpolations_last(photon_reaction, data):
+    start = photon_reaction["xs_interpolations_offset"]
+    size = photon_reaction["xs_interpolations_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def xs_interpolations_chunk(start, length, photon_reaction, data):
+    start += photon_reaction["xs_interpolations_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def xs_interpolation_boundaries(index, photon_reaction, data):
+    offset = photon_reaction["xs_interpolation_boundaries_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def xs_interpolation_boundaries_all(photon_reaction, data):
+    start = photon_reaction["xs_interpolation_boundaries_offset"]
+    size = photon_reaction["xs_interpolation_boundaries_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def xs_interpolation_boundaries_last(photon_reaction, data):
+    start = photon_reaction["xs_interpolation_boundaries_offset"]
+    size = photon_reaction["xs_interpolation_boundaries_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def xs_interpolation_boundaries_chunk(start, length, photon_reaction, data):
+    start += photon_reaction["xs_interpolation_boundaries_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
 def secondary_product_IDs(index, photon_reaction, data):
     offset = photon_reaction["secondary_product_IDs_offset"]
     return int64(data[offset + index])

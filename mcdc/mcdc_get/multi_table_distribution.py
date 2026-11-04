@@ -40,29 +40,406 @@ def grid_chunk(start, length, multi_table_distribution, data):
 
 
 @njit
-def table_IDs(index, multi_table_distribution, data):
-    offset = multi_table_distribution["table_IDs_offset"]
+def offsets(index, multi_table_distribution, data):
+    offset = multi_table_distribution["offsets_offset"]
     return int64(data[offset + index])
 
 
 @array_return(nb.types.float64)
-def table_IDs_all(multi_table_distribution, data):
-    start = multi_table_distribution["table_IDs_offset"]
-    size = multi_table_distribution["N_table"]
+def offsets_all(multi_table_distribution, data):
+    start = multi_table_distribution["offsets_offset"]
+    size = multi_table_distribution["offsets_length"]
     end = start + size
     return array_result(data[start:end])
 
 
 @njit
-def table_IDs_last(multi_table_distribution, data):
-    start = multi_table_distribution["table_IDs_offset"]
-    size = multi_table_distribution["N_table"]
+def offsets_last(multi_table_distribution, data):
+    start = multi_table_distribution["offsets_offset"]
+    size = multi_table_distribution["offsets_length"]
     end = start + size
     return int64(data[end - 1])
 
 
 @array_return(nb.types.float64)
-def table_IDs_chunk(start, length, multi_table_distribution, data):
-    start += multi_table_distribution["table_IDs_offset"]
+def offsets_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["offsets_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def value(index, multi_table_distribution, data):
+    offset = multi_table_distribution["value_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def value_all(multi_table_distribution, data):
+    start = multi_table_distribution["value_offset"]
+    size = multi_table_distribution["value_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def value_last(multi_table_distribution, data):
+    start = multi_table_distribution["value_offset"]
+    size = multi_table_distribution["value_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def value_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["value_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def pdf(index, multi_table_distribution, data):
+    offset = multi_table_distribution["pdf_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def pdf_all(multi_table_distribution, data):
+    start = multi_table_distribution["pdf_offset"]
+    size = multi_table_distribution["pdf_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def pdf_last(multi_table_distribution, data):
+    start = multi_table_distribution["pdf_offset"]
+    size = multi_table_distribution["pdf_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def pdf_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["pdf_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def cdf(index, multi_table_distribution, data):
+    offset = multi_table_distribution["cdf_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def cdf_all(multi_table_distribution, data):
+    start = multi_table_distribution["cdf_offset"]
+    size = multi_table_distribution["cdf_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def cdf_last(multi_table_distribution, data):
+    start = multi_table_distribution["cdf_offset"]
+    size = multi_table_distribution["cdf_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def cdf_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["cdf_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def discrete_offsets(index, multi_table_distribution, data):
+    offset = multi_table_distribution["discrete_offsets_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def discrete_offsets_all(multi_table_distribution, data):
+    start = multi_table_distribution["discrete_offsets_offset"]
+    size = multi_table_distribution["discrete_offsets_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def discrete_offsets_last(multi_table_distribution, data):
+    start = multi_table_distribution["discrete_offsets_offset"]
+    size = multi_table_distribution["discrete_offsets_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def discrete_offsets_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["discrete_offsets_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def discrete_value(index, multi_table_distribution, data):
+    offset = multi_table_distribution["discrete_value_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def discrete_value_all(multi_table_distribution, data):
+    start = multi_table_distribution["discrete_value_offset"]
+    size = multi_table_distribution["discrete_value_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def discrete_value_last(multi_table_distribution, data):
+    start = multi_table_distribution["discrete_value_offset"]
+    size = multi_table_distribution["discrete_value_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def discrete_value_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["discrete_value_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def pmf(index, multi_table_distribution, data):
+    offset = multi_table_distribution["pmf_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def pmf_all(multi_table_distribution, data):
+    start = multi_table_distribution["pmf_offset"]
+    size = multi_table_distribution["pmf_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def pmf_last(multi_table_distribution, data):
+    start = multi_table_distribution["pmf_offset"]
+    size = multi_table_distribution["pmf_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def pmf_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["pmf_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def cmf(index, multi_table_distribution, data):
+    offset = multi_table_distribution["cmf_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def cmf_all(multi_table_distribution, data):
+    start = multi_table_distribution["cmf_offset"]
+    size = multi_table_distribution["cmf_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def cmf_last(multi_table_distribution, data):
+    start = multi_table_distribution["cmf_offset"]
+    size = multi_table_distribution["cmf_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def cmf_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["cmf_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def continuous_probability(index, multi_table_distribution, data):
+    offset = multi_table_distribution["continuous_probability_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def continuous_probability_all(multi_table_distribution, data):
+    start = multi_table_distribution["continuous_probability_offset"]
+    size = multi_table_distribution["continuous_probability_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def continuous_probability_last(multi_table_distribution, data):
+    start = multi_table_distribution["continuous_probability_offset"]
+    size = multi_table_distribution["continuous_probability_length"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def continuous_probability_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["continuous_probability_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def interpolations(index, multi_table_distribution, data):
+    offset = multi_table_distribution["interpolations_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def interpolations_all(multi_table_distribution, data):
+    start = multi_table_distribution["interpolations_offset"]
+    size = multi_table_distribution["interpolations_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def interpolations_last(multi_table_distribution, data):
+    start = multi_table_distribution["interpolations_offset"]
+    size = multi_table_distribution["interpolations_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def interpolations_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["interpolations_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def interpolation_boundaries(index, multi_table_distribution, data):
+    offset = multi_table_distribution["interpolation_boundaries_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def interpolation_boundaries_all(multi_table_distribution, data):
+    start = multi_table_distribution["interpolation_boundaries_offset"]
+    size = multi_table_distribution["interpolation_boundaries_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def interpolation_boundaries_last(multi_table_distribution, data):
+    start = multi_table_distribution["interpolation_boundaries_offset"]
+    size = multi_table_distribution["interpolation_boundaries_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def interpolation_boundaries_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["interpolation_boundaries_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def pdf_interpolations(index, multi_table_distribution, data):
+    offset = multi_table_distribution["pdf_interpolations_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def pdf_interpolations_all(multi_table_distribution, data):
+    start = multi_table_distribution["pdf_interpolations_offset"]
+    size = multi_table_distribution["pdf_interpolations_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def pdf_interpolations_last(multi_table_distribution, data):
+    start = multi_table_distribution["pdf_interpolations_offset"]
+    size = multi_table_distribution["pdf_interpolations_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def pdf_interpolations_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["pdf_interpolations_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def pdf_interpolation_boundaries(index, multi_table_distribution, data):
+    offset = multi_table_distribution["pdf_interpolation_boundaries_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def pdf_interpolation_boundaries_all(multi_table_distribution, data):
+    start = multi_table_distribution["pdf_interpolation_boundaries_offset"]
+    size = multi_table_distribution["pdf_interpolation_boundaries_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def pdf_interpolation_boundaries_last(multi_table_distribution, data):
+    start = multi_table_distribution["pdf_interpolation_boundaries_offset"]
+    size = multi_table_distribution["pdf_interpolation_boundaries_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def pdf_interpolation_boundaries_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["pdf_interpolation_boundaries_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def pdf_interpolation_offsets(index, multi_table_distribution, data):
+    offset = multi_table_distribution["pdf_interpolation_offsets_offset"]
+    return int64(data[offset + index])
+
+
+@array_return(nb.types.float64)
+def pdf_interpolation_offsets_all(multi_table_distribution, data):
+    start = multi_table_distribution["pdf_interpolation_offsets_offset"]
+    size = multi_table_distribution["pdf_interpolation_offsets_length"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def pdf_interpolation_offsets_last(multi_table_distribution, data):
+    start = multi_table_distribution["pdf_interpolation_offsets_offset"]
+    size = multi_table_distribution["pdf_interpolation_offsets_length"]
+    end = start + size
+    return int64(data[end - 1])
+
+
+@array_return(nb.types.float64)
+def pdf_interpolation_offsets_chunk(start, length, multi_table_distribution, data):
+    start += multi_table_distribution["pdf_interpolation_offsets_offset"]
     end = start + length
     return array_result(data[start:end])

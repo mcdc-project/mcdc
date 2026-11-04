@@ -12,15 +12,15 @@ import mcdc.mcdc_get.polynomial_data as polynomial_data
 
 import mcdc.mcdc_get.table_data as table_data
 
-import mcdc.mcdc_get.ace_law4_distribution as ace_law4_distribution
-
 import mcdc.mcdc_get.kalbach_mann_distribution as kalbach_mann_distribution
+
+import mcdc.mcdc_get.mixture_distribution as mixture_distribution
 
 import mcdc.mcdc_get.multi_table_distribution as multi_table_distribution
 
-import mcdc.mcdc_get.pmf_distribution as pmf_distribution
+import mcdc.mcdc_get.table_distribution as table_distribution
 
-import mcdc.mcdc_get.tabulated_energy_angle_distribution as tabulated_energy_angle_distribution
+import mcdc.mcdc_get.table_energy_angle_distribution as table_energy_angle_distribution
 
 import mcdc.mcdc_get.electron_reaction as electron_reaction
 
@@ -29,6 +29,8 @@ import mcdc.mcdc_get.electron_ionization_reaction as electron_ionization_reactio
 import mcdc.mcdc_get.secondary_product as secondary_product
 
 import mcdc.mcdc_get.element as element
+
+import mcdc.mcdc_get.photon_reaction as photon_reaction
 
 import mcdc.mcdc_get.photon_photoelectric_reaction as photon_photoelectric_reaction
 
@@ -40,11 +42,7 @@ import mcdc.mcdc_get.structured_mesh as structured_mesh
 
 import mcdc.mcdc_get.neutron_reaction as neutron_reaction
 
-import mcdc.mcdc_get.neutron_inelastic_scattering_reaction as neutron_inelastic_scattering_reaction
-
-import mcdc.mcdc_get.proton_inelastic_scattering_reaction as proton_inelastic_scattering_reaction
-
-import mcdc.mcdc_get.photon_reaction as photon_reaction
+import mcdc.mcdc_get.neutron_fission_reaction as neutron_fission_reaction
 
 import mcdc.mcdc_get.proton_reaction as proton_reaction
 

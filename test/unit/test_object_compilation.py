@@ -181,6 +181,8 @@ def test_native_only_simulation_remains_hybrid(monkeypatch):
     # Isolate mode finalization from native data-library loading.
     def compile_nuclide(nuclide, simulation):
         nuclide.fissionable = False
+        nuclide.element.atomic_number = 1
+        MCDCObject._compile_into_simulation(nuclide.element, simulation)
         return MCDCObject._compile_into_simulation(nuclide, simulation)
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)
@@ -199,6 +201,8 @@ def test_native_nuclide_data_loading_is_reported(monkeypatch, capsys):
         nuclide.fissionable = False
         nuclide.mass_number = 1
         nuclide.radiation_length = 1.0
+        nuclide.element.atomic_number = 1
+        MCDCObject._compile_into_simulation(nuclide.element, simulation)
         return MCDCObject._compile_into_simulation(nuclide, simulation)
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)
@@ -221,15 +225,14 @@ def test_native_nuclide_data_loading_is_reported(monkeypatch, capsys):
 
     output = capsys.readouterr().out
     assert "\n Loading neutron data [1/1]" in output
-    assert "Loading neutron data [1/1]: H1-293.6K.h5" in output
-    assert "Loading proton data [1/1]: H1.h5" in output
+    assert "Loading neutron data [1/1]: neutron-H1-293.6K.h5" in output
+    assert "Loading proton data [1/1]: proton-H1.h5" in output
     assert simulation.runtime_data_loading == 2.5
 
 
 def test_native_element_data_loading_is_reported(monkeypatch, capsys):
     def compile_element(element, simulation):
         element.atomic_number = 1
-        element.atomic_weight_ratio = 1.0
         return MCDCObject._compile_into_simulation(element, simulation)
 
     monkeypatch.setattr(Element, "_compile_into_simulation", compile_element)
@@ -257,7 +260,6 @@ def test_native_photon_element_data_loading_is_reported(monkeypatch, capsys):
 
     def compile_element(element, simulation):
         element.atomic_number = 1
-        element.atomic_weight_ratio = 1.0
         return MCDCObject._compile_into_simulation(element, simulation)
 
     monkeypatch.setattr(Element, "_compile_into_simulation", compile_element)
@@ -270,7 +272,7 @@ def test_native_photon_element_data_loading_is_reported(monkeypatch, capsys):
 
     simulation.compile()
 
-    assert "Loading photon data [1/1]: H.h5" in capsys.readouterr().out
+    assert "Loading photon data [1/1]: photon-H.h5" in capsys.readouterr().out
 
 
 def test_local_multigroup_grids_pack_hybrid(prepare_simulation):
@@ -378,6 +380,8 @@ def test_material_canonicalizes_composition_before_member_compilation(monkeypatc
     # Replace library loading with the minimal state needed for this unit test
     def compile_nuclide(nuclide, simulation):
         nuclide.fissionable = nuclide.name == "U235"
+        nuclide.element.atomic_number = 92
+        MCDCObject._compile_into_simulation(nuclide.element, simulation)
         return MCDCObject._compile_into_simulation(nuclide, simulation)
 
     monkeypatch.setattr(Nuclide, "_compile_into_simulation", compile_nuclide)

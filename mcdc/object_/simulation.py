@@ -104,6 +104,7 @@ class Simulation(MCDCBase):
     non_numba = [
         "_next_compile_ID",
         "_next_sub_ID",
+        "_shared_objects",
         "compiled",
         "regions",
         "root_universe",
@@ -114,6 +115,8 @@ class Simulation(MCDCBase):
     ]
     _next_compile_ID: int = 1  # Non-Numba
     _next_sub_ID: dict[tuple[int, int], int]  # Non-Numba
+    # Canonical stateless objects prevent duplicate records during compilation.
+    _shared_objects: dict[type, MCDCBase]  # Non-Numba
 
     # Basic parameters
     name: str
@@ -314,6 +317,7 @@ class Simulation(MCDCBase):
     def _reset_model(self) -> None:
         # Registration state
         self._next_sub_ID = {}
+        self._shared_objects = {}
 
         # Physics
         self.data = []
@@ -365,16 +369,7 @@ class Simulation(MCDCBase):
                 "prioritize_low_energy is currently supported only for electron transport."
             )
 
-        # Enable transport for every particle species present in the sources.
-        for source in self.sources:
-            if source.particle_type == PARTICLE_NEUTRON:
-                settings.neutron_transport.active = True
-            elif source.particle_type == PARTICLE_ELECTRON:
-                settings.electron_transport.active = True
-            elif source.particle_type == PARTICLE_PROTON:
-                settings.proton_transport.active = True
-            elif source.particle_type == PARTICLE_PHOTON:
-                settings.photon_transport.active = True
+        self._activate_source_transport()
 
         # Check that specified weight windows will actually trigger
         active_ww = lambda pname: getattr(
@@ -452,7 +447,7 @@ class Simulation(MCDCBase):
                 if source.mono_energetic:
                     source_energies = np.array([source.energy])
                 elif source.discrete_energy:
-                    source_energies = source.energy_pmf.value
+                    source_energies = source.energy_pmf.discrete_value
                 else:
                     print_error(
                         "Standard neutron multigroup transport requires neutron "
@@ -489,7 +484,7 @@ class Simulation(MCDCBase):
         for material in self.materials:
             if settings.neutron_transport.active:
                 set_nuclides_from_elements(material, self)
-            if settings.electron_transport.active or settings.photon_transport.active:
+            if material.nuclide_composition:
                 set_elements_from_nuclides(material, self)
 
         # Load the physics data required by the completed material model
@@ -506,16 +501,13 @@ class Simulation(MCDCBase):
         if settings.neutron_transport.active:
             N_nuclide = len(self.nuclides)
             for index, nuclide in enumerate(self.nuclides, start=1):
-                file_name = f"{nuclide.name}-{nuclide.temperature}K.h5"
+                file_name = f"neutron-{nuclide.name}-{nuclide.temperature}K.h5"
                 print_msg(f" Loading neutron data [{index}/{N_nuclide}]: {file_name}")
                 nuclide.set_neutron_data(self)
-            for material in self.materials:
-                update_fissionable_from_nuclides(material)
-
         if settings.proton_transport.active:
             N_nuclide = len(self.nuclides)
             for index, nuclide in enumerate(self.nuclides, start=1):
-                file_name = f"{nuclide.name}.h5"
+                file_name = f"proton-{nuclide.name}.h5"
                 print_msg(f" Loading proton data [{index}/{N_nuclide}]: {file_name}")
                 nuclide.set_proton_data(self)
             for material in self.materials:
@@ -524,7 +516,7 @@ class Simulation(MCDCBase):
         if settings.photon_transport.active:
             N_element = len(self.elements)
             for index, element in enumerate(self.elements, start=1):
-                file_name = f"{element.name}.h5"
+                file_name = f"photon-{element.name}.h5"
                 print_msg(f" Loading photon data [{index}/{N_element}]: {file_name}")
                 element.set_photon_data(self)
 
@@ -534,6 +526,10 @@ class Simulation(MCDCBase):
                 file_name = f"{element.name}.h5"
                 print_msg(f" Loading electron data [{index}/{N_element}]: {file_name}")
                 element.set_electron_data(self)
+
+        if settings.neutron_transport.active:
+            for material in self.materials:
+                update_fissionable_from_nuclides(material)
 
         self.runtime_data_loading = MPI.Wtime() - time_data_loading_start
 
@@ -649,6 +645,18 @@ class Simulation(MCDCBase):
     # Operations
     # ==================================================================================
 
+    def _activate_source_transport(self):
+        """Enable source species before resolving projectile-dependent material data."""
+        for source in self.sources:
+            if source.particle_type == PARTICLE_NEUTRON:
+                self.settings.neutron_transport.active = True
+            elif source.particle_type == PARTICLE_ELECTRON:
+                self.settings.electron_transport.active = True
+            elif source.particle_type == PARTICLE_PROTON:
+                self.settings.proton_transport.active = True
+            elif source.particle_type == PARTICLE_PHOTON:
+                self.settings.photon_transport.active = True
+
     def compile(self) -> None:
         """Compile and finalize the Python model into a simulation snapshot.
 
@@ -665,6 +673,7 @@ class Simulation(MCDCBase):
         type(self)._next_compile_ID += 1
 
         override_settings(self)
+        self._activate_source_transport()
 
         compile_simulation(self)
         self.compiled = True

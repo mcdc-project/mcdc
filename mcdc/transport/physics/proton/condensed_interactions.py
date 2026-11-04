@@ -246,7 +246,8 @@ def calculate_total_stopping_power(particle_container, simulation, data):
         density_gcm3 = nuclide_density * 1e24 * atomic_mass / (6.022e23)
         total_rho_gcm3 += density_gcm3
 
-        total_Z += nuclide["atomic_number"]
+        element = simulation["elements"][nuclide["element_ID"]]
+        total_Z += element["atomic_number"]
         total_A += nuclide["mass_number"]
 
     average_Z = total_Z / material["N_nuclide"]
