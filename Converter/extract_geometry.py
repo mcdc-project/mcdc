@@ -449,7 +449,6 @@ class CurveReader:
 
         return ("bad", f"can't handle this kind of code: {type(node).__name__}")
 
-    # union of plain boxes, only usable as something to cut out with ~
     def combine_or(self, left, right):
         pieces = []
         for side in (left, right):
@@ -469,8 +468,6 @@ class CurveReader:
                     return v[1]
         return None
 
-    # same as read_keyword, but falls back to the argument's position in the call
-    # the first argument is the name, so center is second and radius is third
     def read_arg(self, node, env, names, slot):
         v = self.read_keyword(node, env, names)
         if v is None and len(node.args) > slot:
@@ -520,7 +517,6 @@ class CurveReader:
             }[name]
             value = self.read_keyword(node, env, (axis,))
             if value is None and node.args:
-                # value is the second argument after the name, but also accepts just the value
                 for slot in (1, 0):
                     if len(node.args) > slot:
                         v = self.resolve(node.args[slot], env)
@@ -610,7 +606,6 @@ class CurveReader:
             return ("bad", "can't combine two curved shapes in one cell yet")
         return ("combo", merge_boxes(lbox, rbox), lcurve or rcurve)
 
-    # handles A & ~B, collects the shape to keep and the shapes to cut out of it
     def combine_subtraction(self, left, right):
         keep = None
         cuts = []
@@ -711,7 +706,6 @@ def boolean_combine(mesh_a, mesh_b, op):
     boolean.SetInputData(1, prep(mesh_b))
     boolean.Update()
 
-    # redo normals so sharp edges stay sharp, the ones from prep smooth over them
     normals = vtk.vtkPolyDataNormals()
     normals.SetInputData(boolean.GetOutput())
     normals.SplittingOn()
@@ -750,7 +744,6 @@ def fill_missing_bounds(box, extent):
     return filled
 
 
-# mesh for one piece of a subtraction, a plain box or a curved shape
 def piece_to_mesh(result):
     if result[0] == "combo" and result[2] is None:
         if box_complete(result[1]):
@@ -759,7 +752,6 @@ def piece_to_mesh(result):
     return curve_to_mesh(result)
 
 
-# exact outer surface of some boxes joined together with boxes cut out, no vtk boolean needed
 def boxes_to_surface(boxes, cuts):
     edges = {}
     for axis in "xyz":
@@ -768,7 +760,6 @@ def boxes_to_surface(boxes, cuts):
             vals.update(b[axis])
         edges[axis] = sorted(vals)
 
-    # a grid cell is solid if its center is in one of the boxes and in no cut
     def solid(i, j, k):
         idx = {"x": i, "y": j, "z": k}
         if any(idx[a] < 0 or idx[a] >= len(edges[a]) - 1 for a in "xyz"):
@@ -791,7 +782,6 @@ def boxes_to_surface(boxes, cuts):
         idx = {axis: p, u_axis: u, v_axis: v}
         return idx["x"], idx["y"], idx["z"]
 
-    # one flat face, corners ordered so the normal points out of the solid
     def add_face(axis, p, sign, u_axis, u0, u1, v_axis, v0, v1):
         c = edges[axis][p + 1 if sign > 0 else p]
         ua, ub = edges[u_axis][u0], edges[u_axis][u1 + 1]
@@ -805,7 +795,6 @@ def boxes_to_surface(boxes, cuts):
             ids.append(points.InsertNextPoint(pt["x"], pt["y"], pt["z"]))
         quads.InsertNextCell(4, ids)
 
-    # on each plane, join exposed cells into the biggest rectangles
     for axis in "xyz":
         u_axis, v_axis = nxt[axis]
         for sign in (-1, 1):
@@ -841,7 +830,6 @@ def boxes_to_surface(boxes, cuts):
     return clean.GetOutput()
 
 
-# cut sitting fully inside the mesh, keeps it as an inner surface facing inward
 def add_cavity(mesh, cut_mesh):
     flip = vtk.vtkReverseSense()
     flip.SetInputData(cut_mesh)
@@ -856,7 +844,6 @@ def add_cavity(mesh, cut_mesh):
     return append.GetOutput()
 
 
-# stretches a cut past any side it shares with the mesh so the boolean has no touching faces
 def stretch_cut(mesh, cut_mesh):
     mb = mesh.GetBounds()
     cb = cut_mesh.GetBounds()
@@ -884,9 +871,7 @@ def stretch_cut(mesh, cut_mesh):
     return mover.GetOutput()
 
 
-# cuts every ~ shape out of the shape it sits in
 def subtract_to_mesh(result):
-    # plain boxes only, use the exact method
     pieces = [result[1]] + list(result[2])
     if all(p[0] == "combo" and p[2] is None and box_complete(p[1]) for p in pieces):
         return boxes_to_surface([result[1][1]], [c[1] for c in result[2]]), None
@@ -1000,7 +985,6 @@ def extract(input_file):
         box_shapes = box_to_shapes(box_result)
 
         if box_shapes is not None:
-            # boxes joined with | become one surface with no walls between them
             if len(box_shapes) > 1:
                 meshes = [boxes_to_surface(box_shapes, [])]
             else:
