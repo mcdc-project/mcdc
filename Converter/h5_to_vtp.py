@@ -4,10 +4,10 @@ import numpy as np
 import vtk
 from vtk.util import numpy_support
 
-all_dims  = ["mu", "azi", "energy", "time", "face", "u", "v"]
+all_dims = ["mu", "azi", "energy", "time", "face", "u", "v"]
 skip_dims = {"mu", "azi", "energy"}
 
-axis_idx  = {"x": 0, "y": 1, "z": 2}
+axis_idx = {"x": 0, "y": 1, "z": 2}
 span_axes = {"x": ("y", "z"), "y": ("x", "z"), "z": ("x", "y")}
 
 
@@ -15,7 +15,8 @@ span_axes = {"x": ("y", "z"), "y": ("x", "z"), "z": ("x", "y")}
 # Helper functions
 # ======================================================================================
 
-# splits face label 
+
+# splits face label
 def parse_face(label):
     axis = label[0]
     side = label[1:]
@@ -42,6 +43,7 @@ def get_active_dims(tally):
             active.append(dim)
     return active
 
+
 # pulls the real box bounds straight from file
 def bounds_from_grid(tally):
     grid = tally["grid"]
@@ -61,32 +63,55 @@ def bounds_from_grid(tally):
             return None, None
         axis, side, a1, a2 = parsed
         u_edges, v_edges = u_raw[i], v_raw[i]
-        bounds[a1 + "0"] = float(u_edges[0]); bounds[a1 + "1"] = float(u_edges[-1])
-        bounds[a2 + "0"] = float(v_edges[0]); bounds[a2 + "1"] = float(v_edges[-1])
+        bounds[a1 + "0"] = float(u_edges[0])
+        bounds[a1 + "1"] = float(u_edges[-1])
+        bounds[a2 + "0"] = float(v_edges[0])
+        bounds[a2 + "1"] = float(v_edges[-1])
         per_face_edges[i] = (u_edges, v_edges)
 
     if not all(k in bounds for k in ("x0", "x1", "y0", "y1", "z0", "z1")):
         return None, None
-    box = (bounds["x0"], bounds["x1"], bounds["y0"], bounds["y1"], bounds["z0"], bounds["z1"])
+    box = (
+        bounds["x0"],
+        bounds["x1"],
+        bounds["y0"],
+        bounds["y1"],
+        bounds["z0"],
+        bounds["z1"],
+    )
     return box, per_face_edges
 
+
 # build face mesh
-def build_face_mesh(bounds, face_label, vals_2d, score_name, u_edges=None, v_edges=None):
+def build_face_mesh(
+    bounds, face_label, vals_2d, score_name, u_edges=None, v_edges=None
+):
     x0, x1, y0, y1, z0, z1 = bounds
-    box_min = [x0, y0, z0]; box_max = [x1, y1, z1]
+    box_min = [x0, y0, z0]
+    box_max = [x1, y1, z1]
     fixed_axis, fixed_val_key, span1, span2 = parse_face(face_label)
     fi, s1, s2 = axis_idx[fixed_axis], axis_idx[span1], axis_idx[span2]
     fixed_val = box_min[fi] if fixed_val_key == "min" else box_max[fi]
     n_u, n_v = vals_2d.shape
 
-    span1_edges = u_edges if u_edges is not None else np.linspace(box_min[s1], box_max[s1], n_u + 1)
-    span2_edges = v_edges if v_edges is not None else np.linspace(box_min[s2], box_max[s2], n_v + 1)
+    span1_edges = (
+        u_edges
+        if u_edges is not None
+        else np.linspace(box_min[s1], box_max[s1], n_u + 1)
+    )
+    span2_edges = (
+        v_edges
+        if v_edges is not None
+        else np.linspace(box_min[s2], box_max[s2], n_v + 1)
+    )
 
     pts = vtk.vtkPoints()
     for v2 in span2_edges:
         for v1 in span1_edges:
             pt = [0.0, 0.0, 0.0]
-            pt[fi] = fixed_val; pt[s1] = v1; pt[s2] = v2
+            pt[fi] = fixed_val
+            pt[s1] = v1
+            pt[s2] = v2
             pts.InsertNextPoint(pt)
 
     row_len = n_u + 1
@@ -113,6 +138,7 @@ def build_face_mesh(bounds, face_label, vals_2d, score_name, u_edges=None, v_edg
 
 # default layout with no bounds
 net_layout = {0: (0, 1), 1: (2, 1), 2: (1, 1), 3: (3, 1), 4: (1, 2), 5: (1, 0)}
+
 
 # laid out flat for no bounds
 def build_face_mesh_flat(face_idx, vals_2d, score_name, spacing):
@@ -151,6 +177,7 @@ def build_face_mesh_flat(face_idx, vals_2d, score_name, spacing):
 # Conversion
 # ======================================================================================
 
+
 def write_vtp(h5_file, tally, tally_name, output_prefix, bounds_override):
     per_face_edges = None
     bounds = bounds_override
@@ -160,10 +187,14 @@ def write_vtp(h5_file, tally, tally_name, output_prefix, bounds_override):
             print(f"\n  [{tally_name}] got box bounds from the h5 file")
     use_flat_layout = bounds is None
     if use_flat_layout:
-        print(f"\n  [{tally_name}] no box coordinates found, using a flat unfolded layout instead.")
-        print(f"    data is exact, only the 3D placement is schematic. pass --bounds for the real thing.")
+        print(
+            f"\n  [{tally_name}] no box coordinates found, using a flat unfolded layout instead."
+        )
+        print(
+            f"    data is exact, only the 3D placement is schematic. pass --bounds for the real thing."
+        )
 
-    score_list  = [k for k in tally.keys() if k != "grid"]
+    score_list = [k for k in tally.keys() if k != "grid"]
     scores_data = [s for s in score_list if len(tally[f"{s}/mean"].shape) > 0]
     if not scores_data:
         print(f"  no usable scores found in '{tally_name}', skipping")
@@ -181,14 +212,14 @@ def write_vtp(h5_file, tally, tally_name, output_prefix, bounds_override):
         shift = 0
         for i, dim in enumerate(active):
             if dim in skip_dims:
-                data   = data.sum(axis=i - shift)
+                data = data.sum(axis=i - shift)
                 shift += 1
         return data
 
-    data      = nonspatial(raw)
+    data = nonspatial(raw)
     remaining = [d for d in active if d not in skip_dims]
-    time      = "time" in remaining
-    n_steps   = data.shape[remaining.index("time")] if time else 1
+    time = "time" in remaining
+    n_steps = data.shape[remaining.index("time")] if time else 1
 
     face_grid = tally["grid"]["face"][:]
     face_labels = [f.decode() if isinstance(f, bytes) else f for f in face_grid]
@@ -204,15 +235,28 @@ def write_vtp(h5_file, tally, tally_name, output_prefix, bounds_override):
             if use_flat_layout:
                 n_u, n_v = step_data[face_idx].shape
                 spacing = max(n_u, n_v) + 2
-                append.AddInputData(build_face_mesh_flat(face_idx, step_data[face_idx], score, spacing))
+                append.AddInputData(
+                    build_face_mesh_flat(face_idx, step_data[face_idx], score, spacing)
+                )
             else:
                 u_e, v_e = per_face_edges[face_idx] if per_face_edges else (None, None)
-                append.AddInputData(build_face_mesh(bounds, face_labels[face_idx], step_data[face_idx], score, u_edges=u_e, v_edges=v_e))
+                append.AddInputData(
+                    build_face_mesh(
+                        bounds,
+                        face_labels[face_idx],
+                        step_data[face_idx],
+                        score,
+                        u_edges=u_e,
+                        v_edges=v_e,
+                    )
+                )
         append.Update()
 
         tag = "_flat" if use_flat_layout else ""
         suffix = f"_t{step:03d}" if n_steps > 1 else ""
-        output_name = f"{output_prefix}_{tally_name.replace(' ', '_')}_current{tag}{suffix}.vtp"
+        output_name = (
+            f"{output_prefix}_{tally_name.replace(' ', '_')}_current{tag}{suffix}.vtp"
+        )
         writer = vtk.vtkXMLPolyDataWriter()
         writer.SetFileName(output_name)
         writer.SetInputData(append.GetOutput())
@@ -253,7 +297,9 @@ def convert(h5_file, tally_name=None, bounds=None):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("usage: python3 h5_to_vtp.py output.h5 [tally_name] [--bounds x0 x1 y0 y1 z0 z1]")
+        print(
+            "usage: python3 h5_to_vtp.py output.h5 [tally_name] [--bounds x0 x1 y0 y1 z0 z1]"
+        )
         sys.exit(1)
 
     args = sys.argv[1:]
@@ -263,7 +309,7 @@ if __name__ == "__main__":
 
     if "--bounds" in args:
         idx = args.index("--bounds")
-        bounds = tuple(float(v) for v in args[idx + 1:idx + 7])
+        bounds = tuple(float(v) for v in args[idx + 1 : idx + 7])
         args = args[:idx]
 
     if len(args) > 1:

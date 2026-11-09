@@ -2,7 +2,6 @@ import sys
 import extract_geometry
 import mcdc_auto_convert
 
-
 # ======================================================================================
 # Command line
 # ======================================================================================
@@ -11,6 +10,7 @@ import mcdc_auto_convert
 #   python3 mcdc_convert.py --input file.py --output file.h5
 #   python3 mcdc_convert.py --input file.py
 #   python3 mcdc_convert.py --output file.h5
+
 
 # runs the geometry converter and/or the tally converter, so you don't have to call them separately
 def main():

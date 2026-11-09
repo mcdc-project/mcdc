@@ -10,6 +10,7 @@ import h5_to_vtp
 
 xyz = {"x", "y", "z"}
 
+
 # looks at each tally's grid and hands it to whichever writer fits
 def convert(h5_file, tally_name=None, bounds=None):
     output_prefix = h5_file.replace(".h5", "")
@@ -35,9 +36,13 @@ def convert(h5_file, tally_name=None, bounds=None):
             if any(d in grid_keys for d in xyz):
                 total += h5_to_vtr.write_vtr(h5_file, tally, name, output_prefix)
             elif "face" in grid_keys:
-                total += h5_to_vtp.write_vtp(h5_file, tally, name, output_prefix, bounds)
+                total += h5_to_vtp.write_vtp(
+                    h5_file, tally, name, output_prefix, bounds
+                )
             else:
-                print(f"\n  [{name}] don't recognize this tally shape -- grid has: {sorted(grid_keys)}")
+                print(
+                    f"\n  [{name}] don't recognize this tally shape -- grid has: {sorted(grid_keys)}"
+                )
 
     print(f"\ndone -- {total} file(s) written")
 
@@ -48,7 +53,9 @@ def convert(h5_file, tally_name=None, bounds=None):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("usage: python3 mcdc_auto_convert.py output.h5 [tally_name] [--bounds x0 x1 y0 y1 z0 z1]")
+        print(
+            "usage: python3 mcdc_auto_convert.py output.h5 [tally_name] [--bounds x0 x1 y0 y1 z0 z1]"
+        )
         sys.exit(1)
 
     args = sys.argv[1:]
@@ -58,7 +65,7 @@ if __name__ == "__main__":
 
     if "--bounds" in args:
         idx = args.index("--bounds")
-        bounds = tuple(float(v) for v in args[idx + 1:idx + 7])
+        bounds = tuple(float(v) for v in args[idx + 1 : idx + 7])
         args = args[:idx]
 
     if len(args) > 1:
