@@ -268,9 +268,10 @@ class Nuclide(MCDCObject):
         # ==========================================================================
 
         if "stopping_power" in file:
+            # Tables are in MeV and MeV cm2/g, transport uses eV
             self.stopping_power = DataTable(
-                file["stopping_power"]["energy"][()],
-                file["stopping_power"]["total_stopping_power"][()],
+                file["stopping_power"]["energy"][()] * 1e6,
+                file["stopping_power"]["total_stopping_power"][()] * 1e6,
                 INTERPOLATION_LINEAR,
             )
             # Register data loaded during finalization.

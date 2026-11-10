@@ -328,7 +328,8 @@ def set_basic_properties(h5_group):
         reference_frame = REFERENCE_FRAME_LAB
     elif reference_frame == "COM":
         reference_frame = REFERENCE_FRAME_COM
-    q_value = h5_group["Q-value"][()]
+    # Q-values are in MeV, transport uses eV
+    q_value = h5_group["Q-value"][()] * 1e6
     return MT, xs, xs_offset, reference_frame, q_value
 
 

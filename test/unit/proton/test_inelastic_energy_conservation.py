@@ -175,7 +175,7 @@ def test_inelastic_scattering_conserves_energy(inelastic_model):
         interaction[0]["energy_deposition"]
         + particle_container[0]["E"] * particle_container[0]["w"]
         + bank_energy
-    ) == pytest.approx(3.0e6 + reaction["q_value"] * 1.0e6, rel=1e-12)
+    ) == pytest.approx(3.0e6 + reaction["q_value"], rel=1e-12)
 
 
 def test_energy_dependent_proton_yield(tmp_path, prepare_simulation):
