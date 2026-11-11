@@ -11,6 +11,7 @@ from functools import wraps
 from numbers import Integral
 import re
 from pathlib import Path
+import warnings
 
 import ACEtk
 import h5py
@@ -80,15 +81,6 @@ CATEGORY_ORDER = ("elastic-scattering", "capture", "inelastic-scattering", "fiss
 
 def _probability_table_context(source, error):
     """Describe a failed packed table by its ACE source coordinates."""
-    index = error.index
-    if error.path and error.path.endswith("/cosine-distributions"):
-        for table in source.distributions:
-            if index < len(table.outgoing_energies):
-                return (
-                    f"cosine table {index} (E_in = {table.incident_energy:g} MeV, "
-                    f"E_out = {table.outgoing_energies[index]:g} MeV)"
-                )
-            index -= len(table.outgoing_energies)
     energies = getattr(source, "incident_energies", ())
     kind = "outgoing-energy" if hasattr(source, "LAW") else "angular-cosine"
     label = f"{kind} table {error.index}"
@@ -1458,6 +1450,78 @@ def write_angular_distribution(group, source):
 # ======================================================================================
 
 
+def histogram_support_rows(value, pdf, cdf, *, tolerance=1.0e-12):
+    """Select histogram rows while preserving both original support endpoints.
+
+    Remove a leading run below the initial endpoint only when the remaining
+    coordinates are ordered, the source CDF throughout the run is negligible,
+    and the absolute probability affected is within ``tolerance``. Inputs
+    describe one continuous histogram, with no discrete probabilities or CDF
+    offset. The row selection must also be applied to any conditional data.
+
+    Return the retained row indices and an absolute probability bound.
+    Ineligible tables return all rows and a zero bound, leaving validation
+    to the caller. Input arrays are never modified or normalized.
+    """
+    value, pdf, cdf = (np.asarray(array, dtype=float) for array in (value, pdf, cdf))
+    if value.ndim != 1 or pdf.shape != value.shape or cdf.shape != value.shape:
+        raise ValueError("Histogram coordinates, PDF, and CDF must be matching vectors")
+    if not np.isfinite(tolerance) or tolerance < 0:
+        raise ValueError("Probability tolerance must be finite and nonnegative")
+    rows = np.arange(len(value))
+    if (
+        len(value) < 3
+        or value[1] >= value[0]
+        or not np.all(np.isfinite(value))
+        or not np.all(np.isfinite(pdf))
+        or not np.all(np.isfinite(cdf))
+        or np.any(pdf < 0)
+        or np.any(np.diff(value[1:]) < 0)
+    ):
+        return rows, 0.0
+    rejoined = np.flatnonzero(value[1:] >= value[0])
+    if not len(rejoined):
+        return rows, 0.0
+    stop = rejoined[0] + 1
+    # Absolute interval masses prevent cancellation from hiding probability.
+    # Include the replacement interval from the initial endpoint to stop.
+    with np.errstate(over="ignore", invalid="ignore"):
+        affected = np.sum(np.abs(np.diff(value[: stop + 1])) * pdf[:stop])
+        affected += (value[stop] - value[0]) * pdf[0]
+    if (
+        not np.isfinite(affected)
+        or affected > tolerance
+        or np.any(np.abs(cdf[: stop + 1]) > tolerance)
+    ):
+        return rows, 0.0
+    return np.r_[0, rows[stop:]], float(affected)
+
+
+def _outgoing_energy_rows(table, source, path, index):
+    """Select continuous histogram rows and report corrections in ACE coordinates."""
+    rows = np.arange(len(table.outgoing_energies))
+    if (
+        table.interpolation != 1
+        or getattr(table, "number_discrete_photon_lines", 0) != 0
+    ):
+        return rows
+    rows, affected = histogram_support_rows(
+        table.outgoing_energies, table.pdf, table.cdf
+    )
+    removed = len(table.outgoing_energies) - len(rows)
+    if not removed:
+        return rows
+    warnings.warn(
+        f"{path} (ACE LAW {int(source.LAW)}): outgoing-energy table {index} "
+        f"(E_in = {source.incident_energies[index]:g} MeV): discarded {removed} "
+        f"below-support rows; probability bound {affected:.6g}; "
+        "preserved support endpoints",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+    return rows
+
+
 @_distribution_errors
 def write_energy_distribution(group, source):
     """Convert supported ACE energy and joint energy-angle laws to H1 form.
@@ -1540,6 +1604,8 @@ def write_energy_distribution(group, source):
                 probability = np.asarray(table.pdf)
                 if count < 0 or count > len(energy):
                     raise ValueError("Invalid number of discrete energy lines")
+                rows = _outgoing_energy_rows(table, source, group.name, i)
+                energy, probability = energy[rows], probability[rows]
                 discrete_values.append(energy[:count])
                 masses.append(probability[:count])
                 # Line probabilities are dimensionless; only the continuum is a density.
@@ -1564,23 +1630,29 @@ def write_energy_distribution(group, source):
                 boundaries=boundaries,
             )
         else:
-            # Pack both levels of correlated tables in their original source order.
+            # Pack correlated energies and their conditional angular data together.
             kalbach = isinstance(source, ACEtk.continuous.KalbachMannDistributionData)
             group.attrs["type"] = "kalbach-mann" if kalbach else "energy-angle-table"
             quantity(group, "energy", incident_energy, "eV")
             incident_interpolation(group, incident_energy, laws, boundaries)
             tables = group.create_group("tables")
-            outgoing, angular = [], []
+            outgoing, angular, angular_context = [], [], []
             if kalbach:
                 parameters = {
                     name: tables.create_group(name)
                     for name in ("precompound-factor", "angular-slope")
                 }
             for i, source_table in enumerate(source.distributions):
-                energy = np.asarray(source_table.outgoing_energies) * EV_PER_MEV
+                rows = _outgoing_energy_rows(source_table, source, group.name, i)
+                energy = np.asarray(source_table.outgoing_energies)[rows] * EV_PER_MEV
                 law = interpolation_law(source_table.interpolation)
                 outgoing.append(
-                    (energy, np.asarray(source_table.pdf) / EV_PER_MEV, [law], None)
+                    (
+                        energy,
+                        np.asarray(source_table.pdf)[rows] / EV_PER_MEV,
+                        [law],
+                        None,
+                    )
                 )
                 if kalbach:
                     # Keep general Data representations for the two angular parameters.
@@ -1597,26 +1669,41 @@ def write_energy_distribution(group, source):
                         data = parameters[name].create_group(str(i))
                         data.attrs["type"] = "table"
                         quantity(data, "grid", energy, "eV")
-                        quantity(data, "value", values)
+                        quantity(data, "value", np.asarray(values)[rows])
                         interpolation(data, len(energy), [law])
                 else:
                     cosines = list(source_table.distributions)
-                    if len(cosines) != len(energy):
+                    if len(cosines) != len(source_table.outgoing_energies):
                         raise ValueError("Each outgoing energy requires a cosine table")
                     angular.extend(
                         (
-                            cosine.cosines,
-                            cosine.pdf,
-                            [interpolation_law(cosine.interpolation)],
+                            cosines[j].cosines,
+                            cosines[j].pdf,
+                            [interpolation_law(cosines[j].interpolation)],
                             None,
                         )
-                        for cosine in cosines
+                        for j in rows
+                    )
+                    angular_context.extend(
+                        (
+                            j,
+                            source.incident_energies[i],
+                            source_table.outgoing_energies[j],
+                        )
+                        for j in rows
                     )
             pdf_tables(tables.create_group("outgoing-energy"), outgoing)
             if not kalbach:
-                pdf_tables(
-                    tables.create_group("cosine-distributions"), angular, unit=None
-                )
+                try:
+                    pdf_tables(
+                        tables.create_group("cosine-distributions"), angular, unit=None
+                    )
+                except ProbabilityTableError as error:
+                    index, incident, outgoing_energy = angular_context[error.index]
+                    raise ValueError(
+                        f"cosine table {index} (E_in = {incident:g} MeV, "
+                        f"E_out = {outgoing_energy:g} MeV): {error.reason}"
+                    ) from error
 
     else:
         raise ValueError(f"Unsupported energy distribution: {type(source).__name__}")

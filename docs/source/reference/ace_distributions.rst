@@ -182,6 +182,11 @@ Incident interpolation is distinct from the within-PDF ``INTT`` flag, for which 
 Other incident interpolation codes are not converted.
 The source definitions appear in the `ACE energy-distribution reference <https://github.com/NuclearData/ACEFormat/blob/master/src/ContinuousEnergyNeutron.tex>`_.
 
+For continuous histogram tables in laws 4, 44, and 61, the converter can discard intervening rows below the initial support endpoint.
+It does so only when their absolute source cumulative probabilities and a bound on the absolute probability affected are at most :math:`10^{-12}`.
+It preserves both support endpoints and applies the same row selection to conditional angular data, reporting each correction as a warning.
+Tables containing discrete lines are excluded from this cleanup; other nonmonotone tables remain errors.
+
 .. _ace-mixture-sampling:
 
 Mixture: selecting a component distribution
