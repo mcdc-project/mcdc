@@ -238,6 +238,32 @@ class Cell(MCDCObject):
         self.interaction_tallies = []
         self.tracklength_tallies = []
 
+    @property
+    def surfaces(self) -> list[Surface]:
+        """Return unique region surfaces without compiling the cell.
+
+        Discover surfaces on each access so changes to the region are reflected.
+        Compiled surfaces retain their simulation-ID ordering.
+        """
+        from mcdc.object_.surface import Surface
+
+        surfaces = []
+        seen = set()
+        stack = [self.region]
+        while stack:
+            region = stack.pop()
+            if region.type == "halfspace":
+                surface = region.A
+                if isinstance(surface, Surface) and id(surface) not in seen:
+                    seen.add(id(surface))
+                    surfaces.append(surface)
+            elif region.type in ("intersection", "union"):
+                stack.extend([region.B, region.A])
+            elif region.type == "complement":
+                stack.append(region.A)
+
+        return sorted(surfaces, key=attrgetter("ID"))
+
     def _compile_into_simulation(self, simulation) -> bool:
         # Already compiled?
         if not super()._compile_into_simulation(simulation):
@@ -269,9 +295,6 @@ class Cell(MCDCObject):
         else:
             self.region_RPN_tokens = []
             self.region_RPN = Boolean(True)
-
-        # List surfaces
-        self.surfaces = list_surfaces(self.region_RPN_tokens, simulation)
 
         return True
 
@@ -389,15 +412,3 @@ def generate_RPN(rpn_tokens):
                 stack.append(~item)
 
     return sympy.logic.boolalg.simplify_logic(stack[0])
-
-
-def list_surfaces(rpn_tokens, simulation):
-    """Return the registered surfaces referenced by a token sequence."""
-    surfaces = []
-
-    for token in rpn_tokens:
-        if token >= 0:
-            surface = simulation.surfaces[token]
-            surfaces.append(surface)
-
-    return sorted(surfaces, key=attrgetter("ID"))
