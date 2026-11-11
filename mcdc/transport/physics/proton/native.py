@@ -295,7 +295,7 @@ def capture(
 
     # Energy deposition
     E = particle["E"]
-    q_value = reaction["q_value"] * 1e6
+    q_value = reaction["q_value"]
     interaction_data["energy_deposition"] += (E + q_value) * particle["w"]
 
     # ==================================================================================
@@ -482,7 +482,7 @@ def inelastic_scattering(
     particle["alive"] = False
 
     # Q-value energy available
-    q_value = reaction["q_value"] * 1e6
+    q_value = reaction["q_value"]
     interaction_data["energy_deposition"] += (E + q_value) * particle["w"]
 
     # ===========================================================================

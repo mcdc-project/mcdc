@@ -161,5 +161,5 @@ def test_capture_deposition_includes_q_value(capture_model):
 
     assert not particle_container[0]["alive"]
     assert interaction[0]["energy_deposition"] == pytest.approx(
-        5.0e6 + reaction["q_value"] * 1.0e6, rel=1e-12
+        5.0e6 + reaction["q_value"], rel=1e-12
     )

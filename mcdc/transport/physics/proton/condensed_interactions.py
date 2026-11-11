@@ -33,8 +33,8 @@ def max_condensed_step_distance(particle_container, simulation, data):
 
         if not material["stopping_power_provided"]:
             stopping_power = simulation["data"][nuclide["stopping_power_ID"]]
-            dedx = evaluate_data_clamped(E / 1e6, stopping_power, simulation, data)
-            total_dedx += dedx * 1e6
+            dedx = evaluate_data_clamped(E, stopping_power, simulation, data)
+            total_dedx += dedx
 
         atomic_mass = nuclide["atomic_weight_ratio"]
         nuclide_density = mcdc_get.material.nuclide_densities(i, material, data)
@@ -43,8 +43,8 @@ def max_condensed_step_distance(particle_container, simulation, data):
 
     if material["stopping_power_provided"]:
         stopping_power = simulation["data"][material["stopping_power_ID"]]
-        dedx = evaluate_data_clamped(E / 1e6, stopping_power, simulation, data)
-        total_dedx = dedx * 1e6
+        dedx = evaluate_data_clamped(E, stopping_power, simulation, data)
+        total_dedx = dedx
 
     max_fractional_energy_loss = condensed_interactions["max_fractional_energy_loss"]
     return max_fractional_energy_loss * E / total_dedx / total_rho
@@ -237,8 +237,8 @@ def calculate_total_stopping_power(particle_container, simulation, data):
         # If no stopping power provided, we calculate it ourselves here
         if not material["stopping_power_provided"]:
             stopping_power = simulation["data"][nuclide["stopping_power_ID"]]
-            dedx = evaluate_data_clamped(E / 1e6, stopping_power, simulation, data)
-            total_stopping_power += dedx * 1e6
+            dedx = evaluate_data_clamped(E, stopping_power, simulation, data)
+            total_stopping_power += dedx
 
         # Convert atoms/barn-cm to g/cm3:
         atomic_mass = nuclide["atomic_weight_ratio"]  # mass in amu
@@ -255,7 +255,7 @@ def calculate_total_stopping_power(particle_container, simulation, data):
 
     if material["stopping_power_provided"]:
         stopping_power = simulation["data"][material["stopping_power_ID"]]
-        dedx = evaluate_data_clamped(E / 1e6, stopping_power, simulation, data)
-        total_stopping_power = dedx * 1e6
+        dedx = evaluate_data_clamped(E, stopping_power, simulation, data)
+        total_stopping_power = dedx
 
     return average_A, average_Z, total_stopping_power, total_rho_gcm3
