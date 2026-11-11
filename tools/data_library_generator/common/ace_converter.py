@@ -1450,14 +1450,16 @@ def write_angular_distribution(group, source):
 # ======================================================================================
 
 
-def histogram_support_rows(value, pdf, cdf, *, tolerance=1.0e-12):
-    """Select histogram rows while preserving both original support endpoints.
+def pdf_support_rows(value, pdf, cdf, *, interpolation="histogram", tolerance=1.0e-12):
+    """Select PDF rows while preserving both original support endpoints.
 
-    Remove a leading run below the initial endpoint only when the remaining
-    coordinates are ordered, the source CDF throughout the run is negligible,
-    and the absolute probability affected is within ``tolerance``. Inputs
-    describe one continuous histogram, with no discrete probabilities or CDF
-    offset. The row selection must also be applied to any conditional data.
+    Remove leading rows below the first endpoint and trailing rows above the
+    last endpoint only when the interior coordinates are ordered. The source
+    CDF must be negligible throughout the leading path or saturated throughout
+    the trailing path, and the total absolute probability affected must be
+    within ``tolerance``. Inputs describe one continuous histogram or linear
+    PDF, with no discrete probabilities or CDF offset. Apply the returned row
+    selection to any conditional data as well.
 
     Return the retained row indices and an absolute probability bound.
     Ineligible tables return all rows and a zero bound, leaving validation
@@ -1465,48 +1467,69 @@ def histogram_support_rows(value, pdf, cdf, *, tolerance=1.0e-12):
     """
     value, pdf, cdf = (np.asarray(array, dtype=float) for array in (value, pdf, cdf))
     if value.ndim != 1 or pdf.shape != value.shape or cdf.shape != value.shape:
-        raise ValueError("Histogram coordinates, PDF, and CDF must be matching vectors")
+        raise ValueError("PDF coordinates, densities, and CDF must be matching vectors")
     if not np.isfinite(tolerance) or tolerance < 0:
         raise ValueError("Probability tolerance must be finite and nonnegative")
+    if interpolation not in ("histogram", "linear"):
+        raise ValueError("Support cleanup requires histogram or linear interpolation")
     rows = np.arange(len(value))
     if (
         len(value) < 3
-        or value[1] >= value[0]
         or not np.all(np.isfinite(value))
         or not np.all(np.isfinite(pdf))
         or not np.all(np.isfinite(cdf))
         or np.any(pdf < 0)
-        or np.any(np.diff(value[1:]) < 0)
+        or value[-1] <= value[0]
+        or np.any(np.diff(value[1:-1]) < 0)
     ):
         return rows, 0.0
-    rejoined = np.flatnonzero(value[1:] >= value[0])
-    if not len(rejoined):
+    interior = (
+        np.flatnonzero((value[1:-1] >= value[0]) & (value[1:-1] <= value[-1])) + 1
+    )
+    if not len(interior):
         return rows, 0.0
-    stop = rejoined[0] + 1
+    retained = np.r_[0, interior, len(value) - 1]
+    if len(retained) == len(rows):
+        return rows, 0.0
     # Absolute interval masses prevent cancellation from hiding probability.
-    # Include the replacement interval from the initial endpoint to stop.
+    # Include each replacement interval between retained endpoints.
+    affected = 0.0
     with np.errstate(over="ignore", invalid="ignore"):
-        affected = np.sum(np.abs(np.diff(value[: stop + 1])) * pdf[:stop])
-        affected += (value[stop] - value[0]) * pdf[0]
-    if (
-        not np.isfinite(affected)
-        or affected > tolerance
-        or np.any(np.abs(cdf[: stop + 1]) > tolerance)
-    ):
+        density = (
+            pdf[:-1] if interpolation == "histogram" else 0.5 * pdf[:-1] + 0.5 * pdf[1:]
+        )
+        masses = np.abs(np.diff(value)) * density
+        for left, right in ((0, interior[0]), (interior[-1], len(value) - 1)):
+            if right - left == 1:
+                continue
+            cumulative = 0.0 if left == 0 else 1.0
+            if np.any(np.abs(cdf[left : right + 1] - cumulative) > tolerance):
+                return rows, 0.0
+            replacement = (
+                pdf[left]
+                if interpolation == "histogram"
+                else 0.5 * pdf[left] + 0.5 * pdf[right]
+            )
+            affected += np.sum(masses[left:right])
+            affected += (value[right] - value[left]) * replacement
+    if not np.isfinite(affected) or affected > tolerance:
         return rows, 0.0
-    return np.r_[0, rows[stop:]], float(affected)
+    return retained, float(affected)
 
 
 def _outgoing_energy_rows(table, source, path, index):
-    """Select continuous histogram rows and report corrections in ACE coordinates."""
+    """Select continuous PDF rows and report corrections in ACE coordinates."""
     rows = np.arange(len(table.outgoing_energies))
     if (
-        table.interpolation != 1
+        table.interpolation not in (1, 2)
         or getattr(table, "number_discrete_photon_lines", 0) != 0
     ):
         return rows
-    rows, affected = histogram_support_rows(
-        table.outgoing_energies, table.pdf, table.cdf
+    rows, affected = pdf_support_rows(
+        table.outgoing_energies,
+        table.pdf,
+        table.cdf,
+        interpolation=interpolation_law(table.interpolation),
     )
     removed = len(table.outgoing_energies) - len(rows)
     if not removed:
@@ -1514,7 +1537,8 @@ def _outgoing_energy_rows(table, source, path, index):
     warnings.warn(
         f"{path} (ACE LAW {int(source.LAW)}): outgoing-energy table {index} "
         f"(E_in = {source.incident_energies[index]:g} MeV): discarded {removed} "
-        f"below-support rows; probability bound {affected:.6g}; "
+        f"out-of-support row{'s' if removed != 1 else ''}; "
+        f"probability bound {affected:.6g}; "
         "preserved support endpoints",
         RuntimeWarning,
         stacklevel=2,
