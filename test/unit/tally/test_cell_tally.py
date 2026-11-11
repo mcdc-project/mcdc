@@ -15,6 +15,65 @@ def _bin_value_score(surface_crossing_tally, mcdc_struct, data, score_idx):
     return data[tally_base["bin_offset"] + score_idx]
 
 
+def test_box_current_tally_before_compilation_scores_each_face_once(
+    material_mg, crossing_particle, prepare_simulation
+):
+    lower = np.array([3.2, 3.65, 2.445])
+    upper = np.array([6.8, 6.35, 3.045])
+    surfaces = [
+        mcdc.Surface.PlaneX(x=lower[0]),
+        mcdc.Surface.PlaneX(x=upper[0]),
+        mcdc.Surface.PlaneY(y=lower[1]),
+        mcdc.Surface.PlaneY(y=upper[1]),
+        mcdc.Surface.PlaneZ(z=lower[2]),
+        mcdc.Surface.PlaneZ(z=upper[2]),
+    ]
+    x0, x1, y0, y1, z0, z1 = surfaces
+    # Repeating a half-space must not attach the tally twice to that surface.
+    region = +x0 & -x1 & +y0 & -y1 & +z0 & -z1 & +x0
+    cell = mcdc.Cell(region=region, fill=material_mg)
+    outside = mcdc.Cell(region=~region, fill=material_mg)
+    tally_obj = mcdc.Tally(
+        name="computer-current",
+        cell=cell,
+        scores=["current-net", "current-in", "current-out"],
+    )
+    assert cell.ID == -1
+    assert all(surface.ID == -1 for surface in surfaces)
+
+    mcdc_container, data = prepare_simulation(
+        cells=[cell, outside], tallies=[tally_obj]
+    )
+    mcdc_struct = mcdc_container[0]
+    tally = mcdc_struct["surface_crossing_tallies"][tally_obj.sub_ID]
+    assert mcdc_struct["cells"][cell.ID]["N_surface"] == 6
+    assert all(surface.surface_crossing_tallies == [tally_obj] for surface in surfaces)
+
+    for face, surface in enumerate(surfaces):
+        axis = face // 2
+        position = (lower + upper) / 2
+        position[axis] = lower[axis] if face % 2 == 0 else upper[axis]
+        inward = np.zeros(3)
+        inward[axis] = 1.0 if face % 2 == 0 else -1.0
+
+        for direction, from_cell in ((inward, outside), (-inward, cell)):
+            particle_container = crossing_particle(
+                surface.ID,
+                x=position[0],
+                ux=direction[0],
+                cell_ID=from_cell.ID,
+            )
+            particle = particle_container[0]
+            particle["y"], particle["z"] = position[1:]
+            particle["uy"], particle["uz"] = direction[1:]
+            surface_crossing(particle_container, mcdc_struct, data)
+
+        np.testing.assert_allclose(
+            [_bin_value_score(tally, mcdc_struct, data, i) for i in range(3)],
+            [0.0, 2.0 * (face + 1), 2.0 * (face + 1)],
+        )
+
+
 def test_surface_cell_filter_current_net_is_incoming_negative_outgoing_positive(
     slab_plane_x, crossing_particle, prepare_simulation
 ):

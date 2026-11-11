@@ -126,11 +126,10 @@ class Tally(MCDCPolymorphic):
     ...     time=[0.0, 1.0e-6, 2.0e-6],
     ... )
 
-    Compile the geometry to resolve the cell's bounding surfaces:
+    Set the simulation geometry:
 
     >>> model = mcdc.Simulation(name="Cell-current example")
     >>> model.set_model([cell])
-    >>> model.compile()
 
     Score current entering and leaving the cell through any of its boundaries:
 
