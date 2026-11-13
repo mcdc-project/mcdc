@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 
 import mcdc
+from mcdc._revision import git_revision
 from mcdc.main import prepare
 from mcdc.output import create_runtime_dataset, generate_output
 from mcdc.constant import SCORE_FLUX
@@ -110,6 +111,11 @@ def test_output_serializes_nested_transport_settings(tmp_path, monkeypatch):
     generate_output(container[0], data, simulation, no_tally_output=True)
 
     with h5py.File(tmp_path / "output.h5", "r") as output:
+        version = output["version"]
+        assert version.asstr()[()] == mcdc.__version__
+        commit, commit_time = git_revision()
+        assert version.attrs["git_commit"] == commit
+        assert version.attrs["git_commit_time"] == commit_time
         settings = output["settings"]
         assert not settings["neutron_transport/active"][()]
         assert not settings["neutron_transport/prioritize_low_energy"][()]

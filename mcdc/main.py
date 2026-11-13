@@ -1,4 +1,5 @@
 from mcdc.object_.simulation import Simulation
+from mcdc._revision import git_revision
 import mcdc.config as config
 
 # ======================================================================================
@@ -17,6 +18,7 @@ def run_simulation(simulationPy: Simulation):
     # Get settings and MPI master status
     settings = simulationPy.settings
     master = MPI.COMM_WORLD.Get_rank() == 0
+    revision = git_revision() if master else None
 
     # ==================================================================================
     # Preparation
@@ -84,7 +86,9 @@ def run_simulation(simulationPy: Simulation):
     no_tally_output = config.args.no_tally_output
 
     # Generate hdf5 output file
-    output_module.generate_output(simulation, data, simulationPy, no_tally_output)
+    output_module.generate_output(
+        simulation, data, simulationPy, no_tally_output, revision=revision
+    )
 
     # Combine per-batch, per-census tally files into the main output
     if not no_tally_output and settings.use_census_based_tally:

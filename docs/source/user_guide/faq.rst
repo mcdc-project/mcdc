@@ -122,10 +122,30 @@ Use ``h5py`` to read them:
 
    import h5py
    with h5py.File("output.h5", "r") as f:
-       print(list(f.keys()))                    # ['runtime', 'tallies']
-       print(list(f["tallies"].keys()))          # list of tally names
+       print(list(f["tallies"].keys()))
 
 See the post-processing section in :ref:`user_guide/getting_started/first_simulation:First MC/DC Simulation` for a complete example.
+
+.. _output-source-revision:
+
+**Which version of MC/DC produced my output?**
+
+The ``/version`` dataset records the installed MC/DC package version (also available as ``mcdc.__version__``).
+Its ``git_commit`` attribute gives the 12-character Git hash, and ``git_commit_time`` gives the Git committer timestamp in ISO 8601 format with its time zone.
+For an editable install, MC/DC reads the commit from the checkout when the simulation starts.
+For a wheel install, it uses the commit captured when the package was built.
+
+.. code-block:: python3
+
+   import h5py
+
+   with h5py.File("output.h5", "r") as f:
+       version = f["version"]
+       print(version.asstr()[()])
+       print(version.attrs.get("git_commit", "unknown"))
+       print(version.attrs.get("git_commit_time", "unknown"))
+
+The example prints ``unknown`` for a Git attribute if the revision is unavailable or the file predates that attribute.
 
 **What visualization tools work with MC/DC output?**
 

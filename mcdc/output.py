@@ -1,4 +1,3 @@
-import importlib.metadata
 from pathlib import Path
 
 import h5py
@@ -8,6 +7,8 @@ import numpy as np
 
 import mcdc.mcdc_get as mcdc_get
 import mcdc.print_ as print_module
+from mcdc import __version__
+from mcdc._revision import git_revision
 from mcdc.object_.base import MCDCBase
 
 from mcdc.constant import (
@@ -20,7 +21,7 @@ from mcdc.constant import (
 # ======================================================================================
 
 
-def generate_output(mcdc, data, simulationPy, no_tally_output=False):
+def generate_output(mcdc, data, simulationPy, no_tally_output=False, revision=None):
     if not mcdc["mpi_master"]:
         return
 
@@ -35,7 +36,10 @@ def generate_output(mcdc, data, simulationPy, no_tally_output=False):
     file = h5py.File(settings["output_name"] + ".h5", "w")
 
     # Version
-    file["version"] = importlib.metadata.version("mcdc")
+    version = file.create_dataset("version", data=__version__)
+    commit, commit_time = revision if revision is not None else git_revision()
+    version.attrs["git_commit"] = commit
+    version.attrs["git_commit_time"] = commit_time
 
     # Settings
     create_object_dataset(file, "settings", simulationPy.settings)
