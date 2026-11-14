@@ -3,7 +3,6 @@ build/
 dist/
 .eggs/
 *.egg-info/
-mcdc/_version.py
 
 # Material and cross-section libraries
 mcdc_xs/

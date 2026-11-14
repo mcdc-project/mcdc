@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Add MC/DC-VVP project documentation with verification case narratives, published results, and VVP result-generation and publication steps in the release checklist, from [@ilhamv]
 - Add GPU-compatible functions for 3D cross products and vector normalization, from [@braxtoncuneo]
 - Add multiparticle support for weight windows, from [@nglaser3]
+- Record the short Git hash (`git_commit`) and committer timestamp (`git_commit_time`) as attributes on the `/version` dataset in HDF5 output, from [@ilhamv]
 
 ### Changed
 

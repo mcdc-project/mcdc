@@ -1,4 +1,5 @@
 from mcdc.object_.simulation import Simulation
+from mcdc._revision import git_revision
 import mcdc.config as config
 
 # ======================================================================================
@@ -178,6 +179,10 @@ def prepare(simulationPy: Simulation):
     # ==================================================================================
     # Finalize
     # ==================================================================================
+
+    # Record git revision
+    if simulationPy.mpi_master:
+        simulationPy.git_commit, simulationPy.git_commit_time = git_revision()
 
     return simulation_container, data
 
