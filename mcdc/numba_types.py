@@ -758,6 +758,7 @@ settings = into_dtype([
     ('time_boundary', float64),
     ('output_name', 'U32'),
     ('use_progress_bar', bool_),
+    ('tally_reduction_chunks', int64),
     ('N_census', int64),
     ('census_time_offset', int64),
     ('census_time_length', int64),
