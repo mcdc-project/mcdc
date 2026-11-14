@@ -151,6 +151,9 @@ class Settings(MCDCBase):
     output_name: str = "output"
     #: Whether to display transport progress. The default is ``True``.
     use_progress_bar: bool = True
+    #: Number of contiguous chunks used to reduce each tally across MPI ranks.
+    #: The default is ``1``. Small tallies use at most one chunk per bin.
+    tally_reduction_chunks: int = 1
 
     # Time census
     N_census: int = 1

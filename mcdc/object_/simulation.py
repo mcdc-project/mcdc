@@ -360,6 +360,10 @@ class Simulation(MCDCBase):
 
         settings = self.settings
 
+        chunks = settings.tally_reduction_chunks
+        if isinstance(chunks, bool) or chunks < 1:
+            print_error("tally_reduction_chunks must be a positive integer.")
+
         if (
             settings.neutron_transport.prioritize_low_energy
             or settings.proton_transport.prioritize_low_energy

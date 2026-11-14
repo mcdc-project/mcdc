@@ -64,5 +64,22 @@ As an example, to run on 36 processes in Numba mode with `SLURM <https://slurm.s
 
 For systems that do not use SLURM (i.e., a local system) try ``mpiexec`` or ``mpirun`` in its stead.
 
-CPU Profiling
--------------
+Tally reduction memory
+----------------------
+
+To reduce tallies in smaller MPI messages, set the number of contiguous chunks
+before running the simulation.
+
+.. code-block:: python3
+
+    simulation.settings.tally_reduction_chunks = 8
+    simulation.run()
+
+The default is ``1``, which reduces each tally in a single call.
+The value must be a positive integer.
+Each rank reduces the chunks in the same order, with at most one chunk per bin
+for small tallies.
+CPU reductions use views of the existing score array.
+GPU-backed reductions reuse a host buffer sized for the largest chunk.
+Smaller messages can reduce MPI's temporary memory demand, with additional
+collective-call overhead.
