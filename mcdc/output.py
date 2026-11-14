@@ -7,8 +7,6 @@ import numpy as np
 
 import mcdc.mcdc_get as mcdc_get
 import mcdc.print_ as print_module
-from mcdc import __version__
-from mcdc._revision import git_revision
 from mcdc.object_.base import MCDCBase
 
 from mcdc.constant import (
@@ -21,7 +19,7 @@ from mcdc.constant import (
 # ======================================================================================
 
 
-def generate_output(mcdc, data, simulationPy, no_tally_output=False, revision=None):
+def generate_output(mcdc, data, simulationPy, no_tally_output=False):
     if not mcdc["mpi_master"]:
         return
 
@@ -36,10 +34,9 @@ def generate_output(mcdc, data, simulationPy, no_tally_output=False, revision=No
     file = h5py.File(settings["output_name"] + ".h5", "w")
 
     # Version
-    version = file.create_dataset("version", data=__version__)
-    commit, commit_time = revision if revision is not None else git_revision()
-    version.attrs["git_commit"] = commit
-    version.attrs["git_commit_time"] = commit_time
+    version = file.create_dataset("version", data=simulationPy.version)
+    version.attrs["git_commit"] = simulationPy.git_commit
+    version.attrs["git_commit_time"] = simulationPy.git_commit_time
 
     # Settings
     create_object_dataset(file, "settings", simulationPy.settings)

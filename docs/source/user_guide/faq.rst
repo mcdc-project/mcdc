@@ -134,6 +134,8 @@ The ``/version`` dataset records the installed MC/DC package version (also avail
 Its ``git_commit`` attribute gives the 12-character Git hash, and ``git_commit_time`` gives the Git committer timestamp in ISO 8601 format with its time zone.
 For an editable install, MC/DC reads the commit from the checkout when the simulation starts.
 For a wheel install, it uses the commit captured when the package was built.
+After a run, the same information is available as ``simulation.version``, ``simulation.git_commit``, and ``simulation.git_commit_time``.
+These attributes belong to the Python ``Simulation`` object and are excluded from its Numba representation.
 
 .. code-block:: python3
 

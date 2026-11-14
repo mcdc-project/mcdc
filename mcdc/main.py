@@ -18,7 +18,6 @@ def run_simulation(simulationPy: Simulation):
     # Get settings and MPI master status
     settings = simulationPy.settings
     master = MPI.COMM_WORLD.Get_rank() == 0
-    revision = git_revision() if master else None
 
     # ==================================================================================
     # Preparation
@@ -86,9 +85,7 @@ def run_simulation(simulationPy: Simulation):
     no_tally_output = config.args.no_tally_output
 
     # Generate hdf5 output file
-    output_module.generate_output(
-        simulation, data, simulationPy, no_tally_output, revision=revision
-    )
+    output_module.generate_output(simulation, data, simulationPy, no_tally_output)
 
     # Combine per-batch, per-census tally files into the main output
     if not no_tally_output and settings.use_census_based_tally:
@@ -182,6 +179,10 @@ def prepare(simulationPy: Simulation):
     # ==================================================================================
     # Finalize
     # ==================================================================================
+
+    # Record git revision
+    if simulationPy.mpi_master:
+        simulationPy.git_commit, simulationPy.git_commit_time = git_revision()
 
     return simulation_container, data
 
