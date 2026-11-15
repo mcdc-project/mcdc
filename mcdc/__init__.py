@@ -1,7 +1,6 @@
 """Public Python interface for MC/DC."""
 
-from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
-from importlib.metadata import version as _version
+from importlib.metadata import PackageNotFoundError, version
 
 from mcdc.object_.cell import Cell
 from mcdc.object_.material import Material
@@ -29,8 +28,8 @@ __all__ = [
 ]
 
 try:
-    __version__: str = _version("mcdc")
-except _PackageNotFoundError:
+    __version__: str = version("mcdc")
+except PackageNotFoundError:
     __version__ = "unknown"
 
 
