@@ -92,8 +92,12 @@ def pop_particle(particle_container, bank):
     # Decrement bank size
     idx = add_bank_size(bank, -1) - 1
     particle_module.copy(particle_container, bank["particle_data"][idx : idx + 1])
+    activate_particle(particle_container)
 
-    # Set default IDs and event for the live particle
+
+@njit
+def activate_particle(particle_container):
+    # Set default IDs and event for a particle about to start transport.
     particle = particle_container[0]
     particle["alive"] = True
     particle["material_ID"] = -1
