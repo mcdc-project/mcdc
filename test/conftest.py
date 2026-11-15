@@ -12,6 +12,12 @@ def pytest_addoption(parser):
         help="MCDC regression target.",
     )
     parser.addoption(
+        "--gpu_state_storage",
+        choices=["separate", "managed", "united"],
+        default="managed",
+        help="GPU state-storage strategy for GPU regression runs.",
+    )
+    parser.addoption(
         "--mpiexec",
         type=int,
         default=0,

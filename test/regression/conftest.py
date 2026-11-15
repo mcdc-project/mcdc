@@ -160,7 +160,7 @@ def build_command(config):
 
     state = ""
     if target == "gpu":
-        state = "--gpu_state_storage=managed"
+        state = f"--gpu_state_storage={config.getoption('--gpu_state_storage')}"
         mode = "numba"
 
     command = [
