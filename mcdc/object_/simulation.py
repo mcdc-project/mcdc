@@ -398,27 +398,7 @@ class Simulation(MCDCBase):
                     f"{pname}, however {pname} transport is not active."
                 )
 
-        # Censuses split histories; GPU closeout aggregates them.
-        # Both require batch samples for fixed-source uncertainty estimates.
         self.gpu_mode = target == "gpu"
-        if (
-            not settings.neutron_eigenvalue_mode
-            and settings.N_census > 1
-            and settings.N_batch < 2
-        ):
-            print_error(
-                "Time-census transport requires N_batch >= 2; "
-                "history-based single-batch statistics are not supported."
-            )
-        if (
-            not settings.neutron_eigenvalue_mode
-            and self.gpu_mode
-            and settings.N_batch < 2
-        ):
-            print_error(
-                "GPU-mode fixed-source transport requires N_batch >= 2; "
-                "history-based single-batch statistics are not supported."
-            )
 
         # Select standard multigroup or hybrid neutron transport.
         materials_have_native_composition = any(
@@ -672,6 +652,30 @@ class Simulation(MCDCBase):
             elif source.particle_type == PARTICLE_PHOTON:
                 self.settings.photon_transport.active = True
 
+    def _validate_run_settings(self) -> None:
+        settings = self.settings
+
+        # Censuses split histories; GPU closeout aggregates them.
+        # Both require batch samples for fixed-source uncertainty estimates.
+        if (
+            not settings.neutron_eigenvalue_mode
+            and settings.N_census > 1
+            and settings.N_batch < 2
+        ):
+            print_error(
+                "Time-census transport requires N_batch >= 2; "
+                "history-based single-batch statistics are not supported."
+            )
+        if (
+            not settings.neutron_eigenvalue_mode
+            and self.gpu_mode
+            and settings.N_batch < 2
+        ):
+            print_error(
+                "GPU-mode fixed-source transport requires N_batch >= 2; "
+                "history-based single-batch statistics are not supported."
+            )
+
     def compile(self) -> None:
         """Compile and finalize the Python model into a simulation snapshot.
 
@@ -770,6 +774,7 @@ class Simulation(MCDCBase):
         """
         if not self.compiled:
             self.compile()
+        self._validate_run_settings()
 
         from mcdc.main import run_simulation
 
