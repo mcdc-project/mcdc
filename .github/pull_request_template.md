@@ -1,43 +1,53 @@
-## Summary of changes
 <!--
-    In at least one sentence, describe the PR you are submitting.
+Every PR must link to an issue.
+Open an issue first if one does not exist.
+Planning and Project tracking belong on the issue.
+Delete sections and checklist items that do not apply.
 -->
 
-## Types of changes
-<!---
-    What types of changes does your code introduce?
--->
+## Summary
 
-- Bug fix (non-breaking change which fixes an issue) <!-- Delete if not applicable -->
-- New feature (non-breaking change which adds functionality) <!-- Delete if not applicable -->
-- Breaking change (fix or feature that changes existing functionality) <!-- Delete if not applicable -->
-- Organization and beautification (changes which improve readability and/or accessibility) <!-- Delete if not applicable -->
-
-## Developer Checklist
 <!--
-    Please review the following checklist and ensure you have addressed each applicable item.
-    Put an `x` in all boxes once completed.
+Describe what changed and why.
+For user-facing changes, explain the behavior before and after.
 -->
 
-- [ ] I have read the [contributing guide](https://mcdc.readthedocs.io/en/dev/contributing/index.html).
-- [ ] My code follows the [code style](https://mcdc.readthedocs.io/en/dev/contributing/index.html#code-styling) of this project.
-- [ ] I have updated the documentation as needed. <!-- Delete if not applicable -->
-- [ ] I have updated `CHANGELOG.md` as needed. <!-- Delete if not applicable -->
-- [ ] I have added or updated tests to cover my changes. <!-- Delete if not applicable -->
-- [ ] All new and existing tests pass
+## Related issue
 
-## Associated Issues and PRs
 <!--
-    Please note any issues or pull requests associated with this pull request using GitHub keywords. 
-    For multiple linked issues, repeat the keyword for each issue.
+Link the required issue.
+Use "Closes #123" if this PR fully resolves it.
+Use "Refs #123" if this PR addresses only part of it.
+Include links to related PRs if applicable.
 -->
 
-- closes #
-- related to #
+## Verification
 
-## Associated Developers
 <!--
-    Please mention any developers who should be alerted of this PR.
+Describe how you verified the changes and summarize the results.
+Include relevant tests, examples, comparisons, or screenshots.
+If testing is incomplete or was not performed, explain why.
 -->
 
-- @
+## Review notes
+
+<!--
+Highlight anything reviewers should pay particular attention to.
+Include known limitations or compatibility concerns.
+Link issues for follow-up work, if applicable.
+-->
+
+## PR checklist
+
+<!--
+Keep the issue requirement.
+Delete other items that do not apply.
+-->
+
+- [ ] I have linked an issue describing the problem and completion criteria.
+- [ ] I have followed the [contributing guide](https://mcdc.readthedocs.io/en/dev/contributing/index.html).
+- [ ] I have added or updated tests as needed.
+- [ ] Relevant tests pass.
+- [ ] I have updated the documentation as needed.
+- [ ] I have updated CHANGELOG.md as needed.
+- [ ] I have requested appropriate reviewers, if I have permission.
