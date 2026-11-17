@@ -1,11 +1,13 @@
 <!--
 Use this template for bugs, feature requests, questions, documentation, or other tasks.
-Delete sections and items that do not apply.
+Sections marked [REQUIRED] must remain.
+Delete other sections and checklist items that do not apply.
 -->
 
 ## Description
 
 <!--
+[REQUIRED]
 Describe the problem, request, question, or task.
 Why does it matter?
 -->
@@ -30,6 +32,7 @@ Include relevant details:
 ## Completion criteria
 
 <!--
+[REQUIRED]
 What must be resolved, delivered, or answered before this issue can be closed?
 -->
 
@@ -46,6 +49,7 @@ If a PR already addresses this issue, link it here.
 ## Issue setup checklist
 
 <!--
+[REQUIRED]
 For the author or maintainers.
 Complete applicable items and delete the rest.
 If you lack permission to update these fields, leave them for a maintainer.
