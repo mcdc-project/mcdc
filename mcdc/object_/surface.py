@@ -12,7 +12,6 @@ from mcdc.constant import (
     BC_NONE,
     BC_REFLECTIVE,
     BC_VACUUM,
-    INF,
     SURFACE_CYLINDER_X,
     SURFACE_CYLINDER_Y,
     SURFACE_CYLINDER_Z,
@@ -35,7 +34,7 @@ from mcdc.constant import (
 from mcdc.object_.base import MCDCObject
 from mcdc.object_.cell import Region
 from mcdc.object_.tally import TallySurfaceCrossing
-from mcdc.object_.util import move_object
+from mcdc.object_.util import initialize_motion, move_object
 from mcdc.print_ import print_error
 
 # ======================================================================================
@@ -130,6 +129,7 @@ class Surface(MCDCObject):
     nx: float
     ny: float
     nz: float
+    # Surface motion
     moving: bool
     N_move: int
     N_move_grid: int
@@ -179,14 +179,8 @@ class Surface(MCDCObject):
         self.ny = 0.0
         self.nz = 0.0
 
-        # Moving surface parameters
-        self.moving = False
-        self.N_move = 1
-        self.N_move_grid = 2
-        self.move_velocities = np.zeros((1, 3))
-        self.move_durations = np.array([INF])
-        self.move_time_grid = np.array([0.0, INF])
-        self.move_translations = np.zeros((2, 3))
+        # Initialize stationary surface motion.
+        initialize_motion(self)
 
         # Surface-crossing tallies
         self.surface_crossing_tallies = []
@@ -940,19 +934,25 @@ class Surface(MCDCObject):
         return Region.make_halfspace(self, -1)
 
     # ==================================================================================
-    # Surface moving
+    # Surface motion
     # ==================================================================================
 
     def move(self, velocities: ArrayLike, durations: ArrayLike) -> None:
-        """Define piecewise-constant translational motion.
+        """Define piecewise-constant translation of the surface.
 
         Parameters
         ----------
-        velocities : array_like, shape (N, 3)
-            Velocity vector for each segment in cm/s.
-        durations : array_like, shape (N,)
-            Segment durations in seconds. A final stationary segment is appended
-            automatically.
+        velocities : array_like of float, shape (N, 3)
+            Velocity vector ``[vx, vy, vz]`` in cm/s for each motion segment.
+        durations : array_like of float, shape (N,)
+            Duration of each motion segment in seconds, starting at simulation
+            time zero. Must contain the same number of entries as ``velocities``.
+
+        Notes
+        -----
+        A final stationary segment is appended automatically for the remainder
+        of the simulation. The supplied velocities and durations are not modified.
+        Calling this method again replaces the previous motion schedule.
         """
         move_object(self, velocities, durations)
 
