@@ -10,21 +10,22 @@ Delete other sections and checklist items that do not apply.
 -->
 
 ## Description
-
 <!--
 [REQUIRED]
 Describe the problem, request, question, or task.
 Why does it matter?
 -->
 
-## Desired outcome
+...
 
+## Desired outcome
 <!--
 Describe the expected behavior, proposed improvement, or question you need answered.
 -->
 
-## Reproduction details
+...
 
+## Reproduction details
 <!--
 For bugs, provide a minimal example and steps to reproduce.
 Include relevant details:
@@ -34,8 +35,9 @@ Include relevant details:
 - Python version, operating system, and relevant dependencies
 -->
 
-## Completion criteria
+...
 
+## Completion criteria
 <!--
 [REQUIRED]
 What must be resolved, delivered, or answered before this issue can be closed?
@@ -44,15 +46,15 @@ What must be resolved, delivered, or answered before this issue can be closed?
 - [ ] ...
 
 ## Related work and context
-
 <!--
 Link existing PRs, related issues, references, or screenshots.
 Include proposed approaches or alternatives if helpful.
 If a PR already addresses this issue, link it here.
 -->
 
-## Issue setup checklist
+...
 
+## Issue setup checklist
 <!--
 [REQUIRED]
 For the author or maintainers.
