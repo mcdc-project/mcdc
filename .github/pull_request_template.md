@@ -6,14 +6,14 @@ Delete sections and checklist items that do not apply.
 -->
 
 ## Summary
-
 <!--
 Describe what changed and why.
 For user-facing changes, explain the behavior before and after.
 -->
 
-## Related issue
+...
 
+## Related issue
 <!--
 Link the required issue.
 Use "Closes #123" if this PR fully resolves it.
@@ -21,24 +21,27 @@ Use "Refs #123" if this PR addresses only part of it.
 Include links to related PRs if applicable.
 -->
 
-## Verification
+...
 
+## Verification
 <!--
 Describe how you verified the changes and summarize the results.
 Include relevant tests, examples, comparisons, or screenshots.
 If testing is incomplete or was not performed, explain why.
 -->
 
-## Review notes
+...
 
+## Review notes
 <!--
 Highlight anything reviewers should pay particular attention to.
 Include known limitations or compatibility concerns.
 Link issues for follow-up work, if applicable.
 -->
 
-## PR checklist
+...
 
+## PR checklist
 <!--
 Keep the issue requirement.
 Delete other items that do not apply.
