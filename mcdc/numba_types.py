@@ -719,6 +719,7 @@ proton_inelastic_scattering_reaction = into_dtype([
 interaction_data = into_dtype([
     ('energy_deposition', float64),
     ('incident_particle', particle_data),
+    ('cell_ID', int64),
 ])
 
 particle_bank = into_dtype([

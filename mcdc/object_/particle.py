@@ -36,8 +36,9 @@ class InteractionData(MCDCBase):
     """Scoring data shared by discrete collisions and condensed interactions.
 
     Each treatment records its incoming particle state before changing it and
-    accumulates weighted energy deposition in eV. Condensed interactions use
-    the step endpoint with energy and direction from before their application.
+    preserves the incident top-cell ID. It accumulates weighted energy deposition in eV.
+    Condensed interactions use the step endpoint with energy and direction from before
+    their application.
     """
 
     # MC/DC framework metadata
@@ -45,6 +46,7 @@ class InteractionData(MCDCBase):
 
     energy_deposition: float = 0.0
     incident_particle: ParticleData = field(default_factory=ParticleData)
+    cell_ID: int = -1
 
 
 @dataclass
