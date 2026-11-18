@@ -1,3 +1,8 @@
+---
+name: General issue
+about: Report a bug, request a feature, ask a question, or track a task.
+---
+
 <!--
 Use this template for bugs, feature requests, questions, documentation, or other tasks.
 Sections marked [REQUIRED] must remain.
