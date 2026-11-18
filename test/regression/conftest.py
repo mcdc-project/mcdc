@@ -1,4 +1,5 @@
 import fnmatch
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -64,6 +65,16 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture(scope="session")
 def regression_data():
     """Check out the exact regression-data revision required by this source tree."""
+    lock_path = REGRESSION_DIR / f"{REGRESSION_DATA_NAME}.lock"
+    with open(lock_path, "w") as lock:
+        if os.name == "posix":
+            import fcntl
+
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        return checkout_regression_data()
+
+
+def checkout_regression_data():
     data_path = REGRESSION_DIR / REGRESSION_DATA_NAME
     if data_path.is_dir():
         result = subprocess.run(
