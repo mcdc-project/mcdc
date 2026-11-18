@@ -67,6 +67,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Fixed
 
+- Fix track-length tallies scoring track segments before entry into their mesh or time window, preventing incorrect scores and out-of-bounds writes that could corrupt geometry lookup data, from [@ilhamv]
 - Fix delayed neutron data preparation, from [@hansenkyle]
 - Preserve very low particle energies when converting from speed by avoiding floating-point cancellation in the relativistic kinetic-energy calculation, from [@ilhamv]
 - Prevent particles from becoming trapped at zero-distance crossings of quadratic surfaces, from [@ilhamv]
