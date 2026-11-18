@@ -932,6 +932,12 @@ surface_crossing_tally = into_dtype([
     ('surface_filter_ID', int64),
     ('cell_filtered', bool_),
     ('cell_filter_ID', int64),
+    ('mesh_filtered', bool_),
+    ('mesh_filter_type', int64),
+    ('mesh_filter_ID', int64),
+    ('mesh_stride_z', int64),
+    ('mesh_stride_y', int64),
+    ('mesh_stride_x', int64),
     ('ID', int64),
     ('base_ID', int64),
 ])

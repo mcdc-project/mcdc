@@ -60,6 +60,18 @@ def surface_crossing(
     if i_mu == -1 or i_azi == -1 or i_energy == -1 or i_time == -1:
         return
 
+    # Mesh tally indices of the crossing point if needed
+    i_x, i_y, i_z = 0, 0, 0
+    if surface_crossing_tally["mesh_filtered"]:
+        mesh = simulation["meshes"][surface_crossing_tally["mesh_filter_ID"]]
+        i_x, i_y, i_z = mesh_module.get_indices(
+            particle_container, mesh, simulation, data
+        )
+
+        # No score outside mesh bins
+        if i_x == -1 or i_y == -1 or i_z == -1:
+            return
+
     # Tally index
     idx_base = (
         tally["bin_offset"]
@@ -68,6 +80,12 @@ def surface_crossing(
         + i_energy * tally["stride_energy"]
         + i_time * tally["stride_time"]
     )
+    if surface_crossing_tally["mesh_filtered"]:
+        idx_base += (
+            +i_x * surface_crossing_tally["mesh_stride_x"]
+            + i_y * surface_crossing_tally["mesh_stride_y"]
+            + i_z * surface_crossing_tally["mesh_stride_z"]
+        )
 
     # Flux
     speed = physics.particle_speed(particle_container, simulation, data)

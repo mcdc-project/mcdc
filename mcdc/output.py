@@ -194,7 +194,11 @@ def read_census_score(simulation, data, tally, score, batch, census):
 
 
 def create_tally_dataset(file, mcdc, data):
-    from mcdc.constant import TALLY_TRACKLENGTH, TALLY_INTERACTION
+    from mcdc.constant import (
+        TALLY_TRACKLENGTH,
+        TALLY_INTERACTION,
+        TALLY_SURFACE_CROSSING,
+    )
     from mcdc.object_.tally import decode_score_type
 
     # Loop over all tally types
@@ -222,6 +226,8 @@ def create_tally_dataset(file, mcdc, data):
         mesh_filtered_tally = None
         if tally["sub_type"] == TALLY_TRACKLENGTH:
             mesh_filtered_tally = mcdc["tracklength_tallies"][tally["sub_ID"]]
+        elif tally["sub_type"] == TALLY_SURFACE_CROSSING:
+            mesh_filtered_tally = mcdc["surface_crossing_tallies"][tally["sub_ID"]]
         elif tally["sub_type"] == TALLY_INTERACTION:
             mesh_filtered_tally = mcdc["interaction_tallies"][tally["sub_ID"]]
 
