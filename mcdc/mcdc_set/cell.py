@@ -62,6 +62,110 @@ def surface_IDs_chunk(start, length, cell, data, value):
 
 
 @njit
+def move_velocities_vector(index_1, cell, data, value):
+    offset = cell["move_velocities_offset"]
+    stride = 3
+    start = offset + index_1 * stride
+    end = start + stride
+    data[start:end] = value
+
+
+@njit
+def move_velocities(index_1, index_2, cell, data, value):
+    offset = cell["move_velocities_offset"]
+    stride = 3
+    data[offset + index_1 * stride + index_2] = value
+
+
+@njit
+def move_velocities_chunk(start, length, cell, data, value):
+    start += cell["move_velocities_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def move_durations(index, cell, data, value):
+    offset = cell["move_durations_offset"]
+    data[offset + index] = value
+
+
+@njit
+def move_durations_all(cell, data, value):
+    start = cell["move_durations_offset"]
+    size = cell["N_move"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def move_durations_last(cell, data, value):
+    start = cell["move_durations_offset"]
+    size = cell["N_move"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def move_durations_chunk(start, length, cell, data, value):
+    start += cell["move_durations_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def move_time_grid(index, cell, data, value):
+    offset = cell["move_time_grid_offset"]
+    data[offset + index] = value
+
+
+@njit
+def move_time_grid_all(cell, data, value):
+    start = cell["move_time_grid_offset"]
+    size = cell["N_move_grid"]
+    end = start + size
+    data[start:end] = value
+
+
+@njit
+def move_time_grid_last(cell, data, value):
+    start = cell["move_time_grid_offset"]
+    size = cell["N_move_grid"]
+    end = start + size
+    data[end - 1] = value
+
+
+@njit
+def move_time_grid_chunk(start, length, cell, data, value):
+    start += cell["move_time_grid_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
+def move_translations_vector(index_1, cell, data, value):
+    offset = cell["move_translations_offset"]
+    stride = 3
+    start = offset + index_1 * stride
+    end = start + stride
+    data[start:end] = value
+
+
+@njit
+def move_translations(index_1, index_2, cell, data, value):
+    offset = cell["move_translations_offset"]
+    stride = 3
+    data[offset + index_1 * stride + index_2] = value
+
+
+@njit
+def move_translations_chunk(start, length, cell, data, value):
+    start += cell["move_translations_offset"]
+    end = start + length
+    data[start:end] = value
+
+
+@njit
 def interaction_tally_IDs(index, cell, data, value):
     offset = cell["interaction_tally_IDs_offset"]
     data[offset + index] = value
