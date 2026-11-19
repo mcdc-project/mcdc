@@ -1,8 +1,28 @@
 import pytest
+import numpy as np
 
 import mcdc
 
 from mcdc.object_.settings import Settings
+
+
+@pytest.mark.parametrize("chunks", [1, 8])
+def test_tally_reduction_chunks_are_packed(prepare_simulation, chunks):
+    def configure(simulation):
+        simulation.settings.tally_reduction_chunks = chunks
+
+    container, _ = prepare_simulation(configure=configure)
+    assert container[0]["settings"]["tally_reduction_chunks"] == chunks
+
+
+@pytest.mark.parametrize("chunks", [0, -1, 1.5, 2.0, True, np.bool_(True), "8"])
+def test_reject_invalid_tally_reduction_chunks(chunks, capsys):
+    simulation = mcdc.Simulation()
+    simulation.set_model([mcdc.Cell()])
+    with pytest.raises(SystemExit):
+        simulation.settings.tally_reduction_chunks = chunks
+        simulation.compile()
+    assert "tally_reduction_chunks must be" in capsys.readouterr().out
 
 
 def test_transport_settings_are_independent():
