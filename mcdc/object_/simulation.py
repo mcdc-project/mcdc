@@ -112,6 +112,9 @@ class Simulation(MCDCBase):
         "bank_census",
         "bank_source",
         "bank_future",
+        "version",
+        "git_commit",
+        "git_commit_time",
     ]
     _next_compile_ID: int = 1  # Non-Numba
     _next_sub_ID: dict[tuple[int, int], int]  # Non-Numba
@@ -220,7 +223,14 @@ class Simulation(MCDCBase):
     gpu_meta: GPUMeta
     source_seed: int
 
+    # Software identity recorded in the output
+    version: str  # Non-Numba
+    git_commit: str  # Non-Numba
+    git_commit_time: str  # Non-Numba
+
     def __init__(self, name: str = "") -> None:
+        from mcdc import __version__
+
         self.compiled = False
 
         self.name = name or "(Unnamed simulation)"
@@ -313,6 +323,11 @@ class Simulation(MCDCBase):
         self.gpu_mode = False
         self.gpu_meta = GPUMeta()
         self.source_seed = 0
+
+        # Software identity recorded in the output
+        self.version = __version__
+        self.git_commit = "unknown"
+        self.git_commit_time = "unknown"
 
     def _reset_model(self) -> None:
         # Registration state

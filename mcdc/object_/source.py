@@ -10,7 +10,6 @@ from typing import Annotated, Sequence
 
 from mcdc.constant import (
     PARTICLE_NEUTRON,
-    INF,
     PI,
 )
 from mcdc.object_.base import MCDCObject
@@ -19,7 +18,12 @@ from mcdc.object_.distribution import (
     DistributionMultiTable,
     DistributionTable,
 )
-from mcdc.object_.util import move_object, parse_particle_type, decode_particle_type
+from mcdc.object_.util import (
+    initialize_motion,
+    move_object,
+    parse_particle_type,
+    decode_particle_type,
+)
 from mcdc.print_ import print_error
 
 # ======================================================================================
@@ -275,7 +279,7 @@ class Source(MCDCObject):
     particle_type: int
     probability: float
 
-    # Movement
+    # Source motion
     moving: bool
     N_move: int
     N_move_grid: int
@@ -591,14 +595,8 @@ class Source(MCDCObject):
         except ValueError:
             print_error(rf"Unsupported particle types: {particle_type}")
 
-        # Moving source parameters
-        self.moving = False
-        self.N_move = 1
-        self.N_move_grid = 2
-        self.move_velocities = np.zeros((1, 3))
-        self.move_durations = np.array([INF])
-        self.move_time_grid = np.array([0.0, INF])
-        self.move_translations = np.zeros((2, 3))
+        # Initialize stationary source motion.
+        initialize_motion(self)
 
     def __repr__(self) -> str:
         text = super().__repr__()
@@ -641,38 +639,25 @@ class Source(MCDCObject):
         return text
 
     # ==================================================================================
-    # Source moving
+    # Source motion
     # ==================================================================================
 
     def move(self, velocities: ArrayLike, durations: ArrayLike) -> None:
-        """
-        Define piecewise-constant motion for the source.
-
-        The source moves through a sequence of constant-velocity segments. Each
-        segment is defined by a velocity vector and its duration. After the last
-        segment, a final static segment with zero velocity and infinite duration is
-        appended automatically so that the source position remains well-defined for
-        the remainder of the simulation.
+        """Define piecewise-constant translation of the source.
 
         Parameters
         ----------
         velocities : array_like of float, shape (N, 3)
             Velocity vector ``[vx, vy, vz]`` in cm/s for each motion segment.
         durations : array_like of float, shape (N,)
-            Duration of each motion segment in seconds. Must contain the same
-            number of entries as ``velocities``.
+            Duration of each motion segment in seconds, starting at simulation
+            time zero. Must contain the same number of entries as ``velocities``.
 
         Notes
         -----
-        This method
-
-        - enables source motion by setting ``moving=True``;
-        - constructs the internal time grid (``move_time_grid``);
-        - computes the cumulative translation at the end of each segment
-          (``move_translations``);
-        - appends a final static segment with zero velocity and infinite duration.
-
-        The resulting number of motion segments is ``len(durations) + 1``.
+        A final stationary segment is appended automatically for the remainder
+        of the simulation. The supplied velocities and durations are not modified.
+        Calling this method again replaces the previous motion schedule.
 
         Examples
         --------

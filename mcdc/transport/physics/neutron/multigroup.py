@@ -6,6 +6,7 @@ from numba import njit
 
 import mcdc.mcdc_get as mcdc_get
 import mcdc.numba_types as type_
+import mcdc.transport.geometry.motion as motion
 import mcdc.transport.particle as particle_module
 import mcdc.transport.particle_bank as particle_bank_module
 import mcdc.transport.rng as rng
@@ -413,6 +414,11 @@ def fission(particle_container, program, data):
             ):
                 continue
 
+            # Move the precursor from the fission time to the emission time.
+            motion.move_product(
+                particle_container_new, particle_container, simulation, data
+            )
+
             # Check if go to census or future bank
             hit_current_census = False
             hit_future_census = False
@@ -434,12 +440,19 @@ def fission(particle_container, program, data):
                 # Keep it if it is the last particle
                 if n == N - 1:
                     particle["alive"] = True
+                    particle["x"] = particle_new["x"]
+                    particle["y"] = particle_new["y"]
+                    particle["z"] = particle_new["z"]
                     particle["ux"] = particle_new["ux"]
                     particle["uy"] = particle_new["uy"]
                     particle["uz"] = particle_new["uz"]
                     particle["t"] = particle_new["t"]
                     particle["E"] = particle_new["E"]
                     particle["w"] = particle_new["w"]
+                    # Relocate the retained delayed child at its emission state.
+                    particle["cell_ID"] = -1
+                    particle["material_ID"] = -1
+                    particle["surface_ID"] = -1
                 else:
                     particle_bank_module.bank_active_particle(
                         particle_container_new, program

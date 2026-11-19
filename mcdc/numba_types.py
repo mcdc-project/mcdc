@@ -56,6 +56,17 @@ cell = into_dtype([
     ('fill_rotated', bool_),
     ('translation', float64, (3,)),
     ('rotation', float64, (3,)),
+    ('moving', bool_),
+    ('N_move', int64),
+    ('N_move_grid', int64),
+    ('move_velocities_offset', int64),
+    ('move_velocities_length', int64),
+    ('move_durations_offset', int64),
+    ('move_durations_length', int64),
+    ('move_time_grid_offset', int64),
+    ('move_time_grid_length', int64),
+    ('move_translations_offset', int64),
+    ('move_translations_length', int64),
     ('N_interaction_tally', int64),
     ('interaction_tally_IDs_offset', int64),
     ('N_tracklength_tally', int64),
@@ -708,6 +719,7 @@ proton_inelastic_scattering_reaction = into_dtype([
 interaction_data = into_dtype([
     ('energy_deposition', float64),
     ('incident_particle', particle_data),
+    ('cell_ID', int64),
 ])
 
 particle_bank = into_dtype([

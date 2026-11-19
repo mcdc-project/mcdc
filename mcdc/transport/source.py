@@ -2,8 +2,8 @@ from numba import njit
 
 ####
 
-from mcdc.constant import COINCIDENCE_TOLERANCE, COINCIDENCE_TOLERANCE_TIME
 import mcdc.mcdc_get as mcdc_get
+import mcdc.transport.geometry.motion as motion
 import mcdc.transport.rng as rng
 
 from mcdc.transport.distribution import (
@@ -158,31 +158,10 @@ def source_particle(particle_container, seed, simulation, data):
 
     # Motion translation
     if source["moving"]:
-        # Get moving interval index wrt the given time
-        time_grid = mcdc_get.source.move_time_grid_all(source, data)
-
-        tolerance = COINCIDENCE_TOLERANCE_TIME
-        go_lower = False
-        idx = find_bin_with_rules(t, time_grid, tolerance, go_lower)
-
-        # Coinciding cases
-        if abs(time_grid[idx + 1] - t) < COINCIDENCE_TOLERANCE:
-            idx += 1
-
-        # Source move translations
-        trans_0 = mcdc_get.source.move_translations_vector(idx, source, data)
-
-        # Source move velocities
-        V = mcdc_get.source.move_velocities_vector(idx, source, data)
-
-        # Source move time grid
-        time_0 = mcdc_get.source.move_time_grid(idx, source, data)
-
-        # Translate the particle
-        t_local = t - time_0
-        x += trans_0[0] + V[0] * t_local
-        y += trans_0[1] + V[1] * t_local
-        z += trans_0[2] + V[2] * t_local
+        dx, dy, dz = motion.get_translation(t, source, data)
+        x += dx
+        y += dy
+        z += dz
 
     # Make and return particle
     particle["x"] = x

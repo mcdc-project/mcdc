@@ -226,6 +226,7 @@ Post-processing
 ---------------
 
 MC/DC writes tally results and runtime information to HDF5.
+To identify the MC/DC version and Git commit that produced a result, see :ref:`Reading the output's version information <output-source-revision>`.
 The companion script reads the spatial grid, normalizes the flux and standard deviation by the mesh-bin widths, and plots the result:
 
 .. literalinclude:: ../../../../examples/slab_shielding/process-output.py

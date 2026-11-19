@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add `Cell.move_product(velocities, durations)` to move delayed-neutron precursors with their producing cells, from [@ilhamv]
 - Introduce documented, projectile-specific `mcdc-data` libraries and shared converters for neutron, photon, electron, and proton transport, with generalized data, interpolation, and distribution representations across preparation, loading, and sampling, from [@ilhamv], [@ethan-lame], [@hansenkyle], [@melekderman], [@nglaser3], and [@DouglasHouser]
 - Add photon-electron coupling: Compton, photoelectric, Auger, and pair-production electrons and positrons, and bremsstrahlung photons with energies sampled from the EPRDATA14 spectrum, are transported when the other species is active, from [@DouglasHouser]
 - Add 'mass_density', 'mass_fraction', and 'number_density' to Material.__init__, each of which allows mixing elements and nuclides, from [@hansenkyle]
@@ -27,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Add MC/DC-VVP project documentation with verification case narratives, published results, and VVP result-generation and publication steps in the release checklist, from [@ilhamv]
 - Add GPU-compatible functions for 3D cross products and vector normalization, from [@braxtoncuneo]
 - Add multiparticle support for weight windows, from [@nglaser3]
+- Record the short Git hash (`git_commit`) and committer timestamp (`git_commit_time`) as attributes on the `/version` dataset in HDF5 output, from [@ilhamv]
 
 ### Changed
 
