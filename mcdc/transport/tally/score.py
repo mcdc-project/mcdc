@@ -30,7 +30,7 @@ from mcdc.constant import (
 )
 from mcdc.transport.geometry.interface import check_cell
 from mcdc.transport.geometry.surface import get_normal_component
-from mcdc.transport.tally.filter import get_filter_indices
+from mcdc.transport.tally.filter import get_filter_indices, get_time_index
 
 # ======================================================================================
 # Surface-crossing
@@ -183,6 +183,7 @@ def interaction(interaction_data_container, tally, simulation, data):
 
 @njit
 def tracklength(particle_container, distance, tally, simulation, data):
+    """Score the track from its entry into the tally mesh and time window."""
     particle = particle_container[0]
     sub_ID = tally["sub_ID"]
     tracklength_tally = simulation["tracklength_tallies"][sub_ID]
@@ -219,27 +220,19 @@ def tracklength(particle_container, distance, tally, simulation, data):
     if t_final <= t_min or t > t_max - COINCIDENCE_TOLERANCE_TIME:
         return
 
-    # Get the appropriate time index if the filter starts in the future
-    if t < t_min + COINCIDENCE_TOLERANCE_TIME:
-        i_time = 0
+    # Skip the part of the track before the tally time window.
+    distance_start = max(0.0, (t_min - t) / ut)
 
     # ==============================
     # Mesh tally preparation [START]
-    #   - Get mesh bin indices
     #   - Return if it's outside mesh grid
+    #   - Update distance_start to skip the track portion before mesh entry
 
-    # Mesh axis indices
-    i_x, i_y, i_z = 0, 0, 0
     if tracklength_tally["mesh_filtered"]:
         mesh = simulation["meshes"][tracklength_tally["mesh_filter_ID"]]
 
-        # Mesh axis indices
-        i_x, i_y, i_z = mesh_module.get_indices(
-            particle_container, mesh, simulation, data
-        )
-
         # No score if particle does not cross the mesh bins
-        # Also get the appropriate index if needed
+        # Also update distance_start to skip the track portion before mesh entry
         x_min = mesh_module.get_x(0, mesh, simulation, data)
         x_max = mesh_module.get_x(mesh["Nx"], mesh, simulation, data)
         if ux > 0.0:
@@ -249,7 +242,7 @@ def tracklength(particle_container, distance, tally, simulation, data):
             ):
                 return
             if x < x_min + COINCIDENCE_TOLERANCE:
-                i_x = 0
+                distance_start = max(distance_start, (x_min - x) / ux)
         else:
             if (
                 x < x_min + COINCIDENCE_TOLERANCE
@@ -257,7 +250,7 @@ def tracklength(particle_container, distance, tally, simulation, data):
             ):
                 return
             if x > x_max - COINCIDENCE_TOLERANCE:
-                i_x = mesh["Nx"]
+                distance_start = max(distance_start, (x_max - x) / ux)
         #
         y_min = mesh_module.get_y(0, mesh, simulation, data)
         y_max = mesh_module.get_y(mesh["Ny"], mesh, simulation, data)
@@ -268,7 +261,7 @@ def tracklength(particle_container, distance, tally, simulation, data):
             ):
                 return
             if y < y_min + COINCIDENCE_TOLERANCE:
-                i_y = 0
+                distance_start = max(distance_start, (y_min - y) / uy)
         else:
             if (
                 y < y_min + COINCIDENCE_TOLERANCE
@@ -276,7 +269,7 @@ def tracklength(particle_container, distance, tally, simulation, data):
             ):
                 return
             if y > y_max - COINCIDENCE_TOLERANCE:
-                i_y = mesh["Ny"]
+                distance_start = max(distance_start, (y_max - y) / uy)
         #
         z_min = mesh_module.get_z(0, mesh, simulation, data)
         z_max = mesh_module.get_z(mesh["Nz"], mesh, simulation, data)
@@ -287,7 +280,7 @@ def tracklength(particle_container, distance, tally, simulation, data):
             ):
                 return
             if z < z_min + COINCIDENCE_TOLERANCE:
-                i_z = 0
+                distance_start = max(distance_start, (z_min - z) / uz)
         else:
             if (
                 z < z_min + COINCIDENCE_TOLERANCE
@@ -295,10 +288,44 @@ def tracklength(particle_container, distance, tally, simulation, data):
             ):
                 return
             if z > z_max - COINCIDENCE_TOLERANCE:
-                i_z = mesh["Nz"]
+                distance_start = max(distance_start, (z_max - z) / uz)
 
     # Mesh tally preparation [END]
     # ============================
+
+    # Locate the scoring entry.
+    if distance_start > 0.0:
+        particle["x"] = x + ux * distance_start
+        particle["y"] = y + uy * distance_start
+        particle["z"] = z + uz * distance_start
+        particle["t"] = t + ut * distance_start
+        i_time = get_time_index(particle_container, tally, data)
+
+    # Mesh bin indices at the scoring entry
+    i_x, i_y, i_z = 0, 0, 0
+    if tracklength_tally["mesh_filtered"]:
+        i_x, i_y, i_z = mesh_module.get_indices(
+            particle_container, mesh, simulation, data
+        )
+
+    # Restore the transport particle exactly and advance the scoring coordinates.
+    if distance_start > 0.0:
+        particle["x"] = x
+        particle["y"] = y
+        particle["z"] = z
+        particle["t"] = t
+        x += ux * distance_start
+        y += uy * distance_start
+        z += uz * distance_start
+        t += ut * distance_start
+        distance -= distance_start
+
+    if i_time == -1:
+        return
+    if tracklength_tally["mesh_filtered"] and not (
+        0 <= i_x < mesh["Nx"] and 0 <= i_y < mesh["Ny"] and 0 <= i_z < mesh["Nz"]
+    ):
+        return
 
     # Tally base index
     idx_base = (
@@ -334,8 +361,6 @@ def tracklength(particle_container, distance, tally, simulation, data):
 
         axis_crossed = AXIS_T
         if tracklength_tally["mesh_filtered"]:
-            mesh = simulation["meshes"][tracklength_tally["mesh_filter_ID"]]
-
             # x-direction
             if ux == 0.0:
                 dx = INF
@@ -425,7 +450,6 @@ def tracklength(particle_container, distance, tally, simulation, data):
             if i_time == tally["time_length"] - 1:
                 return
         elif tracklength_tally["mesh_filtered"]:
-            mesh = simulation["meshes"][tracklength_tally["mesh_filter_ID"]]
             if axis_crossed == AXIS_X:
                 if ux > 0.0:
                     i_x += 1
