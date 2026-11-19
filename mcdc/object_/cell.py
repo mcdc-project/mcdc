@@ -10,7 +10,7 @@ import numpy as np
 import sympy
 
 from numpy import float64
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 from operator import attrgetter
 from types import NoneType
 from typing import Annotated, Sequence
@@ -32,6 +32,7 @@ from mcdc.object_.base import MCDCObject
 from mcdc.object_.material import Material
 from mcdc.object_.tally import TallyInteraction, TallyTracklength
 from mcdc.object_.universe import Universe, Lattice
+from mcdc.object_.util import initialize_motion, move_object
 from mcdc.print_ import print_error
 
 # ======================================================================================
@@ -142,6 +143,9 @@ class Cell(MCDCObject):
     A cell region is commonly written as ``+left & -right``. Surface signs select
     half-spaces; intersections, unions, and complements may be combined freely.
 
+    Use :meth:`move_product` to prescribe translation of delayed-product
+    precursors within the cell. Configure bounding-surface motion separately.
+
     Examples
     --------
     Fill a slab between two z planes with a one-group material:
@@ -204,6 +208,15 @@ class Cell(MCDCObject):
     translation: Annotated[NDArray[float64], (3,)]
     rotation: Annotated[NDArray[float64], (3,)]
 
+    # Delayed-product motion
+    moving: bool
+    N_move: int
+    N_move_grid: int
+    move_velocities: Annotated[NDArray[float64], ("N_move", 3)]
+    move_durations: Annotated[NDArray[float64], ("N_move",)]
+    move_time_grid: Annotated[NDArray[float64], ("N_move_grid",)]
+    move_translations: Annotated[NDArray[float64], ("N_move_grid", 3)]
+
     # Attached tallies
     interaction_tallies: list[TallyInteraction]
     tracklength_tallies: list[TallyTracklength]
@@ -234,9 +247,40 @@ class Cell(MCDCObject):
             # Convert ritation
             self.rotation *= PI / 180.0
 
+        # Initialize stationary delayed-product motion.
+        initialize_motion(self)
+
         # Cell tallies
         self.interaction_tallies = []
         self.tracklength_tallies = []
+
+    # ==================================================================================
+    # Delayed-product motion
+    # ==================================================================================
+
+    def move_product(self, velocities: ArrayLike, durations: ArrayLike) -> None:
+        """Define piecewise-constant translation of delayed-product precursors.
+
+        Parameters
+        ----------
+        velocities : array_like of float, shape (N, 3)
+            Velocity vector ``[vx, vy, vz]`` in cm/s for each motion segment.
+        durations : array_like of float, shape (N,)
+            Duration of each motion segment in seconds, starting at simulation
+            time zero. Must contain the same number of entries as ``velocities``.
+
+        Notes
+        -----
+        A final stationary segment is appended automatically for the remainder
+        of the simulation. The supplied velocities and durations are not modified.
+        Calling this method again replaces the previous motion schedule.
+
+        This records precursor motion independently of the cell's bounding
+        surfaces. A delayed product born at time ``t_birth`` and emitted at
+        ``t_emit`` receives the displacement ``T(t_emit) - T(t_birth)``, where
+        ``T`` is the cumulative translation. Prompt products have no displacement.
+        """
+        move_object(self, velocities, durations)
 
     @property
     def surfaces(self) -> list[Surface]:

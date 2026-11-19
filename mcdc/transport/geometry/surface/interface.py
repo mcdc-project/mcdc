@@ -5,6 +5,7 @@ from numba import njit
 ####
 
 import mcdc.mcdc_get as mcdc_get
+import mcdc.transport.geometry.motion as motion
 import mcdc.transport.geometry.surface.plane_x as plane_x
 import mcdc.transport.geometry.surface.plane_y as plane_y
 import mcdc.transport.geometry.surface.plane_z as plane_z
@@ -26,7 +27,6 @@ import mcdc.transport.geometry.surface.torus as torus
 
 from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
-    COINCIDENCE_TOLERANCE_TIME,
     INF,
     SURFACE_PLANE_X,
     SURFACE_PLANE_Y,
@@ -47,7 +47,6 @@ from mcdc.constant import (
     SURFACE_TORUS_Z,
     SURFACE_TORUS,
 )
-from mcdc.transport.util import find_bin_with_rules
 
 
 @njit
@@ -83,7 +82,7 @@ def evaluate(particle_container, surface, data):
         x_original = particle["x"]
         y_original = particle["y"]
         z_original = particle["z"]
-        idx = _get_move_idx(particle["t"], surface, data)
+        idx = motion.get_move_idx(particle["t"], surface, data)
         _translate_particle_position(particle_container, surface, idx, data)
 
     if surface["linear"]:
@@ -151,7 +150,7 @@ def get_normal_component(particle_container, speed, surface, data):
         ux_original = particle["ux"]
         uy_original = particle["uy"]
         uz_original = particle["uz"]
-        idx = _get_move_idx(particle["t"], surface, data)
+        idx = motion.get_move_idx(particle["t"], surface, data)
         _translate_particle_position(particle_container, surface, idx, data)
         _translate_particle_direction(particle_container, speed, surface, idx, data)
 
@@ -337,7 +336,7 @@ def _get_distance_moving(particle_container, speed, surface, data):
     t_original = particle["t"]
 
     # Move interval index
-    idx = _get_move_idx(particle["t"], surface, data)
+    idx = motion.get_move_idx(particle["t"], surface, data)
 
     # Distance accumulator
     total_distance = 0.0
@@ -401,43 +400,13 @@ def _get_distance_moving(particle_container, speed, surface, data):
 
 
 @njit
-def _get_move_idx(t, surface, data):
-    """
-    Get moving interval index wrt the given time
-    """
-    time_grid = mcdc_get.surface.move_time_grid_all(surface, data)
-    tolerance = COINCIDENCE_TOLERANCE_TIME
-    go_lower = False
-    idx = find_bin_with_rules(t, time_grid, tolerance, go_lower)
-
-    # Coinciding cases
-    if abs(time_grid[idx + 1] - t) < COINCIDENCE_TOLERANCE:
-        idx += 1
-
-    return idx
-
-
-@njit
 def _translate_particle_position(particle_container, surface, idx, data):
-    """
-    Translate particle position wrt the given surface moving interval index
-    """
+    """Translate the particle into the surface's moving coordinate frame."""
     particle = particle_container[0]
-
-    # Surface move translations
-    trans_0 = mcdc_get.surface.move_translations_vector(idx, surface, data)
-
-    # Surface move velocities
-    V = mcdc_get.surface.move_velocities_vector(idx, surface, data)
-
-    # Surface move time grid
-    time_0 = mcdc_get.surface.move_time_grid(idx, surface, data)
-
-    # Translate the particle
-    t_local = particle["t"] - time_0
-    particle["x"] -= trans_0[0] + V[0] * t_local
-    particle["y"] -= trans_0[1] + V[1] * t_local
-    particle["z"] -= trans_0[2] + V[2] * t_local
+    dx, dy, dz = motion.get_translation(particle["t"], surface, data, idx)
+    particle["x"] -= dx
+    particle["y"] -= dy
+    particle["z"] -= dz
 
 
 @njit

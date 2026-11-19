@@ -12,7 +12,9 @@ simulation = mcdc.Simulation("Moving pellet")
 fuel = mcdc.Material.multigroup(
     capture=np.array([0.5]),
     fission=np.array([0.25]),
-    nu_p=np.array([1.5]),
+    nu_p=np.array([1.0]),
+    nu_d=np.array([[0.5]]),
+    decay_rate=np.array([1.0]),
     speed=np.array([200000.0]),
 )
 air = mcdc.Material.multigroup(
@@ -26,10 +28,11 @@ cylinder_z = mcdc.Surface.CylinderZ(center=[0.0, 0.0], radius=1.0)
 top_z = mcdc.Surface.PlaneZ(z=9.0)
 bot_z = mcdc.Surface.PlaneZ(z=6.0)
 
-# Move surfaces
-cylinder_z.move([[-0.5, 0.0, 0.0], [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0]], [2.0, 5.0, 1.0])
-top_z.move([[0.0, 0.0, -2.0], [0.0, 0.0, 4.0], [0.0, 0.0, -10.0]], [5.0, 2.0, 1.0])
-bot_z.move([[0.0, 0.0, -2.0], [0.0, 0.0, 4.0], [0.0, 0.0, -10.0]], [5.0, 2.0, 1.0])
+# Move the pellet surfaces with one shared translation schedule.
+velocities = [[-0.5, 0.0, -2.0], [1.0, 0.0, -2.0], [1.0, 0.0, 4.0], [-2.0, 0.0, -10.0]]
+durations = [2.0, 3.0, 2.0, 1.0]
+for surface in (cylinder_z, top_z, bot_z):
+    surface.move(velocities, durations)
 
 # Set container cell surfaces
 min_x = mcdc.Surface.PlaneX(x=-5.0, boundary_condition="vacuum")
@@ -42,6 +45,8 @@ max_z = mcdc.Surface.PlaneZ(z=10.0, boundary_condition="vacuum")
 # Make cells
 fuel_pellet_region = +bot_z & -top_z & -cylinder_z
 fuel_cell = mcdc.Cell(region=fuel_pellet_region, fill=fuel)
+# Delayed-neutron precursors follow the fuel until their sampled emission time.
+fuel_cell.move_product(velocities, durations)
 air_cell = mcdc.Cell(
     region=~fuel_pellet_region & +min_x & -max_x & +min_y & -max_y & +min_z & -max_z,
     fill=air,
