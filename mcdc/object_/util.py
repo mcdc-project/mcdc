@@ -1199,32 +1199,41 @@ ISOTOPIC_ABUNDANCE = {
 # ======================================================================================
 
 
-def move_object(object_, velocities, durations):
-    """Populate the shared piecewise-constant motion representation.
+def initialize_motion(object_):
+    """Initialize stationary motion for a surface, source, or cell's products."""
+    object_.moving = False
+    object_.N_move = 1
+    object_.N_move_grid = 2
+    object_.move_velocities = np.zeros((1, 3))
+    object_.move_durations = np.array([INF])
+    object_.move_time_grid = np.array([0.0, INF])
+    object_.move_translations = np.zeros((2, 3))
 
-    A zero-velocity segment of infinite duration is appended after the supplied
-    segments. The input lists are therefore mutated; array inputs are converted
-    to lists first.
+
+def move_object(object_, velocities, durations):
+    """Populate the shared piecewise-constant translation representation.
+
+    Segments start at simulation time zero. Store their velocities, durations,
+    time grid, and cumulative translations, followed by a stationary segment
+    for the remainder of the simulation. Inputs are copied before appending
+    that segment, so one schedule can be reused by multiple objects.
     """
 
+    # Normalize array-like inputs without modifying the caller's schedule.
+    move_velocities = np.asarray(velocities, dtype=float64).tolist()
+    move_durations = np.asarray(durations, dtype=float64).tolist()
+
     object_.moving = True
-    object_.N_move = len(durations) + 1
-    object_.N_move_grid = len(durations) + 2
+    object_.N_move = len(move_durations) + 1
+    object_.N_move_grid = len(move_durations) + 2
 
-    if isinstance(velocities, np.ndarray):
-        velocities = velocities.tolist()
-        durations = durations.tolist()
-
-    # Add the statics for the rest of the simulation
-    move_velocities = velocities
+    # Append stationary motion for the remainder of the simulation.
     move_velocities.append([0.0, 0.0, 0.0])
     object_.move_velocities = np.array(move_velocities)
-    #
-    move_durations = durations
     move_durations.append(INF)
     object_.move_durations = np.array(move_durations)
 
-    # Set time grid and translations
+    # Accumulate segment times and translations from simulation time zero.
     object_.move_time_grid = np.zeros(object_.N_move_grid)
     object_.move_translations = np.zeros((object_.N_move_grid, 3))
     for n in range(object_.N_move):

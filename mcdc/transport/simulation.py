@@ -493,6 +493,7 @@ def condensed_interactions(particle_container, distance, simulation, data):
 
     interaction_data_container = util.local_array(1, type_.interaction_data)
     interaction_data_container[0]["energy_deposition"] = 0.0
+    interaction_data_container[0]["cell_ID"] = particle["cell_ID"]
 
     # Preserve the state before condensed interactions for tally filters.
     particle_module.copy(
@@ -504,9 +505,7 @@ def condensed_interactions(particle_container, distance, simulation, data):
     )
 
     # Score the condensed contribution at the step endpoint.
-    score_interaction_tallies(
-        particle_container, interaction_data_container, simulation, data
-    )
+    score_interaction_tallies(interaction_data_container, simulation, data)
 
     # Deflection can turn the particle back into the incident region.
     if particle["alive"] and particle["surface_ID"] >= 0:
@@ -522,9 +521,11 @@ def condensed_interactions(particle_container, distance, simulation, data):
 def collision(particle_container, program, data):
     """Perform a discrete collision and score its interaction contribution."""
     simulation = util.access_simulation(program)
+    particle = particle_container[0]
 
     interaction_data_container = util.local_array(1, type_.interaction_data)
     interaction_data_container[0]["energy_deposition"] = 0.0
+    interaction_data_container[0]["cell_ID"] = particle["cell_ID"]
 
     # Preserve the incident state before the discrete collision.
     particle_module.copy(
@@ -533,9 +534,7 @@ def collision(particle_container, program, data):
 
     physics.collision(particle_container, interaction_data_container, program, data)
 
-    score_interaction_tallies(
-        particle_container, interaction_data_container, simulation, data
-    )
+    score_interaction_tallies(interaction_data_container, simulation, data)
 
 
 @njit
@@ -615,14 +614,12 @@ def score_tracklength_tallies(particle_container, distance, simulation, data):
 
 
 @njit
-def score_interaction_tallies(
-    particle_container, interaction_data_container, simulation, data
-):
-    """Score interaction contributions in the incident cell."""
-    particle = particle_container[0]
+def score_interaction_tallies(interaction_data_container, simulation, data):
+    """Score interaction contributions using the saved incident cell and state."""
+    interaction_data = interaction_data_container[0]
 
     if simulation["cycle_active"]:
-        cell = simulation["cells"][particle["cell_ID"]]
+        cell = simulation["cells"][interaction_data["cell_ID"]]
         for i in range(cell["N_interaction_tally"]):
             tally_ID = mcdc_get.cell.interaction_tally_IDs(i, cell, data)
             tally = simulation["tallies"][tally_ID]

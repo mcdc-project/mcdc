@@ -57,6 +57,7 @@ The discrete collision's incoming state includes the preceding condensed changes
 
 ``InteractionData.energy_deposition`` contains weighted deposited energy in eV.
 ``InteractionData.incident_particle`` supplies the tally filters, preserving energy, direction, and particle type even when physics changes or replaces the active particle.
+``InteractionData.cell_ID`` preserves the incident top-cell ID.
 For condensed interactions, the snapshot is taken after movement but before the condensed physics is applied: position and time are at the endpoint, while energy and direction precede the condensed changes.
 Assigning the condensed contribution to this endpoint assumes steps are small relative to the spatial, temporal, and energy scales resolved by the tally.
 

@@ -68,6 +68,110 @@ def surface_IDs_chunk(start, length, cell, data):
     return array_result(data[start:end])
 
 
+@array_return(nb.types.float64)
+def move_velocities_vector(index_1, cell, data):
+    offset = cell["move_velocities_offset"]
+    stride = 3
+    start = offset + index_1 * stride
+    end = start + stride
+    return array_result(data[start:end])
+
+
+@njit
+def move_velocities(index_1, index_2, cell, data):
+    offset = cell["move_velocities_offset"]
+    stride = 3
+    return data[offset + index_1 * stride + index_2]
+
+
+@array_return(nb.types.float64)
+def move_velocities_chunk(start, length, cell, data):
+    start += cell["move_velocities_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def move_durations(index, cell, data):
+    offset = cell["move_durations_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def move_durations_all(cell, data):
+    start = cell["move_durations_offset"]
+    size = cell["N_move"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def move_durations_last(cell, data):
+    start = cell["move_durations_offset"]
+    size = cell["N_move"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def move_durations_chunk(start, length, cell, data):
+    start += cell["move_durations_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@njit
+def move_time_grid(index, cell, data):
+    offset = cell["move_time_grid_offset"]
+    return data[offset + index]
+
+
+@array_return(nb.types.float64)
+def move_time_grid_all(cell, data):
+    start = cell["move_time_grid_offset"]
+    size = cell["N_move_grid"]
+    end = start + size
+    return array_result(data[start:end])
+
+
+@njit
+def move_time_grid_last(cell, data):
+    start = cell["move_time_grid_offset"]
+    size = cell["N_move_grid"]
+    end = start + size
+    return data[end - 1]
+
+
+@array_return(nb.types.float64)
+def move_time_grid_chunk(start, length, cell, data):
+    start += cell["move_time_grid_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
+@array_return(nb.types.float64)
+def move_translations_vector(index_1, cell, data):
+    offset = cell["move_translations_offset"]
+    stride = 3
+    start = offset + index_1 * stride
+    end = start + stride
+    return array_result(data[start:end])
+
+
+@njit
+def move_translations(index_1, index_2, cell, data):
+    offset = cell["move_translations_offset"]
+    stride = 3
+    return data[offset + index_1 * stride + index_2]
+
+
+@array_return(nb.types.float64)
+def move_translations_chunk(start, length, cell, data):
+    start += cell["move_translations_offset"]
+    end = start + length
+    return array_result(data[start:end])
+
+
 @njit
 def interaction_tally_IDs(index, cell, data):
     offset = cell["interaction_tally_IDs_offset"]
