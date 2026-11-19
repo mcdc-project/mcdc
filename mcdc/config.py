@@ -126,9 +126,10 @@ clear_cache = args.clear_cache
 # selected (newer Harmonize honors HARMONIZE_PLATFORM).
 #
 # Harmonize is optional, and older versions raise at import when no GPU backend is
-# installed. Either way, fall back to MC/DC's own detection.
+# installed. Either way, fall back to MC/DC's own detection. (`harmonize.config`
+# works with every Harmonize layout; `harmonize.python` is deprecated since 0.1.0.)
 try:
-    from harmonize.python import config as harmonize_config
+    from harmonize import config as harmonize_config
 
     ROCM_AVAILABLE = bool(harmonize_config.ROCM_AVAILABLE)
     CUDA_AVAILABLE = bool(harmonize_config.CUDA_AVAILABLE)
