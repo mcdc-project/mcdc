@@ -37,6 +37,9 @@ from mcdc.constant import (
     SUPPORTED_SCORES_SURFACE_CROSSING,
     SUPPORTED_SCORES_TRACKLENGTH,
     SUPPORTED_SCORES_INTERACTION,
+    SURFACE_PLANE_X,
+    SURFACE_PLANE_Y,
+    SURFACE_PLANE_Z,
     TALLY_SURFACE_CROSSING,
     TALLY_INTERACTION,
     TALLY_TRACKLENGTH,
@@ -70,7 +73,7 @@ class Tally(MCDCPolymorphic):
     cell : Cell, optional
         Cell filter.
     mesh : MeshBase, optional
-        Spatial mesh filter for track-length or interaction tallies.
+        Spatial mesh filter.
     mu : sequence of float, optional
         Polar-cosine bin boundaries.
     azi : sequence of float, optional
@@ -153,6 +156,18 @@ class Tally(MCDCPolymorphic):
 
     With both filters, the surface selects where crossings are scored, while the
     cell determines whether each crossing is incoming or outgoing.
+
+    A surface-crossing tally mesh is 2D in the plane of its ``PlaneX``,
+    ``PlaneY``, or ``PlaneZ`` surface filter: the plane's normal axis is
+    omitted. Bin the current leaving through the upper surface on an x-y mesh:
+
+    >>> face_mesh = mcdc.MeshUniform(x=(-1.0, 0.2, 10), y=(-1.0, 0.2, 10))
+    >>> upper_face_current = mcdc.Tally(
+    ...     surface=upper,
+    ...     cell=cell,
+    ...     mesh=face_mesh,
+    ...     scores=["current-out"],
+    ... )
 
     Score energy deposition with both cell and mesh filters:
 
@@ -248,7 +263,7 @@ class Tally(MCDCPolymorphic):
             if surface is None and cell is None:
                 print_error("Surface-crossing tally needs surface or cell filter.")
             if mesh is not None:
-                print_error("Surface-crossing tally does not support mesh filter.")
+                _check_surface_mesh(surface, mesh)
 
         if tally_type == TALLY_INTERACTION:
             if surface is not None:
@@ -447,6 +462,32 @@ class Tally(MCDCPolymorphic):
         return text
 
 
+def _check_surface_mesh(surface, mesh):
+    """Require a 2D mesh in the plane of a PlaneX, PlaneY, or PlaneZ surface filter."""
+    normal_axis = {SURFACE_PLANE_X: "x", SURFACE_PLANE_Y: "y", SURFACE_PLANE_Z: "z"}
+    if surface is None or surface.type not in normal_axis:
+        print_error(
+            "Surface-crossing tally mesh filter needs a PlaneX, PlaneY, or PlaneZ "
+            "surface filter."
+        )
+    axis = normal_axis[surface.type]
+
+    # The normal axis must be omitted: one bin spanning (-INF, INF)
+    if isinstance(mesh, MeshUniform):
+        start = getattr(mesh, f"{axis}0")
+        width = getattr(mesh, f"d{axis}")
+        N = getattr(mesh, f"N{axis}")
+        omitted = N == 1 and start <= -INF and start + width >= INF
+    else:
+        grid = getattr(mesh, axis)
+        omitted = len(grid) == 2 and grid[0] <= -INF and grid[-1] >= INF
+    if not omitted:
+        print_error(
+            f"Surface-crossing tally mesh on a Plane{axis.upper()} surface must "
+            f"omit the {axis} axis (2D in the plane)."
+        )
+
+
 def decode_score_type(type_, lower_case=False):
     """Return the display or input name for a packed tally-score code."""
 
@@ -488,7 +529,7 @@ class TallySurfaceCrossing(Tally):
     # MC/DC framework metadata
     label = "surface_crossing_tally"
     sub_type = TALLY_SURFACE_CROSSING
-    non_numba = ["surface", "cell"]
+    non_numba = ["surface", "cell", "mesh"]
 
     surface: Surface | NoneType  # Non-numba
     surface_filtered: bool
@@ -498,10 +539,21 @@ class TallySurfaceCrossing(Tally):
     cell_filtered: bool
     cell_filter_ID: int
 
+    mesh: MeshBase | NoneType  # Non-numba
+    mesh_filtered: bool
+    mesh_filter_type: int
+    mesh_filter_ID: int
+
+    # Mesh filter strides
+    mesh_stride_z: int
+    mesh_stride_y: int
+    mesh_stride_x: int
+
     def __init__(
         self,
         surface: Surface | NoneType = None,
         cell: Cell | NoneType = None,
+        mesh: MeshBase | NoneType = None,
         name: str = "",
         scores: list[str] = ["flux"],
         mu: Sequence[float] | NoneType = None,
@@ -511,6 +563,10 @@ class TallySurfaceCrossing(Tally):
         energy: Sequence[float] | str | NoneType = None,
         time: Sequence[float] | NoneType = None,
     ) -> None:
+        spatial_shape = None
+        if mesh is not None:
+            spatial_shape = (mesh.Nx, mesh.Ny, mesh.Nz)
+
         super().__init__(
             name,
             scores,
@@ -520,6 +576,7 @@ class TallySurfaceCrossing(Tally):
             particle_type=particle_type,
             energy=energy,
             time=time,
+            spatial_shape=spatial_shape,
         )
 
         # ==============================================================================
@@ -528,12 +585,19 @@ class TallySurfaceCrossing(Tally):
 
         self.surface = surface
         self.cell = cell
+        self.mesh = mesh
 
         # Default, no filter
         self.surface_filtered = False
         self.surface_filter_ID = -1
         self.cell_filtered = False
         self.cell_filter_ID = -1
+        self.mesh_filtered = False
+        self.mesh_filter_ID = -1
+        self.mesh_filter_type = -1
+        self.mesh_stride_z = -1
+        self.mesh_stride_y = -1
+        self.mesh_stride_x = -1
 
         # Set surface filter
         if surface:
@@ -550,6 +614,17 @@ class TallySurfaceCrossing(Tally):
             if not self.surface_filtered:
                 for boundary_surface in cell.surfaces:
                     boundary_surface.surface_crossing_tallies.append(self)
+
+        # Mesh filter
+        if mesh:
+            self.mesh_filtered = True
+            self.mesh_filter_type = mesh.sub_type
+
+            # Mesh strides
+            N_score = len(self.scores)
+            self.mesh_stride_z = N_score
+            self.mesh_stride_y = N_score * mesh.Nz
+            self.mesh_stride_x = N_score * mesh.Nz * mesh.Ny
 
     def _compile_into_simulation(self, simulation) -> bool:
         # Already compiled?
@@ -568,6 +643,12 @@ class TallySurfaceCrossing(Tally):
             cell._compile_into_simulation(simulation)
             self.cell_filter_ID = cell.ID
 
+        # Set mesh ID
+        mesh = self.mesh
+        if mesh:
+            mesh._compile_into_simulation(simulation)
+            self.mesh_filter_ID = mesh.ID
+
         return True
 
     def __repr__(self) -> str:
@@ -577,6 +658,8 @@ class TallySurfaceCrossing(Tally):
             text += f"  - Surface filter: {self.surface.name}\n"
         if isinstance(self.cell, Cell):
             text += f"  - Cell filter: {self.cell.name}\n"
+        if self.mesh:
+            text += f"  - Mesh: {self.mesh.name}\n"
         text += super()._phasespace_filter_text()
         text += f"  - Bin shape [mu, azi, energy, time, score]: {self.bin_shape} \n"
         return text
