@@ -118,6 +118,25 @@ def find_bin_with_rules(value, grid, epsilon, go_lower):
 
 
 @njit
+def searchsorted_right(grid, value):
+    """
+    Return the index of the first element of `grid` greater than `value`, or
+    len(grid) if there is none: np.searchsorted(grid, value, side="right")
+    for a sorted `grid`.
+
+    NumPy's version does not compile for AMD GPUs (Numba's HIP target).
+    """
+    low, high = 0, len(grid)
+    while low < high:
+        mid = (low + high) // 2
+        if value < grid[mid]:
+            high = mid
+        else:
+            low = mid + 1
+    return low
+
+
+@njit
 def find_bin(value, grid):
     tolerance = 0.0
     go_lower = True
