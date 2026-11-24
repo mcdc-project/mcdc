@@ -38,7 +38,9 @@ def _reduce(tally, simulation, data):
     """Normalize one tally's scores and sum them across MPI ranks."""
     N = tally["bin_length"]
     start = tally["bin_offset"]
-    end = start + N
+    if N == 0:
+        return
+    chunks = min(N, simulation["settings"]["tally_reduction_chunks"])
 
     # Normalize
     N_particle = simulation["settings"]["N_particle"]
@@ -48,20 +50,27 @@ def _reduce(tally, simulation, data):
     # MPI reduce
     master = simulation["mpi_master"]
     with objmode():
-        if config.target == "gpu" and config.gpu_state_storage != "separate":
-            # Receive into host memory before updating GPU-backed data.
-            buff = np.zeros(N)
-            MPI.COMM_WORLD.Reduce(data[start:end], buff, MPI.SUM, 0)
+        chunk_size, remainder = divmod(N, chunks)
+        gpu_backed = config.target == "gpu" and config.gpu_state_storage != "separate"
+        if gpu_backed:
+            # Reuse one chunk-sized host buffer for GPU-backed data.
+            buff = np.zeros(chunk_size + (remainder > 0))
 
-            if master:
-                data[start:end] = buff
-
-        else:
-            # Host-backed data can be reduced in place without a receive buffer.
-            if master:
-                MPI.COMM_WORLD.Reduce(MPI.IN_PLACE, data[start:end], MPI.SUM, 0)
+        offset = start
+        for chunk in range(chunks):
+            length = chunk_size + (chunk < remainder)
+            end = offset + length
+            scores = data[offset:end]
+            if gpu_backed:
+                received = buff[:length]
+                MPI.COMM_WORLD.Reduce(scores, received, MPI.SUM, 0)
+                if master:
+                    data[offset:end] = received
+            elif master:
+                MPI.COMM_WORLD.Reduce(MPI.IN_PLACE, scores, MPI.SUM, 0)
             else:
-                MPI.COMM_WORLD.Reduce(data[start:end], None, MPI.SUM, 0)
+                MPI.COMM_WORLD.Reduce(scores, None, MPI.SUM, 0)
+            offset = end
 
 
 @njit
