@@ -40,7 +40,9 @@ def _tally_scores(tally_obj, mcdc_struct, data):
     return data[start : start + tally_base["bin_length"]].reshape(tally_obj.bin_shape)
 
 
-def test_surface_mesh_bins_box_face_crossing(box, crossing_particle, prepare_simulation):
+def test_surface_mesh_bins_box_face_crossing(
+    box, crossing_particle, prepare_simulation
+):
     # x-min face of the box, binned in (y, z); the mesh omits x and covers z < 1
     x0 = box["surfaces"][0]
     mesh = mcdc.MeshUniform(y=(-2.0, 2.0, 2), z=(-3.0, 2.0, 2))
@@ -69,6 +71,57 @@ def test_surface_mesh_bins_box_face_crossing(box, crossing_particle, prepare_sim
     scores = _tally_scores(tally_obj, mcdc_struct, data)
     expected = np.zeros_like(scores)
     expected[0, 0, 0, 0, 0, 1, 1, 0] = 2.0
+    np.testing.assert_array_equal(scores, expected)
+
+
+def test_surface_mesh_cell_filter_on_shared_plane(
+    material_mg, crossing_particle, prepare_simulation
+):
+    # A cylinder and the annulus around it share their upper end cap, z = 1
+    cylinder_surface = mcdc.Surface.CylinderZ(center=[0.0, 0.0], radius=1.0)
+    bottom = mcdc.Surface.PlaneZ(z=0.0)
+    top = mcdc.Surface.PlaneZ(z=1.0)
+    cylinder = mcdc.Cell(region=-cylinder_surface & +bottom & -top, fill=material_mg)
+    annulus = mcdc.Cell(region=+cylinder_surface & +bottom & -top, fill=material_mg)
+    outside = mcdc.Cell(region=-bottom | +top, fill=material_mg)
+
+    # Nonuniform x-y mesh on the shared plane, extending beyond the cylinder cap
+    mesh = mcdc.MeshStructured(x=[-3.0, -1.0, 0.0, 0.5, 3.0], y=[-3.0, 0.0, 3.0])
+    plane_tally_obj = mcdc.Tally(surface=top, mesh=mesh, scores=["current-out"])
+    cylinder_tally_obj = mcdc.Tally(
+        surface=top, cell=cylinder, mesh=mesh, scores=["current-out"]
+    )
+    assert plane_tally_obj.bin_shape == [1, 1, 1, 1, 4, 2, 1, 1]
+
+    mcdc_container, data = prepare_simulation(
+        cells=[cylinder, annulus, outside],
+        tallies=[plane_tally_obj, cylinder_tally_obj],
+    )
+    mcdc_struct = mcdc_container[0]
+
+    # One outward crossing through the cylinder cap, one through the annulus
+    for cell, position in [(cylinder, (0.25, 0.5, 1.0)), (annulus, (-2.0, -1.0, 1.0))]:
+        _cross(
+            crossing_particle,
+            mcdc_struct,
+            data,
+            top,
+            cell,
+            position=position,
+            direction=(0.0, 0.0, 1.0),
+        )
+
+    # Without the cell filter, both crossings are scored
+    scores = _tally_scores(plane_tally_obj, mcdc_struct, data)
+    expected = np.zeros_like(scores)
+    expected[0, 0, 0, 0, 2, 1, 0, 0] = 2.0
+    expected[0, 0, 0, 0, 0, 0, 0, 0] = 2.0
+    np.testing.assert_array_equal(scores, expected)
+
+    # With cell=cylinder, only the crossing leaving the cylinder is scored
+    scores = _tally_scores(cylinder_tally_obj, mcdc_struct, data)
+    expected = np.zeros_like(scores)
+    expected[0, 0, 0, 0, 2, 1, 0, 0] = 2.0
     np.testing.assert_array_equal(scores, expected)
 
 

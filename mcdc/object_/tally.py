@@ -73,7 +73,8 @@ class Tally(MCDCPolymorphic):
     cell : Cell, optional
         Cell filter.
     mesh : MeshBase, optional
-        Spatial mesh filter.
+        Spatial mesh filter. For surface-crossing scores, the mesh is 2D in the
+        plane of a ``PlaneX``, ``PlaneY``, or ``PlaneZ`` surface filter.
     mu : sequence of float, optional
         Polar-cosine bin boundaries.
     azi : sequence of float, optional
@@ -159,15 +160,33 @@ class Tally(MCDCPolymorphic):
 
     A surface-crossing tally mesh is 2D in the plane of its ``PlaneX``,
     ``PlaneY``, or ``PlaneZ`` surface filter: the plane's normal axis is
-    omitted. Bin the current leaving through the upper surface on an x-y mesh:
+    omitted. Bin the current crossing the upper surface on an x-y mesh:
 
     >>> face_mesh = mcdc.MeshUniform(x=(-1.0, 0.2, 10), y=(-1.0, 0.2, 10))
+    >>> upper_plane_current = mcdc.Tally(
+    ...     surface=upper,
+    ...     mesh=face_mesh,
+    ...     scores=["current-in", "current-out"],
+    ... )
+
+    Each crossing is scored in the mesh bin where it hits the plane; crossings
+    outside the mesh are not scored. Without a cell filter, every crossing of the
+    plane inside the mesh is scored, and the surface normal determines whether it
+    is incoming or outgoing.
+
+    Add a cell filter to score only crossings that enter or leave that cell:
+
     >>> upper_face_current = mcdc.Tally(
     ...     surface=upper,
     ...     cell=cell,
     ...     mesh=face_mesh,
     ...     scores=["current-out"],
     ... )
+
+    Crossings of the plane outside the cell are then not scored, even where the
+    mesh covers them. Surface-crossing scores need the plane surface filter to
+    use a mesh; ``cell`` and ``mesh`` alone are supported for track-length and
+    interaction scores.
 
     Score energy deposition with both cell and mesh filters:
 
