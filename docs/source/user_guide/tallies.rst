@@ -137,6 +137,23 @@ Combining cell and surface filters restricts the tally to one surface while usin
        scores=["current-net", "current-in", "current-out"],
    )
 
+A mesh bins surface-crossing currents across a ``PlaneX``, ``PlaneY``, or ``PlaneZ`` surface filter.
+The mesh is 2D in the plane and omits the plane's normal axis:
+
+.. code-block:: python3
+
+   interface_mesh = mcdc.MeshUniform(x=(-5.0, 1.0, 10), y=(-5.0, 1.0, 10))
+   interface_current_map = mcdc.Tally(
+       name="interface_current_map",
+       surface=interface,
+       mesh=interface_mesh,
+       scores=["current-in", "current-out"],
+   )
+
+Each crossing is scored in the mesh bin where it hits the plane; crossings outside the mesh are not scored.
+Without a cell filter, the surface normal classifies crossings as incoming or outgoing.
+Adding ``cell=shield_cell`` instead scores only crossings that enter or leave the shield cell.
+
 Attach every requested tally in one call:
 
 .. code-block:: python3
@@ -147,6 +164,7 @@ Attach every requested tally in one call:
            interface_current,
            shield_cell_current,
            shield_interface_current,
+           interface_current_map,
        ]
    )
 
