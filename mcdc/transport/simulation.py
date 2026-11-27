@@ -179,6 +179,10 @@ def eigenvalue_simulation(simulation_container, data):
 
 @njit
 def source_loop(seed, simulation, data):
+    """
+    For GPU support, update source_loop in mcdc/code_factory/gpu/transport/simulation.py.
+    Its make_work callback in mcdc/code_factory/gpu/program_builder.py assigns source histories.
+    """
     # Progress bar indicator
     N_prog = 0
 
@@ -249,6 +253,10 @@ def generate_source_particle(work_start, idx_work, seed, program, data):
 
 @njit
 def exhaust_active_bank(simulation, data):
+    """
+    For GPU support, mirror active-bank scheduling changes in
+    mcdc/code_factory/gpu/transport/particle_bank.py (bank_active_particle).
+    """
     particle_container = util.local_array(1, type_.particle)
     particle = particle_container[0]
 
@@ -283,6 +291,10 @@ def source_closeout(simulation, idx_work, N_prog, data):
 
 @njit
 def particle_loop(particle_container, simulation, data):
+    """
+    For GPU support, update the step callback in mcdc/code_factory/gpu/program_builder.py
+    when changing what runs before the first step or when a particle takes another step.
+    """
     particle = particle_container[0]
 
     # Apply techniques

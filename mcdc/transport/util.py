@@ -259,6 +259,10 @@ def calculate_angles(particle_container, polar_reference):
 
 @njit
 def atomic_add(array, idx, value):
+    """
+    For GPU support, update the atomic_add implementation in
+    mcdc/code_factory/gpu/transport/util.py as well.
+    """
     result = array[idx]
     array[idx] += value
     return result
@@ -266,10 +270,18 @@ def atomic_add(array, idx, value):
 
 @njit
 def local_array(shape, dtype):
+    """
+    For GPU support, update the local_array implementation in
+    mcdc/code_factory/gpu/transport/util.py as well.
+    """
     return np.zeros(shape, dtype=dtype)
 
 
 def access_simulation(program):
+    """
+    For GPU support, update access_simulation_gpu_overload in
+    mcdc/code_factory/gpu/program_builder.py as well.
+    """
     return program
 
 

@@ -426,7 +426,10 @@ def _check_cell(particle_container, speed, cell, simulation, data):
 @njit
 def report_lost_particle(particle_container, simulation):
     """
-    Report lost particle and terminate it
+    Report lost particle and terminate it.
+
+    For GPU support, update report_lost_particle in
+    mcdc/code_factory/gpu/transport/geometry/interface.py as well.
     """
     particle = particle_container[0]
 

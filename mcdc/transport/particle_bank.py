@@ -58,6 +58,10 @@ def _bank_particle(particle_container, bank):
 
 @njit
 def bank_active_particle(particle_container, program):
+    """
+    For GPU support, update bank_active_particle in
+    mcdc/code_factory/gpu/transport/particle_bank.py as well.
+    """
     simulation = util.access_simulation(program)
     bank = simulation["bank_active"]
     _bank_particle(particle_container, bank)
@@ -85,6 +89,10 @@ def bank_source_particle(particle_container, simulation):
 
 @njit
 def pop_particle(particle_container, bank):
+    """
+    For GPU support, mirror changes to particle startup in bank_active_particle
+    in mcdc/code_factory/gpu/transport/particle_bank.py. Both call activate_particle.
+    """
     # Check if bank is empty
     if get_bank_size(bank) == 0:
         report_empty_bank(bank)
@@ -108,12 +116,20 @@ def activate_particle(particle_container):
 
 @njit
 def report_full_bank(bank):
+    """
+    For GPU support, update report_full_bank in
+    mcdc/code_factory/gpu/transport/particle_bank.py as well.
+    """
     with objmode():
         print_error("Particle %s bank is full." % bank["tag"])
 
 
 @njit
 def report_empty_bank(bank):
+    """
+    For GPU support, update report_empty_bank in
+    mcdc/code_factory/gpu/transport/particle_bank.py as well.
+    """
     with objmode():
         print_error("Attempting to get a particle from an empty %s bank." % bank["tag"])
 
