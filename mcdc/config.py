@@ -122,22 +122,34 @@ clear_cache = args.clear_cache
 # Flags for GPU platform availability
 # ======================================================================================
 
+# Harmonize builds the GPU program, so MC/DC must target the platform Harmonize
+# selected (newer Harmonize honors HARMONIZE_PLATFORM).
+#
+# Harmonize is optional, and older versions raise at import when no GPU backend is
+# installed. Either way, fall back to MC/DC's own detection. (`harmonize.config`
+# works with every Harmonize layout; `harmonize.python` is deprecated since 0.1.0.)
 try:
-    import numba.hip as hip
+    from harmonize import config as harmonize_config
 
-    ROCM_AVAILABLE = True
-except:
-    ROCM_AVAILABLE = False
-
-if not ROCM_AVAILABLE:
+    ROCM_AVAILABLE = bool(harmonize_config.ROCM_AVAILABLE)
+    CUDA_AVAILABLE = bool(harmonize_config.CUDA_AVAILABLE)
+except Exception:
     try:
-        import numba.cuda as cuda
+        import numba.hip as hip
 
-        CUDA_AVAILABLE = True
+        ROCM_AVAILABLE = True
     except:
+        ROCM_AVAILABLE = False
+
+    if not ROCM_AVAILABLE:
+        try:
+            import numba.cuda as cuda
+
+            CUDA_AVAILABLE = True
+        except:
+            CUDA_AVAILABLE = False
+    else:
         CUDA_AVAILABLE = False
-else:
-    CUDA_AVAILABLE = False
 
 
 # ======================================================================================

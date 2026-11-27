@@ -812,7 +812,7 @@ def _invert_spectrum_table(idx, xi, multi_table, simulation, data):
         return v1
 
     # PDF input is piecewise linear; invert the PDF segment exactly
-    interpolation = laws[np.searchsorted(boundaries, idx + 1, side="right")]
+    interpolation = laws[util.searchsorted_right(boundaries, idx + 1)]
     if interpolation == INTERPOLATION_LINEAR:
         p0 = pdf[idx]
         p1 = pdf[idx + 1]

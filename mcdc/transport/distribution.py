@@ -30,7 +30,12 @@ from mcdc.transport.data import (
     evaluate_data_clamped,
     get_table_interpolation_law,
 )
-from mcdc.transport.util import find_bin, integrate_segment, interpolate
+from mcdc.transport.util import (
+    find_bin,
+    integrate_segment,
+    interpolate,
+    searchsorted_right,
+)
 from mcdc.transport.linalg import make_direction_basis
 
 # ======================================================================================
@@ -366,7 +371,7 @@ def sample_multi_table(E, rng_state, multi_table, simulation, data):
 @njit
 def sample_discrete_index(xi, cmf, pmf):
     """Select a point mass from upper cumulative bounds, skipping zero masses."""
-    index = min(int(np.searchsorted(cmf, xi, side="right")), len(pmf) - 1)
+    index = min(searchsorted_right(cmf, xi), len(pmf) - 1)
     while index > 0 and pmf[index] == 0.0:
         index -= 1
     return index
@@ -560,12 +565,12 @@ def incident_table_interval(E, grid, laws, boundaries):
     evaluated on their right side, and exterior values use endpoint tables.
     """
     if E <= grid[0]:
-        index = int(np.searchsorted(grid, E, side="right")) - 1 if E == grid[0] else 0
+        index = searchsorted_right(grid, E) - 1 if E == grid[0] else 0
         return index, index, 0.0, False
     if E >= grid[-1]:
         index = len(grid) - 1
         return index, index, 0.0, False
-    low = int(np.searchsorted(grid, E, side="right")) - 1
+    low = searchsorted_right(grid, E) - 1
     high = low + 1
     law = INTERPOLATION_LINEAR
     if len(laws):
