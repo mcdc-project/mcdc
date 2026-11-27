@@ -205,7 +205,11 @@ def build_gpu_program(data_size):
     import harmonize
     import mcdc.numba_types as type_
     import mcdc.transport.util as util
-    from mcdc.transport.simulation import generate_source_particle, step_particle
+    from mcdc.transport.simulation import (
+        apply_techniques,
+        generate_source_particle,
+        step_particle,
+    )
 
     global access_simulation, alloc_state, free_state
 
@@ -263,12 +267,15 @@ def build_gpu_program(data_size):
         particle_container = util.local_array(1, type_.particle)
         particle_container[0] = particle_input
         particle = particle_container[0]
-        particle["alive"] = True
-        particle["material_ID"] = -1
-        particle["cell_ID"] = -1
-        particle["surface_ID"] = -1
-        particle["event"] = -1
-        particle["fresh"] = False
+
+        # Particles are activated when banked; apply techniques once before the
+        # first step, as the CPU particle loop does.
+        if particle["fresh"]:
+            particle["fresh"] = False
+            apply_techniques(particle_container, program, data)
+            if not particle["alive"]:
+                return
+
         step_particle(particle_container, program, data)
         if particle["alive"]:
             step_async(program, particle)

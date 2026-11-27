@@ -14,6 +14,36 @@ from mcdc.transport.simulation import source_closeout
 caching = config.caching
 
 
+# In separate storage, the device state only holds pointers to the device copies
+# of the simulation and data arena that MC/DC allocated. Copy whole buffers
+# between those and the host copies, rather than using harmonize's per-field
+# store_state/load_state, which only transfer the pointer slots.
+
+
+@njit(cache=False)
+def store_separate_state(simulation, data):
+    harmonize.memcpy_host_to_device(
+        gpu_module.cast_uintp_to_voidptr(simulation["gpu_meta"]["simulation_pointer"]),
+        simulation,
+    )
+    harmonize.memcpy_host_to_device(
+        gpu_module.cast_uintp_to_voidptr(simulation["gpu_meta"]["data_pointer"]),
+        data,
+    )
+
+
+@njit(cache=False)
+def load_separate_state(simulation, data):
+    harmonize.memcpy_device_to_host(
+        simulation,
+        gpu_module.cast_uintp_to_voidptr(simulation["gpu_meta"]["simulation_pointer"]),
+    )
+    harmonize.memcpy_device_to_host(
+        data,
+        gpu_module.cast_uintp_to_voidptr(simulation["gpu_meta"]["data_pointer"]),
+    )
+
+
 @njit(cache=False)
 def source_loop(seed, simulation, data):
     # For async execution
@@ -42,12 +72,7 @@ def source_loop(seed, simulation, data):
 
         # Store the global state to the GPU
         if settings["gpu_storage"] == GPU_STORAGE_SEPARATE:
-            gpu_module.store_state_device_simulation(
-                simulation["gpu_meta"]["state_pointer"], simulation
-            )
-            gpu_module.store_state_device_data(
-                simulation["gpu_meta"]["state_pointer"], data
-            )
+            store_separate_state(simulation, data)
 
         # Execute the program, and continue to do so until it is done
         block_count = gpu_module.BLOCK_COUNT
@@ -72,12 +97,7 @@ def source_loop(seed, simulation, data):
 
         # Recover the original program state
         if settings["gpu_storage"] == GPU_STORAGE_SEPARATE:
-            gpu_module.load_state_device_simulation(
-                simulation, simulation["gpu_meta"]["state_pointer"]
-            )
-            gpu_module.load_state_device_data(
-                data, simulation["gpu_meta"]["state_pointer"]
-            )
+            load_separate_state(simulation, data)
 
     simulation["mpi_work_size"] = full_work_size
 

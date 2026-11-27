@@ -238,7 +238,7 @@ def collision(particle_container, interaction_data_container, program, data):
                     particle_container,
                     interaction_data_container,
                     nuclide,
-                    simulation,
+                    program,
                     data,
                 )
 

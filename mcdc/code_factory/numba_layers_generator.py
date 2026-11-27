@@ -766,12 +766,18 @@ def set_object(
 # =============================================================================
 
 
+def gpu_allocation_byte_size(dtype, count):
+    itemsize = np.dtype(dtype).itemsize
+    return max(int(count), 1) * itemsize
+
+
 def create_data_array(size):
     if not config.target == "gpu":
         data = np.zeros(size, dtype=np.float64)
         return data, 0
     else:
-        return create_data_array_on_gpu(nb.types.float64, size, size * 16)
+        byte_size = gpu_allocation_byte_size(np.float64, size)
+        return create_data_array_on_gpu(nb.types.float64, size, byte_size)
 
 
 @njit
@@ -794,15 +800,16 @@ def create_simulation_container(dtype):
         simulation_container = np.zeros((1,), dtype=dtype)
         return simulation_container, 0
     else:
-        return create_simulation_container_on_gpu(dtype, dtype.itemsize)
+        byte_size = gpu_allocation_byte_size(dtype, 1)
+        return create_simulation_container_on_gpu(dtype, byte_size)
 
 
 @njit
-def create_simulation_container_on_gpu(dtype, size):
+def create_simulation_container_on_gpu(dtype, byte_size):
     if config.gpu_state_storage == "managed":
-        mcdc_ptr = gpu_builder.alloc_managed_bytes(size * 8)
+        mcdc_ptr = gpu_builder.alloc_managed_bytes(byte_size)
     else:
-        mcdc_ptr = gpu_builder.alloc_device_bytes(size * 8)
+        mcdc_ptr = gpu_builder.alloc_device_bytes(byte_size)
     mcdc_uint = cast_voidptr_to_uintp(mcdc_ptr)
 
     if config.gpu_state_storage == "separate":
