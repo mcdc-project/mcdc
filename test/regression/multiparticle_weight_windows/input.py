@@ -42,6 +42,7 @@ simulation.set_sources([nsource, esource])
 
 # Setting
 simulation.settings.N_particle = 4
+simulation.settings.N_batch = 2
 simulation.settings.active_bank_buffer = 1000
 
 # Mesh
